@@ -424,6 +424,14 @@ CONTAINS
             END DO
          END DO
       END DO
+      DO ikind = 1, nkinds
+          DO jkind = ikind, nkinds
+            any_deepmd = any_deepmd .OR. ANY(potparm%pot(ikind, jkind)%pot%type == deepmd_type)
+          END DO
+      END DO
+      ! DEEPMD
+      IF (any_deepmd) &
+         CALL deepmd_add_force_virial(fist_nonbond_env, f_nonbond, pv_nonbond)
 
       ! QUIP
       IF (use_virial) &
@@ -499,9 +507,6 @@ CONTAINS
          END DO Kind_Group_Loop1
       END DO
       DEALLOCATE (eam_kinds_index)
-      ! DEEPMD
-!      IF (any_deepmd) &
-         CALL deepmd_add_force_virial(fist_nonbond_env, f_nonbond, pv_nonbond)
 
       ! Special way of handling the tersoff potential..
       IF (any_tersoff) THEN
