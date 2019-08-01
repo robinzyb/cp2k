@@ -45,3 +45,12 @@ Additional directories created during build process:
 * `lib`: Libraries built during compilation
 * `obj`: Objects and other intermediate compilation-time files
 * `exe`: Where the executables will be located
+
+## A TEST VERSION FOR DEEPMD IMPLEMENTATION
+add the corresponding flag to arch file.
+compile as **sopt** version
+DFLAGS=   -D__DEEPMD -DHIGH_PREC
+CFLAGS=  -I'@DEEPMD_HEADER_FILE_PATH' -I'@TENSORFLOW_HEADER_FILE_PATH'
+CXXFLAGS = -I'@DEEPMD_HEADER_FILE_PATH' -I'@TENSORFLOW_HEADER_FILE_PATH' $(DFLAGS)
+LDFLAGS = -L'@DEEPMD_LIB_FILE_PATH' -L'@TENSORFLOW_LIB_FILE_PATH' -Wl,--no-as-needed -Wl,-rpath='@DEEPMD_LIB_FILE_PATH' -Wl,-rpath='@TENSORFLOW_LIB_FILE_PATH'
+LIBS = -ldeepmd_op -ldeepmd -ltensorflow_cc -ltensorflow_framework -lstdc++
