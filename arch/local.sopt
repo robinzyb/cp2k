@@ -1,0 +1,19 @@
+CC          = gcc
+CXX         = g++
+CPP         =
+AR          = ar -r
+FC          = gfortran
+LD          = gfortran
+#
+DFLAGS      =  -D__LIBXSMM  -D__LIBINT -D__LIBINT_MAX_AM=6 -D__LIBDERIV_MAX_AM1=5 -D__LIBXC -D__DEEPMD -DHIGH_PREC
+#
+WFLAGS      = -Werror=aliasing -Werror=ampersand -Werror=c-binding-type -Werror=intrinsic-shadow -Werror=intrinsics-std -Werror=line-truncation -Werror=tabs -Werror=realloc-lhs-all -Werror=target-lifetime -Werror=underflow -Werror=unused-but-set-variable -Werror=unused-variable -Werror=unused-dummy-argument -Werror=conversion -Werror=zerotrip -Werror=uninitialized -Wno-maybe-uninitialized -Wuse-without-only 
+#
+FCDEBFLAGS  = -ffree-form -std=f2003 -fimplicit-none -fcheck=mem -fbacktrace
+CFLAGS      = -march=native -fno-omit-frame-pointer -g  -O3 -funroll-loops -ffast-math $(PROFOPT)   -I'/home/chenglab/ybzhuang/cp2k-6.1/tools/toolchain/install/openblas-0.2.20/include' -I'/home/chenglab/ybzhuang/cp2k-6.1/tools/toolchain/install/libint-1.1.6/include' -I'/home/chenglab/ybzhuang/cp2k-6.1/tools/toolchain/install/libxc-4.0.3/include' -I'/home/chenglab/ybzhuang/cp2k-6.1/tools/toolchain/install/libxsmm-1.9.0/include' -I'/home/chenglab/DeepMD/deepmd_root/include/deepmd/' -I'/home/chenglab/DeepMD/tensorflow_root/include' $(DFLAGS)
+CXXFLAGS = -I'/home/chenglab/DeepMD/deepmd_root/include/deepmd/' -I'/home/chenglab/DeepMD/tensorflow_root/include' $(DFLAGS)
+FCFLAGS     = -march=native -fno-omit-frame-pointer -g  -O3 -funroll-loops -ffast-math $(PROFOPT)   -I'/home/chenglab/ybzhuang/cp2k-6.1/tools/toolchain/install/openblas-0.2.20/include' -I'/home/chenglab/ybzhuang/cp2k-6.1/tools/toolchain/install/libint-1.1.6/include' -I'/home/chenglab/ybzhuang/cp2k-6.1/tools/toolchain/install/libxc-4.0.3/include' -I'/home/chenglab/ybzhuang/cp2k-6.1/tools/toolchain/install/libxsmm-1.9.0/include' $(FCDEBFLAGS) $(WFLAGS) $(DFLAGS)
+#
+LDFLAGS     = $(FCFLAGS) -Wl,--enable-new-dtags  -L'/home/chenglab/ybzhuang/cp2k-6.1/tools/toolchain/install/openblas-0.2.20/lib' -Wl,-rpath='/home/chenglab/ybzhuang/cp2k-6.1/tools/toolchain/install/openblas-0.2.20/lib' -L'/home/chenglab/ybzhuang/cp2k-6.1/tools/toolchain/install/libint-1.1.6/lib' -Wl,-rpath='/home/chenglab/ybzhuang/cp2k-6.1/tools/toolchain/install/libint-1.1.6/lib' -L'/home/chenglab/ybzhuang/cp2k-6.1/tools/toolchain/install/libxc-4.0.3/lib' -Wl,-rpath='/home/chenglab/ybzhuang/cp2k-6.1/tools/toolchain/install/libxc-4.0.3/lib' -L'/home/chenglab/ybzhuang/cp2k-6.1/tools/toolchain/install/libxsmm-1.9.0/lib' -Wl,-rpath='/home/chenglab/ybzhuang/cp2k-6.1/tools/toolchain/install/libxsmm-1.9.0/lib' -L'/home/chenglab/DeepMD/deepmd_root/lib' -L'/home/chenglab/DeepMD/tensorflow_root/lib' -Wl,--no-as-needed -Wl,-rpath='/home/chenglab/DeepMD/deepmd_root/lib' -Wl,-rpath='/home/chenglab/DeepMD/tensorflow_root/lib'
+
+LIBS        = -lxsmmf -lxsmm -ldl -lpthread -lxcf03 -lxc -lderiv -lint -lopenblas -ldeepmd_op -ldeepmd -ltensorflow_cc -ltensorflow_framework -lstdc++  
