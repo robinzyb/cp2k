@@ -1,6 +1,6 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright (C) 2000 - 2018  CP2K developers group                                               !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -45,9 +45,10 @@ MODULE pair_potential_types
                                  tersoff_type = 11, &
                                  ftd_type = 12, &
                                  siepmann_type = 13, &
-                                 quip_type = 14
+                                 quip_type = 14, &
+                                 deepmd_type = 15
 
-   INTEGER, PUBLIC, PARAMETER, DIMENSION(15) :: list_pot = (/nn_type, &
+   INTEGER, PUBLIC, PARAMETER, DIMENSION(16) :: list_pot = (/nn_type, &
                                                              lj_type, &
                                                              lj_charmm_type, &
                                                              ft_type, &
@@ -61,7 +62,8 @@ MODULE pair_potential_types
                                                              tersoff_type, &
                                                              ftd_type, &
                                                              siepmann_type, &
-                                                             quip_type/)
+                                                             quip_type, &
+                                                             deepmd_type/)
    ! Shell model
    INTEGER, PUBLIC, PARAMETER :: nosh_nosh = 0, &
                                  nosh_sh = 1, &
@@ -93,6 +95,7 @@ MODULE pair_potential_types
              ipbv_pot_type, &
              eam_pot_type, &
              quip_pot_type, &
+             deepmd_pot_type, &
              tersoff_pot_type, &
              siepmann_pot_type
 
@@ -153,6 +156,12 @@ MODULE pair_potential_types
       REAL(KIND=dp), POINTER, DIMENSION(:)    :: rho, phi, frho, rhoval, rval
       REAL(KIND=dp), POINTER, DIMENSION(:)    :: rhop, phip, frhop
    END TYPE eam_pot_type
+
+! **************************************************************************************************
+   TYPE deepmd_pot_type
+      CHARACTER(LEN=default_path_length)     :: deepmd_file_name
+      INTEGER                                :: atom_deepmd_type
+   END TYPE deepmd_pot_type
 
 ! **************************************************************************************************
    TYPE quip_pot_type
@@ -240,6 +249,7 @@ MODULE pair_potential_types
       TYPE(goodwin_pot_type), POINTER :: goodwin
       TYPE(eam_pot_type), POINTER :: eam
       TYPE(quip_pot_type), POINTER :: quip
+      TYPE(deepmd_pot_type), POINTER :: deepmd
       TYPE(buck4ran_pot_type), POINTER :: buck4r
       TYPE(buckmorse_pot_type), POINTER :: buckmo
       TYPE(tersoff_pot_type), POINTER :: tersoff
@@ -346,6 +356,9 @@ CONTAINS
                    (SUM(ABS(pot1%set(i)%eam%phip-pot2%set(i)%eam%phip)) == 0.0_dp) .AND. &
                    (SUM(ABS(pot1%set(i)%eam%frhop-pot2%set(i)%eam%frhop)) == 0.0_dp)) mycompare = .TRUE.
             END IF
+         CASE (deepmd_type)
+            IF ((pot1%set(i)%deepmd%deepmd_file_name == pot2%set(i)%deepmd%deepmd_file_name) .AND. &
+                (pot1%set(i)%deepmd%atom_deepmd_type == pot2%set(i)%deepmd%atom_deepmd_type)) mycompare = .TRUE.
          CASE (quip_type)
             IF ((pot1%set(i)%quip%quip_file_name == pot2%set(i)%quip%quip_file_name) .AND. &
                 (pot1%set(i)%quip%init_args == pot2%set(i)%quip%init_args) .AND. &
@@ -438,6 +451,7 @@ CONTAINS
                   potparm%set(i)%goodwin, &
                   potparm%set(i)%eam, &
                   potparm%set(i)%quip, &
+                  potparm%set(i)%deepmd, &
                   potparm%set(i)%buck4r, &
                   potparm%set(i)%buckmo, &
                   potparm%set(i)%tersoff, &
@@ -481,6 +495,7 @@ CONTAINS
          CALL pair_potential_goodwin_clean(potparm%set(i)%goodwin)
          CALL pair_potential_eam_clean(potparm%set(i)%eam)
          CALL pair_potential_quip_clean(potparm%set(i)%quip)
+         CALL pair_potential_deepmd_clean(potparm%set(i)%deepmd)
          CALL pair_potential_buck4r_clean(potparm%set(i)%buck4r)
          CALL pair_potential_buckmo_clean(potparm%set(i)%buckmo)
          CALL pair_potential_bmhft_clean(potparm%set(i)%ft)
@@ -536,6 +551,7 @@ CONTAINS
          CALL pair_potential_goodwin_copy(potparm_source%set(i)%goodwin, potparm_dest%set(i)%goodwin)
          CALL pair_potential_eam_copy(potparm_source%set(i)%eam, potparm_dest%set(i)%eam)
          CALL pair_potential_quip_copy(potparm_source%set(i)%quip, potparm_dest%set(i)%quip)
+         CALL pair_potential_deepmd_copy(potparm_source%set(i)%deepmd, potparm_dest%set(i)%deepmd)
          CALL pair_potential_bmhft_copy(potparm_source%set(i)%ft, potparm_dest%set(i)%ft)
          CALL pair_potential_bmhftd_copy(potparm_source%set(i)%ftd, potparm_dest%set(i)%ftd)
          CALL pair_potential_ipbv_copy(potparm_source%set(i)%ipbv, potparm_dest%set(i)%ipbv)
@@ -584,6 +600,7 @@ CONTAINS
                     (ASSOCIATED(potparm_dest%set(1)%goodwin)) .OR. &
                     (ASSOCIATED(potparm_dest%set(1)%eam)) .OR. &
                     (ASSOCIATED(potparm_dest%set(1)%quip)) .OR. &
+                    (ASSOCIATED(potparm_dest%set(1)%deepmd)) .OR. &
                     (ASSOCIATED(potparm_dest%set(1)%ft)) .OR. &
                     (ASSOCIATED(potparm_dest%set(1)%ftd)) .OR. &
                     (ASSOCIATED(potparm_dest%set(1)%ipbv)) .OR. &
@@ -631,6 +648,7 @@ CONTAINS
             CALL pair_potential_goodwin_copy(potparm_tmp%set(i)%goodwin, potparm_dest%set(i)%goodwin)
             CALL pair_potential_eam_copy(potparm_tmp%set(i)%eam, potparm_dest%set(i)%eam)
             CALL pair_potential_quip_copy(potparm_tmp%set(i)%quip, potparm_dest%set(i)%quip)
+            CALL pair_potential_deepmd_copy(potparm_tmp%set(i)%deepmd, potparm_dest%set(i)%deepmd)
             CALL pair_potential_bmhft_copy(potparm_tmp%set(i)%ft, potparm_dest%set(i)%ft)
             CALL pair_potential_bmhftd_copy(potparm_tmp%set(i)%ftd, potparm_dest%set(i)%ftd)
             CALL pair_potential_ipbv_copy(potparm_tmp%set(i)%ipbv, potparm_dest%set(i)%ipbv)
@@ -662,6 +680,7 @@ CONTAINS
          CALL pair_potential_goodwin_copy(potparm_source%set(j)%goodwin, potparm_dest%set(i)%goodwin)
          CALL pair_potential_eam_copy(potparm_source%set(j)%eam, potparm_dest%set(i)%eam)
          CALL pair_potential_quip_copy(potparm_source%set(j)%quip, potparm_dest%set(i)%quip)
+         CALL pair_potential_deepmd_copy(potparm_source%set(j)%deepmd, potparm_dest%set(i)%deepmd)
          CALL pair_potential_bmhft_copy(potparm_source%set(j)%ft, potparm_dest%set(i)%ft)
          CALL pair_potential_bmhftd_copy(potparm_source%set(j)%ftd, potparm_dest%set(i)%ftd)
          CALL pair_potential_ipbv_copy(potparm_source%set(j)%ipbv, potparm_dest%set(i)%ipbv)
@@ -698,6 +717,7 @@ CONTAINS
          CALL pair_potential_goodwin_release(potparm%set(i)%goodwin)
          CALL pair_potential_eam_release(potparm%set(i)%eam)
          CALL pair_potential_quip_release(potparm%set(i)%quip)
+         CALL pair_potential_deepmd_release(potparm%set(i)%deepmd)
          CALL pair_potential_buck4r_release(potparm%set(i)%buck4r)
          CALL pair_potential_buckmo_release(potparm%set(i)%buckmo)
          CALL pair_potential_gp_release(potparm%set(i)%gp)
@@ -895,12 +915,12 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_reallocate(p, lb1_new, ub1_new, lj, lj_charmm, williams, &
                                         goodwin, eam, quip, bmhft, bmhftd, ipbv, buck4r, buckmo, gp, tersoff, &
-                                        siepmann)
+                                        siepmann, deepmd)
       TYPE(pair_potential_p_type), POINTER               :: p
       INTEGER, INTENT(IN)                                :: lb1_new, ub1_new
       LOGICAL, INTENT(IN), OPTIONAL                      :: lj, lj_charmm, williams, goodwin, eam, &
                                                             quip, bmhft, bmhftd, ipbv, buck4r, &
-                                                            buckmo, gp, tersoff, siepmann
+                                                            buckmo, gp, tersoff, siepmann, deepmd
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_reallocate', &
          routineP = moduleN//':'//routineN
@@ -909,7 +929,7 @@ CONTAINS
       LOGICAL                                            :: check, lbmhft, lbmhftd, lbuck4r, &
                                                             lbuckmo, leam, lgoodwin, lgp, lipbv, &
                                                             llj, llj_charmm, lquip, lsiepmann, &
-                                                            ltersoff, lwilliams
+                                                            ltersoff, lwilliams, ldeepmd
       TYPE(pair_potential_p_type), POINTER               :: work
 
       NULLIFY (work)
@@ -920,6 +940,7 @@ CONTAINS
       lgoodwin = .FALSE.; IF (PRESENT(goodwin)) lgoodwin = goodwin
       leam = .FALSE.; IF (PRESENT(eam)) leam = eam
       lquip = .FALSE.; IF (PRESENT(quip)) lquip = quip
+      ldeepmd = .FALSE.; IF (PRESENT(deepmd)) ldeepmd = deepmd
       lbmhft = .FALSE.; IF (PRESENT(bmhft)) lbmhft = bmhft
       lbmhftd = .FALSE.; IF (PRESENT(bmhftd)) lbmhftd = bmhftd
       lipbv = .FALSE.; IF (PRESENT(ipbv)) lipbv = ipbv
@@ -933,85 +954,92 @@ CONTAINS
          ipot = lj_type
          check = .NOT. (llj_charmm .OR. lwilliams .OR. lgoodwin .OR. leam .OR. lquip .OR. lbmhft &
                         .OR. lbmhftd .OR. lipbv .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff &
-                        .OR. lsiepmann)
+                        .OR. lsiepmann .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (llj_charmm) THEN
          ipot = lj_charmm_type
          check = .NOT. (llj .OR. lwilliams .OR. lgoodwin .OR. leam .OR. lquip .OR. lbmhft .OR. lbmhftd .OR. lipbv &
-                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann)
+                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (lwilliams) THEN
          ipot = wl_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. leam .OR. lquip .OR. lbmhft .OR. lbmhftd .OR. lipbv &
-                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann)
+                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (lgoodwin) THEN
          ipot = gw_type
          check = .NOT. (llj .OR. llj_charmm .OR. lwilliams .OR. leam .OR. lquip .OR. lbmhft .OR. lbmhftd .OR. lipbv &
-                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann)
+                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (leam) THEN
          ipot = ea_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. lwilliams .OR. lquip .OR. lbmhft .OR. lbmhftd .OR. lipbv &
-                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann)
+                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (lquip) THEN
          ipot = quip_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. lwilliams .OR. leam .OR. lbmhft .OR. lbmhftd .OR. lipbv &
-                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann)
+                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
          CPASSERT(check)
       END IF
+      IF (ldeepmd) THEN
+         ipot = deepmd_type
+         check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. lwilliams .OR. leam .OR. lbmhft .OR. lbmhftd .OR. lipbv &
+                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. lquip)
+         CPASSERT(check)
+      END IF
+
       IF (lbmhft) THEN
          ipot = ft_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. leam .OR. lquip .OR. lwilliams .OR. lbmhftd .OR. lipbv &
-                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann)
+                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (lbmhftd) THEN
          ipot = ftd_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. leam .OR. lquip .OR. lwilliams .OR. lbmhft .OR. lipbv &
-                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann)
+                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (lipbv) THEN
          ipot = ip_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. leam .OR. lquip .OR. lwilliams .OR. lbmhft .OR. lbmhftd &
-                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann)
+                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (lbuck4r) THEN
          ipot = b4_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. leam .OR. lquip .OR. lwilliams .OR. lbmhft .OR. lbmhftd &
-                        .OR. lipbv .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann)
+                        .OR. lipbv .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (lbuckmo) THEN
          ipot = bm_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. leam .OR. lquip .OR. lwilliams .OR. lbmhft .OR. lbmhftd &
-                        .OR. lipbv .OR. lbuck4r .OR. lgp .OR. ltersoff .OR. lsiepmann)
+                        .OR. lipbv .OR. lbuck4r .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (ltersoff) THEN
          ipot = tersoff_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. leam .OR. lquip .OR. lwilliams .OR. lbmhft .OR. lbmhftd &
-                        .OR. lipbv .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. lsiepmann)
+                        .OR. lipbv .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. lsiepmann .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (lsiepmann) THEN
          ipot = siepmann_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. leam .OR. lquip .OR. lwilliams .OR. lbmhft .OR. lbmhftd &
-                        .OR. lipbv .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff)
+                        .OR. lipbv .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (lgp) THEN
          ipot = gp_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. leam .OR. lwilliams .OR. lbmhft .OR. lbmhftd &
-                        .OR. lipbv .OR. lbuck4r .OR. lbuckmo .OR. ltersoff .OR. lsiepmann)
+                        .OR. lipbv .OR. lbuck4r .OR. lbuckmo .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
          CPASSERT(check)
       END IF
 
@@ -1053,6 +1081,8 @@ CONTAINS
             CALL pair_potential_eam_create(p%pot(i)%pot%set(std_dim)%eam)
          CASE (quip_type)
             CALL pair_potential_quip_create(p%pot(i)%pot%set(std_dim)%quip)
+         CASE (deepmd_type)
+            CALL pair_potential_deepmd_create(p%pot(i)%pot%set(std_dim)%deepmd)
          CASE (ft_type)
             CALL pair_potential_bmhft_create(p%pot(i)%pot%set(std_dim)%ft)
          CASE (ftd_type)
@@ -1510,6 +1540,75 @@ CONTAINS
          DEALLOCATE (eam)
       END IF
    END SUBROUTINE pair_potential_eam_release
+
+! **************************************************************************************************
+!> \brief Creates the DEEPMD potential type
+!> \param quip ...
+!> \author Teodoro Laino [teo] 11.2005
+! **************************************************************************************************
+   SUBROUTINE pair_potential_deepmd_create(deepmd)
+      TYPE(deepmd_pot_type), POINTER                       :: deepmd
+
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_deepmd_create', &
+         routineP = moduleN//':'//routineN
+
+      CPASSERT(.NOT. ASSOCIATED(deepmd))
+      ALLOCATE (deepmd)
+      deepmd%deepmd_file_name = ""
+      deepmd%atom_deepmd_type = 0
+      CALL pair_potential_deepmd_clean(deepmd)
+   END SUBROUTINE pair_potential_deepmd_create
+
+! **************************************************************************************************
+!> \brief Copy two DEEPMD potential type
+!> \param quip_source ...
+!> \param quip_dest ...
+!> \author Teodoro Laino [teo] 11.2005
+! **************************************************************************************************
+   SUBROUTINE pair_potential_deepmd_copy(deepmd_source, deepmd_dest)
+      TYPE(deepmd_pot_type), POINTER                       :: deepmd_source, deepmd_dest
+
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_deepmd_copy', &
+         routineP = moduleN//':'//routineN
+
+      IF (.NOT. ASSOCIATED(deepmd_source)) RETURN
+      IF (ASSOCIATED(deepmd_dest)) CALL pair_potential_deepmd_release(deepmd_dest)
+      CALL pair_potential_deepmd_create(deepmd_dest)
+      deepmd_dest%deepmd_file_name = deepmd_source%deepmd_file_name
+      deepmd_dest%atom_deepmd_type = deepmd_source%atom_deepmd_type
+   END SUBROUTINE pair_potential_deepmd_copy
+
+! **************************************************************************************************
+!> \brief CLEAN the DEEPMD potential type
+!> \param quip ...
+!> \author Teodoro Laino [teo] 11.2005
+! **************************************************************************************************
+   SUBROUTINE pair_potential_deepmd_clean(deepmd)
+      TYPE(deepmd_pot_type), POINTER                       :: deepmd
+
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_deepmd_clean', &
+         routineP = moduleN//':'//routineN
+
+      IF (.NOT. ASSOCIATED(deepmd)) RETURN
+      deepmd%deepmd_file_name = 'NULL'
+      deepmd%atom_deepmd_type = 0
+   END SUBROUTINE pair_potential_deepmd_clean
+
+! **************************************************************************************************
+!> \brief Destroys the DEEPMD potential type
+!> \param quip ...
+!> \author Teodoro Laino [teo] 11.2005
+! **************************************************************************************************
+   SUBROUTINE pair_potential_deepmd_release(deepmd)
+      TYPE(deepmd_pot_type), POINTER                       :: deepmd
+
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_deepmd_release', &
+         routineP = moduleN//':'//routineN
+
+      IF (ASSOCIATED(deepmd)) THEN
+         DEALLOCATE (deepmd)
+      END IF
+   END SUBROUTINE pair_potential_deepmd_release
 
 ! **************************************************************************************************
 !> \brief Creates the QUIP potential type

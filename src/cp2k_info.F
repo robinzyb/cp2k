@@ -1,6 +1,6 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright (C) 2000 - 2018  CP2K developers group                                               !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -35,8 +35,8 @@ MODULE cp2k_info
 #if defined(__RELEASE_VERSION)
    INTEGER, PARAMETER          :: id_cp2k_version = id_release_version ! (Uncomment for release     version)
 #else
-   INTEGER, PARAMETER          :: id_cp2k_version = id_development_version ! (Uncomment for development version)
-!  INTEGER, PARAMETER          :: id_cp2k_version = 2                      ! (Uncomment for branch      version)
+!  INTEGER, PARAMETER          :: id_cp2k_version = id_development_version ! (Uncomment for development version)
+   INTEGER, PARAMETER          :: id_cp2k_version = 2                      ! (Uncomment for branch      version)
 #endif
 
 #if defined(__COMPILE_REVISION)
@@ -45,7 +45,7 @@ MODULE cp2k_info
    CHARACTER(LEN=*), PARAMETER :: compile_revision = "unknown"
 #endif
 
-   CHARACTER(LEN=*), PARAMETER :: version_nr = "7.0"
+   CHARACTER(LEN=*), PARAMETER :: version_nr = "6.1"
    CHARACTER(LEN=*), PARAMETER :: cp2k_year = "2018"
    CHARACTER(LEN=*), PARAMETER :: cp2k_version = "CP2K version "//TRIM(version_nr)
    CHARACTER(LEN=*), PARAMETER :: cp2k_home = "https://www.cp2k.org/"
@@ -94,10 +94,8 @@ CONTAINS
       tmp_str = ""
       flags = TRIM(flags)//TRIM(tmp_str)
 
-#if defined(NDEBUG)
-      flags = TRIM(flags)//" ndebug"
-#endif
 !$    flags = TRIM(flags)//" omp"
+
 #if defined(__LIBINT)
       flags = TRIM(flags)//" libint"
 #endif
@@ -113,6 +111,9 @@ CONTAINS
 #if defined(__ELPA)
       CALL integer_to_string(__ELPA, tmp_str)
       flags = TRIM(flags)//" elpa="//TRIM(tmp_str)
+#if (__ELPA==201502) || (__ELPA==201505) || (__ELPA==201511) || (__ELPA==201605) || (__ELPA==201611) || (__ELPA==201705) || (__ELPA==201711)
+      flags = TRIM(flags)//" elpa_qr"
+#endif
 #endif
 #if defined(__parallel)
       flags = TRIM(flags)//" parallel"
@@ -125,9 +126,16 @@ CONTAINS
 #if defined(__SCALAPACK)
       flags = TRIM(flags)//" scalapack"
 #endif
+#if defined(__SCALAPACK2)
+      flags = TRIM(flags)//" scalapack2"
+#endif
 
 #if defined(__QUIP)
       flags = TRIM(flags)//" quip"
+#endif
+
+#if defined(__DEEPMD)
+      flags = TRIM(flags)//" deepmd"
 #endif
 
 #if defined(__ACC)
@@ -223,6 +231,9 @@ CONTAINS
 #if defined __HAS_NO_MPI_MOD
       flags = TRIM(flags)//" has_no_mpi_mod"
 #endif
+#if defined __HAS_NO_SHARED_GLIBC
+      flags = TRIM(flags)//" has_no_shared_glibc"
+#endif
 #if defined __LIBDERIV_MAX_AM1
       CALL integer_to_string(__LIBDERIV_MAX_AM1, tmp_str)
       flags = TRIM(flags)//" libderiv_max_am1="//TRIM(tmp_str)
@@ -243,9 +254,6 @@ CONTAINS
 #endif
 #if defined __NO_STATM_ACCESS
       flags = TRIM(flags)//" no_statm_access"
-#endif
-#if defined __MINGW
-      flags = TRIM(flags)//" mingw"
 #endif
 #if defined __PW_CUDA_NO_HOSTALLOC
       flags = TRIM(flags)//" pw_cuda_no_hostalloc"
@@ -274,15 +282,6 @@ CONTAINS
 #if defined __MKL
       flags = TRIM(flags)//" mkl"
 #endif
-#if defined __JSON
-      flags = TRIM(flags)//" json"
-#endif
-#if defined __SIRIUS
-      flags = TRIM(flags)//" sirius"
-#endif
-#if defined __CHECK_DIAG
-      flags = TRIM(flags)//" check_diag"
-#endif
 
    END FUNCTION cp2k_flags
 
@@ -300,7 +299,7 @@ CONTAINS
       WRITE (iunit, '(T2,A)') '!   Copyright (C) 2004, 2005, 2006, 2007  CP2K developers group               !'
       WRITE (iunit, '(T2,A)') '!   Copyright (C) 2008, 2009, 2010, 2011  CP2K developers group               !'
       WRITE (iunit, '(T2,A)') '!   Copyright (C) 2012, 2013, 2014, 2015  CP2K developers group               !'
-      WRITE (iunit, '(T2,A)') '!   Copyright (C) 2016, 2017, 2018        CP2K developers group               !'
+      WRITE (iunit, '(T2,A)') '!   Copyright (C) 2016                    CP2K developers group               !'
       WRITE (iunit, '(T2,A)') '!                                                                             !'
       WRITE (iunit, '(T2,A)') '!   This program is free software; you can redistribute it and/or modify      !'
       WRITE (iunit, '(T2,A)') '!   it under the terms of the GNU General Public License as published by      !'
@@ -349,7 +348,7 @@ CONTAINS
 !> \brief Writes the header for the restart file
 !> \param iunit ...
 !> \par History
-!>      01.2008 [created] - Split from write_restart
+!>      01.2008 [created] - Splitted from write_restart
 !> \author Teodoro Laino - University of Zurich - 01.2008
 ! **************************************************************************************************
    SUBROUTINE write_restart_header(iunit)
@@ -383,3 +382,4 @@ CONTAINS
    END SUBROUTINE write_restart_header
 
 END MODULE cp2k_info
+

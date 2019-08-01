@@ -1,6 +1,6 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright (C) 2000 - 2018  CP2K developers group                                               !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -28,6 +28,8 @@ MODULE manybody_potential
    USE manybody_eam,                    ONLY: get_force_eam
    USE manybody_quip,                   ONLY: quip_add_force_virial,&
                                               quip_energy_store_force_virial
+   USE manybody_deepmd,                 ONLY: deepmd_add_force_virial,&
+                                              deepmd_energy_store_force_virial
    USE manybody_siepmann,               ONLY: destroy_siepmann_arrays,&
                                               print_nr_ions_siepmann,&
                                               setup_siepmann_arrays,&
@@ -42,7 +44,7 @@ MODULE manybody_potential
    USE message_passing,                 ONLY: mp_sum
    USE pair_potential_types,            ONLY: &
         ea_type, eam_pot_type, pair_potential_pp_type, pair_potential_single_type, quip_type, &
-        siepmann_pot_type, siepmann_type, tersoff_pot_type, tersoff_type
+        siepmann_pot_type, siepmann_type, tersoff_pot_type, tersoff_type, deepmd_type
    USE particle_types,                  ONLY: particle_type
    USE util,                            ONLY: sort
 #include "./base/base_uses.f90"
@@ -90,9 +92,9 @@ CONTAINS
          nloc_size, npairs, nparticle, nparticle_local, nr_h3O, nr_o, nr_oh, nunique
       INTEGER, DIMENSION(:), POINTER                     :: glob_loc_list_a, work_list
       INTEGER, DIMENSION(:, :), POINTER                  :: glob_loc_list, list, sort_list
-      LOGICAL                                            :: any_quip, any_siepmann, any_tersoff
+      LOGICAL                                            :: any_quip, any_siepmann, any_tersoff, any_deepmd
       REAL(KIND=dp)                                      :: drij, embed, pot_loc, pot_quip, qr, &
-                                                            rab2_max, rij(3)
+                                                            rab2_max, rij(3), pot_deepmd
       REAL(KIND=dp), DIMENSION(3)                        :: cell_v, cvi
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: glob_cell_v
       REAL(KIND=dp), POINTER                             :: fembed(:)
@@ -110,6 +112,7 @@ CONTAINS
       any_tersoff = .FALSE.
       any_siepmann = .FALSE.
       any_quip = .FALSE.
+      any_deepmd = .FALSE.
       CALL timeset(routineN, handle)
       CALL fist_nonbond_env_get(fist_nonbond_env, r_last_update_pbc=r_last_update_pbc, &
                                 potparm=potparm, eam_data=eam_data)
@@ -153,6 +156,7 @@ CONTAINS
             pot => potparm%pot(ikind, jkind)%pot
             any_tersoff = any_tersoff .OR. ANY(pot%type == tersoff_type)
             any_quip = any_quip .OR. ANY(pot%type == quip_type)
+            any_deepmd = any_deepmd .OR. ANY(pot%type == deepmd_type)
             any_siepmann = any_siepmann .OR. ANY(pot%type == siepmann_type)
          END DO
       END DO
@@ -163,6 +167,13 @@ CONTAINS
                                              fist_nonbond_env, pot_quip, para_env)
          pot_manybody = pot_manybody+pot_quip
       ENDIF
+      ! DEEPMD
+      IF (any_deepmd) THEN
+         CALL deepmd_energy_store_force_virial(particle_set, cell, atomic_kind_set, potparm, &
+                                             fist_nonbond_env, pot_deepmd, para_env)
+         pot_manybody = pot_manybody+pot_deepmd
+      ENDIF
+
       ! TERSOFF
       IF (any_tersoff) THEN
          NULLIFY (glob_loc_list, glob_cell_v, glob_loc_list_a)
@@ -364,7 +375,8 @@ CONTAINS
       INTEGER, ALLOCATABLE, DIMENSION(:, :)              :: eam_kinds_index
       INTEGER, DIMENSION(:), POINTER                     :: glob_loc_list_a, work_list
       INTEGER, DIMENSION(:, :), POINTER                  :: glob_loc_list, list, sort_list
-      LOGICAL                                            :: any_quip, any_siepmann, any_tersoff
+      LOGICAL                                            :: any_quip, any_siepmann, &
+                                                            any_tersoff, any_deepmd
       REAL(KIND=dp) :: f_eam, fac, fr(3), ptens11, ptens12, ptens13, ptens21, ptens22, ptens23, &
          ptens31, ptens32, ptens33, rab(3), rab2, rab2_max, rtmp(3)
       REAL(KIND=dp), DIMENSION(3)                        :: cell_v, cvi
@@ -382,6 +394,7 @@ CONTAINS
       any_tersoff = .FALSE.
       any_quip = .FALSE.
       any_siepmann = .FALSE.
+      any_deepmd = .FALSE.
       CALL timeset(routineN, handle)
       NULLIFY (eam_a, eam_b, tersoff, siepmann)
 
@@ -434,6 +447,7 @@ CONTAINS
             CALL matvec_3x3(cell_v, cell%hmat, cvi)
             any_tersoff = any_tersoff .OR. ANY(pot%type == tersoff_type)
             any_siepmann = any_siepmann .OR. ANY(pot%type == siepmann_type)
+            any_deepmd = any_deepmd .OR. ANY(pot%type == deepmd_type)
             i = eam_kinds_index(ikind, jkind)
             IF (i == -1) CYCLE
             ! EAM
@@ -485,6 +499,9 @@ CONTAINS
          END DO Kind_Group_Loop1
       END DO
       DEALLOCATE (eam_kinds_index)
+      ! DEEPMD
+!      IF (any_deepmd) &
+         CALL deepmd_add_force_virial(fist_nonbond_env, f_nonbond, pv_nonbond)
 
       ! Special way of handling the tersoff potential..
       IF (any_tersoff) THEN
