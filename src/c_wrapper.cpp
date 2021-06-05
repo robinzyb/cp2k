@@ -1,5 +1,5 @@
 #include <iostream>
-#include "NNPInter.h"
+#include "DeepPot.h"
 #include "c_wrapper.h"
 
 struct NNP{
@@ -9,9 +9,9 @@ struct NNP{
 nnp *create_nnp(char *model)
 {
        nnp *n;
-       NNPInter *obj;
+       deepmd::DeepPot *obj;
        n = (typeof(n))malloc(sizeof(*n));
-       obj    = new NNPInter(model);
+       obj    = new deepmd::DeepPot(model);
        n->obj = obj;
  //      cout << "this means wrap successfully" <<endl;
        return n; 
@@ -32,12 +32,12 @@ void compute_nnp(nnp *n,
 		double *dbox) 
 {
         
-	NNPInter *obj;
+	deepmd::DeepPot *obj;
 	if (n==NULL)
 		return;
-	obj = static_cast<NNPInter *>(n->obj);
+	obj = static_cast<deepmd::DeepPot *>(n->obj);
 //covert array to vector
-        ENERGYTYPE ener = 0.0;
+        double ener = 0.0;
 	int vsize = *vecsize;
 	std::vector<double>  force_(vsize*3, 0.0); 
 	std::vector<double>  virial(9, 0.0); 
@@ -73,4 +73,3 @@ void compute_nnp(nnp *n,
 	}
 //	cout << "this means vector function wrap successfully" << endl;
 }
-
