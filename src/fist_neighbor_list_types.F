@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -66,9 +68,6 @@ CONTAINS
    SUBROUTINE fist_neighbor_deallocate(fist_neighbor)
       TYPE(fist_neighbor_type), POINTER                  :: fist_neighbor
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'fist_neighbor_deallocate', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
 
       IF (ASSOCIATED(fist_neighbor)) THEN
@@ -118,8 +117,7 @@ CONTAINS
       TYPE(fist_neighbor_type), POINTER                  :: fist_neighbor
       INTEGER, INTENT(IN)                                :: ncell(3)
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'fist_neighbor_init', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'fist_neighbor_init'
 
       INTEGER                                            :: handle, i, list_size, nlistmin
       TYPE(neighbor_kind_pairs_type), DIMENSION(:), &
@@ -131,7 +129,7 @@ CONTAINS
          NULLIFY (fist_neighbor%neighbor_kind_pairs)
       ENDIF
 
-      nlistmin = (2*MAXVAL(ncell)+1)**3
+      nlistmin = (2*MAXVAL(ncell) + 1)**3
       IF (ASSOCIATED(fist_neighbor%neighbor_kind_pairs)) THEN
          IF (SIZE(fist_neighbor%neighbor_kind_pairs) < nlistmin) THEN
             ALLOCATE (new_pairs(nlistmin))
@@ -167,7 +165,7 @@ CONTAINS
                   DEALLOCATE (fist_neighbor%neighbor_kind_pairs(i)%is_onfo)
                END IF
             ENDDO
-            DO i = SIZE(fist_neighbor%neighbor_kind_pairs)+1, nlistmin
+            DO i = SIZE(fist_neighbor%neighbor_kind_pairs) + 1, nlistmin
                ALLOCATE (new_pairs(i)%list(2, 0))
                ALLOCATE (new_pairs(i)%id_kind(0))
                NULLIFY (new_pairs(i)%ij_kind, &
@@ -238,8 +236,6 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: ei_scale14, vdw_scale14
       TYPE(exclusion_type), DIMENSION(:), OPTIONAL       :: exclusions
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'fist_neighbor_add', &
-         routineP = moduleN//':'//routineN
       REAL(KIND=dp), PARAMETER :: eps_default = EPSILON(0.0_dp)*1.0E4_dp
 
       INTEGER                                            :: new_npairs, npairs, nscale, old_npairs
@@ -265,7 +261,7 @@ CONTAINS
             ! subtracted. When they are not the same, rab corresponds to a non-local
             ! interaction and the exclusion lists do not apply.
             rabc = pbc(rab, cell)
-            IF ((ANY(ABS(rab-rabc) > eps_default))) THEN
+            IF ((ANY(ABS(rab - rabc) > eps_default))) THEN
                ex_ei = .FALSE.
                ex_vdw = .FALSE.
                is_onfo = .FALSE.
@@ -300,11 +296,11 @@ CONTAINS
          ! Allocate more memory for the scalings if necessary.
          nscale = neighbor_kind_pair%nscale
          IF (nscale == SIZE(neighbor_kind_pair%ei_scale)) THEN
-            CALL reallocate(neighbor_kind_pair%ei_scale, 1, INT(5+1.2*nscale))
-            CALL reallocate(neighbor_kind_pair%vdw_scale, 1, INT(5+1.2*nscale))
-            CALL reallocate(neighbor_kind_pair%is_onfo, 1, INT(5+1.2*nscale))
+            CALL reallocate(neighbor_kind_pair%ei_scale, 1, INT(5 + 1.2*nscale))
+            CALL reallocate(neighbor_kind_pair%vdw_scale, 1, INT(5 + 1.2*nscale))
+            CALL reallocate(neighbor_kind_pair%is_onfo, 1, INT(5 + 1.2*nscale))
          END IF
-         nscale = nscale+1
+         nscale = nscale + 1
          IF (ex_ei) THEN
             neighbor_kind_pair%ei_scale(nscale) = 0.0_dp
          ELSE IF (is_onfo) THEN
@@ -329,7 +325,7 @@ CONTAINS
       old_npairs = SIZE(neighbor_kind_pair%list, 2)
       IF (old_npairs == neighbor_kind_pair%npairs) THEN
          ! just a choice that will also grow for zero size arrays:
-         new_npairs = INT(5+1.2*old_npairs)
+         new_npairs = INT(5 + 1.2*old_npairs)
          ! Pair Atoms Info
          ALLOCATE (new_list(2, new_npairs))
          new_list(1:2, 1:old_npairs) = neighbor_kind_pair%list(1:2, 1:old_npairs)
@@ -343,7 +339,7 @@ CONTAINS
       ENDIF
 
       ! Store the pair ...
-      npairs = neighbor_kind_pair%npairs+1
+      npairs = neighbor_kind_pair%npairs + 1
       IF ((ex_ei .OR. ex_vdw .OR. is_onfo) .AND. (npairs > nscale)) THEN
          ! ... after the previous pair that had scaling factors.
          neighbor_kind_pair%list(1, npairs) = neighbor_kind_pair%list(1, nscale)

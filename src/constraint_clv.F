@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -79,8 +81,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:)                        :: imass
       REAL(KIND=dp), INTENT(INOUT)                       :: max_sigma
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'shake_colv_int', routineP = moduleN//':'//routineN
-
       TYPE(colvar_constraint_type), POINTER              :: colv_list(:)
       TYPE(fixd_constraint_type), DIMENSION(:), POINTER  :: fixd_list
       TYPE(local_colvar_constraint_type), POINTER        :: lcolv(:)
@@ -109,9 +109,6 @@ CONTAINS
       TYPE(molecule_type), POINTER                       :: molecule
       REAL(kind=dp), INTENT(in)                          :: dt
       TYPE(section_vals_type), POINTER                   :: motion_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'shake_update_colv_int', &
-         routineP = moduleN//':'//routineN
 
       TYPE(colvar_constraint_type), POINTER              :: colv_list(:)
       TYPE(molecule_kind_type), POINTER                  :: molecule_kind
@@ -290,8 +287,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:)                        :: imass
       REAL(KIND=dp), INTENT(INOUT)                       :: max_sigma
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'shake_colv_ext', routineP = moduleN//':'//routineN
-
       TYPE(colvar_constraint_type), POINTER              :: colv_list(:)
       TYPE(fixd_constraint_type), DIMENSION(:), POINTER  :: fixd_list
       TYPE(local_colvar_constraint_type), POINTER        :: lcolv(:)
@@ -318,9 +313,6 @@ CONTAINS
       TYPE(global_constraint_type), POINTER              :: gci
       REAL(kind=dp), INTENT(in)                          :: dt
       TYPE(section_vals_type), POINTER                   :: motion_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'shake_update_colv_ext', &
-         routineP = moduleN//':'//routineN
 
       TYPE(colvar_constraint_type), POINTER              :: colv_list(:)
 
@@ -494,8 +486,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:)                        :: imass
       REAL(KIND=dp), INTENT(INOUT)                       :: max_sigma
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'shake_colv_low', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iconst
       REAL(KIND=dp)                                      :: del_lam, dtby2, dtsqby2, fdotf_sum
 
@@ -524,7 +514,7 @@ CONTAINS
             fdotf_sum = eval_Jac_colvar(lcolv(iconst)%colvar, &
                                         lcolv(iconst)%colvar_old, imass=imass)
             del_lam = 2.0_dp*lcolv(iconst)%sigma/(dt*dt*fdotf_sum)
-            lcolv(iconst)%lambda = lcolv(iconst)%lambda+del_lam
+            lcolv(iconst)%lambda = lcolv(iconst)%lambda + del_lam
 
             ! Update positions
             CALL update_con_colv(pos, dtsqby2, lcolv(iconst), &
@@ -560,9 +550,6 @@ CONTAINS
       REAL(kind=dp), INTENT(in)                          :: dt
       TYPE(section_vals_type), POINTER                   :: motion_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'shake_update_colv_low', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iconst, irep, n_rep
       LOGICAL                                            :: do_update_colvar, explicit
       REAL(KIND=dp)                                      :: clv_target, limit, new_clv_target, value
@@ -579,7 +566,7 @@ CONTAINS
             IF (value /= 0.0_dp) THEN
                CALL section_vals_val_get(collective_sections, "TARGET", r_val=clv_target, &
                                          i_rep_section=irep)
-               new_clv_target = clv_target+value*dt
+               new_clv_target = clv_target + value*dt
                ! Check limits..
                CALL section_vals_val_get(collective_sections, "TARGET_LIMIT", explicit=explicit, &
                                          i_rep_section=irep)
@@ -674,7 +661,7 @@ CONTAINS
             fdotf_sum = eval_Jac_colvar(lcolv(iconst)%colvar_old, &
                                         lcolv(iconst)%colvar_old, imass=imass)
             del_lam = 2.0_dp*lcolv(iconst)%sigma/(dt*fdotf_sum)
-            lcolv(iconst)%lambda = lcolv(iconst)%lambda+del_lam
+            lcolv(iconst)%lambda = lcolv(iconst)%lambda + del_lam
 
             ! Update velocities
             CALL update_con_colv(vel, dtby2, lcolv(iconst), &
@@ -757,7 +744,7 @@ CONTAINS
                                         lcolv(iconst)%colvar_old, roll=.TRUE., rmat=r_shake, &
                                         imass=imass)
             del_lam = 2.0_dp*lcolv(iconst)%sigma/(dt*dt*fdotf_sum)
-            lcolv(iconst)%lambda = lcolv(iconst)%lambda+del_lam
+            lcolv(iconst)%lambda = lcolv(iconst)%lambda + del_lam
 
             ! Update positions
             CALL update_con_colv(pos, dtsqby2, lcolv(iconst), &
@@ -841,7 +828,7 @@ CONTAINS
                                         lcolv(iconst)%colvar_old, roll=.TRUE., &
                                         rmat=r_rattle, imass=imass)
             del_lam = 2.0_dp*lcolv(iconst)%sigma/(dt*fdotf_sum)
-            lcolv(iconst)%lambda = lcolv(iconst)%lambda+del_lam
+            lcolv(iconst)%lambda = lcolv(iconst)%lambda + del_lam
             ! Update velocities
             CALL update_con_colv(vel, dtby2, lcolv(iconst), &
                                  lambda=del_lam, &
@@ -881,9 +868,6 @@ CONTAINS
          OPTIONAL                                        :: rmat
       REAL(KIND=dp), DIMENSION(:)                        :: imass
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'update_con_colv', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iatm, ind
       LOGICAL                                            :: my_roll
       REAL(KIND=dp), DIMENSION(3)                        :: f_roll
@@ -904,7 +888,7 @@ CONTAINS
          ELSE
             f_roll = lcolv%colvar_old%dsdr(:, iatm)
          END IF
-         wrk(:, ind) = wrk(:, ind)-imass(ind)*fac*lambda*f_roll
+         wrk(:, ind) = wrk(:, ind) - imass(ind)*fac*lambda*f_roll
       END DO
    END SUBROUTINE update_con_colv
 
@@ -928,9 +912,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:)                        :: imass
       REAL(KIND=dp)                                      :: res
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'eval_Jac_colvar', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, iatom
       LOGICAL                                            :: my_roll
       REAL(KIND=dp), DIMENSION(3)                        :: tmp1, tmp2, tmp3
@@ -953,7 +934,7 @@ CONTAINS
          ELSE
             tmp2 = colvar_old%dsdr(1:3, i)
          END IF
-         res = res+DOT_PRODUCT(tmp1, tmp2)*imass(iatom)
+         res = res + DOT_PRODUCT(tmp1, tmp2)*imass(iatom)
       END DO
 
    END FUNCTION eval_Jac_colvar
@@ -981,9 +962,6 @@ CONTAINS
          POINTER                                         :: particles
       REAL(KIND=dp)                                      :: res
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'rattle_con_eval', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iatm, ind
       LOGICAL                                            :: my_roll
       REAL(KIND=dp)                                      :: tmp(3)
@@ -1005,12 +983,12 @@ CONTAINS
             pos = particles(ind)%r
             CALL matvec_3x3(f_roll, rmat, colvar%dsdr(:, iatm))
             CALL matvec_3x3(tmp, veps, pos)
-            v_roll = vel(:, ind)+tmp
+            v_roll = vel(:, ind) + tmp
          ELSE
             f_roll = colvar%dsdr(:, iatm)
             v_roll = vel(:, ind)
          END IF
-         res = res+DOT_PRODUCT(f_roll, v_roll)
+         res = res + DOT_PRODUCT(f_roll, v_roll)
       END DO
 
    END FUNCTION rattle_con_eval

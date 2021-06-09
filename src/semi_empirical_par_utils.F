@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -211,9 +213,6 @@ CONTAINS
       TYPE(semi_empirical_type), POINTER                 :: sep
       LOGICAL, INTENT(IN)                                :: extended_basis_set
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'valence_electrons', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: natorb, z
       LOGICAL                                            :: check, use_p_orbitals
       REAL(KIND=dp)                                      :: zeff
@@ -232,11 +231,11 @@ CONTAINS
       END SELECT
       ! Determine the number of atomic orbitals
       natorb = 0
-      IF (nqs(z) > 0) natorb = natorb+1
-      IF ((nqp(z) > 0) .OR. use_p_orbitals) natorb = natorb+3
-      IF (extended_basis_set .AND. element_has_d(sep)) natorb = natorb+5
-      IF (extended_basis_set .AND. element_has_f(sep)) natorb = natorb+7
-      ! Check and assignemnt
+      IF (nqs(z) > 0) natorb = natorb + 1
+      IF ((nqp(z) > 0) .OR. use_p_orbitals) natorb = natorb + 3
+      IF (extended_basis_set .AND. element_has_d(sep)) natorb = natorb + 5
+      IF (extended_basis_set .AND. element_has_f(sep)) natorb = natorb + 7
+      ! Check and assignment
       check = (natorb <= 4) .OR. (extended_basis_set)
       CPASSERT(check)
       sep%natorb = natorb
@@ -256,8 +255,6 @@ CONTAINS
       TYPE(semi_empirical_type), POINTER                 :: sep
       INTEGER, INTENT(IN)                                :: l
       INTEGER                                            :: n
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_se_basis', routineP = moduleN//':'//routineN
 
       IF (sep%z < 0 .OR. sep%z > nelem) THEN
          CPABORT("Invalid atomic number !")
@@ -292,9 +289,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE convert_param_to_cp2k(sep)
       TYPE(semi_empirical_type), POINTER                 :: sep
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'convert_param_to_cp2k', &
-         routineP = moduleN//':'//routineN
 
       sep%beta = sep%beta/evolt
       sep%uss = sep%uss/evolt
@@ -337,8 +331,6 @@ CONTAINS
       INTEGER                                            :: z
       TYPE(semi_empirical_type), POINTER                 :: sep
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'calpar', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iod, iop, ios, j, jmax, k, l
       REAL(KIND=dp) :: ad, am, aq, d1, d2, d3, dd, df, eisol, gdd1, gp2, gp2c, gpp, gppc, gqq, &
          gsp, gspc, gss, gssc, hpp, hpp1, hpp2, hsp, hsp1, hsp2, hspc, p, p4, q1, q2, q3, qf, qn, &
@@ -362,17 +354,17 @@ CONTAINS
       p = 2.0_dp
       p4 = p**4
       !  GSSC is the number of two-electron terms of type <SS|SS>
-      gssc = REAL(MAX(ios-1, 0), KIND=dp)
+      gssc = REAL(MAX(ios - 1, 0), KIND=dp)
       k = iop
       !  GSPC is the number of two-electron terms of type <SS|PP>
       gspc = REAL(ios*k, KIND=dp)
-      l = MIN(k, 6-k)
+      l = MIN(k, 6 - k)
       !  GP2C is the number of two-electron terms of type <PP|PP>
       !       plus 0.5 of the number of HPP integrals.
       !  (HPP is not used; instead it is replaced by 0.5(GPP-GP2))
-      gp2c = REAL((k*(k-1))/2, KIND=dp)+0.5_dp*REAL((l*(l-1))/2, KIND=dp)
+      gp2c = REAL((k*(k - 1))/2, KIND=dp) + 0.5_dp*REAL((l*(l - 1))/2, KIND=dp)
       !  GPPC is minus 0.5 times the number of HPP integrals.
-      gppc = -0.5_dp*REAL((l*(l-1))/2, KIND=dp)
+      gppc = -0.5_dp*REAL((l*(l - 1))/2, KIND=dp)
       !  HSPC is the number of two-electron terms of type <SP|SP>.
       !       (S and P must have the same spin.  In all cases, if
       !  P is non-zero, there are two S electrons)
@@ -380,44 +372,44 @@ CONTAINS
       !  Constraint the value of the STO exponent
       zp = MAX(0.3_dp, zp)
       !  Take into account constraints on the values of the integrals
-      hpp = 0.5_dp*(gpp-gp2)
+      hpp = 0.5_dp*(gpp - gp2)
       hpp = MAX(0.1_dp, hpp)
       hsp = MAX(1.E-7_dp, hsp)
 
       ! Evaluation of EISOL
-      eisol = uss*ios+upp*iop+udd*iod+gss*gssc+gpp*gppc+gsp*gspc+gp2*gp2c+hsp*hspc
+      eisol = uss*ios + upp*iop + udd*iod + gss*gssc + gpp*gppc + gsp*gspc + gp2*gp2c + hsp*hspc
 
       ! Principal quantum number
       qn = REAL(nqs(z), KIND=dp)
       CPASSERT(qn > 0)
 
       ! Charge separation evaluation
-      dd = (2.0_dp*qn+1)*(4.0_dp*zs*zp)**(qn+0.5_dp)/(zs+zp)**(2.0_dp*qn+2)/SQRT(3.0_dp)
-      qq = SQRT((4.0_dp*qn*qn+6.0_dp*qn+2.0_dp)/20.0_dp)/zp
+      dd = (2.0_dp*qn + 1)*(4.0_dp*zs*zp)**(qn + 0.5_dp)/(zs + zp)**(2.0_dp*qn + 2)/SQRT(3.0_dp)
+      qq = SQRT((4.0_dp*qn*qn + 6.0_dp*qn + 2.0_dp)/20.0_dp)/zp
 
       ! Calculation of the additive terms in atomic units
       jmax = 5
       gdd1 = (hsp/(evolt*dd**2))**(1.0_dp/3.0_dp)
       d1 = gdd1
-      d2 = gdd1+0.04_dp
+      d2 = gdd1 + 0.04_dp
       DO j = 1, jmax
-         df = d2-d1
-         hsp1 = 0.5_dp*d1-0.5_dp/SQRT(4.0_dp*dd**2+1.0_dp/d1**2)
-         hsp2 = 0.5_dp*d2-0.5_dp/SQRT(4.0_dp*dd**2+1.0_dp/d2**2)
-         IF (ABS(hsp2-hsp1) < EPSILON(0.0_dp)) EXIT
-         d3 = d1+df*(hsp/evolt-hsp1)/(hsp2-hsp1)
+         df = d2 - d1
+         hsp1 = 0.5_dp*d1 - 0.5_dp/SQRT(4.0_dp*dd**2 + 1.0_dp/d1**2)
+         hsp2 = 0.5_dp*d2 - 0.5_dp/SQRT(4.0_dp*dd**2 + 1.0_dp/d2**2)
+         IF (ABS(hsp2 - hsp1) < EPSILON(0.0_dp)) EXIT
+         d3 = d1 + df*(hsp/evolt - hsp1)/(hsp2 - hsp1)
          d1 = d2
          d2 = d3
       END DO
       gqq = (p4*hpp/(evolt*48.0_dp*qq**4))**0.2_dp
       q1 = gqq
-      q2 = gqq+0.04_dp
+      q2 = gqq + 0.04_dp
       DO j = 1, jmax
-         qf = q2-q1
-         hpp1 = 0.25_dp*q1-0.5_dp/SQRT(4.0_dp*qq**2+1.0_dp/q1**2)+0.25_dp/SQRT(8.0_dp*qq**2+1.0_dp/q1**2)
-         hpp2 = 0.25_dp*q2-0.5_dp/SQRT(4.0_dp*qq**2+1.0_dp/q2**2)+0.25_dp/SQRT(8.0_dp*qq**2+1.0_dp/q2**2)
-         IF (ABS(hpp2-hpp1) < EPSILON(0.0_dp)) EXIT
-         q3 = q1+qf*(hpp/evolt-hpp1)/(hpp2-hpp1)
+         qf = q2 - q1
+         hpp1 = 0.25_dp*q1 - 0.5_dp/SQRT(4.0_dp*qq**2 + 1.0_dp/q1**2) + 0.25_dp/SQRT(8.0_dp*qq**2 + 1.0_dp/q1**2)
+         hpp2 = 0.25_dp*q2 - 0.5_dp/SQRT(4.0_dp*qq**2 + 1.0_dp/q2**2) + 0.25_dp/SQRT(8.0_dp*qq**2 + 1.0_dp/q2**2)
+         IF (ABS(hpp2 - hpp1) < EPSILON(0.0_dp)) EXIT
+         q3 = q1 + qf*(hpp/evolt - hpp1)/(hpp2 - hpp1)
          q1 = q2
          q2 = q3
       END DO
@@ -453,8 +445,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE calpar_d(sep)
       TYPE(semi_empirical_type), POINTER                 :: sep
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'calpar_d', routineP = moduleN//':'//routineN
 
       REAL(KIND=dp), DIMENSION(6)                        :: amn
 
@@ -506,8 +496,6 @@ CONTAINS
       TYPE(semi_empirical_type), POINTER                 :: sep
       LOGICAL                                            :: res
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'element_has_d', routineP = moduleN//':'//routineN
-
       res = (nqd(sep%z) > 0 .AND. sep%sto_exponents(2) > EPSILON(0.0_dp))
    END FUNCTION element_has_d
 
@@ -522,8 +510,6 @@ CONTAINS
    FUNCTION element_has_f(sep) RESULT(res)
       TYPE(semi_empirical_type), POINTER                 :: sep
       LOGICAL                                            :: res
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'element_has_f', routineP = moduleN//':'//routineN
 
       res = (nqf(sep%z) > 0 .AND. sep%sto_exponents(3) > EPSILON(0.0_dp))
    END FUNCTION element_has_f
@@ -542,8 +528,6 @@ CONTAINS
    SUBROUTINE amn_l1(sep, amn)
       TYPE(semi_empirical_type), POINTER                 :: sep
       REAL(KIND=dp), DIMENSION(6), INTENT(OUT)           :: amn
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'amn_l1', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: nd, nsp
       REAL(KIND=dp)                                      :: z1, z2, z3
@@ -592,8 +576,6 @@ CONTAINS
       TYPE(semi_empirical_type), POINTER                 :: sep
       REAL(KIND=dp), DIMENSION(6, 0:2), INTENT(OUT)      :: amn
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'amn_l2', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: nd, nsp
       REAL(KIND=dp)                                      :: z1, z2, z3
 
@@ -636,8 +618,8 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: n1, n2, l
       REAL(KIND=dp)                                      :: amnl
 
-      amnl = fac(n1+n2+l)/SQRT(fac(2*n1)*fac(2*n2))*(2.0_dp*z1/(z1+z2))**n1* &
-             (2.0_dp*z2/(z1+z2))**n2*2.0_dp*SQRT(z1*z2)/(z1+z2)**(l+1)
+      amnl = fac(n1 + n2 + l)/SQRT(fac(2*n1)*fac(2*n2))*(2.0_dp*z1/(z1 + z2))**n1* &
+             (2.0_dp*z2/(z1 + z2))**n2*2.0_dp*SQRT(z1*z2)/(z1 + z2)**(l + 1)
 
    END FUNCTION amn_l_low
 
@@ -659,8 +641,6 @@ CONTAINS
       TYPE(semi_empirical_type), POINTER                 :: sep
       REAL(KIND=dp), DIMENSION(6), INTENT(IN)            :: amn
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'eval_cs_ko', routineP = moduleN//':'//routineN
-
       REAL(KIND=dp)                                      :: d, fg
 
 ! SS term
@@ -677,7 +657,7 @@ CONTAINS
          ! PP
          sep%ko(7) = sep%ko(1)
          d = SQRT(amn(3)*2.0_dp/5.0_dp)
-         fg = 0.5_dp*(sep%gpp-sep%gp2)
+         fg = 0.5_dp*(sep%gpp - sep%gp2)
          sep%cs(3) = d
          sep%ko(3) = ko_ij(2, d, fg)
          ! Terms involving d-orbitals
@@ -689,14 +669,14 @@ CONTAINS
             sep%ko(4) = ko_ij(2, d, fg)
             ! PD
             d = amn(5)/SQRT(5.0_dp)
-            fg = sep%onec2el(23)-1.8_dp*sep%onec2el(35)
+            fg = sep%onec2el(23) - 1.8_dp*sep%onec2el(35)
             sep%cs(5) = d
             sep%ko(5) = ko_ij(1, d, fg)
             ! DD
-            fg = 0.2_dp*(sep%onec2el(29)+2.0_dp*sep%onec2el(30)+2.0_dp*sep%onec2el(31))
+            fg = 0.2_dp*(sep%onec2el(29) + 2.0_dp*sep%onec2el(30) + 2.0_dp*sep%onec2el(31))
             sep%ko(8) = ko_ij(0, 1.0_dp, fg)
             d = SQRT(amn(6)*2.0_dp/7.0_dp)
-            fg = sep%onec2el(44)-(20.0_dp/35.0_dp)*sep%onec2el(52)
+            fg = sep%onec2el(44) - (20.0_dp/35.0_dp)*sep%onec2el(52)
             sep%cs(6) = d
             sep%ko(6) = ko_ij(2, d, fg)
          END IF
@@ -711,9 +691,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE eval_1c_2el_spd(sep)
       TYPE(semi_empirical_type), POINTER                 :: sep
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'eval_1c_2el_spd', &
-         routineP = moduleN//':'//routineN
 
       REAL(KIND=dp)                                      :: r016, r036, r066, r125, r155, r234, &
                                                             r236, r244, r246, r266, r355, r466, &
@@ -739,15 +716,15 @@ CONTAINS
          sep%onec2el(2) = 2.0_dp/(3.0_dp*s5)*r125
          sep%onec2el(3) = 1.0_dp/s15*r125
          sep%onec2el(4) = 2.0_dp/(5.0_dp*s5)*r234
-         sep%onec2el(5) = r036+4.0_dp/35.0_dp*r236
-         sep%onec2el(6) = r036+2.0_dp/35.0_dp*r236
-         sep%onec2el(7) = r036-4.0_dp/35.0_dp*r236
+         sep%onec2el(5) = r036 + 4.0_dp/35.0_dp*r236
+         sep%onec2el(6) = r036 + 2.0_dp/35.0_dp*r236
+         sep%onec2el(7) = r036 - 4.0_dp/35.0_dp*r236
          sep%onec2el(8) = -1.0_dp/(3.0_dp*s5)*r125
          sep%onec2el(9) = SQRT(3.0_dp/125.0_dp)*r234
          sep%onec2el(10) = s3/35.0_dp*r236
          sep%onec2el(11) = 3.0_dp/35.0_dp*r236
          sep%onec2el(12) = -1.0_dp/(5.0_dp*s5)*r234
-         sep%onec2el(13) = r036-2.0_dp/35.0_dp*r236
+         sep%onec2el(13) = r036 - 2.0_dp/35.0_dp*r236
          sep%onec2el(14) = -2.0_dp*s3/35.0_dp*r236
          sep%onec2el(15) = -sep%onec2el(3)
          sep%onec2el(16) = -sep%onec2el(11)
@@ -757,35 +734,35 @@ CONTAINS
          sep%onec2el(20) = 2.0_dp/(7.0_dp*s5)*r246
          sep%onec2el(21) = sep%onec2el(20)/2.0_dp
          sep%onec2el(22) = -sep%onec2el(20)
-         sep%onec2el(23) = 4.0_dp/15.0_dp*r155+27.0_dp/245.0_dp*r355
-         sep%onec2el(24) = 2.0_dp*s3/15.0_dp*r155-9.0_dp*s3/245.0_dp*r355
-         sep%onec2el(25) = 1.0_dp/15.0_dp*r155+18.0_dp/245.0_dp*r355
-         sep%onec2el(26) = -s3/15.0_dp*r155+12.0_dp*s3/245.0_dp*r355
-         sep%onec2el(27) = -s3/15.0_dp*r155-3.0_dp*s3/245.0_dp*r355
+         sep%onec2el(23) = 4.0_dp/15.0_dp*r155 + 27.0_dp/245.0_dp*r355
+         sep%onec2el(24) = 2.0_dp*s3/15.0_dp*r155 - 9.0_dp*s3/245.0_dp*r355
+         sep%onec2el(25) = 1.0_dp/15.0_dp*r155 + 18.0_dp/245.0_dp*r355
+         sep%onec2el(26) = -s3/15.0_dp*r155 + 12.0_dp*s3/245.0_dp*r355
+         sep%onec2el(27) = -s3/15.0_dp*r155 - 3.0_dp*s3/245.0_dp*r355
          sep%onec2el(28) = -sep%onec2el(27)
-         sep%onec2el(29) = r066+4.0_dp/49.0_dp*r266+4.0_dp/49.0_dp*r466
-         sep%onec2el(30) = r066+2.0_dp/49.0_dp*r266-24.0_dp/441.0_dp*r466
-         sep%onec2el(31) = r066-4.0_dp/49.0_dp*r266+6.0_dp/441.0_dp*r466
+         sep%onec2el(29) = r066 + 4.0_dp/49.0_dp*r266 + 4.0_dp/49.0_dp*r466
+         sep%onec2el(30) = r066 + 2.0_dp/49.0_dp*r266 - 24.0_dp/441.0_dp*r466
+         sep%onec2el(31) = r066 - 4.0_dp/49.0_dp*r266 + 6.0_dp/441.0_dp*r466
          sep%onec2el(32) = SQRT(3.0_dp/245.0_dp)*r246
-         sep%onec2el(33) = 1.0_dp/5.0_dp*r155+24.0_dp/245.0_dp*r355
-         sep%onec2el(34) = 1.0_dp/5.0_dp*r155-6.0_dp/245.0_dp*r355
+         sep%onec2el(33) = 1.0_dp/5.0_dp*r155 + 24.0_dp/245.0_dp*r355
+         sep%onec2el(34) = 1.0_dp/5.0_dp*r155 - 6.0_dp/245.0_dp*r355
          sep%onec2el(35) = 3.0_dp/49.0_dp*r355
-         sep%onec2el(36) = 1.0_dp/49.0_dp*r266+30.0_dp/441.0_dp*r466
-         sep%onec2el(37) = s3/49.0_dp*r266-5.0_dp*s3/441.0_dp*r466
-         sep%onec2el(38) = r066-2.0_dp/49.0_dp*r266-4.0_dp/441.0_dp*r466
-         sep%onec2el(39) = -2.0_dp*s3/49.0_dp*r266+10.0_dp*s3/441.0_dp*r466
+         sep%onec2el(36) = 1.0_dp/49.0_dp*r266 + 30.0_dp/441.0_dp*r466
+         sep%onec2el(37) = s3/49.0_dp*r266 - 5.0_dp*s3/441.0_dp*r466
+         sep%onec2el(38) = r066 - 2.0_dp/49.0_dp*r266 - 4.0_dp/441.0_dp*r466
+         sep%onec2el(39) = -2.0_dp*s3/49.0_dp*r266 + 10.0_dp*s3/441.0_dp*r466
          sep%onec2el(40) = -sep%onec2el(32)
          sep%onec2el(41) = -sep%onec2el(34)
          sep%onec2el(42) = -sep%onec2el(35)
          sep%onec2el(43) = -sep%onec2el(37)
-         sep%onec2el(44) = 3.0_dp/49.0_dp*r266+20.0_dp/441.0_dp*r466
+         sep%onec2el(44) = 3.0_dp/49.0_dp*r266 + 20.0_dp/441.0_dp*r466
          sep%onec2el(45) = -sep%onec2el(39)
-         sep%onec2el(46) = 1.0_dp/5.0_dp*r155-3.0_dp/35.0_dp*r355
+         sep%onec2el(46) = 1.0_dp/5.0_dp*r155 - 3.0_dp/35.0_dp*r355
          sep%onec2el(47) = -sep%onec2el(46)
-         sep%onec2el(48) = 4.0_dp/49.0_dp*r266+15.0_dp/441.0_dp*r466
-         sep%onec2el(49) = 3.0_dp/49.0_dp*r266-5.0_dp/147.0_dp*r466
+         sep%onec2el(48) = 4.0_dp/49.0_dp*r266 + 15.0_dp/441.0_dp*r466
+         sep%onec2el(49) = 3.0_dp/49.0_dp*r266 - 5.0_dp/147.0_dp*r466
          sep%onec2el(50) = -sep%onec2el(49)
-         sep%onec2el(51) = r066+4.0_dp/49.0_dp*r266-34.0_dp/441.0_dp*r466
+         sep%onec2el(51) = r066 + 4.0_dp/49.0_dp*r266 - 34.0_dp/441.0_dp*r466
          sep%onec2el(52) = 35.0_dp/441.0_dp*r466
          sep%f0dd = r066
          sep%f2dd = r266
@@ -822,8 +799,6 @@ CONTAINS
       TYPE(semi_empirical_type), POINTER                 :: sep
       REAL(KIND=dp), INTENT(out)                         :: r066, r266, r466, r016, r244, r036, &
                                                             r236, r155, r355, r125, r234, r246
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'sc_param', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: nd, ns
       REAL(KIND=dp)                                      :: ed, ep, es
@@ -879,8 +854,6 @@ CONTAINS
       REAL(KIND=dp), INTENT(in)                          :: ed
       REAL(KIND=dp)                                      :: res
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'sc_param_low', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, m, m1, m2, n, nab, ncd
       REAL(KIND=dp)                                      :: a2, aab, acd, ae, aea, aeb, aec, aed, c, &
                                                             e, eab, ecd, ff, s0, s1, s2, s3, tmp
@@ -893,35 +866,35 @@ CONTAINS
       aeb = LOG(eb)
       aec = LOG(ec)
       aed = LOG(ed)
-      nab = na+nb
-      ncd = nc+nd
-      ecd = ec+ed
-      eab = ea+eb
-      e = ecd+eab
-      n = nab+ncd
+      nab = na + nb
+      ncd = nc + nd
+      ecd = ec + ed
+      eab = ea + eb
+      e = ecd + eab
+      n = nab + ncd
       ae = LOG(e)
       a2 = LOG(2.0_dp)
       acd = LOG(ecd)
       aab = LOG(eab)
-      ff = fac(n-1)/SQRT(fac(2*na)*fac(2*nb)*fac(2*nc)*fac(2*nd))
-      tmp = na*aea+nb*aeb+nc*aec+nd*aed+0.5_dp*(aea+aeb+aec+aed)+a2*(n+2)-ae*n
+      ff = fac(n - 1)/SQRT(fac(2*na)*fac(2*nb)*fac(2*nc)*fac(2*nd))
+      tmp = na*aea + nb*aeb + nc*aec + nd*aed + 0.5_dp*(aea + aeb + aec + aed) + a2*(n + 2) - ae*n
       c = evolt*ff*EXP(tmp)
       s0 = 1.0_dp/e
       s1 = 0.0_dp
       s2 = 0.0_dp
-      m = ncd-k
+      m = ncd - k
       DO i = 1, m
          s0 = s0*e/ecd
-         s1 = s1+s0*(binomial(ncd-k-1, i-1)-binomial(ncd+k, i-1))/binomial(n-1, i-1)
+         s1 = s1 + s0*(binomial(ncd - k - 1, i - 1) - binomial(ncd + k, i - 1))/binomial(n - 1, i - 1)
       END DO
       m1 = m
-      m2 = ncd+k
+      m2 = ncd + k
       DO i = m1, m2
          s0 = s0*e/ecd
-         s2 = s2+s0*binomial(m2, i)/binomial(n-1, i)
+         s2 = s2 + s0*binomial(m2, i)/binomial(n - 1, i)
       END DO
-      s3 = EXP(ae*n-acd*(m2+1)-aab*(nab-k))/binomial(n-1, m2)
-      res = c*(s1-s2+s3)
+      s3 = EXP(ae*n - acd*(m2 + 1) - aab*(nab - k))/binomial(n - 1, m2)
+      res = c*(s1 - s2 + s3)
    END FUNCTION sc_param_low
 
 ! **************************************************************************************************
@@ -947,12 +920,10 @@ CONTAINS
       TYPE(semi_empirical_type), POINTER                 :: sep
       REAL(KIND=dp), INTENT(in)                          :: r016, r066, r244, r266, r466
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'eisol_corr', routineP = moduleN//':'//routineN
-
-      sep%eisol = sep%eisol+ir016(sep%z)*r016+ &
-                  ir066(sep%z)*r066- &
-                  ir244(sep%z)*r244/5.0_dp- &
-                  ir266(sep%z)*r266/49.0_dp- &
+      sep%eisol = sep%eisol + ir016(sep%z)*r016 + &
+                  ir066(sep%z)*r066 - &
+                  ir244(sep%z)*r244/5.0_dp - &
+                  ir266(sep%z)*r266/49.0_dp - &
                   ir466(sep%z)*r466/49.0_dp
    END SUBROUTINE eisol_corr
 
@@ -972,7 +943,6 @@ CONTAINS
       REAL(KIND=dp), INTENT(in)                          :: d, fg
       REAL(KIND=dp)                                      :: res
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ko_ij', routineP = moduleN//':'//routineN
       INTEGER, PARAMETER                                 :: niter = 100
       REAL(KIND=dp), PARAMETER                           :: epsil = 1.0E-08_dp, g1 = 0.382_dp, &
                                                             g2 = 0.618_dp
@@ -994,16 +964,16 @@ CONTAINS
       a1 = 0.1_dp
       a2 = 5.0_dp
       DO i = 1, niter
-         delta = a2-a1
+         delta = a2 - a1
          IF (delta < epsil) EXIT
-         y1 = a1+delta*g1
-         y2 = a1+delta*g2
+         y1 = a1 + delta*g1
+         y2 = a1 + delta*g2
          IF (l == 1) THEN
-            f1 = (ev4*(1/y1-1/SQRT(y1**2+dsq))-fg)**2
-            f2 = (ev4*(1/y2-1/SQRT(y2**2+dsq))-fg)**2
+            f1 = (ev4*(1/y1 - 1/SQRT(y1**2 + dsq)) - fg)**2
+            f2 = (ev4*(1/y2 - 1/SQRT(y2**2 + dsq)) - fg)**2
          ELSE IF (l == 2) THEN
-            f1 = (ev8*(1.0_dp/y1-2.0_dp/SQRT(y1**2+dsq*0.5_dp)+1.0_dp/SQRT(y1**2+dsq))-fg)**2
-            f2 = (ev8*(1/y2-2.0_dp/SQRT(y2**2+dsq*0.5_dp)+1.0_dp/SQRT(y2**2+dsq))-fg)**2
+            f1 = (ev8*(1.0_dp/y1 - 2.0_dp/SQRT(y1**2 + dsq*0.5_dp) + 1.0_dp/SQRT(y1**2 + dsq)) - fg)**2
+            f2 = (ev8*(1/y2 - 2.0_dp/SQRT(y2**2 + dsq*0.5_dp) + 1.0_dp/SQRT(y2**2 + dsq)) - fg)**2
          END IF
          IF (f1 < f2) THEN
             a2 = y2
@@ -1029,9 +999,6 @@ CONTAINS
    SUBROUTINE setup_1c_2el_int(sep)
       TYPE(semi_empirical_type), POINTER                 :: sep
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'setup_1c_2el_int', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, ij, ij0, ind, ip, ipx, ipy, ipz, &
                                                             isize, kl, natorb
       LOGICAL                                            :: defined
@@ -1041,7 +1008,7 @@ CONTAINS
                         gss=gss, gsp=gsp, gpp=gpp, gp2=gp2, hsp=hsp)
       CPASSERT(defined)
 
-      isize = natorb*(natorb+1)/2
+      isize = natorb*(natorb + 1)/2
       ALLOCATE (sep%w(isize, isize))
       ! Initialize array
       sep%w = 0.0_dp
@@ -1050,9 +1017,9 @@ CONTAINS
          ip = 1
          sep%w(ip, ip) = gss
          IF (natorb > 2) THEN
-            ipx = ip+2
-            ipy = ip+5
-            ipz = ip+9
+            ipx = ip + 2
+            ipy = ip + 5
+            ipz = ip + 9
             sep%w(ipx, ip) = gsp
             sep%w(ipy, ip) = gsp
             sep%w(ipz, ip) = gsp
@@ -1068,19 +1035,19 @@ CONTAINS
             sep%w(ipx, ipy) = gp2
             sep%w(ipx, ipz) = gp2
             sep%w(ipy, ipz) = gp2
-            sep%w(ip+1, ip+1) = hsp
-            sep%w(ip+3, ip+3) = hsp
-            sep%w(ip+6, ip+6) = hsp
-            sep%w(ip+4, ip+4) = 0.5_dp*(gpp-gp2)
-            sep%w(ip+7, ip+7) = 0.5_dp*(gpp-gp2)
-            sep%w(ip+8, ip+8) = 0.5_dp*(gpp-gp2)
+            sep%w(ip + 1, ip + 1) = hsp
+            sep%w(ip + 3, ip + 3) = hsp
+            sep%w(ip + 6, ip + 6) = hsp
+            sep%w(ip + 4, ip + 4) = 0.5_dp*(gpp - gp2)
+            sep%w(ip + 7, ip + 7) = 0.5_dp*(gpp - gp2)
+            sep%w(ip + 8, ip + 8) = 0.5_dp*(gpp - gp2)
             IF (sep%dorb) THEN
-               ij0 = ip-1
+               ij0 = ip - 1
                DO i = 1, 243
                   ij = int_ij(i)
                   kl = int_kl(i)
                   ind = int_onec2el(i)
-                  sep%w(ij+ij0, kl+ij0) = sep%onec2el(ind)/evolt
+                  sep%w(ij + ij0, kl + ij0) = sep%onec2el(ind)/evolt
                END DO
             END IF
          END IF

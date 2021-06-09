@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -73,9 +75,7 @@ MODULE xc_derivatives
                                               thomas_fermi_lda_eval,&
                                               thomas_fermi_lsd_eval
    USE xc_tpss,                         ONLY: tpss_lda_eval,&
-                                              tpss_lda_info,&
-                                              tpss_lsd_eval,&
-                                              tpss_lsd_info
+                                              tpss_lda_info
    USE xc_vwn,                          ONLY: vwn_lda_eval,&
                                               vwn_lda_info,&
                                               vwn_lsd_eval
@@ -141,18 +141,17 @@ CONTAINS
 !> \param needs the flags corresponding to the inputs needed by this
 !>        functional are set to true (the flags not needed aren't touched)
 !> \param max_deriv the maximal derivative available
+!> \param print_warn whether to print warnings (mainly relevant for libxc)
 !> \author fawzi
 ! **************************************************************************************************
    SUBROUTINE xc_functional_get_info(functional, lsd, reference, shortform, &
-                                     needs, max_deriv)
+                                     needs, max_deriv, print_warn)
       TYPE(section_vals_type), POINTER                   :: functional
       LOGICAL, INTENT(in)                                :: lsd
       CHARACTER(LEN=*), INTENT(OUT), OPTIONAL            :: reference, shortform
       TYPE(xc_rho_cflags_type), INTENT(inout), OPTIONAL  :: needs
       INTEGER, INTENT(out), OPTIONAL                     :: max_deriv
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'xc_functional_get_info', &
-         routineP = moduleN//':'//routineN
+      LOGICAL, INTENT(IN), OPTIONAL                      :: print_warn
 
       INTEGER                                            :: i_param
       REAL(kind=dp)                                      :: r_param
@@ -229,9 +228,9 @@ CONTAINS
          ENDIF
       CASE ("LIBXC", "KE_LIBXC")
          IF (lsd) THEN
-            CALL libxc_lsd_info(functional, reference, shortform, needs, max_deriv)
+            CALL libxc_lsd_info(functional, reference, shortform, needs, max_deriv, print_warn)
          ELSE
-            CALL libxc_lda_info(functional, reference, shortform, needs, max_deriv)
+            CALL libxc_lda_info(functional, reference, shortform, needs, max_deriv, print_warn)
          ENDIF
       CASE ("CS1")
          IF (lsd) THEN
@@ -278,7 +277,7 @@ CONTAINS
                           xa_parameter=r_param)
       CASE ("TPSS")
          IF (lsd) THEN
-            CALL tpss_lsd_info(functional, reference, shortform, needs, max_deriv)
+            CPABORT("TPSS functional not implemented with LSD. Use the LIBXC version instead.")
          ELSE
             CALL tpss_lda_info(functional, reference, shortform, needs, max_deriv)
          END IF
@@ -319,7 +318,12 @@ CONTAINS
             CALL xbr_pbe_lda_hole_tc_lr_lda_info(reference, shortform, needs, max_deriv)
          END IF
       CASE default
-         CPABORT("unknown functional '"//TRIM(functional%section%name)//"'")
+         ! If the functional has not been implemented internally, it's from LibXC
+         IF (lsd) THEN
+            CALL libxc_lsd_info(functional, reference, shortform, needs, max_deriv, print_warn)
+         ELSE
+            CALL libxc_lda_info(functional, reference, shortform, needs, max_deriv, print_warn)
+         ENDIF
       END SELECT
    END SUBROUTINE xc_functional_get_info
 
@@ -332,7 +336,7 @@ CONTAINS
 !>        xc_functional_get_info)
 !> \param deriv_set place where to store the functional derivatives (they are
 !>        added to the derivatives)
-!> \param deriv_order degree of the derivative that should be evalated,
+!> \param deriv_order degree of the derivative that should be evaluated,
 !>        if positive all the derivatives up to the given degree are evaluated,
 !>        if negative only the given degree is requested (but to simplify
 !>        the code all the derivatives might be calculated, you should ignore
@@ -350,8 +354,7 @@ CONTAINS
       TYPE(xc_derivative_set_type), POINTER              :: deriv_set
       INTEGER, INTENT(IN)                                :: deriv_order
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xc_functional_eval', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'xc_functional_eval'
 
       INTEGER                                            :: handle, i_param
       LOGICAL                                            :: fun_active
@@ -499,7 +502,7 @@ CONTAINS
          END IF
       CASE ("TPSS")
          IF (lsd) THEN
-            CALL tpss_lsd_eval(rho_set, deriv_set, deriv_order, functional)
+            CPABORT("TPSS functional not implemented with LSD. Use the LIBXC version instead.")
          ELSE
             CALL tpss_lda_eval(rho_set, deriv_set, deriv_order, functional)
          END IF
@@ -542,7 +545,12 @@ CONTAINS
                                                  functional)
          END IF
       CASE default
-         CPABORT("unknown functional '"//TRIM(functional%section%name)//"'")
+         ! If functional not natively supported, ask LibXC
+         IF (lsd) THEN
+            CALL libxc_lsd_eval(rho_set, deriv_set, deriv_order, functional)
+         ELSE
+            CALL libxc_lda_eval(rho_set, deriv_set, deriv_order, functional)
+         ENDIF
       END SELECT
 
       CALL timestop(handle)
@@ -558,7 +566,7 @@ CONTAINS
 !>        xc_functional_get_info)
 !> \param deriv_set place where to store the functional derivatives (they are
 !>        added to the derivatives)
-!> \param deriv_order degree of the derivative that should be evalated,
+!> \param deriv_order degree of the derivative that should be evaluated,
 !>        if positive all the derivatives up to the given degree are evaluated,
 !>        if negative only the given degree is requested (but to simplify
 !>        the code all the derivatives might be calculated, you should ignore
@@ -574,16 +582,13 @@ CONTAINS
       TYPE(xc_derivative_set_type), POINTER              :: deriv_set
       INTEGER, INTENT(in)                                :: deriv_order
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xc_functionals_eval', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i_rep, ifun, n_rep
       TYPE(section_vals_type), POINTER                   :: libxc_fun, xc_fun
 
       CPASSERT(ASSOCIATED(functionals))
       ifun = 0
       DO
-         ifun = ifun+1
+         ifun = ifun + 1
          xc_fun => section_vals_get_subs_vals2(functionals, i_section=ifun)
          IF (.NOT. ASSOCIATED(xc_fun)) EXIT
          IF (TRIM(xc_fun%section%name) /= "LIBXC") THEN
@@ -629,9 +634,6 @@ CONTAINS
       LOGICAL, INTENT(in), OPTIONAL                      :: add_basic_components
       TYPE(xc_rho_cflags_type)                           :: needs
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xc_functionals_get_needs', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i_rep, ifun, n_rep
       LOGICAL                                            :: my_add_basic_components
       TYPE(section_vals_type), POINTER                   :: libxc_fun, xc_fun
@@ -644,7 +646,7 @@ CONTAINS
 
       ifun = 0
       DO
-         ifun = ifun+1
+         ifun = ifun + 1
          xc_fun => section_vals_get_subs_vals2(functionals, i_section=ifun)
          IF (.NOT. ASSOCIATED(xc_fun)) EXIT
          IF (TRIM(xc_fun%section%name) /= "LIBXC") THEN

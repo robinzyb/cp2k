@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -45,8 +47,7 @@ MODULE mc_control
    USE molecule_kind_types,             ONLY: atom_type,&
                                               get_molecule_kind,&
                                               molecule_kind_type
-   USE parallel_rng_types,              ONLY: next_random_number,&
-                                              rng_stream_type
+   USE parallel_rng_types,              ONLY: rng_stream_type
    USE particle_list_types,             ONLY: particle_list_type
    USE physcon,                         ONLY: angstrom
 #include "../../base/base_uses.f90"
@@ -81,8 +82,7 @@ CONTAINS
       INTEGER, DIMENSION(:), INTENT(IN)                  :: nchains
       TYPE(force_env_type), POINTER                      :: force_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'write_mc_restart', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'write_mc_restart'
 
       CHARACTER(LEN=20)                                  :: ensemble
       CHARACTER(LEN=default_path_length)                 :: restart_file_name
@@ -141,7 +141,7 @@ CONTAINS
                   WRITE (unit, '(1X,A,1X,3(F15.10,3X))') &
                      TRIM(ADJUSTL(name)), &
                      particles%els(iparticle)%r(1:3)*angstrom
-                  iparticle = iparticle+1
+                  iparticle = iparticle + 1
                ENDDO
             ENDDO
          ENDDO
@@ -172,10 +172,9 @@ CONTAINS
       TYPE(force_env_type), POINTER                      :: force_env
       INTEGER, INTENT(IN)                                :: iw
       INTEGER, INTENT(INOUT)                             :: mc_nunits_tot
-      TYPE(rng_stream_type), POINTER                     :: rng_stream
+      TYPE(rng_stream_type), INTENT(INOUT)               :: rng_stream
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_mc_restart', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'read_mc_restart'
 
       CHARACTER(5), ALLOCATABLE, DIMENSION(:)            :: atom_symbols
       CHARACTER(default_string_length), &
@@ -228,7 +227,7 @@ CONTAINS
       CALL mp_bcast(nchains, source, group)
 
       ! do some checking
-      IF (ABS(temperature-mc_temp) .GT. 0.01E0_dp) THEN
+      IF (ABS(temperature - mc_temp) .GT. 0.01E0_dp) THEN
          IF (ionode) THEN
             WRITE (iw, *) 'The temperature in the restart file is ', &
                'not the same as the input file.'
@@ -268,9 +267,9 @@ CONTAINS
          box_length(1:3) = box_length(1:3)/angstrom ! convert to a.u.
       ENDIF
       CALL mp_bcast(box_length, source, group)
-      IF (ABS(box_length(1)-abc(1)) .GT. 0.0001E0_dp .OR. &
-          ABS(box_length(2)-abc(2)) .GT. 0.0001E0_dp .OR. &
-          ABS(box_length(3)-abc(3)) .GT. 0.0001E0_dp) THEN
+      IF (ABS(box_length(1) - abc(1)) .GT. 0.0001E0_dp .OR. &
+          ABS(box_length(2) - abc(2)) .GT. 0.0001E0_dp .OR. &
+          ABS(box_length(3) - abc(3)) .GT. 0.0001E0_dp) THEN
          IF (ionode) THEN
             WRITE (iw, *) 'The cell length in the restart file is ', &
                'not the same as the input file.'
@@ -279,7 +278,7 @@ CONTAINS
          ENDIF
       ENDIF
 
-      ! allocate the array holding the coordiantes, and read in the coordiantes,
+      ! allocate the array holding the coordinates, and read in the coordinates,
       ! and write the dat file so we can make a new force_env
       IF (SUM(nchains(:)) == 0) THEN
          ALLOCATE (r(3, nunits(1)))
@@ -317,8 +316,8 @@ CONTAINS
 
       ! advance the random number sequence based on the restart step
       IF (ionode) THEN
-         DO i = 1, nstart+1
-            rand = next_random_number(rng_stream)
+         DO i = 1, nstart + 1
+            rand = rng_stream%next()
          ENDDO
       ENDIF
 
@@ -351,9 +350,6 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       CHARACTER(LEN=*), INTENT(IN)                       :: input_file_name
       TYPE(global_environment_type), OPTIONAL, POINTER   :: globenv_new
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'mc_create_force_env', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: f_env_id, ierr, output_unit
       TYPE(f_env_type), POINTER                          :: f_env
@@ -408,9 +404,6 @@ CONTAINS
       TYPE(mc_input_file_type), POINTER                  :: mc_input_file
       LOGICAL, INTENT(IN)                                :: ionode
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'mc_create_bias_force_env', &
-         routineP = moduleN//':'//routineN
-
       IF (ionode) &
          CALL mc_make_dat_file_new(r(:, :), atom_symbols, nunits_tot, &
                                    box_length(:), 'bias_temp.dat', nchains(:), mc_input_file)
@@ -420,4 +413,3 @@ CONTAINS
    END SUBROUTINE mc_create_bias_force_env
 
 END MODULE mc_control
-

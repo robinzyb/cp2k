@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -48,6 +50,8 @@ MODULE qs_energy_init
    USE qs_external_density,             ONLY: external_read_density
    USE qs_external_potential,           ONLY: external_c_potential,&
                                               external_e_potential
+   USE qs_gcp_method,                   ONLY: calculate_gcp_pairpot
+   USE qs_gcp_types,                    ONLY: qs_gcp_type
    USE qs_ks_methods,                   ONLY: qs_ks_allocate_basics
    USE qs_ks_types,                     ONLY: qs_ks_env_type,&
                                               set_ks_env
@@ -84,9 +88,6 @@ CONTAINS
    SUBROUTINE qs_energies_init(qs_env, calc_forces)
       TYPE(qs_environment_type), POINTER                 :: qs_env
       LOGICAL, INTENT(IN)                                :: calc_forces
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_energies_init', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: img, ispin, nimg, nspin
       LOGICAL                                            :: has_unit_metric, molecule_only
@@ -152,8 +153,7 @@ CONTAINS
    SUBROUTINE qs_energies_init_kg(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_energies_init_kg', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'qs_energies_init_kg'
 
       INTEGER                                            :: handle, isubset, natom
       TYPE(cp_para_env_type), POINTER                    :: para_env
@@ -248,8 +248,7 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: calc_forces
       LOGICAL                                            :: molecule_only
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_energies_init_hamiltonians', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'qs_energies_init_hamiltonians'
 
       INTEGER                                            :: handle
       LOGICAL                                            :: do_kpoints
@@ -261,6 +260,7 @@ CONTAINS
          POINTER                                         :: sab_nl
       TYPE(qs_dispersion_type), POINTER                  :: dispersion_env
       TYPE(qs_energy_type), POINTER                      :: energy
+      TYPE(qs_gcp_type), POINTER                         :: gcp_env
       TYPE(section_vals_type), POINTER                   :: input
 
       CALL timeset(routineN, handle)
@@ -339,6 +339,12 @@ CONTAINS
          ! energy info at the end of the SCF
          CALL get_qs_env(qs_env=qs_env, dispersion_env=dispersion_env, energy=energy)
          CALL calculate_dispersion_pairpot(qs_env, dispersion_env, energy%dispersion, calc_forces)
+         ! Add possible pair potential gCP energy - Evaluate first so we can print
+         ! energy info at the end of the SCF
+         CALL get_qs_env(qs_env=qs_env, gcp_env=gcp_env, energy=energy)
+         IF (ASSOCIATED(gcp_env)) THEN
+            CALL calculate_gcp_pairpot(qs_env, gcp_env, energy%gcp, calc_forces)
+         END IF
 
       END IF
       ! Embedding potential

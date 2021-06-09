@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -10,6 +12,7 @@
 !>        ii) (aba) and (abb) s-overlaps
 !> \par History
 !>      created [06.2015]
+!>      05.2019: Added truncated coulomb operator (A. Bussy)
 !> \author Dorothea Golze
 ! **************************************************************************************************
 MODULE generic_os_integrals
@@ -21,6 +24,7 @@ MODULE generic_os_integrals
    USE ai_operators_r12,                ONLY: ab_sint_os,&
                                               cps_coulomb2,&
                                               cps_gauss2,&
+                                              cps_truncated2,&
                                               cps_verf2,&
                                               cps_verfc2,&
                                               cps_vgauss2,&
@@ -33,6 +37,7 @@ MODULE generic_os_integrals
                                               gto_basis_set_type
    USE constants_operator,              ONLY: operator_coulomb,&
                                               operator_gauss,&
+                                              operator_truncated,&
                                               operator_verf,&
                                               operator_verfc,&
                                               operator_vgauss
@@ -65,9 +70,11 @@ CONTAINS
 !> \param fba basis at center A
 !> \param fbb basis at center B
 !> \param omega parameter in the operator
+!> \param r_cutoff the cutoff in case of truncated coulomb operator
 !> \param calculate_forces ...
 ! **************************************************************************************************
-   SUBROUTINE int_operators_r12_ab_os(r12_operator, vab, dvab, rab, fba, fbb, omega, calculate_forces)
+   SUBROUTINE int_operators_r12_ab_os(r12_operator, vab, dvab, rab, fba, fbb, omega, r_cutoff, &
+                                      calculate_forces)
 
       INTEGER, INTENT(IN)                                :: r12_operator
       REAL(KIND=dp), DIMENSION(:, :), INTENT(INOUT)      :: vab
@@ -75,14 +82,13 @@ CONTAINS
          OPTIONAL                                        :: dvab
       REAL(KIND=dp), DIMENSION(3), INTENT(IN)            :: rab
       TYPE(gto_basis_set_type), POINTER                  :: fba, fbb
-      REAL(KIND=dp), INTENT(IN), OPTIONAL                :: omega
+      REAL(KIND=dp), INTENT(IN), OPTIONAL                :: omega, r_cutoff
       LOGICAL, INTENT(IN)                                :: calculate_forces
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'int_operators_r12_ab_os', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'int_operators_r12_ab_os'
 
       INTEGER                                            :: handle
-      REAL(KIND=dp)                                      :: my_omega
+      REAL(KIND=dp)                                      :: my_omega, my_r_cutoff
 
       PROCEDURE(ab_sint_os), POINTER                     :: cps_operator2
 
@@ -90,6 +96,7 @@ CONTAINS
       CALL timeset(routineN, handle)
 
       my_omega = 1.0_dp
+      my_r_cutoff = 1.0_dp
 
       SELECT CASE (r12_operator)
       CASE (operator_coulomb)
@@ -106,11 +113,15 @@ CONTAINS
       CASE (operator_gauss)
          cps_operator2 => cps_gauss2
          IF (PRESENT(omega)) my_omega = omega
+      CASE (operator_truncated)
+         cps_operator2 => cps_truncated2
+         IF (PRESENT(r_cutoff)) my_r_cutoff = r_cutoff
       CASE DEFAULT
          CPABORT("Operator not available")
       END SELECT
 
-      CALL int_operator_ab_os_low(cps_operator2, vab, dvab, rab, fba, fbb, my_omega, calculate_forces)
+      CALL int_operator_ab_os_low(cps_operator2, vab, dvab, rab, fba, fbb, my_omega, my_r_cutoff, &
+                                  calculate_forces)
 
       CALL timestop(handle)
 
@@ -125,9 +136,11 @@ CONTAINS
 !> \param fba basis at center A
 !> \param fbb basis at center B
 !> \param omega parameter in the operator
+!> \param r_cutoff ...
 !> \param calculate_forces ...
 ! **************************************************************************************************
-   SUBROUTINE int_operator_ab_os_low(cps_operator2, vab, dvab, rab, fba, fbb, omega, calculate_forces)
+   SUBROUTINE int_operator_ab_os_low(cps_operator2, vab, dvab, rab, fba, fbb, omega, r_cutoff, &
+                                     calculate_forces)
 
       PROCEDURE(ab_sint_os), POINTER                     :: cps_operator2
       REAL(KIND=dp), DIMENSION(:, :), INTENT(INOUT)      :: vab
@@ -135,10 +148,10 @@ CONTAINS
          INTENT(INOUT)                                   :: dvab
       REAL(KIND=dp), DIMENSION(3), INTENT(IN)            :: rab
       TYPE(gto_basis_set_type), POINTER                  :: fba, fbb
-      REAL(KIND=dp), INTENT(IN)                          :: omega
+      REAL(KIND=dp), INTENT(IN)                          :: omega, r_cutoff
       LOGICAL, INTENT(IN)                                :: calculate_forces
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'int_operator_ab_os_low', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'int_operator_ab_os_low'
 
       INTEGER                                            :: handle, i, iset, jset, lds, m1, m2, &
                                                             maxco, maxcoa, maxcob, maxl, maxla, &
@@ -179,7 +192,7 @@ CONTAINS
       CALL get_gto_basis_set(fbb, maxco=maxcob, maxl=maxlb)
       maxco = MAX(maxcoa, maxcob)
       IF (calculate_forces) THEN
-         maxl = MAX(maxla+1, maxlb)
+         maxl = MAX(maxla + 1, maxlb)
       ELSE
          maxl = MAX(maxla, maxlb)
       ENDIF
@@ -194,27 +207,27 @@ CONTAINS
       DO iset = 1, nseta
 
          ncoa = npgfa(iset)*ncoset(la_max(iset))
-         ncoap = npgfa(iset)*ncoset(la_max(iset)+1)
+         ncoap = npgfa(iset)*ncoset(la_max(iset) + 1)
          sgfa = first_sgfa(1, iset)
 
          DO jset = 1, nsetb
 
             ncob = npgfb(jset)*ncoset(lb_max(jset))
-            ncobp = npgfb(jset)*ncoset(lb_max(jset)+1)
+            ncobp = npgfb(jset)*ncoset(lb_max(jset) + 1)
             sgfb = first_sgfb(1, jset)
-            m1 = sgfa+nsgfa(iset)-1
-            m2 = sgfb+nsgfb(jset)-1
+            m1 = sgfa + nsgfa(iset) - 1
+            m2 = sgfb + nsgfb(jset) - 1
 
             ! calculate integrals
             IF (calculate_forces) THEN
-               ALLOCATE (vwork(ncoap, ncobp, la_max(iset)+lb_max(jset)+3), &
+               ALLOCATE (vwork(ncoap, ncobp, la_max(iset) + lb_max(jset) + 3), &
                          vac(ncoa, ncob), vac_plus(ncoap, ncobp), devab(ncoa, ncob, 3))
                devab = 0._dp
                vwork = 0.0_dp
                vac = 0.0_dp
-               CALL operator2(cps_operator2, la_max(iset)+1, npgfa(iset), zeta(:, iset), la_min(iset), &
-                              lb_max(jset)+1, npgfb(jset), zetb(:, jset), lb_min(jset), &
-                              omega, rab, rab2, vac, vwork, maxder=1, vac_plus=vac_plus)
+               CALL operator2(cps_operator2, la_max(iset) + 1, npgfa(iset), zeta(:, iset), la_min(iset), &
+                              lb_max(jset) + 1, npgfb(jset), zetb(:, jset), lb_min(jset), &
+                              omega, r_cutoff, rab, rab2, vac, vwork, maxder=1, vac_plus=vac_plus)
                CALL dabdr_noscreen(la_max(iset), npgfa(iset), zeta(:, iset), lb_max(jset), npgfb(jset), &
                                    vac_plus, devab(:, :, 1), devab(:, :, 2), devab(:, :, 3))
                DO i = 1, 3
@@ -223,13 +236,13 @@ CONTAINS
                ENDDO
 
             ELSE
-               ALLOCATE (vwork(ncoa, ncob, la_max(iset)+lb_max(jset)+1), &
+               ALLOCATE (vwork(ncoa, ncob, la_max(iset) + lb_max(jset) + 1), &
                          vac(ncoa, ncob), vac_plus(ncoap, ncobp), devab(ncoa, ncob, 3))
                vwork = 0.0_dp
                vac = 0.0_dp
                CALL operator2(cps_operator2, la_max(iset), npgfa(iset), zeta(:, iset), la_min(iset), &
                               lb_max(jset), npgfb(jset), zetb(:, jset), lb_min(jset), &
-                              omega, rab, rab2, vac, vwork)
+                              omega, r_cutoff, rab, rab2, vac, vwork)
             ENDIF
 
             CALL ab_contract(vab(sgfa:m1, sgfb:m2), vac(1:ncoa, 1:ncob), sphi_a(:, sgfa:), sphi_b(:, sgfb:), &
@@ -255,17 +268,15 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE int_overlap_ab_os(sab, dsab, rab, fba, fbb, calculate_forces, debug, dmax)
 
-      REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :), &
-         INTENT(INOUT)                                   :: sab
-      REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :, :), &
-         INTENT(INOUT), OPTIONAL                         :: dsab
+      REAL(KIND=dp), DIMENSION(:, :), INTENT(INOUT)      :: sab
+      REAL(KIND=dp), DIMENSION(:, :, :), INTENT(INOUT), &
+         OPTIONAL                                        :: dsab
       REAL(KIND=dp), DIMENSION(3), INTENT(IN)            :: rab
       TYPE(gto_basis_set_type), POINTER                  :: fba, fbb
       LOGICAL, INTENT(IN)                                :: calculate_forces, debug
       REAL(KIND=dp), INTENT(INOUT)                       :: dmax
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'int_overlap_ab_os', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'int_overlap_ab_os'
 
       INTEGER                                            :: handle, i, iset, jset, m1, m2, maxco, &
                                                             maxcoa, maxcob, maxl, maxla, maxlb, &
@@ -324,17 +335,17 @@ CONTAINS
 
       DO iset = 1, nseta
 
-         ncoa = npgfa(iset)*(ncoset(la_max(iset))-ncoset(la_min(iset)-1))
+         ncoa = npgfa(iset)*(ncoset(la_max(iset)) - ncoset(la_min(iset) - 1))
          sgfa = first_sgfa(1, iset)
 
          DO jset = 1, nsetb
 
-            IF (set_radius_a(iset)+set_radius_b(jset) < dab) CYCLE
+            IF (set_radius_a(iset) + set_radius_b(jset) < dab) CYCLE
 
-            ncob = npgfb(jset)*(ncoset(lb_max(jset))-ncoset(lb_min(jset)-1))
+            ncob = npgfb(jset)*(ncoset(lb_max(jset)) - ncoset(lb_min(jset) - 1))
             sgfb = first_sgfb(1, jset)
-            m1 = sgfa+nsgfa(iset)-1
-            m2 = sgfb+nsgfb(jset)-1
+            m1 = sgfa + nsgfa(iset) - 1
+            m2 = sgfb + nsgfb(jset) - 1
 
             IF (calculate_forces) THEN
                CALL overlap_ab(la_max(iset), la_min(iset), npgfa(iset), rpgfa(:, iset), zeta(:, iset), &
@@ -393,7 +404,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: m
       LOGICAL, INTENT(IN)                                :: calculate_forces
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'int_ra2m_ab_os', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'int_ra2m_ab_os'
 
       INTEGER                                            :: handle, i, iset, jset, m1, m2, maxco, &
                                                             maxcoa, maxcob, maxl, maxla, maxlb, &
@@ -447,15 +458,15 @@ CONTAINS
 
       DO iset = 1, nseta
 
-         ncoa = npgfa(iset)*(ncoset(la_max(iset))-ncoset(la_min(iset)-1))
+         ncoa = npgfa(iset)*(ncoset(la_max(iset)) - ncoset(la_min(iset) - 1))
          sgfa = first_sgfa(1, iset)
 
          DO jset = 1, nsetb
 
-            ncob = npgfb(jset)*(ncoset(lb_max(jset))-ncoset(lb_min(jset)-1))
+            ncob = npgfb(jset)*(ncoset(lb_max(jset)) - ncoset(lb_min(jset) - 1))
             sgfb = first_sgfb(1, jset)
-            m1 = sgfa+nsgfa(iset)-1
-            m2 = sgfb+nsgfb(jset)-1
+            m1 = sgfa + nsgfa(iset) - 1
+            m2 = sgfb + nsgfb(jset) - 1
 
             CALL operator_ra2m(la_max(iset), la_min(iset), npgfa(iset), zeta(:, iset), &
                                lb_max(jset), lb_min(jset), npgfb(jset), zetb(:, jset), &
@@ -501,8 +512,7 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: calculate_forces, debug
       REAL(KIND=dp), INTENT(INOUT)                       :: dmax
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'int_overlap_aba_os', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'int_overlap_aba_os'
 
       INTEGER                                            :: handle, i, iset, jset, kaset, m1, m2, &
                                                             m3, ncoa, ncob, ncoc, nseta, nsetb, &
@@ -570,17 +580,17 @@ CONTAINS
 
       DO iset = 1, nseta
 
-         ncoa = npgfa(iset)*(ncoset(la_max(iset))-ncoset(la_min(iset)-1))
+         ncoa = npgfa(iset)*(ncoset(la_max(iset)) - ncoset(la_min(iset) - 1))
          sgfa = first_sgfa(1, iset)
 
          DO jset = 1, nsetb
 
-            IF (set_radius_a(iset)+set_radius_b(jset) < dab) CYCLE
+            IF (set_radius_a(iset) + set_radius_b(jset) < dab) CYCLE
 
-            ncob = npgfb(jset)*(ncoset(lb_max(jset))-ncoset(lb_min(jset)-1))
+            ncob = npgfb(jset)*(ncoset(lb_max(jset)) - ncoset(lb_min(jset) - 1))
             sgfb = first_sgfb(1, jset)
-            m1 = sgfa+nsgfa(iset)-1
-            m2 = sgfb+nsgfb(jset)-1
+            m1 = sgfa + nsgfa(iset) - 1
+            m2 = sgfb + nsgfb(jset) - 1
 
             ! calculate integrals abaint and derivative [d(a,b,a)/dA] dabdaint if requested
             rac = 0._dp
@@ -590,11 +600,11 @@ CONTAINS
 
             DO kaset = 1, nsetca
 
-               IF (set_radius_b(jset)+set_radius_ca(kaset) < dab) CYCLE
+               IF (set_radius_b(jset) + set_radius_ca(kaset) < dab) CYCLE
 
-               ncoc = npgfca(kaset)*(ncoset(lca_max(kaset))-ncoset(lca_min(kaset)-1))
+               ncoc = npgfca(kaset)*(ncoset(lca_max(kaset)) - ncoset(lca_min(kaset) - 1))
                sgfc = first_sgfca(1, kaset)
-               m3 = sgfc+nsgfca(kaset)-1
+               m3 = sgfc + nsgfca(kaset) - 1
                IF (ncoa*ncob*ncoc > 0) THEN
                   ALLOCATE (saba(ncoa, ncob, ncoc))
                   ! integrals
@@ -663,8 +673,7 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: calculate_forces, debug
       REAL(KIND=dp), INTENT(INOUT)                       :: dmax
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'int_overlap_abb_os', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'int_overlap_abb_os'
 
       INTEGER                                            :: handle, i, iset, jset, kbset, m1, m2, &
                                                             m3, ncoa, ncob, ncoc, nseta, nsetb, &
@@ -732,17 +741,17 @@ CONTAINS
 
       DO iset = 1, nseta
 
-         ncoa = npgfa(iset)*(ncoset(la_max(iset))-ncoset(la_min(iset)-1))
+         ncoa = npgfa(iset)*(ncoset(la_max(iset)) - ncoset(la_min(iset) - 1))
          sgfa = first_sgfa(1, iset)
 
          DO jset = 1, nsetb
 
-            IF (set_radius_a(iset)+set_radius_b(jset) < dab) CYCLE
+            IF (set_radius_a(iset) + set_radius_b(jset) < dab) CYCLE
 
-            ncob = npgfb(jset)*(ncoset(lb_max(jset))-ncoset(lb_min(jset)-1))
+            ncob = npgfb(jset)*(ncoset(lb_max(jset)) - ncoset(lb_min(jset) - 1))
             sgfb = first_sgfb(1, jset)
-            m1 = sgfa+nsgfa(iset)-1
-            m2 = sgfb+nsgfb(jset)-1
+            m1 = sgfa + nsgfa(iset) - 1
+            m2 = sgfb + nsgfb(jset) - 1
 
             ! calculate integrals abbint and derivative [d(a,b,b)/dA] dabbint if requested
             rac = rab
@@ -752,11 +761,11 @@ CONTAINS
 
             DO kbset = 1, nsetcb
 
-               IF (set_radius_a(iset)+set_radius_cb(kbset) < dab) CYCLE
+               IF (set_radius_a(iset) + set_radius_cb(kbset) < dab) CYCLE
 
-               ncoc = npgfcb(kbset)*(ncoset(lcb_max(kbset))-ncoset(lcb_min(kbset)-1))
+               ncoc = npgfcb(kbset)*(ncoset(lcb_max(kbset)) - ncoset(lcb_min(kbset) - 1))
                sgfc = first_sgfcb(1, kbset)
-               m3 = sgfc+nsgfcb(kbset)-1
+               m3 = sgfc + nsgfcb(kbset) - 1
                IF (ncoa*ncob*ncoc > 0) THEN
                   ALLOCATE (sabb(ncoa, ncob, ncoc))
                   IF (calculate_forces) THEN
@@ -819,8 +828,7 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: debug
       REAL(KIND=dp), INTENT(INOUT)                       :: dmax
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'int_overlap_aabb_os', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'int_overlap_aabb_os'
 
       INTEGER :: handle, iset, isgfa1, jset, jsgfa2, kset, ksgfb1, lds, lset, lsgfb2, m1, m2, m3, &
          m4, maxco, maxcoa, maxcob, maxl, maxla, maxlb, ncoa1, ncoa2, ncob1, ncob2, nseta, nsetb, &
@@ -881,25 +889,25 @@ CONTAINS
 
          ncoa1 = npgfa(iset)*ncoset(la_max(iset))
          sgfa1 = first_sgfa(1, iset)
-         m1 = sgfa1+nsgfa(iset)-1
+         m1 = sgfa1 + nsgfa(iset) - 1
 
          DO jset = iset, nseta
 
             ncoa2 = npgfa(jset)*ncoset(la_max(jset))
             sgfa2 = first_sgfa(1, jset)
-            m2 = sgfa2+nsgfa(jset)-1
+            m2 = sgfa2 + nsgfa(jset) - 1
 
             DO kset = 1, nsetb
 
                ncob1 = npgfb(kset)*ncoset(lb_max(kset))
                sgfb1 = first_sgfb(1, kset)
-               m3 = sgfb1+nsgfb(kset)-1
+               m3 = sgfb1 + nsgfb(kset) - 1
 
                DO lset = kset, nsetb
 
                   ncob2 = npgfb(lset)*ncoset(lb_max(lset))
                   sgfb2 = first_sgfb(1, lset)
-                  m4 = sgfb2+nsgfb(lset)-1
+                  m4 = sgfb2 + nsgfb(lset) - 1
 
                   ! check if sets are identical to spare some integral evaluation
                   asets_equal = .FALSE.

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -64,7 +66,7 @@ CONTAINS
    SUBROUTINE fp_env_create(fp_env)
       TYPE(fp_type), POINTER                             :: fp_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fp_env_create', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'fp_env_create'
 
       INTEGER                                            :: handle
 
@@ -89,7 +91,7 @@ CONTAINS
    SUBROUTINE fp_env_release(fp_env)
       TYPE(fp_type), POINTER                             :: fp_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fp_env_release', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'fp_env_release'
 
       INTEGER                                            :: handle
 
@@ -97,7 +99,7 @@ CONTAINS
 
       IF (ASSOCIATED(fp_env)) THEN
          CPASSERT(fp_env%ref_count > 0)
-         fp_env%ref_count = fp_env%ref_count-1
+         fp_env%ref_count = fp_env%ref_count - 1
          IF (fp_env%ref_count == 0) THEN
             IF (ASSOCIATED(fp_env%inner_atoms)) DEALLOCATE (fp_env%inner_atoms)
             IF (ASSOCIATED(fp_env%outer_atoms)) DEALLOCATE (fp_env%outer_atoms)
@@ -117,10 +119,8 @@ CONTAINS
    SUBROUTINE fp_env_retain(fp_env)
       TYPE(fp_type), POINTER                             :: fp_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fp_env_retain', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(fp_env))
-      fp_env%ref_count = fp_env%ref_count+1
+      fp_env%ref_count = fp_env%ref_count + 1
 
    END SUBROUTINE fp_env_retain
 
@@ -135,7 +135,7 @@ CONTAINS
       TYPE(fp_type), POINTER                             :: fp_env
       TYPE(section_vals_type), POINTER                   :: fp_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fp_env_read', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'fp_env_read'
 
       INTEGER                                            :: handle
       INTEGER, DIMENSION(:), POINTER                     :: tmplist
@@ -179,7 +179,7 @@ CONTAINS
       TYPE(fp_type), POINTER                             :: fp_env
       TYPE(section_vals_type), POINTER                   :: fp_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fp_env_write', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'fp_env_write'
 
       INTEGER                                            :: handle, output_unit
       TYPE(cp_logger_type), POINTER                      :: logger

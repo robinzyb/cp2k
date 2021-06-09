@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -87,9 +89,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: root_section
       INTEGER, INTENT(IN)                                :: n_workers
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'swarm_master_init', &
-         routineP = moduleN//':'//routineN
-
       TYPE(cp_logger_type), POINTER                      :: logger
 
       master%swarm_section => section_vals_get_subs_vals(root_section, "SWARM")
@@ -130,8 +129,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE replay_comlog(master)
       TYPE(swarm_master_type)                            :: master
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'replay_comlog', routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_path_length)                 :: filename
       CHARACTER(LEN=default_string_length)               :: command_log
@@ -230,9 +227,6 @@ CONTAINS
       TYPE(swarm_message_type), INTENT(IN)               :: report
       TYPE(swarm_message_type), INTENT(OUT)              :: cmd
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'swarm_master_steer', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(len=default_string_length)               :: command, status
       INTEGER                                            :: handle, worker_id
       LOGICAL                                            :: should_stop
@@ -256,7 +250,7 @@ CONTAINS
 
       IF (.NOT. master%ignore_last_iteration) THEN
          ! There are no queued commands. Do the normal processing.
-         master%i_iteration = master%i_iteration+1
+         master%i_iteration = master%i_iteration + 1
 
          IF (master%iw > 0) WRITE (master%iw, '(A,A,1X,I8,A,A)') ' SWARM| ', REPEAT("*", 15), &
             master%i_iteration, ' Master / Worker Communication  ', REPEAT("*", 15)
@@ -301,8 +295,8 @@ CONTAINS
       ! Don't pollute comlog with "continue waiting"-commands.
       CALL swarm_message_get(report, "status", status)
       CALL swarm_message_get(cmd, "command", command)
-      IF (TRIM(status) == "wait_done") master%n_waiting = master%n_waiting-1
-      IF (TRIM(command) == "wait") master%n_waiting = master%n_waiting+1
+      IF (TRIM(status) == "wait_done") master%n_waiting = master%n_waiting - 1
+      IF (TRIM(command) == "wait") master%n_waiting = master%n_waiting + 1
       IF (master%n_waiting < 0) CPABORT("master%n_waiting < 0")
       IF (TRIM(status) /= "wait_done" .OR. TRIM(command) /= "wait") THEN
          CALL swarm_message_file_write(report, master%comlog_unit)
@@ -323,9 +317,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE swarm_master_finalize(master)
       TYPE(swarm_master_type)                            :: master
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'swarm_master_finalize', &
-         routineP = moduleN//':'//routineN
 
       TYPE(cp_logger_type), POINTER                      :: logger
 

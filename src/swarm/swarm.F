@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -63,7 +65,7 @@ CONTAINS
       TYPE(global_environment_type), POINTER             :: globenv
       CHARACTER(LEN=*), INTENT(IN)                       :: input_path
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'run_swarm', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'run_swarm'
 
       INTEGER                                            :: handle, iw, n_workers
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -245,7 +247,7 @@ CONTAINS
          ! Each iteration if the loop does s.th. different depending on j.
          ! First (j==0) it receives one report with (blocking) MPI,
          ! then it searches through the list is_waiting.
-         j = MOD(j+1, n_workers+1)
+         j = MOD(j + 1, n_workers + 1)
          IF (j == 0) THEN
             CALL swarm_mpi_recv_report(swarm_mpi, report)
          ELSE IF (is_waiting(j)) THEN
@@ -265,7 +267,7 @@ CONTAINS
             is_waiting(wid) = .TRUE.
          ELSE
             CALL swarm_mpi_send_command(swarm_mpi, cmd)
-            IF (TRIM(command) == "shutdown") i_shutdowns = i_shutdowns+1
+            IF (TRIM(command) == "shutdown") i_shutdowns = i_shutdowns + 1
          ENDIF
          CALL swarm_message_free(cmd)
       END DO

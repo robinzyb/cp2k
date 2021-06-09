@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -23,9 +25,10 @@ MODULE pao_io
                                               cp_print_key_unit_nr
    USE cp_para_types,                   ONLY: cp_para_env_type
    USE dbcsr_api,                       ONLY: &
-        convert_dbcsr_to_csr, csr_create_from_dbcsr, csr_dbcsr_blkrow_dist, csr_destroy, csr_type, &
-        csr_write, dbcsr_copy, dbcsr_desymmetrize, dbcsr_get_block_p, dbcsr_get_info, &
-        dbcsr_has_symmetry, dbcsr_release, dbcsr_type
+        dbcsr_convert_dbcsr_to_csr, dbcsr_copy, dbcsr_csr_create_from_dbcsr, &
+        dbcsr_csr_dbcsr_blkrow_dist, dbcsr_csr_destroy, dbcsr_csr_type, dbcsr_csr_write, &
+        dbcsr_desymmetrize, dbcsr_get_block_p, dbcsr_get_info, dbcsr_has_symmetry, dbcsr_release, &
+        dbcsr_type
    USE dm_ls_scf_types,                 ONLY: ls_scf_env_type
    USE input_section_types,             ONLY: section_vals_get_subs_vals,&
                                               section_vals_type,&
@@ -87,9 +90,6 @@ CONTAINS
       TYPE(pao_env_type), POINTER                        :: pao
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pao_read_restart', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length)               :: param
       INTEGER                                            :: iatom, ikind, natoms
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: atom2kind
@@ -114,12 +114,12 @@ CONTAINS
                       particle_set=particle_set)
 
       ! read and check restart file on first rank only
-      IF (para_env%mepos == para_env%source) THEN
+      IF (para_env%ionode) THEN
          CALL pao_read_raw(pao%restart_file, param, hmat, kinds, atom2kind, positions, xblocks)
 
          ! check cell
-         IF (MAXVAL(ABS(hmat-cell%hmat)) > 1e-10) &
-            CPWARN("Restarting from differnt cell")
+         IF (MAXVAL(ABS(hmat - cell%hmat)) > 1e-10) &
+            CPWARN("Restarting from different cell")
 
          ! check parametrization
          IF (TRIM(param) .NE. TRIM(ADJUSTL(id2str(pao%parameterization)))) &
@@ -143,7 +143,7 @@ CONTAINS
          ! check positions, warning only
          diff = 0.0_dp
          DO iatom = 1, natoms
-            diff = MAX(diff, MAXVAL(ABS(positions(iatom, :)-particle_set(iatom)%r)))
+            diff = MAX(diff, MAXVAL(ABS(positions(iatom, :) - particle_set(iatom)%r)))
          ENDDO
          IF (diff > 1e-10) &
             CPWARN("Restarting from different atom positions")
@@ -155,7 +155,7 @@ CONTAINS
       CALL dbcsr_get_info(pao%matrix_X, row_blk_size=row_blk_sizes, col_blk_size=col_blk_sizes)
       DO iatom = 1, natoms
          ALLOCATE (buffer(row_blk_sizes(iatom), col_blk_sizes(iatom)))
-         IF (para_env%mepos == para_env%source) THEN
+         IF (para_env%ionode) THEN
             CPASSERT(row_blk_sizes(iatom) == SIZE(xblocks(iatom)%p, 1))
             CPASSERT(col_blk_sizes(iatom) == SIZE(xblocks(iatom)%p, 2))
             buffer = xblocks(iatom)%p
@@ -167,7 +167,7 @@ CONTAINS
          DEALLOCATE (buffer)
       ENDDO
 
-      ! ALLOCATABLEs deallocate themselfs
+      ! ALLOCATABLEs deallocate themselves
 
    END SUBROUTINE pao_read_restart
 
@@ -191,8 +191,6 @@ CONTAINS
       REAL(dp), ALLOCATABLE, DIMENSION(:, :)             :: positions
       TYPE(pao_ioblock_type), ALLOCATABLE, DIMENSION(:)  :: xblocks
       INTEGER, DIMENSION(2), INTENT(OUT), OPTIONAL       :: ml_range
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'pao_read_raw', routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_string_length)               :: label, str_in
       INTEGER                                            :: i1, i2, iatom, ikind, ipot, natoms, &
@@ -304,7 +302,7 @@ CONTAINS
             ALLOCATE (xblocks(iatom)%p(nparams, 1))
             BACKSPACE (unit_nr)
             READ (unit_nr, fmt=*) label, iatom, xblocks(iatom)%p
-            xblocks_read = xblocks_read+1
+            xblocks_read = xblocks_read + 1
             CPASSERT(iatom == xblocks_read) ! ensure blocks are read in order
 
          ELSE IF (TRIM(label) == "THE_END") THEN
@@ -394,7 +392,7 @@ CONTAINS
       REAL(dp)                                           :: energy
 
       CHARACTER(len=*), PARAMETER :: printkey_section = 'DFT%LS_SCF%PAO%PRINT%RESTART', &
-         routineN = 'pao_write_restart', routineP = moduleN//':'//routineN
+         routineN = 'pao_write_restart'
 
       INTEGER                                            :: handle, unit_max, unit_nr
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -478,7 +476,7 @@ CONTAINS
       ENDDO
 
       ! flush
-      IF (unit_nr > 0) FLUSH(unit_nr)
+      IF (unit_nr > 0) FLUSH (unit_nr)
 
    END SUBROUTINE pao_write_diagonal_blocks
 
@@ -494,9 +492,6 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       REAL(dp)                                           :: energy
       INTEGER, INTENT(IN)                                :: unit_nr
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'write_restart_header', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_string_length)               :: kindname
       INTEGER                                            :: iatom, ikind, ipot, nparams, &
@@ -566,15 +561,14 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(ls_scf_env_type), TARGET                      :: ls_scf_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pao_write_ks_matrix_csr', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'pao_write_ks_matrix_csr'
 
       CHARACTER(LEN=default_path_length)                 :: file_name, fileformat
       INTEGER                                            :: handle, ispin, output_unit, unit_nr
       LOGICAL                                            :: bin, do_kpoints, do_ks_csr_write, uptr
       REAL(KIND=dp)                                      :: thld
       TYPE(cp_logger_type), POINTER                      :: logger
-      TYPE(csr_type)                                     :: ks_mat_csr
+      TYPE(dbcsr_csr_type)                               :: ks_mat_csr
       TYPE(dbcsr_type)                                   :: matrix_ks_nosym
       TYPE(section_vals_type), POINTER                   :: dft_section, input
 
@@ -612,18 +606,18 @@ CONTAINS
                CALL dbcsr_copy(matrix_ks_nosym, ls_scf_env%matrix_ks(ispin))
             END IF
 
-            CALL csr_create_from_dbcsr(matrix_ks_nosym, ks_mat_csr, csr_dbcsr_blkrow_dist)
-            CALL convert_dbcsr_to_csr(matrix_ks_nosym, ks_mat_csr)
+            CALL dbcsr_csr_create_from_dbcsr(matrix_ks_nosym, ks_mat_csr, dbcsr_csr_dbcsr_blkrow_dist)
+            CALL dbcsr_convert_dbcsr_to_csr(matrix_ks_nosym, ks_mat_csr)
 
             WRITE (file_name, '(A,I0)') "PAO_KS_SPIN_", ispin
             unit_nr = cp_print_key_unit_nr(logger, dft_section, "PRINT%KS_CSR_WRITE", &
                                            extension=".csr", middle_name=TRIM(file_name), &
                                            file_status="REPLACE", file_form=fileformat)
-            CALL csr_write(ks_mat_csr, unit_nr, upper_triangle=uptr, threshold=thld, binary=bin)
+            CALL dbcsr_csr_write(ks_mat_csr, unit_nr, upper_triangle=uptr, threshold=thld, binary=bin)
 
             CALL cp_print_key_finished_output(unit_nr, logger, dft_section, "PRINT%KS_CSR_WRITE")
 
-            CALL csr_destroy(ks_mat_csr)
+            CALL dbcsr_csr_destroy(ks_mat_csr)
             CALL dbcsr_release(matrix_ks_nosym)
          END DO
       END IF
@@ -642,15 +636,14 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(ls_scf_env_type), TARGET                      :: ls_scf_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pao_write_s_matrix_csr', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'pao_write_s_matrix_csr'
 
       CHARACTER(LEN=default_path_length)                 :: file_name, fileformat
       INTEGER                                            :: handle, output_unit, unit_nr
       LOGICAL                                            :: bin, do_kpoints, do_s_csr_write, uptr
       REAL(KIND=dp)                                      :: thld
       TYPE(cp_logger_type), POINTER                      :: logger
-      TYPE(csr_type)                                     :: s_mat_csr
+      TYPE(dbcsr_csr_type)                               :: s_mat_csr
       TYPE(dbcsr_type)                                   :: matrix_s_nosym
       TYPE(section_vals_type), POINTER                   :: dft_section, input
 
@@ -686,18 +679,18 @@ CONTAINS
             CALL dbcsr_copy(matrix_s_nosym, ls_scf_env%matrix_s)
          END IF
 
-         CALL csr_create_from_dbcsr(matrix_s_nosym, s_mat_csr, csr_dbcsr_blkrow_dist)
-         CALL convert_dbcsr_to_csr(matrix_s_nosym, s_mat_csr)
+         CALL dbcsr_csr_create_from_dbcsr(matrix_s_nosym, s_mat_csr, dbcsr_csr_dbcsr_blkrow_dist)
+         CALL dbcsr_convert_dbcsr_to_csr(matrix_s_nosym, s_mat_csr)
 
          WRITE (file_name, '(A,I0)') "PAO_S"
          unit_nr = cp_print_key_unit_nr(logger, dft_section, "PRINT%S_CSR_WRITE", &
                                         extension=".csr", middle_name=TRIM(file_name), &
                                         file_status="REPLACE", file_form=fileformat)
-         CALL csr_write(s_mat_csr, unit_nr, upper_triangle=uptr, threshold=thld, binary=bin)
+         CALL dbcsr_csr_write(s_mat_csr, unit_nr, upper_triangle=uptr, threshold=thld, binary=bin)
 
          CALL cp_print_key_finished_output(unit_nr, logger, dft_section, "PRINT%S_CSR_WRITE")
 
-         CALL csr_destroy(s_mat_csr)
+         CALL dbcsr_csr_destroy(s_mat_csr)
          CALL dbcsr_release(matrix_s_nosym)
       END IF
 

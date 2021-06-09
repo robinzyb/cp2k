@@ -1,13 +1,15 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
 !> \brief stores a lists of integer that are local to a processor.
 !>      The idea is that these integers represent objects that are distributed
 !>      between the different processors.
-!>      The ordering is just to make some operation more efficent, logically
+!>      The ordering is just to make some operation more efficient, logically
 !>      these lists are like sets.
 !>      Some operations assume that the integers represent a range of values
 !>      from 1 to a (not too big) maxval, and that an element is present just
@@ -25,8 +27,7 @@ MODULE distribution_1d_types
    USE cp_para_env,                     ONLY: cp_para_env_release,&
                                               cp_para_env_retain
    USE cp_para_types,                   ONLY: cp_para_env_type
-   USE parallel_rng_types,              ONLY: delete_rng_stream,&
-                                              rng_stream_p_type
+   USE parallel_rng_types,              ONLY: rng_stream_p_type
 #include "../base/base_uses.f90"
 
    IMPLICIT NONE
@@ -102,9 +103,6 @@ CONTAINS
       INTEGER, DIMENSION(:), INTENT(in), OPTIONAL        :: n_el
       INTEGER, INTENT(in), OPTIONAL                      :: n_lists
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'distribution_1d_create', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ilist, my_n_lists, stat
 
       my_n_lists = 1
@@ -112,7 +110,7 @@ CONTAINS
       IF (PRESENT(n_lists)) my_n_lists = n_lists
 
       ALLOCATE (distribution_1d)
-      distribution_1d_last_id_nr = distribution_1d_last_id_nr+1
+      distribution_1d_last_id_nr = distribution_1d_last_id_nr + 1
       distribution_1d%id_nr = distribution_1d_last_id_nr
 
       distribution_1d%ref_count = 1
@@ -157,12 +155,9 @@ CONTAINS
    SUBROUTINE distribution_1d_retain(distribution_1d)
       TYPE(distribution_1d_type), POINTER                :: distribution_1d
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'distribution_1d_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(distribution_1d))
       CPASSERT(distribution_1d%ref_count > 0)
-      distribution_1d%ref_count = distribution_1d%ref_count+1
+      distribution_1d%ref_count = distribution_1d%ref_count + 1
    END SUBROUTINE distribution_1d_retain
 
 ! **************************************************************************************************
@@ -175,16 +170,13 @@ CONTAINS
    SUBROUTINE distribution_1d_release(distribution_1d)
       TYPE(distribution_1d_type), POINTER                :: distribution_1d
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'distribution_1d_release', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ilist, iparticle_kind, iparticle_local, &
                                                             nparticle_kind, nparticle_local
       TYPE(local_particle_type), DIMENSION(:), POINTER   :: local_particle_set
 
       IF (ASSOCIATED(distribution_1d)) THEN
          CPASSERT(distribution_1d%ref_count > 0)
-         distribution_1d%ref_count = distribution_1d%ref_count-1
+         distribution_1d%ref_count = distribution_1d%ref_count - 1
          IF (distribution_1d%ref_count == 0) THEN
             DEALLOCATE (distribution_1d%n_el)
 
@@ -205,8 +197,8 @@ CONTAINS
                      DO iparticle_local = 1, nparticle_local
                         IF (ASSOCIATED(local_particle_set(iparticle_kind)% &
                                        rng(iparticle_local)%stream)) THEN
-                           CALL delete_rng_stream(local_particle_set(iparticle_kind)% &
-                                                  rng(iparticle_local)%stream)
+                           DEALLOCATE (local_particle_set(iparticle_kind)% &
+                                       rng(iparticle_local)%stream)
                         END IF
                      END DO
                      DEALLOCATE (local_particle_set(iparticle_kind)%rng)

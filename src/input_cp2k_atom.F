@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -57,9 +59,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_atom_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_atom_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: subsection
@@ -119,7 +118,7 @@ CONTAINS
                                         "SEMI_ANALYTIC            ", &
                                         "NUMERIC                  "/), &
                           enum_i_vals=(/do_analytic, do_semi_analytic, do_numeric/), &
-                          enum_desc=s2a("Use analytical method", &
+                          enum_desc=s2a("Use analytical method. Not available for longrange Hartree-Fock", &
                                         "Use semi-analytical method", &
                                         "Use numerical method"))
       CALL section_add_keyword(section, keyword)
@@ -151,6 +150,21 @@ CONTAINS
                           description="Specifies the number of states calculated per l value", &
                           usage="CALCULATE_STATES  5 5 5 3 ", repeats=.FALSE., &
                           default_i_val=0, n_var=-1, type_of_var=integer_t)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="USE_GAUSS_HERMITE", &
+                          description="Whether a Gauss-Hermite grid is to be used for the numerical integration of "// &
+                          "longrange exchange integrals", &
+                          usage="USE_GAUSS_HERMITE TRUE", repeats=.FALSE., &
+                          default_l_val=.FALSE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="GRID_POINTS_GH", &
+                          description="Number of grid points for Gauss-Hermite grid", &
+                          usage="GRID_POINTS_GH 100", repeats=.FALSE., &
+                          default_i_val=100)
       CALL section_add_keyword(section, keyword)
       CALL keyword_release(keyword)
 
@@ -191,9 +205,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_atom_print_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_atom_print_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: print_key, subsection
@@ -464,9 +475,6 @@ CONTAINS
    SUBROUTINE create_atom_aebasis_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_atom_aebasis_section', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(section))
       CALL section_create(section, __LOCATION__, name="AE_BASIS", &
                           description="Section of basis set information for all-electron calculations.", &
@@ -484,9 +492,6 @@ CONTAINS
    SUBROUTINE create_atom_ppbasis_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_atom_ppbasis_section', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(section))
       CALL section_create(section, __LOCATION__, name="PP_BASIS", &
                           description="Section of basis set information for pseudopotential calculations.", &
@@ -503,9 +508,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE atom_basis_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'atom_basis_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: subsection
@@ -664,9 +666,6 @@ CONTAINS
    SUBROUTINE create_atom_method_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_atom_method_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: subsection
 
@@ -746,9 +745,6 @@ CONTAINS
    SUBROUTINE create_zmp_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_zmp_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: subsection
 
@@ -798,9 +794,6 @@ CONTAINS
    SUBROUTINE create_zmp_restart_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_zmp_restart_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
 
       NULLIFY (keyword)
@@ -827,9 +820,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_external_vxc(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_external_vxc', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
 
@@ -861,9 +851,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_optimization_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_optimization_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
 
@@ -912,9 +899,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_potential_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_potential_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: subsection
@@ -1000,9 +984,6 @@ CONTAINS
    SUBROUTINE create_gthpotential_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_gthpotential_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
 
       CALL section_create(section, __LOCATION__, name="GTH_POTENTIAL", &
@@ -1023,9 +1004,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_ecp_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_ecp_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
 
@@ -1048,9 +1026,6 @@ CONTAINS
    SUBROUTINE create_basis_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_basis_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
 
       CALL section_create(section, __LOCATION__, name="basis", &
@@ -1071,9 +1046,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_powell_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_powell_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
 
@@ -1220,6 +1192,22 @@ CONTAINS
                           description="Energy at which to consider a full shell as semicore", &
                           usage="SEMICORE_LEVEL 1.0", &
                           default_r_val=1._dp, unit_str="hartree")
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="NOOPT_NLCC", &
+                          description="Don't optimize NLCC parameters.", &
+                          usage="NOOPT_NLCC T", &
+                          type_of_var=logical_t, &
+                          default_l_val=.FALSE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="PREOPT_NLCC", &
+                          description="Optimize NLCC parameters by fitting core charge density.", &
+                          usage="PREOPT_NLCC T", &
+                          type_of_var=logical_t, &
+                          default_l_val=.FALSE.)
       CALL section_add_keyword(section, keyword)
       CALL keyword_release(keyword)
 

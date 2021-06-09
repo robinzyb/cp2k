@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -90,8 +92,7 @@ CONTAINS
       TYPE(qmmm_env_mm_type), OPTIONAL, POINTER          :: qmmm_env_mm
       TYPE(section_vals_type), POINTER                   :: subsys_section, force_env_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'topology_reorder_atoms', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'topology_reorder_atoms'
 
       CHARACTER(LEN=default_string_length)               :: mol_id
       CHARACTER(LEN=default_string_length), POINTER      :: molname(:), telement(:), &
@@ -185,18 +186,18 @@ CONTAINS
             old_mol = atom_info%map_mol_num(I)
             iindex = 0
             IF (imol > 0) THEN
-               mol_bnd(2, imol) = i-1
+               mol_bnd(2, imol) = i - 1
             END IF
-            imol = imol+1
+            imol = imol + 1
             mol_bnd(1, imol) = i
          ENDIF
-         iindex = iindex+1
+         iindex = iindex + 1
          atm_map2(atm_map1(i)) = iindex
       ENDDO
       mol_bnd(2, imol) = natom
       ! Indexes of the two molecules to check
       iref = 1
-      iund = max_mol_num/2+1
+      iund = max_mol_num/2 + 1
       ! Allocate reference and unordered
       NULLIFY (reference, unordered)
       ! This is the real matching of graphs
@@ -227,7 +228,7 @@ CONTAINS
       END IF
       DO j = 1, max_mol_num
          IF (mol_hash(j) .NE. old_hash) THEN
-            unique_mol = unique_mol+1
+            unique_mol = unique_mol + 1
             old_hash = mol_hash(j)
             CALL setup_graph_set(reference_set, unique_mol, map_mol_hash(j), &
                                  map_atom_type, atom_bond_list, mol_bnd, atm_map1, atm_map2, &
@@ -235,7 +236,7 @@ CONTAINS
             ! Reorder Last added reference
             mol_id = TRIM(ADJUSTL(cp_to_string(unique_mol)))
             DO i = 1, SIZE(atm_map3)
-               natom_loc = natom_loc+1
+               natom_loc = natom_loc + 1
                new_position(natom_loc) = atm_map3(i)
                molname(natom_loc) = mol_id
                mol_num(natom_loc) = unique_mol
@@ -257,7 +258,7 @@ CONTAINS
                ALLOCATE (wrk(SIZE(order)))
                CALL sort(order, SIZE(order), wrk)
                DO i = 1, SIZE(order)
-                  natom_loc = natom_loc+1
+                  natom_loc = natom_loc + 1
                   new_position(natom_loc) = atm_map3(wrk(i))
                   molname(natom_loc) = mol_id
                   mol_num(natom_loc) = unique_mol
@@ -266,14 +267,14 @@ CONTAINS
                DEALLOCATE (order)
                DEALLOCATE (wrk)
             ELSE
-               unique_mol = unique_mol+1
+               unique_mol = unique_mol + 1
                CALL setup_graph_set(reference_set, unique_mol, map_mol_hash(j), &
                                     map_atom_type, atom_bond_list, mol_bnd, atm_map1, atm_map2, &
                                     atm_map3)
                ! Reorder Last added reference
                mol_id = TRIM(ADJUSTL(cp_to_string(unique_mol)))
                DO i = 1, SIZE(atm_map3)
-                  natom_loc = natom_loc+1
+                  natom_loc = natom_loc + 1
                   new_position(natom_loc) = atm_map3(i)
                   molname(natom_loc) = mol_id
                   mol_num(natom_loc) = unique_mol
@@ -465,9 +466,6 @@ CONTAINS
       INTEGER, DIMENSION(:, :), POINTER                  :: map_mol
       INTEGER, DIMENSION(:), POINTER                     :: atm_map1, atm_map2, atm_map3
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'setup_graph_set', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ldim
       TYPE(graph_type), DIMENSION(:), POINTER            :: tmp_graph_set
 
@@ -475,12 +473,13 @@ CONTAINS
       NULLIFY (tmp_graph_set)
       IF (ASSOCIATED(graph_set)) THEN
          ldim = SIZE(graph_set)
-         CPASSERT(ldim+1 == idim)
+         CPASSERT(ldim + 1 == idim)
+         MARK_USED(idim)
          NULLIFY (tmp_graph_set)
          CALL allocate_graph_set(graph_set, tmp_graph_set)
       END IF
-      CALL allocate_graph_set(tmp_graph_set, graph_set, ldim, ldim+1)
-      CALL setup_graph(ind, graph_set(ldim+1)%graph, array2, &
+      CALL allocate_graph_set(tmp_graph_set, graph_set, ldim, ldim + 1)
+      CALL setup_graph(ind, graph_set(ldim + 1)%graph, array2, &
                        atom_bond_list, map_mol, atm_map1, atm_map2, atm_map3)
 
    END SUBROUTINE setup_graph_set
@@ -496,9 +495,6 @@ CONTAINS
    SUBROUTINE allocate_graph_set(graph_set_in, graph_set_out, ldim_in, ldim_out)
       TYPE(graph_type), DIMENSION(:), POINTER            :: graph_set_in, graph_set_out
       INTEGER, INTENT(IN), OPTIONAL                      :: ldim_in, ldim_out
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_graph_set', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: b_dim, i, j, mydim_in, mydim_out, v_dim
 
@@ -556,8 +552,6 @@ CONTAINS
       INTEGER, DIMENSION(:), POINTER                     :: atm_map1, atm_map2
       INTEGER, DIMENSION(:), OPTIONAL, POINTER           :: atm_map3
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'setup_graph', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, idim, ifirst, ilast, j, nbonds, &
                                                             nelement
 
@@ -569,13 +563,13 @@ CONTAINS
       idim = 0
       ifirst = map_mol(1, ind)
       ilast = map_mol(2, ind)
-      nelement = ilast-ifirst+1
+      nelement = ilast - ifirst + 1
       ALLOCATE (graph(nelement))
       IF (PRESENT(atm_map3)) THEN
          ALLOCATE (atm_map3(nelement))
       END IF
       DO i = ifirst, ilast
-         idim = idim+1
+         idim = idim + 1
          graph(idim)%kind = array2(atm_map1(i))
          nbonds = SIZE(atom_bond_list(atm_map1(i))%array1)
          ALLOCATE (graph(idim)%bonds(nbonds))
@@ -603,9 +597,6 @@ CONTAINS
       INTEGER, DIMENSION(:), POINTER                     :: Ilist1
       INTEGER, DIMENSION(:), OPTIONAL, POINTER           :: Ilist2, Ilist3, Ilist4
       INTEGER, INTENT(IN)                                :: nsize, ndim
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'reorder_list_array', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, iend, istart, ldim
       INTEGER, DIMENSION(:), POINTER                     :: tmp, wrk
@@ -639,8 +630,8 @@ CONTAINS
          istart = 1
          DO i = 1, Ndim
             IF (Ilist1(i) /= Ilist1(istart)) THEN
-               iend = i-1
-               ldim = iend-istart+1
+               iend = i - 1
+               ldim = iend - istart + 1
                CALL reorder_list_array_low(Ilist2, Ilist3, Ilist4, nsize, &
                                            ldim, istart, iend)
                istart = i
@@ -648,7 +639,7 @@ CONTAINS
          END DO
          ! Last term to sort
          iend = Ndim
-         ldim = iend-istart+1
+         ldim = iend - istart + 1
          CALL reorder_list_array_low(Ilist2, Ilist3, Ilist4, nsize, &
                                      ldim, istart, iend)
       END IF
@@ -671,16 +662,13 @@ CONTAINS
       INTEGER, DIMENSION(:), OPTIONAL, POINTER           :: Ilist2, Ilist3, Ilist4
       INTEGER, INTENT(IN)                                :: nsize, ldim, istart, iend
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'reorder_list_array_low', &
-         routineP = moduleN//':'//routineN
-
       INTEGER, DIMENSION(:), POINTER                     :: tmp_2, tmp_3, tmp_4
 
       SELECT CASE (nsize)
       CASE (2)
          ALLOCATE (tmp_2(ldim))
          tmp_2(:) = Ilist2(istart:iend)
-         CALL reorder_list_array(tmp_2, nsize=nsize-1, ndim=ldim)
+         CALL reorder_list_array(tmp_2, nsize=nsize - 1, ndim=ldim)
          Ilist2(istart:iend) = tmp_2(:)
          DEALLOCATE (tmp_2)
       CASE (3)
@@ -688,7 +676,7 @@ CONTAINS
          ALLOCATE (tmp_3(ldim))
          tmp_2(:) = Ilist2(istart:iend)
          tmp_3(:) = Ilist3(istart:iend)
-         CALL reorder_list_array(tmp_2, tmp_3, nsize=nsize-1, ndim=ldim)
+         CALL reorder_list_array(tmp_2, tmp_3, nsize=nsize - 1, ndim=ldim)
          Ilist2(istart:iend) = tmp_2(:)
          Ilist3(istart:iend) = tmp_3(:)
          DEALLOCATE (tmp_2)
@@ -700,7 +688,7 @@ CONTAINS
          tmp_2(:) = Ilist2(istart:iend)
          tmp_3(:) = Ilist3(istart:iend)
          tmp_4(:) = Ilist4(istart:iend)
-         CALL reorder_list_array(tmp_2, tmp_3, tmp_4, nsize=nsize-1, ndim=ldim)
+         CALL reorder_list_array(tmp_2, tmp_3, tmp_4, nsize=nsize - 1, ndim=ldim)
          Ilist2(istart:iend) = tmp_2(:)
          Ilist3(istart:iend) = tmp_3(:)
          Ilist4(istart:iend) = tmp_4(:)
@@ -736,7 +724,7 @@ CONTAINS
          DO j = 1, SIZE(bond_list(i)%array1)
             k = bond_list(i)%array1(j)
             IF (icheck(k)) CYCLE
-            mol_natom = mol_natom+1
+            mol_natom = mol_natom + 1
             CALL give_back_molecule(icheck, bond_list, k, mol_natom, mol_map, my_mol)
          END DO
       ELSE
@@ -785,9 +773,6 @@ CONTAINS
       INTEGER, DIMENSION(:), INTENT(IN)                  :: list1, list2
       INTEGER, INTENT(IN)                                :: N
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'reorder_structure1d', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: I, index1, index2, Nsize
       INTEGER, DIMENSION(:), POINTER                     :: wrk_tmp
 
@@ -797,16 +782,16 @@ CONTAINS
 
          wrk_tmp => work(index1)%array1
          Nsize = SIZE(wrk_tmp)
-         ALLOCATE (work(index1)%array1(Nsize+1))
+         ALLOCATE (work(index1)%array1(Nsize + 1))
          work(index1)%array1(1:Nsize) = wrk_tmp
-         work(index1)%array1(Nsize+1) = index2
+         work(index1)%array1(Nsize + 1) = index2
          DEALLOCATE (wrk_tmp)
 
          wrk_tmp => work(index2)%array1
          Nsize = SIZE(wrk_tmp)
-         ALLOCATE (work(index2)%array1(Nsize+1))
+         ALLOCATE (work(index2)%array1(Nsize + 1))
          work(index2)%array1(1:Nsize) = wrk_tmp
-         work(index2)%array1(Nsize+1) = index1
+         work(index2)%array1(Nsize + 1) = index1
          DEALLOCATE (wrk_tmp)
       ENDDO
 
@@ -828,9 +813,6 @@ CONTAINS
       INTEGER, DIMENSION(:), INTENT(IN)                  :: list1, list2, list3
       INTEGER, INTENT(IN)                                :: N
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'reorder_structure2d', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: I, index1, index2, index3, Nsize
       INTEGER, DIMENSION(:), POINTER                     :: wrk_tmp
 
@@ -841,30 +823,30 @@ CONTAINS
 
          wrk_tmp => work(index1)%array1
          Nsize = SIZE(wrk_tmp)
-         ALLOCATE (work(index1)%array1(Nsize+1))
+         ALLOCATE (work(index1)%array1(Nsize + 1))
          work(index1)%array1(1:Nsize) = wrk_tmp
-         work(index1)%array1(Nsize+1) = index2
+         work(index1)%array1(Nsize + 1) = index2
          DEALLOCATE (wrk_tmp)
 
          wrk_tmp => work(index2)%array1
          Nsize = SIZE(wrk_tmp)
-         ALLOCATE (work(index2)%array1(Nsize+1))
+         ALLOCATE (work(index2)%array1(Nsize + 1))
          work(index2)%array1(1:Nsize) = wrk_tmp
-         work(index2)%array1(Nsize+1) = index1
+         work(index2)%array1(Nsize + 1) = index1
          DEALLOCATE (wrk_tmp)
 
          wrk_tmp => work(index1)%array2
          Nsize = SIZE(wrk_tmp)
-         ALLOCATE (work(index1)%array2(Nsize+1))
+         ALLOCATE (work(index1)%array2(Nsize + 1))
          work(index1)%array2(1:Nsize) = wrk_tmp
-         work(index1)%array2(Nsize+1) = index3
+         work(index1)%array2(Nsize + 1) = index3
          DEALLOCATE (wrk_tmp)
 
          wrk_tmp => work(index2)%array2
          Nsize = SIZE(wrk_tmp)
-         ALLOCATE (work(index2)%array2(Nsize+1))
+         ALLOCATE (work(index2)%array2(Nsize + 1))
          work(index2)%array2(1:Nsize) = wrk_tmp
-         work(index2)%array2(Nsize+1) = -index3
+         work(index2)%array2(Nsize + 1) = -index3
          DEALLOCATE (wrk_tmp)
       ENDDO
 
@@ -889,7 +871,7 @@ CONTAINS
       nmol = 0
       DO I = 1, N
          IF (mol_info(I) == -1) THEN
-            nmol = nmol+1
+            nmol = nmol + 1
             my_mol_name = mol_name(I)
             CALL spread_mol(atom_bond_list, mol_info, i, nmol, my_mol_name, &
                             mol_name)
@@ -938,8 +920,7 @@ CONTAINS
       TYPE(topology_parameters_type), INTENT(INOUT)      :: topology
       TYPE(section_vals_type), POINTER                   :: subsys_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'topology_set_atm_mass', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'topology_set_atm_mass'
 
       CHARACTER(LEN=2)                                   :: upper_sym_1
       CHARACTER(LEN=default_string_length)               :: atmname_upper
@@ -1017,8 +998,7 @@ CONTAINS
       TYPE(topology_parameters_type), INTENT(INOUT)      :: topology
       TYPE(section_vals_type), POINTER                   :: subsys_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'topology_molecules_check', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'topology_molecules_check'
 
       INTEGER                                            :: counter, first, first_loc, handle, i, &
                                                             iatom, iw, k, loc_counter, mol_num, &
@@ -1081,39 +1061,39 @@ CONTAINS
             mol_typ = atom_info%map_mol_typ(iatom)
          END IF
          IF (icheck_num) THEN
-            IF (icheck_typ) loc_counter = loc_counter+1
+            IF (icheck_typ) loc_counter = loc_counter + 1
             !-----------------------------------------------------------------------------
             !-----------------------------------------------------------------------------
             ! 2. Check that each molecule has the same atom sequences
             !-----------------------------------------------------------------------------
             IF (atom_info%id_atmname(iatom) /= &
-                atom_info%id_atmname(first+loc_counter-1)) THEN
+                atom_info%id_atmname(first + loc_counter - 1)) THEN
                CALL cp_abort(__LOCATION__, &
                              "different atom name for same molecule kind"// &
                              " atom number    = "//cp_to_string(iatom)// &
                              " molecule type  = "//cp_to_string(mol_typ)// &
                              " molecule number= "//cp_to_string(mol_num)// &
-                             " expected atom name="//TRIM(id2str(atom_info%id_atmname(first+loc_counter-1)))// &
+                             " expected atom name="//TRIM(id2str(atom_info%id_atmname(first + loc_counter - 1)))// &
                              " found="//TRIM(id2str(atom_info%id_atmname(iatom))))
             END IF
             !-----------------------------------------------------------------------------
             !-----------------------------------------------------------------------------
             ! 3. Check that each molecule have the same bond sequences
             !-----------------------------------------------------------------------------
-            IF (SIZE(atom_bond_list(iatom)%array1) /= SIZE(atom_bond_list(first+loc_counter-1)%array1)) THEN
+            IF (SIZE(atom_bond_list(iatom)%array1) /= SIZE(atom_bond_list(first + loc_counter - 1)%array1)) THEN
                CALL cp_abort(__LOCATION__, &
                              "different number of bonds for same molecule kind"// &
                              " molecule type  = "//cp_to_string(mol_typ)// &
                              " molecule number= "//cp_to_string(mol_num)// &
                              " expected bonds="// &
-                             cp_to_string(SIZE(atom_bond_list(first+loc_counter-1)%array1))//" - "// &
+                             cp_to_string(SIZE(atom_bond_list(first + loc_counter - 1)%array1))//" - "// &
                              cp_to_string(SIZE(atom_bond_list(iatom)%array1))// &
                              " NOT FOUND! Check the connectivity of your system.")
             ENDIF
 
             DO k = 1, SIZE(atom_bond_list(iatom)%array1)
-               IF (ALL(atom_bond_list(first+loc_counter-1)%array1-first /= &
-                       atom_bond_list(iatom)%array1(k)-first_loc)) THEN
+               IF (ALL(atom_bond_list(first + loc_counter - 1)%array1 - first /= &
+                       atom_bond_list(iatom)%array1(k) - first_loc)) THEN
                   CALL cp_abort(__LOCATION__, &
                                 "different sequence of bonds for same molecule kind"// &
                                 " molecule type  = "//cp_to_string(mol_typ)// &
@@ -1126,7 +1106,7 @@ CONTAINS
             loc_counter = 1
             first_loc = iatom
          END IF
-         IF (mol_num == 1 .AND. icheck_typ) counter = counter+1
+         IF (mol_num == 1 .AND. icheck_typ) counter = counter + 1
       END DO
       IF (iw > 0) WRITE (iw, '(A)') "End of Molecule_Check"
 
@@ -1156,9 +1136,6 @@ CONTAINS
       CHARACTER(len=default_string_length), INTENT(OUT)  :: element_out
       TYPE(section_vals_type), POINTER                   :: subsys_section
       LOGICAL                                            :: use_mm_map_first
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'check_subsys_element', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(len=default_string_length)               :: atom_name, element_symbol, keyword
       INTEGER                                            :: i, i_rep, n_rep

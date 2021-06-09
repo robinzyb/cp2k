@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -43,11 +45,8 @@ MODULE f77_interface
                                               cp_subsys_set,&
                                               cp_subsys_type,&
                                               unpack_subsys_particles
-   USE dbcsr_acc_device,                ONLY: acc_get_ndevices,&
-                                              acc_set_active_device
    USE dbcsr_api,                       ONLY: dbcsr_finalize_lib,&
-                                              dbcsr_init_lib,&
-                                              dbcsr_set_hooks
+                                              dbcsr_init_lib
    USE eip_environment,                 ONLY: eip_init
    USE eip_environment_types,           ONLY: eip_env_create,&
                                               eip_env_release,&
@@ -75,14 +74,10 @@ MODULE f77_interface
                                               globenv_create,&
                                               globenv_release,&
                                               globenv_retain
-   USE input_constants,                 ONLY: do_eip,&
-                                              do_embed,&
-                                              do_fist,&
-                                              do_mixed,&
-                                              do_qmmm,&
-                                              do_qmmmx,&
-                                              do_qs,&
-                                              do_sirius
+   USE grid_api,                        ONLY: grid_library_finalize,&
+                                              grid_library_init
+   USE input_constants,                 ONLY: &
+        do_eip, do_embed, do_fist, do_mixed, do_nnp, do_qmmm, do_qmmmx, do_qs, do_sirius
    USE input_cp2k_check,                ONLY: check_cp2k_input
    USE input_cp2k_force_eval,           ONLY: create_force_eval_section
    USE input_cp2k_read,                 ONLY: empty_initial_variables,&
@@ -104,7 +99,7 @@ MODULE f77_interface
                                               m_getcwd,&
                                               m_memory
    USE message_passing,                 ONLY: &
-        add_mp_perf_env, get_mp_perf_env, mp_comm_world, mp_max, mp_perf_env_release, &
+        add_mp_perf_env, get_mp_perf_env, mp_comm_world, mp_environ, mp_max, mp_perf_env_release, &
         mp_perf_env_retain, mp_perf_env_type, mp_world_finalize, mp_world_init, rm_mp_perf_env
    USE metadynamics_types,              ONLY: meta_env_release,&
                                               meta_env_type
@@ -112,6 +107,13 @@ MODULE f77_interface
    USE mixed_environment_types,         ONLY: mixed_env_release,&
                                               mixed_environment_type
    USE mixed_main,                      ONLY: mixed_create_force_env
+   USE nnp_environment,                 ONLY: nnp_init
+   USE nnp_environment_types,           ONLY: nnp_env_create,&
+                                              nnp_env_release,&
+                                              nnp_type
+   USE offload_api,                     ONLY: offload_get_device_count,&
+                                              offload_get_device_id,&
+                                              offload_set_device_id
    USE periodic_table,                  ONLY: init_periodic_table
    USE pw_cuda,                         ONLY: pw_cuda_finalize,&
                                               pw_cuda_init
@@ -212,9 +214,8 @@ CONTAINS
       LOGICAL, INTENT(in)                                :: init_mpi
       INTEGER, INTENT(out)                               :: ierr
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_cp2k', routineP = moduleN//':'//routineN
-
-      INTEGER                                            :: mpi_comm_default, unit_nr
+      INTEGER                                            :: mpi_comm_default, numtask, taskid, &
+                                                            unit_nr
       TYPE(cp_logger_type), POINTER                      :: logger
 
       IF (.NOT. module_initialized) THEN
@@ -245,7 +246,7 @@ CONTAINS
          NULLIFY (default_para_env)
          CALL cp_para_env_create(default_para_env, group=mpi_comm_default, &
                                  owns_group=.FALSE.)
-         IF (default_para_env%source == default_para_env%mepos) THEN
+         IF (default_para_env%ionode) THEN
             unit_nr = default_output_unit
          ELSE
             unit_nr = -1
@@ -268,16 +269,26 @@ CONTAINS
          !   *** init the bibliography ***
          CALL add_all_references()
 
-         IF (acc_get_ndevices() > 0) &
-            CALL acc_set_active_device(MOD(default_para_env%mepos, acc_get_ndevices()))
+         ! Select active offload device when available.
+         IF (offload_get_device_count() > 0) THEN
+            CALL mp_environ(numtask=numtask, taskid=taskid, groupid=mpi_comm_default)
+            CALL offload_set_device_id(MOD(taskid, offload_get_device_count()))
+         ENDIF
+
+         ! Initialize the DBCSR configuration
+         ! Attach the time handler hooks to DBCSR
+         IF (offload_get_device_count() > 0) THEN
+            CALL dbcsr_init_lib(default_para_env%group, timeset_hook, timestop_hook, &
+                                cp_abort_hook, cp_warn_hook, io_unit=unit_nr, &
+                                accdrv_active_device_id=offload_get_device_id())
+         ELSE
+            CALL dbcsr_init_lib(default_para_env%group, timeset_hook, timestop_hook, &
+                                cp_abort_hook, cp_warn_hook, io_unit=unit_nr)
+         ENDIF
 
          CALL pw_cuda_init()
 
-         ! Initialize the DBCSR configuration
-         CALL dbcsr_init_lib()
-         ! Attach the time handler hooks to DBCSR
-         CALL dbcsr_set_hooks(timeset_hook, timestop_hook, &
-                              cp_abort_hook, cp_warn_hook)
+         CALL grid_library_init()
       ELSE
          ierr = cp_failure_level
       END IF
@@ -297,8 +308,6 @@ CONTAINS
       LOGICAL, INTENT(in)                                :: finalize_mpi
       INTEGER, INTENT(out)                               :: ierr
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'finalize_cp2k', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ienv
 
 !sample peak memory
@@ -308,14 +317,18 @@ CONTAINS
       IF (.NOT. module_initialized) THEN
          ierr = cp_failure_level
       ELSE
-         ! Finalize the DBCSR configuration
-         CALL dbcsr_finalize_lib(group=default_para_env%group, output_unit=0)
-         CALL pw_cuda_finalize()
          DO ienv = n_f_envs, 1, -1
             CALL destroy_force_env(f_envs(ienv)%f_env%id_nr, ierr=ierr)
             CPASSERT(ierr == 0)
          END DO
          DEALLOCATE (f_envs)
+
+         CALL grid_library_finalize()
+
+         ! Finalize the DBCSR configuration
+         CALL dbcsr_finalize_lib()
+         CALL pw_cuda_finalize()
+
          CALL cp_para_env_release(default_para_env)
          ierr = 0
          CALL cp_rm_default_logger()
@@ -338,8 +351,6 @@ CONTAINS
 ! **************************************************************************************************
    RECURSIVE SUBROUTINE f_env_dealloc(f_env)
       TYPE(f_env_type), POINTER                          :: f_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'f_env_dealloc', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ierr
 
@@ -374,8 +385,6 @@ CONTAINS
       TYPE(cp_logger_type), POINTER                      :: logger
       CHARACTER(len=*), INTENT(in)                       :: old_dir
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'f_env_create', routineP = moduleN//':'//routineN
-
       ALLOCATE (f_env)
       f_env%force_env => force_env
       CALL force_env_retain(f_env%force_env)
@@ -398,9 +407,6 @@ CONTAINS
    SUBROUTINE f_env_get_from_id(f_env_id, f_env)
       INTEGER, INTENT(in)                                :: f_env_id
       TYPE(f_env_type), POINTER                          :: f_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'f_env_get_from_id', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: f_env_pos
 
@@ -433,9 +439,6 @@ CONTAINS
       INTEGER, INTENT(in)                                :: f_env_id
       TYPE(f_env_type), POINTER                          :: f_env
       INTEGER, INTENT(out), OPTIONAL                     :: handle
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'f_env_add_defaults', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: f_env_pos, ierr
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -480,9 +483,6 @@ CONTAINS
       TYPE(f_env_type), POINTER                          :: f_env
       INTEGER, INTENT(out), OPTIONAL                     :: ierr
       INTEGER, INTENT(in), OPTIONAL                      :: handle
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'f_env_rm_defaults', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ierr2
       TYPE(cp_logger_type), POINTER                      :: d_logger, logger
@@ -540,7 +540,7 @@ CONTAINS
 !>        instead of parsing from file
 !> \param ierr will return a number different from 0 if there was an error
 !> \param work_dir ...
-!> \param initial_variables ...
+!> \param initial_variables key-value list of initial preprocessor variables
 !> \author fawzi
 !> \note
 !>      The following routines need to be synchronized wrt. adding/removing
@@ -563,8 +563,7 @@ CONTAINS
       CHARACTER(len=*), INTENT(in), OPTIONAL             :: work_dir
       CHARACTER(len=*), DIMENSION(:, :), OPTIONAL        :: initial_variables
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_force_env', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'create_force_env'
 
       CHARACTER(len=default_path_length)                 :: old_dir, wdir
       INTEGER :: handle, i, ierr2, iforce_eval, isubforce_eval, k, method_name_id, my_group, &
@@ -586,6 +585,7 @@ CONTAINS
       TYPE(meta_env_type), POINTER                       :: meta_env
       TYPE(mixed_environment_type), POINTER              :: mixed_env
       TYPE(mp_perf_env_type), POINTER                    :: mp_perf_env
+      TYPE(nnp_type), POINTER                            :: nnp_env
       TYPE(pwdft_environment_type), POINTER              :: pwdft_env
       TYPE(qmmm_env_type), POINTER                       :: qmmm_env
       TYPE(qmmmx_env_type), POINTER                      :: qmmmx_env
@@ -625,7 +625,7 @@ CONTAINS
       IF (PRESENT(output_unit)) THEN
          unit_nr = output_unit
       ELSE
-         IF (para_env%mepos == para_env%source) THEN
+         IF (para_env%ionode) THEN
             IF (output_path == "__STD_OUT__") THEN
                unit_nr = default_output_unit
             ELSE
@@ -675,13 +675,13 @@ CONTAINS
       root_section => input_file
       CALL section_vals_retain(root_section)
 
-      IF (n_f_envs+1 > SIZE(f_envs)) THEN
+      IF (n_f_envs + 1 > SIZE(f_envs)) THEN
          f_envs_old => f_envs
-         ALLOCATE (f_envs(n_f_envs+10))
+         ALLOCATE (f_envs(n_f_envs + 10))
          DO i = 1, n_f_envs
             f_envs(i)%f_env => f_envs_old(i)%f_env
          END DO
-         DO i = n_f_envs+1, SIZE(f_envs)
+         DO i = n_f_envs + 1, SIZE(f_envs)
             NULLIFY (f_envs(i)%f_env)
          END DO
          DEALLOCATE (f_envs_old)
@@ -691,7 +691,7 @@ CONTAINS
 
       CALL cp2k_setup(root_section, para_env, globenv)
       ! Group Distribution
-      ALLOCATE (group_distribution(0:para_env%num_pe-1))
+      ALLOCATE (group_distribution(0:para_env%num_pe - 1))
       group_distribution = 0
       lgroup_distribution => group_distribution
       ! Setup all possible force_env
@@ -707,7 +707,7 @@ CONTAINS
             CALL section_vals_remove_values(wrk_section)
          END DO
       END IF
-      nsubforce_size = nforce_eval-1
+      nsubforce_size = nforce_eval - 1
       use_multiple_para_env = .FALSE.
       use_motion_section = .TRUE.
       DO iforce_eval = 1, nforce_eval
@@ -733,11 +733,11 @@ CONTAINS
                CPASSERT(check)
                ngroups = force_env%mixed_env%ngroups
                my_group = lgroup_distribution(para_env%mepos)
-               isubforce_eval = iforce_eval-1
+               isubforce_eval = iforce_eval - 1
                ! If task not allocated on this procs skip setup..
-               IF (MODULO(isubforce_eval-1, ngroups) /= my_group) CYCLE
-               my_para_env => force_env%mixed_env%sub_para_env(my_group+1)%para_env
-               my_logger => force_env%mixed_env%sub_logger(my_group+1)%p
+               IF (MODULO(isubforce_eval - 1, ngroups) /= my_group) CYCLE
+               my_para_env => force_env%mixed_env%sub_para_env(my_group + 1)%para_env
+               my_logger => force_env%mixed_env%sub_logger(my_group + 1)%p
                CALL cp_rm_default_logger()
                CALL cp_add_default_logger(my_logger)
             ENDIF
@@ -746,11 +746,11 @@ CONTAINS
                CPASSERT(check)
                ngroups = force_env%embed_env%ngroups
                my_group = lgroup_distribution(para_env%mepos)
-               isubforce_eval = iforce_eval-1
+               isubforce_eval = iforce_eval - 1
                ! If task not allocated on this procs skip setup..
-               IF (MODULO(isubforce_eval-1, ngroups) /= my_group) CYCLE
-               my_para_env => force_env%embed_env%sub_para_env(my_group+1)%para_env
-               my_logger => force_env%embed_env%sub_logger(my_group+1)%p
+               IF (MODULO(isubforce_eval - 1, ngroups) /= my_group) CYCLE
+               my_para_env => force_env%embed_env%sub_para_env(my_group + 1)%para_env
+               my_logger => force_env%embed_env%sub_logger(my_group + 1)%p
                CALL cp_rm_default_logger()
                CALL cp_add_default_logger(my_logger)
             ENDIF
@@ -847,6 +847,14 @@ CONTAINS
             CALL cp_add_default_logger(logger) ! just to get the logger swapping started
             lgroup_distribution => my_force_env%embed_env%group_distribution
 
+         CASE (do_nnp)
+            CALL nnp_env_create(nnp_env)
+            CALL nnp_init(nnp_env, root_section, my_para_env, force_env_section=force_env_section, &
+                          subsys_section=subsys_section, use_motion_section=use_motion_section)
+            CALL force_env_create(my_force_env, root_section, nnp_env=nnp_env, para_env=my_para_env, &
+                                  globenv=globenv, force_env_section=force_env_section)
+            CALL nnp_env_release(nnp_env)
+
          CASE default
             CALL create_force_eval_section(section)
             keyword => section_get_keyword(section, "METHOD")
@@ -884,7 +892,7 @@ CONTAINS
          IF (iforce_eval == 1) THEN
             force_env => my_force_env
          ELSE
-            force_env%sub_force_env(iforce_eval-1)%force_env => my_force_env
+            force_env%sub_force_env(iforce_eval - 1)%force_env => my_force_env
          END IF
          ! Multiple para env for sub_force_eval
          IF (.NOT. use_multiple_para_env) THEN
@@ -900,9 +908,9 @@ CONTAINS
       timer_env => get_timer_env()
       mp_perf_env => get_mp_perf_env()
       CALL mp_max(last_f_env_id, para_env%group)
-      last_f_env_id = last_f_env_id+1
+      last_f_env_id = last_f_env_id + 1
       new_env_id = last_f_env_id
-      n_f_envs = n_f_envs+1
+      n_f_envs = n_f_envs + 1
       CALL f_env_create(f_envs(n_f_envs)%f_env, logger=logger, &
                         timer_env=timer_env, mp_perf_env=mp_perf_env, force_env=force_env, &
                         id_nr=last_f_env_id, old_dir=old_dir)
@@ -933,9 +941,6 @@ CONTAINS
       INTEGER, INTENT(out)                               :: ierr
       LOGICAL, INTENT(IN), OPTIONAL                      :: q_finalize
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'destroy_force_env', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: env_pos, i
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(f_env_type), POINTER                          :: f_env
@@ -945,11 +950,11 @@ CONTAINS
       NULLIFY (f_env)
       CALL f_env_add_defaults(env_id, f_env)
       env_pos = get_pos_of_env(env_id)
-      n_f_envs = n_f_envs-1
+      n_f_envs = n_f_envs - 1
       DO i = env_pos, n_f_envs
-         f_envs(i)%f_env => f_envs(i+1)%f_env
+         f_envs(i)%f_env => f_envs(i + 1)%f_env
       END DO
-      NULLIFY (f_envs(n_f_envs+1)%f_env)
+      NULLIFY (f_envs(n_f_envs + 1)%f_env)
 
       CALL force_env_get(f_env%force_env, globenv=globenv, &
                          root_section=root_section, para_env=para_env)
@@ -981,8 +986,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: env_id
       INTEGER, INTENT(OUT)                               :: n_atom, ierr
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_natom', routineP = moduleN//':'//routineN
-
       TYPE(f_env_type), POINTER                          :: f_env
 
       n_atom = 0
@@ -1005,8 +1008,6 @@ CONTAINS
 
       INTEGER, INTENT(IN)                                :: env_id
       INTEGER, INTENT(OUT)                               :: n_particle, ierr
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_nparticle', routineP = moduleN//':'//routineN
 
       TYPE(f_env_type), POINTER                          :: f_env
 
@@ -1032,8 +1033,6 @@ CONTAINS
       REAL(KIND=DP), DIMENSION(3, 3)                     :: cell
       INTEGER, DIMENSION(3), OPTIONAL                    :: per
       INTEGER, INTENT(OUT)                               :: ierr
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_cell', routineP = moduleN//':'//routineN
 
       TYPE(cell_type), POINTER                           :: cell_full
       TYPE(f_env_type), POINTER                          :: f_env
@@ -1085,7 +1084,7 @@ CONTAINS
       ELSE
          exist_res = .TRUE.
       END IF
-      ! if existing (or assuming the existance) read the results
+      ! if existing (or assuming the existence) read the results
       IF (exist_res) THEN
          CALL get_results(results, description=description, n_rep=nres)
          CALL get_results(results, description=description, values=RESULT, nval=nres)
@@ -1110,8 +1109,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(1:n_el)                   :: frc
       INTEGER, INTENT(OUT)                               :: ierr
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_force', routineP = moduleN//':'//routineN
-
       TYPE(f_env_type), POINTER                          :: f_env
 
       NULLIFY (f_env)
@@ -1133,9 +1130,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: env_id
       REAL(KIND=dp), DIMENSION(3, 3), INTENT(OUT)        :: stress_tensor
       INTEGER, INTENT(OUT)                               :: ierr
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_stress_tensor', &
-         routineP = moduleN//':'//routineN
 
       TYPE(cell_type), POINTER                           :: cell
       TYPE(cp_subsys_type), POINTER                      :: subsys
@@ -1170,8 +1164,6 @@ CONTAINS
       REAL(KIND=DP), DIMENSION(1:n_el)                   :: pos
       INTEGER, INTENT(OUT)                               :: ierr
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_pos', routineP = moduleN//':'//routineN
-
       TYPE(f_env_type), POINTER                          :: f_env
 
       NULLIFY (f_env)
@@ -1196,8 +1188,6 @@ CONTAINS
       REAL(KIND=DP), DIMENSION(1:n_el)                   :: vel
       INTEGER, INTENT(OUT)                               :: ierr
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_vel', routineP = moduleN//':'//routineN
-
       TYPE(f_env_type), POINTER                          :: f_env
 
       NULLIFY (f_env)
@@ -1219,8 +1209,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: env_id
       REAL(KIND=DP), DIMENSION(3, 3)                     :: new_cell
       INTEGER, INTENT(OUT)                               :: ierr
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'set_cell', routineP = moduleN//':'//routineN
 
       TYPE(cell_type), POINTER                           :: cell
       TYPE(cp_subsys_type), POINTER                      :: subsys
@@ -1254,8 +1242,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(1:n_el)                   :: new_pos
       INTEGER, INTENT(OUT)                               :: ierr
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'set_pos', routineP = moduleN//':'//routineN
-
       TYPE(cp_subsys_type), POINTER                      :: subsys
       TYPE(f_env_type), POINTER                          :: f_env
 
@@ -1283,8 +1269,6 @@ CONTAINS
       REAL(kind=dp), DIMENSION(1:n_el)                   :: new_vel
       INTEGER, INTENT(OUT)                               :: ierr
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'set_vel', routineP = moduleN//':'//routineN
-
       TYPE(cp_subsys_type), POINTER                      :: subsys
       TYPE(f_env_type), POINTER                          :: f_env
 
@@ -1311,9 +1295,6 @@ CONTAINS
       LOGICAL, INTENT(in)                                :: calc_force
       INTEGER, INTENT(out)                               :: ierr
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'calc_energy_force', &
-         routineP = moduleN//':'//routineN
-
       TYPE(cp_logger_type), POINTER                      :: logger
       TYPE(f_env_type), POINTER                          :: f_env
 
@@ -1338,8 +1319,6 @@ CONTAINS
       INTEGER, INTENT(in)                                :: env_id
       REAL(kind=dp), INTENT(out)                         :: e_pot
       INTEGER, INTENT(out)                               :: ierr
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_energy', routineP = moduleN//':'//routineN
 
       TYPE(f_env_type), POINTER                          :: f_env
 
@@ -1422,18 +1401,19 @@ CONTAINS
 !>        defaults made explicit
 !> \param mpi_comm the mpi communicator (if not given it uses the default
 !>        one)
+!> \param initial_variables key-value list of initial preprocessor variables
 !> \param ierr error control, if different from 0 there was an error
 !> \author fawzi
 ! **************************************************************************************************
    SUBROUTINE check_input(input_declaration, input_file_path, output_file_path, &
-                          echo_input, mpi_comm, ierr)
+                          echo_input, mpi_comm, initial_variables, ierr)
       TYPE(section_type), POINTER                        :: input_declaration
       CHARACTER(len=*), INTENT(in)                       :: input_file_path, output_file_path
       LOGICAL, INTENT(in), OPTIONAL                      :: echo_input
       INTEGER, INTENT(in), OPTIONAL                      :: mpi_comm
+      CHARACTER(len=default_path_length), &
+         DIMENSION(:, :), INTENT(IN)                     :: initial_variables
       INTEGER, INTENT(out)                               :: ierr
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'check_input', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: unit_nr
       LOGICAL                                            :: my_echo_input
@@ -1451,7 +1431,7 @@ CONTAINS
          para_env => default_para_env
          CALL cp_para_env_retain(para_env)
       END IF
-      IF (para_env%mepos == para_env%source) THEN
+      IF (para_env%ionode) THEN
          IF (output_file_path == "__STD_OUT__") THEN
             unit_nr = default_output_unit
          ELSE
@@ -1470,10 +1450,10 @@ CONTAINS
       CALL cp_add_default_logger(logger)
       CALL cp_logger_release(logger)
 
-      input_file => read_input(input_declaration, input_file_path, initial_variables=empty_initial_variables, &
+      input_file => read_input(input_declaration, input_file_path, initial_variables=initial_variables, &
                                para_env=para_env)
       CALL check_cp2k_input(input_declaration, input_file, para_env=para_env, output_unit=unit_nr)
-      IF (my_echo_input .AND. para_env%mepos == para_env%source) THEN
+      IF (my_echo_input .AND. para_env%ionode) THEN
          CALL section_vals_write(input_file, &
                                  unit_nr=cp_logger_get_default_unit_nr(logger, local=.FALSE.), hide_root=.TRUE., &
                                  hide_defaults=.FALSE.)

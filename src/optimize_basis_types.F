@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 MODULE optimize_basis_types
 
@@ -128,9 +130,6 @@ CONTAINS
    SUBROUTINE deallocate_basis_optimization_type(opt_bas)
       TYPE(basis_optimization_type)                      :: opt_bas
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_basis_optimization_type', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: igroup, ikind
 
       IF (ASSOCIATED(opt_bas%group_partition)) DEALLOCATE (opt_bas%group_partition)
@@ -166,13 +165,10 @@ CONTAINS
    SUBROUTINE deallocate_kind_basis(kind)
       TYPE(kind_basis_type)                              :: kind
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_kind_basis', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ibasis, icont, iinfo, iset
 
       IF (ALLOCATED(kind%deriv_info)) THEN
-         DO iinfo = 0, SIZE(kind%deriv_info)-1
+         DO iinfo = 0, SIZE(kind%deriv_info) - 1
             IF (ALLOCATED(kind%deriv_info(iinfo)%remove_contr)) DEALLOCATE (kind%deriv_info(iinfo)%remove_contr)
             IF (ALLOCATED(kind%deriv_info(iinfo)%remove_set)) DEALLOCATE (kind%deriv_info(iinfo)%remove_set)
             IF (ALLOCATED(kind%deriv_info(iinfo)%in_use_set)) DEALLOCATE (kind%deriv_info(iinfo)%in_use_set)
@@ -188,7 +184,7 @@ CONTAINS
       END IF
 
       IF (ALLOCATED(kind%flex_basis)) THEN
-         DO ibasis = 0, SIZE(kind%flex_basis)-1
+         DO ibasis = 0, SIZE(kind%flex_basis) - 1
             IF (ALLOCATED(kind%flex_basis(ibasis)%subset)) THEN
                DO iset = 1, SIZE(kind%flex_basis(ibasis)%subset)
                   IF (ALLOCATED(kind%flex_basis(ibasis)%subset(iset)%l)) &

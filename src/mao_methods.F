@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -32,11 +34,11 @@ MODULE mao_methods
                                               cp_fm_type
    USE cp_para_types,                   ONLY: cp_para_env_type
    USE dbcsr_api,                       ONLY: &
-        dbcsr_create, dbcsr_desymmetrize, dbcsr_distribution_type, dbcsr_get_block_p, &
+        dbcsr_create, dbcsr_desymmetrize, dbcsr_distribution_type, dbcsr_dot, dbcsr_get_block_p, &
         dbcsr_get_info, dbcsr_iterator_blocks_left, dbcsr_iterator_next_block, &
         dbcsr_iterator_start, dbcsr_iterator_stop, dbcsr_iterator_type, dbcsr_multiply, &
-        dbcsr_p_type, dbcsr_release, dbcsr_reserve_diag_blocks, dbcsr_set, dbcsr_trace, &
-        dbcsr_type, dbcsr_type_no_symmetry
+        dbcsr_p_type, dbcsr_release, dbcsr_reserve_diag_blocks, dbcsr_set, dbcsr_type, &
+        dbcsr_type_no_symmetry
    USE input_constants,                 ONLY: mao_basis_ext,&
                                               mao_basis_orb,&
                                               mao_basis_prim
@@ -87,9 +89,6 @@ CONTAINS
       TYPE(dbcsr_type)                                   :: mao_coef, pmat, smat
       REAL(KIND=dp), INTENT(IN)                          :: eps1
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mao_initialization', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: group, i, iatom, info, jatom, lwork, m, &
                                                             n, nblk
       INTEGER, DIMENSION(:), POINTER                     :: mao_blk, row_blk, row_blk_sizes
@@ -129,10 +128,10 @@ CONTAINS
          mbl(iatom)%n = n
          mbl(iatom)%ma = m
          DO i = 1, n
-            mbl(iatom)%eig(i) = w(n-i+1)
-            mbl(iatom)%mat(1:n, i) = amat(1:n, n-i+1)
+            mbl(iatom)%eig(i) = w(n - i + 1)
+            mbl(iatom)%mat(1:n, i) = amat(1:n, n - i + 1)
          END DO
-         cblock(1:n, 1:m) = amat(1:n, n:n-m+1:-1)
+         cblock(1:n, 1:m) = amat(1:n, n:n - m + 1:-1)
          DEALLOCATE (amat, bmat, w, work)
       END DO
       CALL dbcsr_iterator_stop(dbcsr_iter)
@@ -206,8 +205,6 @@ CONTAINS
       TYPE(dbcsr_type)                                   :: qmat, smat, binv
       LOGICAL, INTENT(IN)                                :: reuse
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mao_function', routineP = moduleN//':'//routineN
-
       REAL(KIND=dp)                                      :: convergence, threshold
       TYPE(dbcsr_type)                                   :: bmat, scmat, tmat
 
@@ -227,7 +224,7 @@ CONTAINS
       CALL dbcsr_multiply("N", "N", 1.0_dp, mao_coef, binv, 0.0_dp, scmat)
       CALL dbcsr_multiply("N", "T", 1.0_dp, scmat, mao_coef, 0.0_dp, tmat)
       ! function = Tr(Q*T)
-      CALL dbcsr_trace(qmat, tmat, fval)
+      CALL dbcsr_dot(qmat, tmat, fval)
       ! free temp matrices
       CALL dbcsr_release(scmat)
       CALL dbcsr_release(bmat)
@@ -251,9 +248,6 @@ CONTAINS
       TYPE(dbcsr_type)                                   :: mao_grad, qmat, smat, binv
       LOGICAL, INTENT(IN)                                :: reuse
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mao_function_gradient', &
-         routineP = moduleN//':'//routineN
-
       REAL(KIND=dp)                                      :: convergence, threshold
       TYPE(dbcsr_type)                                   :: bmat, scmat, t2mat, tmat
 
@@ -274,7 +268,7 @@ CONTAINS
       CALL dbcsr_multiply("N", "N", 1.0_dp, mao_coef, binv, 0.0_dp, scmat)
       CALL dbcsr_multiply("N", "T", 1.0_dp, scmat, mao_coef, 0.0_dp, tmat)
       ! function = Tr(Q*T)
-      CALL dbcsr_trace(qmat, tmat, fval)
+      CALL dbcsr_dot(qmat, tmat, fval)
       ! Gradient part 1: g = 2*Q*C*Binv = 2*Q*R
       CALL dbcsr_multiply("N", "N", 2.0_dp, qmat, scmat, 0.0_dp, mao_grad, &
                           retain_sparsity=.TRUE.)
@@ -300,9 +294,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE mao_orthogonalization(mao_coef, smat)
       TYPE(dbcsr_type)                                   :: mao_coef, smat
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'mao_orthogonalization', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, iatom, info, jatom, lwork, m, n
       LOGICAL                                            :: found
@@ -349,9 +340,6 @@ CONTAINS
    SUBROUTINE mao_project_gradient(mao_coef, mao_grad, smat)
       TYPE(dbcsr_type)                                   :: mao_coef, mao_grad, smat
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mao_project_gradient', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iatom, jatom, m, n
       LOGICAL                                            :: found
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :)        :: amat
@@ -372,7 +360,7 @@ CONTAINS
          CPASSERT(found)
          ALLOCATE (amat(m, m))
          amat(1:m, 1:m) = MATMUL(TRANSPOSE(cblock(1:n, 1:m)), MATMUL(sblock(1:n, 1:n), gblock(1:n, 1:m)))
-         gblock(1:n, 1:m) = gblock(1:n, 1:m)-MATMUL(cblock(1:n, 1:m), amat(1:m, 1:m))
+         gblock(1:n, 1:m) = gblock(1:n, 1:m) - MATMUL(cblock(1:n, 1:m), amat(1:m, 1:m))
          DEALLOCATE (amat)
       END DO
       CALL dbcsr_iterator_stop(dbcsr_iter)
@@ -389,9 +377,6 @@ CONTAINS
       TYPE(dbcsr_type)                                   :: fmat1, fmat2
       REAL(KIND=dp)                                      :: spro
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mao_scalar_product', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: group, iatom, jatom, m, n
       LOGICAL                                            :: found
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: ablock, bblock
@@ -407,7 +392,7 @@ CONTAINS
          n = SIZE(ablock, 1)
          CALL dbcsr_get_block_p(matrix=fmat2, row=iatom, col=jatom, block=bblock, found=found)
          CPASSERT(found)
-         spro = spro+SUM(ablock(1:n, 1:m)*bblock(1:n, 1:m))
+         spro = spro + SUM(ablock(1:n, 1:m)*bblock(1:n, 1:m))
       END DO
       CALL dbcsr_iterator_stop(dbcsr_iter)
 
@@ -433,9 +418,6 @@ CONTAINS
       TYPE(kpoint_type), POINTER                         :: kpoints
       INTEGER, INTENT(IN)                                :: nmos
       REAL(KIND=dp), INTENT(IN)                          :: occ
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_p_gamma', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: norb
       REAL(KIND=dp)                                      :: de
@@ -466,7 +448,7 @@ CONTAINS
 
       ! diagonalize
       CALL cp_fm_geeig(fmksmat, fmsmat, fmvec, eigenvalues, fmwork)
-      de = eigenvalues(nmos+1)-eigenvalues(nmos)
+      de = eigenvalues(nmos + 1) - eigenvalues(nmos)
       IF (de < 0.001_dp) THEN
          CALL cp_warn(__LOCATION__, "MAO: No band gap at "// &
                       "Gamma point. MAO analysis not reliable.")
@@ -503,9 +485,6 @@ CONTAINS
       TYPE(gto_basis_set_p_type), DIMENSION(:), POINTER  :: mao_basis_set_list, orb_basis_set_list
       INTEGER, INTENT(IN), OPTIONAL                      :: iunit
       LOGICAL, INTENT(IN), OPTIONAL                      :: print_basis
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'mao_reference_basis', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ikind, nbas, nkind, unit_nr
       REAL(KIND=dp)                                      :: eps_pgf_orb
@@ -619,9 +598,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: unit_nr
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mao_basis_analysis', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(len=2)                                   :: element_symbol
       INTEGER                                            :: ia, iab, iatom, ikind, iset, ishell, &
                                                             ispin, l, lmax, lshell, m, ma, na, &
@@ -662,7 +638,7 @@ CONTAINS
                      DO ishell = 1, basis_set%nshell(iset)
                         lshell = basis_set%l(ishell, iset)
                         DO m = -lshell, lshell
-                           iab = iab+1
+                           iab = iab + 1
                            IF (l == lshell) cmask(iab) = 1.0_dp
                         END DO
                      END DO
@@ -724,8 +700,6 @@ CONTAINS
       TYPE(neighbor_list_set_p_type), DIMENSION(:), &
          OPTIONAL, POINTER                               :: sab_orb
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mao_build_q', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: im, ispin, nim, nocc, norb, nspin
       INTEGER, DIMENSION(:, :, :), POINTER               :: cell_to_index
       REAL(KIND=dp)                                      :: elex, xkp(3)
@@ -744,8 +718,8 @@ CONTAINS
       DO ispin = 1, nspin
          electra(ispin) = 0.0_dp
          DO im = 1, nim
-            CALL dbcsr_trace(matrix_p(ispin, im)%matrix, matrix_s(1, im)%matrix, elex)
-            electra(ispin) = electra(ispin)+elex
+            CALL dbcsr_dot(matrix_p(ispin, im)%matrix, matrix_s(1, im)%matrix, elex)
+            electra(ispin) = electra(ispin) + elex
          END DO
       END DO
 
@@ -786,7 +760,7 @@ CONTAINS
             CALL rskp_transform(rmatrix=smat, rsmat=matrix_s, ispin=1, &
                                 xkp=xkp, cell_to_index=cell_to_index, sab_nl=sab_orb)
             norb = NINT(electra(ispin))
-            nocc = MOD(2, nspin)+1
+            nocc = MOD(2, nspin) + 1
             CALL calculate_p_gamma(pmat, ksmat, smat, kpoints, norb, REAL(nocc, KIND=dp))
             CALL dbcsr_multiply("N", "N", 1.0_dp, matrix_smo(1)%matrix, pmat, &
                                 0.0_dp, tmat, filter_eps=eps_filter)

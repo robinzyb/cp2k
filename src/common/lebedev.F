@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -113,9 +115,6 @@ CONTAINS
       INTEGER, INTENT(IN), OPTIONAL                      :: l, n
       INTEGER                                            :: number_of_lebedev_grid
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_number_of_lebedev_grid', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: ll, nn
       INTEGER, DIMENSION(1)                              :: lgnum
@@ -163,8 +162,6 @@ CONTAINS
       CHARACTER(*), INTENT(IN)                           :: subsystem
       INTEGER, INTENT(IN)                                :: lgnum, np
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'load_sub_grid', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, j
       REAL(KIND=dp)                                      :: x, y, z
 
@@ -190,8 +187,8 @@ CONTAINS
                       -one, zero, zero/), (/3, na1/))
          nlgp = na1
       CASE ("A2")
-         lebedev_grid(lgnum)%w(nlgp+1:nlgp+na2) = w(1)
-         lebedev_grid(lgnum)%r(1:3, nlgp+1:nlgp+na2) = &
+         lebedev_grid(lgnum)%w(nlgp + 1:nlgp + na2) = w(1)
+         lebedev_grid(lgnum)%r(1:3, nlgp + 1:nlgp + na2) = &
             RESHAPE((/zero, rs2, rs2, &
                       zero, rs2, -rs2, &
                       zero, -rs2, rs2, &
@@ -204,10 +201,10 @@ CONTAINS
                       rs2, -rs2, zero, &
                       -rs2, rs2, zero, &
                       -rs2, -rs2, zero/), (/3, na2/))
-         nlgp = nlgp+na2
+         nlgp = nlgp + na2
       CASE ("A3")
-         lebedev_grid(lgnum)%w(nlgp+1:nlgp+na3) = w(1)
-         lebedev_grid(lgnum)%r(1:3, nlgp+1:nlgp+na3) = &
+         lebedev_grid(lgnum)%w(nlgp + 1:nlgp + na3) = w(1)
+         lebedev_grid(lgnum)%r(1:3, nlgp + 1:nlgp + na3) = &
             RESHAPE((/rs3, rs3, rs3, &
                       rs3, rs3, -rs3, &
                       rs3, -rs3, rs3, &
@@ -216,13 +213,13 @@ CONTAINS
                       -rs3, rs3, -rs3, &
                       -rs3, -rs3, rs3, &
                       -rs3, -rs3, -rs3/), (/3, na3/))
-         nlgp = nlgp+na3
+         nlgp = nlgp + na3
       CASE ("B")
          DO i = 1, np
             x = r(i)
-            y = rs2*SQRT(one-x**2)
-            lebedev_grid(lgnum)%w(nlgp+nb*(i-1)+1:nlgp+nb*i) = w(i)
-            lebedev_grid(lgnum)%r(1:3, nlgp+nb*(i-1)+1:nlgp+nb*i) = &
+            y = rs2*SQRT(one - x**2)
+            lebedev_grid(lgnum)%w(nlgp + nb*(i - 1) + 1:nlgp + nb*i) = w(i)
+            lebedev_grid(lgnum)%r(1:3, nlgp + nb*(i - 1) + 1:nlgp + nb*i) = &
                RESHAPE((/x, y, y, &
                          x, y, -y, &
                          x, -y, y, &
@@ -248,13 +245,13 @@ CONTAINS
                          -y, y, -x, &
                          -y, -y, -x/), (/3, nb/))
          END DO
-         nlgp = nlgp+nb*np
+         nlgp = nlgp + nb*np
       CASE ("C")
          DO i = 1, np
             x = r(i)
-            y = SQRT(one-x**2)
-            lebedev_grid(lgnum)%w(nlgp+nc*(i-1)+1:nlgp+nc*i) = w(i)
-            lebedev_grid(lgnum)%r(1:3, nlgp+nc*(i-1)+1:nlgp+nc*i) = &
+            y = SQRT(one - x**2)
+            lebedev_grid(lgnum)%w(nlgp + nc*(i - 1) + 1:nlgp + nc*i) = w(i)
+            lebedev_grid(lgnum)%r(1:3, nlgp + nc*(i - 1) + 1:nlgp + nc*i) = &
                RESHAPE((/x, y, zero, &
                          x, -y, zero, &
                          -x, y, zero, &
@@ -280,16 +277,16 @@ CONTAINS
                          zero, -y, x, &
                          zero, -y, -x/), (/3, nc/))
          END DO
-         nlgp = nlgp+nc*np
+         nlgp = nlgp + nc*np
       CASE ("D")
          IF (MODULO(np, 3) == 0) THEN
             DO i = 1, np, 3
-               j = (i+2)/3
+               j = (i + 2)/3
                x = r(i)
-               y = r(i+1)
-               z = r(i+2)
-               lebedev_grid(lgnum)%w(nlgp+nd*(j-1)+1:nlgp+nd*j) = w(j)
-               lebedev_grid(lgnum)%r(1:3, nlgp+nd*(j-1)+1:nlgp+nd*j) = &
+               y = r(i + 1)
+               z = r(i + 2)
+               lebedev_grid(lgnum)%w(nlgp + nd*(j - 1) + 1:nlgp + nd*j) = w(j)
+               lebedev_grid(lgnum)%r(1:3, nlgp + nd*(j - 1) + 1:nlgp + nd*j) = &
                   RESHAPE((/x, y, z, x, y, -z, x, -y, z, -x, y, z, &
                             x, -y, -z, -x, y, -z, -x, -y, z, -x, -y, -z, &
                             x, z, y, x, z, -y, x, -z, y, -x, z, y, &
@@ -306,7 +303,7 @@ CONTAINS
          ELSE
             CPABORT("Subsytem D: np is not modulo 3 (check argument #3)")
          END IF
-         nlgp = nlgp+nd*np/3
+         nlgp = nlgp + nd*np/3
       CASE DEFAULT
          CALL cp_abort(__LOCATION__, &
                        "The invalid subsystem <"//TRIM(subsystem)//"> was "// &
@@ -327,6 +324,9 @@ CONTAINS
 
       INTEGER                                            :: ilg
 
+      CPASSERT(init_lebedev_grids_done)
+      init_lebedev_grids_done = .FALSE.
+
       DO ilg = 1, nlg
          DEALLOCATE (lebedev_grid(ilg)%r, lebedev_grid(ilg)%w)
       END DO
@@ -342,8 +342,7 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE init_lebedev_grids()
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_lebedev_grids', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'init_lebedev_grids'
 
       INTEGER                                            :: handle, ilg
 
@@ -417,7 +416,7 @@ CONTAINS
       CALL load_sub_grid("A3", 4, 0)
 
       w(1) = 1.0_dp/35.0_dp
-      r(1) = rs2*SQRT(1.0_dp+rs3)
+      r(1) = rs2*SQRT(1.0_dp + rs3)
       CALL load_sub_grid("C", 4, 1)
 
 !   *** 5. l = 11 (50 points) ***

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -11,7 +13,7 @@
 !> \author Fawzi Mohamed
 ! **************************************************************************************************
 MODULE molecule_kind_list_types
-    use molecule_kind_types, only: molecule_kind_type, deallocate_molecule_kind_set
+   use molecule_kind_types, only: molecule_kind_type, deallocate_molecule_kind_set
 
 #include "../base/base_uses.f90"
 

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -77,9 +79,6 @@ CONTAINS
       TYPE(simpar_type), POINTER                         :: simpar
       TYPE(force_env_type), POINTER                      :: force_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_thermal_regions', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length)               :: my_region
       INTEGER                                            :: i, il, ipart, ireg, nlist, nregions
       INTEGER, DIMENSION(:), POINTER                     :: tmplist
@@ -146,11 +145,11 @@ CONTAINS
                DO il = 1, nlist
                   CALL section_vals_val_get(region_sections, "LIST", i_rep_section=ireg, &
                                             i_rep_val=il, i_vals=tmplist)
-                  CALL reallocate(t_region%part_index, 1, t_region%npart+SIZE(tmplist))
+                  CALL reallocate(t_region%part_index, 1, t_region%npart + SIZE(tmplist))
                   DO i = 1, SIZE(tmplist)
                      ipart = tmplist(i)
                      CPASSERT(((ipart > 0) .AND. (ipart <= particles%n_els)))
-                     t_region%npart = t_region%npart+1
+                     t_region%npart = t_region%npart + 1
                      t_region%part_index(t_region%npart) = ipart
                      particles%els(ipart)%t_region_index = ireg
                      IF (simpar%ensemble == langevin_ensemble) THEN
@@ -217,9 +216,6 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: time
       CHARACTER(LEN=default_string_length)               :: pos, act
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'print_thermal_regions_temperature', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length)               :: fmd
       INTEGER                                            :: ireg, nregions, unit
       LOGICAL                                            :: new_file
@@ -248,7 +244,7 @@ CONTAINS
                DO ireg = 1, nregions
                   temp(ireg) = thermal_regions%thermal_region(ireg)%temperature
                END DO
-               fmd = "(I10,F20.3,"//TRIM(ADJUSTL(cp_to_string(nregions+1)))//"F20.6)"
+               fmd = "(I10,F20.3,"//TRIM(ADJUSTL(cp_to_string(nregions + 1)))//"F20.6)"
                fmd = TRIM(fmd)
                WRITE (UNIT=unit, FMT=fmd) itimes, time, temp(0:nregions)
                DEALLOCATE (temp)
@@ -274,9 +270,6 @@ CONTAINS
       TYPE(thermal_regions_type), POINTER                :: thermal_regions
       TYPE(simpar_type), POINTER                         :: simpar
       CHARACTER(LEN=default_string_length)               :: pos, act
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'print_thermal_regions_langevin', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ipart, ipart_reg, ireg, natoms, &
                                                             print_unit

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -97,8 +99,6 @@ CONTAINS
       TYPE(cp_para_env_type), OPTIONAL, POINTER          :: para_env
       INTEGER, DIMENSION(:, :), OPTIONAL, POINTER        :: blacs2mpi, mpi2blacs
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_blacs_info', routineP = moduleN//':'//routineN
-
       IF (.NOT. ASSOCIATED(blacs_env)) THEN
          CPABORT("No BLACS environment")
       END IF
@@ -134,9 +134,6 @@ CONTAINS
       LOGICAL, INTENT(IN), OPTIONAL            :: blacs_repeatable, row_major
       INTEGER, DIMENSION(:), INTENT(IN), &
          OPTIONAL                               :: grid_2d
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_blacs_env_create', &
-                                     routineP = moduleN//':'//routineN
 
       INTEGER                                  :: ipcol, iprow, stat
 #if defined(__parallel)
@@ -236,16 +233,16 @@ CONTAINS
 #endif
 
       ! generate the mappings blacs2mpi and mpi2blacs
-      ALLOCATE (blacs_env%blacs2mpi(0:blacs_env%num_pe(1)-1, 0:blacs_env%num_pe(2)-1), &
+      ALLOCATE (blacs_env%blacs2mpi(0:blacs_env%num_pe(1) - 1, 0:blacs_env%num_pe(2) - 1), &
                 stat=stat)
       CPASSERT(stat == 0)
       blacs_env%blacs2mpi = 0
       blacs_env%blacs2mpi(blacs_env%mepos(1), blacs_env%mepos(2)) = para_env%mepos
       CALL mp_sum(blacs_env%blacs2mpi, para_env%group)
-      ALLOCATE (blacs_env%mpi2blacs(2, 0:para_env%num_pe-1))
+      ALLOCATE (blacs_env%mpi2blacs(2, 0:para_env%num_pe - 1))
       blacs_env%mpi2blacs = -1
-      DO ipcol = 0, blacs_env%num_pe(2)-1
-         DO iprow = 0, blacs_env%num_pe(1)-1
+      DO ipcol = 0, blacs_env%num_pe(2) - 1
+         DO iprow = 0, blacs_env%num_pe(1) - 1
             blacs_env%mpi2blacs(1, blacs_env%blacs2mpi(iprow, ipcol)) = iprow
             blacs_env%mpi2blacs(2, blacs_env%blacs2mpi(iprow, ipcol)) = ipcol
          END DO
@@ -262,17 +259,14 @@ CONTAINS
    SUBROUTINE cp_blacs_env_retain(blacs_env)
       TYPE(cp_blacs_env_type), POINTER                   :: blacs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_blacs_env_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(blacs_env))
       CPASSERT(blacs_env%ref_count > 0)
-      blacs_env%ref_count = blacs_env%ref_count+1
+      blacs_env%ref_count = blacs_env%ref_count + 1
    END SUBROUTINE cp_blacs_env_retain
 
 ! **************************************************************************************************
 !> \brief releases the given blacs_env
-!> \param blacs_env the blacs env to relase
+!> \param blacs_env the blacs env to release
 !> \par History
 !>      08.2002 created [fawzi]
 !> \author Fawzi Mohamed
@@ -280,12 +274,9 @@ CONTAINS
    SUBROUTINE cp_blacs_env_release(blacs_env)
       TYPE(cp_blacs_env_type), POINTER                   :: blacs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_blacs_env_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(blacs_env)) THEN
          CPASSERT(blacs_env%ref_count > 0)
-         blacs_env%ref_count = blacs_env%ref_count-1
+         blacs_env%ref_count = blacs_env%ref_count - 1
          IF (blacs_env%ref_count < 1) THEN
             CALL cp_blacs_gridexit(blacs_env%group)
             CALL cp_para_env_release(blacs_env%para_env)
@@ -309,9 +300,6 @@ CONTAINS
    SUBROUTINE cp_blacs_env_write(blacs_env, unit_nr)
       TYPE(cp_blacs_env_type), POINTER                   :: blacs_env
       INTEGER, INTENT(in)                                :: unit_nr
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_blacs_env_write', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: iostat
 

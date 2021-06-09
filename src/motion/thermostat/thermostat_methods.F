@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -114,9 +116,6 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(global_environment_type), POINTER             :: globenv
       TYPE(section_vals_type), POINTER                   :: global_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_thermostats', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_path_length)                 :: binary_restart_file_name
       INTEGER                                            :: n_rep, region, thermostat_type
@@ -416,9 +415,6 @@ CONTAINS
       TYPE(thermostat_type), POINTER                     :: thermostat
       TYPE(section_vals_type), POINTER                   :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'update_thermo_baro_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(section_vals_type), POINTER                   :: work_section
 
       CALL section_vals_val_set(section, "TYPE", i_val=thermostat%type_of_thermostat)
@@ -457,9 +453,6 @@ CONTAINS
       TYPE(simpar_type), POINTER                         :: simpar
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'thermostat_info', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iw
       REAL(KIND=dp)                                      :: kin_energy, pot_energy, tmp
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -470,39 +463,44 @@ CONTAINS
       ! Total Tehrmostat Energy
       CALL get_thermostat_energies(thermostat, pot_energy, kin_energy, para_env)
       IF (iw > 0) THEN
-         WRITE (iw, '( /,A )') ' THERMOSTAT| Thermostat Info for '//TRIM(label)
+         WRITE (iw, '(/,T2,A)') &
+            'THERMOSTAT| Thermostat information for '//TRIM(label)
          SELECT CASE (thermostat%type_of_thermostat)
          CASE (do_thermo_nose)
-            WRITE (iw, '( A,T63,A )') ' THERMOSTAT| Type of thermostat', 'Nose-Hoover-Chains'
-            WRITE (iw, '( A,T77,I4 )') ' THERMOSTAT| Nose-Hoover-Chain length ', thermostat%nhc%nhc_len
-            tmp = cp_unit_from_cp2k(thermostat%nhc%tau_nhc, "fs")
-            WRITE (iw, '( A,A4,A,T71,F10.2 )') &
-               ' THERMOSTAT| Nose-Hoover-Chain time constant [', 'fs', '] ', tmp
-            WRITE (iw, '( A,T77,I4 )') ' THERMOSTAT| Order of Yoshida integrator ', &
-               thermostat%nhc%nyosh
-            WRITE (iw, '( A,T77,I4 )') ' THERMOSTAT| Number of multiple time steps', &
-               thermostat%nhc%nc
-            WRITE (iw, '( A,T69,F12.6 )') ' THERMOSTAT| Initial Potential Energy', &
-               pot_energy
-            WRITE (iw, '( A,T69,F12.6 )') ' THERMOSTAT| Initial Kinetic Energy', &
-               kin_energy
+            WRITE (iw, '(T2,A,T63,A)') &
+               'THERMOSTAT| Type of thermostat', 'Nose-Hoover-Chains'
+            WRITE (iw, '(T2,A,T71,I10)') &
+               'THERMOSTAT| Nose-Hoover-Chain length', thermostat%nhc%nhc_len
+            tmp = cp_unit_from_cp2k(thermostat%nhc%tau_nhc, 'fs')
+            WRITE (iw, '(T2,A,T61,F20.6)') &
+               'THERMOSTAT| Nose-Hoover-Chain time constant [fs]', tmp
+            WRITE (iw, '(T2,A,T71,I10)') &
+               'THERMOSTAT| Order of Yoshida integrator', thermostat%nhc%nyosh
+            WRITE (iw, '(T2,A,T71,I10)') &
+               'THERMOSTAT| Number of multiple time steps', thermostat%nhc%nc
+            WRITE (iw, '(T2,A,T61,E20.12)') &
+               'THERMOSTAT| Initial potential energy', pot_energy, &
+               'THERMOSTAT| Initial kinetic energy', kin_energy
          CASE (do_thermo_csvr)
-            WRITE (iw, '( A,T44,A )') ' THERMOSTAT| Type of thermostat', 'Canonical Sampling/Velocity Rescaling'
-            tmp = cp_unit_from_cp2k(thermostat%csvr%tau_csvr, "fs")*0.5_dp*simpar%dt
-            WRITE (iw, '( A,A4,A,T71,F10.2 )') &
-               ' THERMOSTAT| CSVR time constant [', 'fs', '] ', tmp
-            WRITE (iw, '( A,T69,F12.6 )') &
-               ' THERMOSTAT| Initial Kinetic Energy ', kin_energy
+            WRITE (iw, '(T2,A,T44,A)') &
+               'THERMOSTAT| Type of thermostat', 'Canonical Sampling/Velocity Rescaling'
+            tmp = cp_unit_from_cp2k(thermostat%csvr%tau_csvr, 'fs')*0.5_dp*simpar%dt
+            WRITE (iw, '(T2,A,T61,F20.6)') &
+               'THERMOSTAT| CSVR time constant [fs]', tmp
+            WRITE (iw, '(T2,A,T61,E20.12)') &
+               'THERMOSTAT| Initial kinetic energy', kin_energy
          CASE (do_thermo_al)
-            WRITE (iw, '( A,T44,A )') ' THERMOSTAT| Type of thermostat', 'Adaptive Langevin'
-            tmp = cp_unit_from_cp2k(thermostat%al%tau_nh, "fs")
-            WRITE (iw, '( A,A4,A,T71,F10.2 )') &
-               ' THERMOSTAT| AD_LANGEVIN NH time constant [', 'fs', '] ', tmp
-            tmp = cp_unit_from_cp2k(thermostat%al%tau_langevin, "fs")
-            WRITE (iw, '( A,A4,A,T71,F10.2 )') &
-               ' THERMOSTAT| AD_LANGEVIN Langevin time constant [', 'fs', '] ', tmp
+            WRITE (iw, '(T2,A,T44,A)') &
+               'THERMOSTAT| Type of thermostat', 'Adaptive Langevin'
+            tmp = cp_unit_from_cp2k(thermostat%al%tau_nh, 'fs')
+            WRITE (iw, '(T2,A,T61,F20.6)') &
+               'THERMOSTAT| Time constant of Nose-Hoover part [fs]', tmp
+            tmp = cp_unit_from_cp2k(thermostat%al%tau_langevin, 'fs')
+            WRITE (iw, '(T2,A,T61,F20.6)') &
+               'THERMOSTAT| Time constant of Langevin part [fs]', tmp
          END SELECT
-         WRITE (iw, '( A,/ )') ' THERMOSTAT| End of Thermostat Info for '//TRIM(label)
+         WRITE (iw, '(T2,A)') &
+            'THERMOSTAT| End of thermostat information for '//TRIM(label)
       END IF
       CALL cp_print_key_finished_output(iw, logger, section, "PRINT%THERMOSTAT_INFO")
 
@@ -521,9 +519,6 @@ CONTAINS
       TYPE(thermostat_type), POINTER                     :: thermostat
       TYPE(npt_info_type), DIMENSION(:, :), POINTER      :: npt
       INTEGER, INTENT(IN)                                :: group
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'apply_thermostat_baro', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(thermostat)) THEN
          IF (thermostat%type_of_thermostat == do_thermo_nose) THEN
@@ -575,9 +570,6 @@ CONTAINS
                                                             core_particle_set(:)
       REAL(KIND=dp), INTENT(INOUT), OPTIONAL             :: vel(:, :), shell_vel(:, :), &
                                                             core_vel(:, :)
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'apply_thermostat_particles', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(thermostat)) THEN
          IF (thermostat%type_of_thermostat == do_thermo_nose) THEN
@@ -636,9 +628,6 @@ CONTAINS
                                                             core_particle_set(:)
       REAL(KIND=dp), INTENT(INOUT), OPTIONAL             :: vel(:, :), shell_vel(:, :), &
                                                             core_vel(:, :)
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'apply_thermostat_shells', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(thermostat)) THEN
          IF (thermostat%type_of_thermostat == do_thermo_nose) THEN

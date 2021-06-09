@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -14,12 +16,14 @@ MODULE input_cp2k_hfx
                                               Guidon2009
    USE cp_output_handling,              ONLY: add_last_numeric,&
                                               cp_print_key_section_create,&
+                                              high_print_level,&
                                               medium_print_level
    USE input_constants,                 ONLY: &
-        do_hfx_potential_coulomb, do_hfx_potential_gaussian, do_hfx_potential_id, &
-        do_hfx_potential_long, do_hfx_potential_mix_cl, do_hfx_potential_mix_cl_trunc, &
-        do_hfx_potential_mix_lg, do_hfx_potential_short, do_hfx_potential_truncated, ehrenfest, &
-        gaussian
+        do_potential_coulomb, do_potential_gaussian, do_potential_id, do_potential_long, &
+        do_potential_mix_cl, do_potential_mix_cl_trunc, do_potential_mix_lg, do_potential_short, &
+        do_potential_truncated, ehrenfest, gaussian, hfx_ri_do_2c_cholesky, hfx_ri_do_2c_diag, &
+        hfx_ri_do_2c_iter
+   USE input_cp2k_loc,                  ONLY: create_localize_section
    USE input_keyword_types,             ONLY: keyword_create,&
                                               keyword_release,&
                                               keyword_type
@@ -38,6 +42,7 @@ MODULE input_cp2k_hfx
 
    LOGICAL, PRIVATE, PARAMETER :: debug_this_module = .FALSE.
    CHARACTER(len=*), PARAMETER, PRIVATE :: moduleN = 'input_cp2k_hfx'
+   INTEGER, PARAMETER, PUBLIC                 :: ri_mo = 1, ri_pmat = 2
 
    PUBLIC :: create_hfx_section
 
@@ -50,9 +55,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_hfx_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_hfx_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: print_key, subsection
@@ -123,6 +125,10 @@ CONTAINS
       CALL section_add_subsection(section, subsection)
       CALL section_release(subsection)
 
+      CALL create_hf_ri_section(subsection)
+      CALL section_add_subsection(section, subsection)
+      CALL section_release(subsection)
+
    END SUBROUTINE create_hfx_section
 
 ! **************************************************************************************************
@@ -134,9 +140,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_hf_load_balance_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_hf_load_balance_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: print_key
@@ -207,9 +210,6 @@ CONTAINS
    SUBROUTINE create_hf_potential_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_hf_potential_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
 
       CPASSERT(.NOT. ASSOCIATED(section))
@@ -227,9 +227,9 @@ CONTAINS
          usage="POTENTIAL_TYPE SHORTRANGE", &
          enum_c_vals=s2a("COULOMB", "SHORTRANGE", "LONGRANGE", "MIX_CL", "GAUSSIAN", &
                          "MIX_LG", "IDENTITY", "TRUNCATED", "MIX_CL_TRUNC"), &
-         enum_i_vals=(/do_hfx_potential_coulomb, do_hfx_potential_short, do_hfx_potential_long, &
-                       do_hfx_potential_mix_cl, do_hfx_potential_gaussian, do_hfx_potential_mix_lg, &
-                       do_hfx_potential_id, do_hfx_potential_truncated, do_hfx_potential_mix_cl_trunc/), &
+         enum_i_vals=(/do_potential_coulomb, do_potential_short, do_potential_long, &
+                       do_potential_mix_cl, do_potential_gaussian, do_potential_mix_lg, &
+                       do_potential_id, do_potential_truncated, do_potential_mix_cl_trunc/), &
          enum_desc=s2a("Coulomb potential: 1/r", &
                        "Shortrange potential: erfc(omega*r)/r", &
                        "Longrange potential: erf(omega*r)/r", &
@@ -239,7 +239,7 @@ CONTAINS
                        "Overlap", &
                        "Truncated coulomb potential: if (r &lt; R_c) 1/r else 0", &
                        "Truncated Mix coulomb and longrange potential, assumes/requires that the erf has fully decayed at R_c"), &
-         default_i_val=do_hfx_potential_coulomb)
+         default_i_val=do_potential_coulomb)
       CALL section_add_keyword(section, keyword)
       CALL keyword_release(keyword)
 
@@ -303,9 +303,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_hf_screening_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_hf_screening_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
 
@@ -380,9 +377,6 @@ CONTAINS
    SUBROUTINE create_hf_pbc_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_hf_pbc_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
 
       CPASSERT(.NOT. ASSOCIATED(section))
@@ -412,9 +406,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_hf_memory_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_hf_memory_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
 
@@ -478,5 +469,193 @@ CONTAINS
       CALL keyword_release(keyword)
 
    END SUBROUTINE create_hf_memory_section
+
+! **************************************************************************************************
+!> \brief ...
+!> \param section ...
+! **************************************************************************************************
+   SUBROUTINE create_hf_ri_section(section)
+      TYPE(section_type), POINTER                        :: section
+
+      TYPE(keyword_type), POINTER                        :: keyword
+      TYPE(section_type), POINTER                        :: print_key, subsection
+
+      NULLIFY (keyword, print_key, subsection)
+
+      CPASSERT(.NOT. ASSOCIATED(section))
+      CALL section_create(section, __LOCATION__, name="RI", &
+                          description="Parameters for RI method in HFX (experimental, forces not yet implemented).")
+
+      CALL keyword_create(keyword, __LOCATION__, name="_SECTION_PARAMETERS_", &
+                          description="controls the activation of RI", &
+                          usage="&RI T", &
+                          default_l_val=.FALSE., &
+                          lone_keyword_l_val=.TRUE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="EPS_FILTER", &
+                          description="Filter threshold for DBCSR tensor contraction.", &
+                          default_r_val=1.0E-09_dp)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="EPS_FILTER_2C", &
+                          description="Filter threshold for 2c integrals. Default should be kept.", &
+                          default_r_val=1.0E-12_dp)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, &
+                          name="EPS_STORAGE_SCALING", &
+                          description="Scaling factor to scale EPS_FILTER for storage of 3-center integrals. Storage threshold "// &
+                          "will be EPS_FILTER*EPS_STORAGE_SCALING.", &
+                          default_r_val=0.01_dp)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="EPS_FILTER_MO", &
+                          description="Filter threshold for contraction of 3-center integrals with MOs. "// &
+                          "Default should be kept.", &
+                          default_r_val=1.0E-12_dp)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="OMEGA", &
+                          description="The range parameter for the short range operator (in 1/a0). "// &
+                          "Default is OMEGA from INTERACTION_POTENTIAL. ", &
+                          default_r_val=0.0_dp, &
+                          repeats=.FALSE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="CUTOFF_RADIUS", &
+                          description="The cutoff radius (in Angstrom) for the truncated Coulomb operator. "// &
+                          "Default is CUTOFF_RADIUS from INTERACTION_POTENTIAL. ", &
+                          default_r_val=0.0_dp, &
+                          repeats=.FALSE., &
+                          unit_str="angstrom")
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="RI_METRIC", &
+                          description="The type of RI operator. "// &
+                          "Default is POTENTIAL_TYPE from INTERACTION_POTENTIAL. "// &
+                          "The standard "// &
+                          "Coulomb operator cannot be used in periodic systems.", &
+                          usage="OPERATOR {string}", &
+                          repeats=.FALSE., &
+                          default_i_val=0, &
+                          enum_c_vals=s2a("HFX", "COULOMB", "IDENTITY", "TRUNCATED", "SHORTRANGE"), &
+                          enum_desc=s2a("Same as HFX operator", &
+                                        "Standard Coulomb operator: 1/r", &
+                                        "Overlap", &
+                                        "Truncated Coulomb operator: 1/r if (r<R_c), 0 otherwise ", &
+                                        "Short range: erfc(omega*r)/r"), &
+                          enum_i_vals=(/0, do_potential_coulomb, do_potential_id, do_potential_truncated, &
+                                        do_potential_short/))
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="2C_MATRIX_FUNCTIONS", &
+                          description="Methods for matrix inverse and matrix square root.", &
+                          default_i_val=hfx_ri_do_2c_cholesky, &
+                          enum_c_vals=s2a("DIAG", "CHOLESKY", "ITER"), &
+                          enum_desc=s2a("Diagonalization with eigenvalue quenching: stable", &
+                                        "Cholesky: not stable in case of ill-conditioned RI basis", &
+                                        "Iterative algorithms: linear scaling "// &
+                                        "Hotelling's method for inverse and Newton-Schulz iteration for matrix square root"), &
+                          enum_i_vals=(/hfx_ri_do_2c_diag, hfx_ri_do_2c_cholesky, hfx_ri_do_2c_iter/))
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="EPS_EIGVAL", &
+                          description="Throw away linear combinations of RI basis functions with a small eigenvalue, "// &
+                          "this is applied only if 2C_MATRIX_FUNCTIONS DIAG", &
+                          default_r_val=1.0e-7_dp)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="CHECK_2C_MATRIX", &
+                          description="Report accuracy for the inverse/sqrt of the 2-center integral matrix.", &
+                          default_l_val=.FALSE., lone_keyword_l_val=.TRUE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create( &
+         keyword, __LOCATION__, &
+         name="CALC_COND_NUM", &
+         variants=(/"CALC_CONDITION_NUMBER"/), &
+         description="Calculate the condition number of integral matrices.", &
+         usage="CALC_COND_NUM", &
+         default_l_val=.FALSE., &
+         lone_keyword_l_val=.TRUE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="SQRT_ORDER", &
+                          description="Order of the iteration method for the calculation of "// &
+                          "the sqrt of 2-center integral matrix.", &
+                          default_i_val=3)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="EPS_LANCZOS", &
+                          description="Threshold used for lanczos estimates.", &
+                          default_r_val=1.0E-3_dp)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="EPS_PGF_ORB", &
+                          description="Sets precision of the integral tensors.", &
+                          default_r_val=1.0E-5_dp)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="MAX_ITER_LANCZOS", &
+                          description="Maximum number of lanczos iterations.", &
+                          usage="MAX_ITER_LANCZOS ", default_i_val=500)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="RI_FLAVOR", &
+                          description="Flavor of RI: how to contract 3-center integrals", &
+                          enum_c_vals=s2a("MO", "RHO"), &
+                          enum_desc=s2a("with MO coefficients", "with density matrix"), &
+                          enum_i_vals=(/ri_mo, ri_pmat/), &
+                          default_i_val=ri_pmat)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="MIN_BLOCK_SIZE", &
+                          description="Minimum tensor block size.", &
+                          default_i_val=3)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="MIN_BLOCK_SIZE_MO", &
+                          description="Minimum tensor block size for MOs.", &
+                          default_i_val=64)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="MEMORY_CUT", &
+                          description="Memory reduction factor. For RI_FLAVOR RHO, this should be a square number "// &
+                          "(if not, the next greater square number is used).", &
+                          default_i_val=9)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL create_localize_section(subsection)
+      CALL section_add_subsection(section, subsection)
+      CALL section_release(subsection)
+
+      CALL cp_print_key_section_create(print_key, __LOCATION__, "RI_INFO", &
+                                       description="Controls the printing of DBCSR tensor log in RI HFX.", &
+                                       print_level=high_print_level, add_last=add_last_numeric, filename="__STD_OUT__")
+      CALL section_add_subsection(section, print_key)
+      CALL section_release(print_key)
+
+   END SUBROUTINE
 
 END MODULE input_cp2k_hfx

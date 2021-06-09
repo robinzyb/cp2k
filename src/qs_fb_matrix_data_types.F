@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 MODULE qs_fb_matrix_data_types
@@ -95,9 +97,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: row, col
       REAL(KIND=dp), DIMENSION(:, :), INTENT(IN)         :: blk
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_matrix_data_add', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: existing_ii, ii, ncols, nrows, old_nblks
       INTEGER(KIND=int_8)                                :: pair_ind
       INTEGER, DIMENSION(:), POINTER                     :: new_lds
@@ -115,7 +114,7 @@ CONTAINS
          CALL fb_buffer_replace(matrix_data%obj%blks, existing_ii, RESHAPE(blk, (/nrows*ncols/)))
       ELSE
          old_nblks = matrix_data%obj%nblks
-         matrix_data%obj%nblks = old_nblks+1
+         matrix_data%obj%nblks = old_nblks + 1
          ii = matrix_data%obj%nblks
          ! resize lds if necessary
          IF (SIZE(matrix_data%obj%lds) .LT. ii) THEN
@@ -158,9 +157,6 @@ CONTAINS
       TYPE(fb_matrix_data_obj), INTENT(INOUT)            :: matrix_data
       INTEGER, INTENT(IN)                                :: nmax, nencode
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_matrix_data_create', &
-         routineP = moduleN//':'//routineN
-
       LOGICAL                                            :: check_ok
 
       check_ok = .NOT. fb_matrix_data_has_data(matrix_data)
@@ -177,7 +173,7 @@ CONTAINS
                                nencode=nencode)
       ! book keeping stuff
       matrix_data%obj%ref_count = 1
-      matrix_data%obj%id_nr = last_fb_matrix_data_id+1
+      matrix_data%obj%id_nr = last_fb_matrix_data_id + 1
       last_fb_matrix_data_id = matrix_data%obj%id_nr
    END SUBROUTINE fb_matrix_data_create
 
@@ -196,9 +192,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: row, col
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: blk_p
       LOGICAL, INTENT(OUT)                               :: found
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_matrix_data_get', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ind_in_blks
       INTEGER(KIND=int_8)                                :: pair_ind
@@ -245,9 +238,6 @@ CONTAINS
       TYPE(fb_matrix_data_obj), INTENT(INOUT)            :: matrix_data
       INTEGER, INTENT(IN), OPTIONAL                      :: nmax, nencode
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_matrix_data_init', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: my_nmax
       LOGICAL                                            :: check_ok
 
@@ -291,15 +281,12 @@ CONTAINS
    SUBROUTINE fb_matrix_data_release(matrix_data)
       TYPE(fb_matrix_data_obj), INTENT(INOUT)            :: matrix_data
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_matrix_data_release', &
-         routineP = moduleN//':'//routineN
-
       LOGICAL                                            :: check_ok
 
       IF (ASSOCIATED(matrix_data%obj)) THEN
          check_ok = matrix_data%obj%ref_count > 0
          CPASSERT(check_ok)
-         matrix_data%obj%ref_count = matrix_data%obj%ref_count-1
+         matrix_data%obj%ref_count = matrix_data%obj%ref_count - 1
          IF (matrix_data%obj%ref_count == 0) THEN
             matrix_data%obj%ref_count = 1
             IF (fb_hash_table_has_data(matrix_data%obj%ind)) THEN
@@ -327,16 +314,13 @@ CONTAINS
    SUBROUTINE fb_matrix_data_retain(matrix_data)
       TYPE(fb_matrix_data_obj), INTENT(INOUT)            :: matrix_data
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_matrix_data_retain', &
-         routineP = moduleN//':'//routineN
-
       LOGICAL                                            :: check_ok
 
       check_ok = ASSOCIATED(matrix_data%obj)
       CPASSERT(check_ok)
       check_ok = matrix_data%obj%ref_count > 0
       CPASSERT(check_ok)
-      matrix_data%obj%ref_count = matrix_data%obj%ref_count+1
+      matrix_data%obj%ref_count = matrix_data%obj%ref_count + 1
    END SUBROUTINE fb_matrix_data_retain
 
 ! **************************************************************************************************
@@ -353,9 +337,6 @@ CONTAINS
       TYPE(fb_matrix_data_obj), INTENT(INOUT)            :: matrix_data
       INTEGER, INTENT(OUT), OPTIONAL                     :: nmax, nblks, nencode
       INTEGER, DIMENSION(:, :), INTENT(OUT), OPTIONAL    :: blk_sizes
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_matrix_data_status', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ii
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: buffer_sizes
@@ -400,7 +381,7 @@ CONTAINS
       row_8 = INT(row, int_8)
       col_8 = INT(col, int_8)
       nencode_8 = INT(nencode, int_8)
-      pair_ind = (row_8-1_int_8)*nencode_8+(col_8-1_int_8)+1
+      pair_ind = (row_8 - 1_int_8)*nencode_8 + (col_8 - 1_int_8) + 1
    END FUNCTION fb_matrix_data_encode_pair
 
 END MODULE qs_fb_matrix_data_types

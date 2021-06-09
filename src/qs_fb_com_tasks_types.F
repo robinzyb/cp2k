@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 MODULE qs_fb_com_tasks_types
@@ -64,9 +66,9 @@ MODULE qs_fb_com_tasks_types
    INTEGER, PRIVATE, SAVE :: last_fb_com_atom_pairs_id = 0
 
 ! **********************************************************************
-! explaination on format of task lists (same for tasks_recv and tasks_send):
+! explanation on format of task lists (same for tasks_recv and tasks_send):
 ! tasks_recv has dimension (4, ntasks_recv), and stores information on
-! the block to be copied or transfered
+! the block to be copied or transferred
 ! - tasks_recv(TASK_DEST,itask) = destination MPI rank of itask-th task
 ! - tasks_recv(TASK_SRC,itask) = source MPI rank of itask-th task
 ! - tasks_recv(TASK_PAIR,itask) = compressed pair indices of the block of itask-th task
@@ -157,12 +159,9 @@ CONTAINS
    SUBROUTINE fb_com_tasks_retain(com_tasks)
       TYPE(fb_com_tasks_obj), INTENT(IN)                 :: com_tasks
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_com_tasks_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(com_tasks%obj))
       CPASSERT(com_tasks%obj%ref_count > 0)
-      com_tasks%obj%ref_count = com_tasks%obj%ref_count+1
+      com_tasks%obj%ref_count = com_tasks%obj%ref_count + 1
    END SUBROUTINE fb_com_tasks_retain
 
 ! **********************************************************************
@@ -174,12 +173,9 @@ CONTAINS
    SUBROUTINE fb_com_atom_pairs_retain(atom_pairs)
       TYPE(fb_com_atom_pairs_obj), INTENT(IN)            :: atom_pairs
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_com_atom_pairs_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(atom_pairs%obj))
       CPASSERT(atom_pairs%obj%ref_count > 0)
-      atom_pairs%obj%ref_count = atom_pairs%obj%ref_count+1
+      atom_pairs%obj%ref_count = atom_pairs%obj%ref_count + 1
    END SUBROUTINE fb_com_atom_pairs_retain
 
 ! **********************************************************************
@@ -192,12 +188,9 @@ CONTAINS
    SUBROUTINE fb_com_tasks_release(com_tasks)
       TYPE(fb_com_tasks_obj), INTENT(INOUT)              :: com_tasks
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_com_tasks_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(com_tasks%obj)) THEN
          CPASSERT(com_tasks%obj%ref_count > 0)
-         com_tasks%obj%ref_count = com_tasks%obj%ref_count-1
+         com_tasks%obj%ref_count = com_tasks%obj%ref_count - 1
          IF (com_tasks%obj%ref_count == 0) THEN
             com_tasks%obj%ref_count = 1
             IF (ASSOCIATED(com_tasks%obj%tasks)) THEN
@@ -221,12 +214,9 @@ CONTAINS
    SUBROUTINE fb_com_atom_pairs_release(atom_pairs)
       TYPE(fb_com_atom_pairs_obj), INTENT(INOUT)         :: atom_pairs
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_com_atom_pairs_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(atom_pairs%obj)) THEN
          CPASSERT(atom_pairs%obj%ref_count > 0)
-         atom_pairs%obj%ref_count = atom_pairs%obj%ref_count-1
+         atom_pairs%obj%ref_count = atom_pairs%obj%ref_count - 1
          IF (atom_pairs%obj%ref_count == 0) THEN
             atom_pairs%obj%ref_count = 1
             IF (ASSOCIATED(atom_pairs%obj%pairs)) THEN
@@ -251,9 +241,6 @@ CONTAINS
    SUBROUTINE fb_com_tasks_nullify(com_tasks)
       TYPE(fb_com_tasks_obj), INTENT(INOUT)              :: com_tasks
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_com_tasks_nullify', &
-         routineP = moduleN//':'//routineN
-
       NULLIFY (com_tasks%obj)
    END SUBROUTINE fb_com_tasks_nullify
 
@@ -268,9 +255,6 @@ CONTAINS
    SUBROUTINE fb_com_atom_pairs_nullify(atom_pairs)
       TYPE(fb_com_atom_pairs_obj), INTENT(INOUT)         :: atom_pairs
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_com_atom_pairs_nullify', &
-         routineP = moduleN//':'//routineN
-
       NULLIFY (atom_pairs%obj)
    END SUBROUTINE fb_com_atom_pairs_nullify
 
@@ -284,9 +268,6 @@ CONTAINS
       TYPE(fb_com_tasks_obj), INTENT(OUT)                :: a
       TYPE(fb_com_tasks_obj), INTENT(IN)                 :: b
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_com_tasks_associate', &
-         routineP = moduleN//':'//routineN
-
       a%obj => b%obj
    END SUBROUTINE fb_com_tasks_associate
 
@@ -299,9 +280,6 @@ CONTAINS
    SUBROUTINE fb_com_atom_pairs_associate(a, b)
       TYPE(fb_com_atom_pairs_obj), INTENT(OUT)           :: a
       TYPE(fb_com_atom_pairs_obj), INTENT(IN)            :: b
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_com_atom_pairs_associate', &
-         routineP = moduleN//':'//routineN
 
       a%obj => b%obj
    END SUBROUTINE fb_com_atom_pairs_associate
@@ -317,9 +295,6 @@ CONTAINS
       TYPE(fb_com_tasks_obj), INTENT(IN)                 :: com_tasks
       LOGICAL                                            :: res
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_com_tasks_has_data', &
-         routineP = moduleN//':'//routineN
-
       res = ASSOCIATED(com_tasks%obj)
    END FUNCTION fb_com_tasks_has_data
 
@@ -334,9 +309,6 @@ CONTAINS
       TYPE(fb_com_atom_pairs_obj), INTENT(IN)            :: atom_pairs
       LOGICAL                                            :: res
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_com_atom_pairs_has_data', &
-         routineP = moduleN//':'//routineN
-
       res = ASSOCIATED(atom_pairs%obj)
    END FUNCTION fb_com_atom_pairs_has_data
 
@@ -349,9 +321,6 @@ CONTAINS
    SUBROUTINE fb_com_tasks_create(com_tasks)
       TYPE(fb_com_tasks_obj), INTENT(INOUT)              :: com_tasks
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_com_tasks_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(com_tasks%obj))
       ALLOCATE (com_tasks%obj)
       com_tasks%obj%task_dim = TASK_N_RECORDS
@@ -359,7 +328,7 @@ CONTAINS
       com_tasks%obj%nencode = 0
       NULLIFY (com_tasks%obj%tasks)
       com_tasks%obj%ref_count = 1
-      com_tasks%obj%id_nr = last_fb_com_tasks_id+1
+      com_tasks%obj%id_nr = last_fb_com_tasks_id + 1
       last_fb_com_tasks_id = com_tasks%obj%id_nr
    END SUBROUTINE fb_com_tasks_create
 
@@ -372,16 +341,13 @@ CONTAINS
    SUBROUTINE fb_com_atom_pairs_create(atom_pairs)
       TYPE(fb_com_atom_pairs_obj), INTENT(INOUT)         :: atom_pairs
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_com_atom_pairs_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(atom_pairs%obj))
       ALLOCATE (atom_pairs%obj)
       atom_pairs%obj%npairs = 0
       atom_pairs%obj%natoms_encode = 0
       NULLIFY (atom_pairs%obj%pairs)
       atom_pairs%obj%ref_count = 1
-      atom_pairs%obj%id_nr = last_fb_com_atom_pairs_id+1
+      atom_pairs%obj%id_nr = last_fb_com_atom_pairs_id + 1
       last_fb_com_atom_pairs_id = atom_pairs%obj%id_nr
    END SUBROUTINE fb_com_atom_pairs_create
 
@@ -393,9 +359,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE fb_com_tasks_init(com_tasks)
       TYPE(fb_com_tasks_obj), INTENT(INOUT)              :: com_tasks
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_com_tasks_init', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(ASSOCIATED(com_tasks%obj))
       IF (ASSOCIATED(com_tasks%obj%tasks)) THEN
@@ -414,9 +377,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE fb_com_atom_pairs_init(atom_pairs)
       TYPE(fb_com_atom_pairs_obj), INTENT(INOUT)         :: atom_pairs
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_com_atom_pairs_init', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(ASSOCIATED(atom_pairs%obj))
       IF (ASSOCIATED(atom_pairs%obj%pairs)) THEN
@@ -448,9 +408,6 @@ CONTAINS
       INTEGER(KIND=int_8), DIMENSION(:, :), OPTIONAL, &
          POINTER                                         :: tasks
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_com_tasks_get', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(com_tasks%obj))
       IF (PRESENT(task_dim)) task_dim = com_tasks%obj%task_dim
       IF (PRESENT(ntasks)) ntasks = com_tasks%obj%ntasks
@@ -477,9 +434,6 @@ CONTAINS
       INTEGER, INTENT(OUT), OPTIONAL                     :: npairs, natoms_encode
       INTEGER(KIND=int_8), DIMENSION(:), OPTIONAL, &
          POINTER                                         :: pairs
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_com_atom_pairs_get', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(ASSOCIATED(atom_pairs%obj))
       IF (PRESENT(npairs)) npairs = atom_pairs%obj%npairs
@@ -508,9 +462,6 @@ CONTAINS
       INTEGER, INTENT(IN), OPTIONAL                      :: task_dim, ntasks, nencode
       INTEGER(KIND=int_8), DIMENSION(:, :), OPTIONAL, &
          POINTER                                         :: tasks
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_com_tasks_set', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(ASSOCIATED(com_tasks%obj))
       IF (PRESENT(task_dim)) com_tasks%obj%task_dim = task_dim
@@ -543,9 +494,6 @@ CONTAINS
       INTEGER, INTENT(IN), OPTIONAL                      :: npairs, natoms_encode
       INTEGER(KIND=int_8), DIMENSION(:), OPTIONAL, &
          POINTER                                         :: pairs
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_com_atom_pairs_set', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(ASSOCIATED(atom_pairs%obj))
       IF (PRESENT(npairs)) atom_pairs%obj%npairs = npairs
@@ -583,8 +531,7 @@ CONTAINS
       TYPE(fb_com_tasks_obj), INTENT(INOUT)              :: tasks_src_is_me
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'fb_com_tasks_transpose_dest_src', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'fb_com_tasks_transpose_dest_src'
 
       INTEGER                                            :: handle, ii, ind, ipe, itask, jj, &
                                                             nencode, ntasks_in, ntasks_out, rank, &
@@ -628,8 +575,8 @@ CONTAINS
       send_buf = 0
       ! looping over local task list
       DO itask = 1, ntasks_in
-         rank = INT(tasks_in(rank_pos, itask))+1
-         send_buf(rank) = send_buf(rank)+1
+         rank = INT(tasks_in(rank_pos, itask)) + 1
+         send_buf(rank) = send_buf(rank) + 1
       END DO
 
       CALL mp_alltoall(send_buf, recv_buf, 1, para_env%group)
@@ -650,9 +597,9 @@ CONTAINS
       recv_sizes(1) = recv_buf(1)*task_dim
       DO ipe = 2, para_env%num_pe
          send_sizes(ipe) = send_buf(ipe)*task_dim
-         send_disps(ipe) = send_disps(ipe-1)+send_sizes(ipe-1)
+         send_disps(ipe) = send_disps(ipe - 1) + send_sizes(ipe - 1)
          recv_sizes(ipe) = recv_buf(ipe)*task_dim
-         recv_disps(ipe) = recv_disps(ipe-1)+recv_sizes(ipe-1)
+         recv_disps(ipe) = recv_disps(ipe - 1) + recv_sizes(ipe - 1)
       END DO
 
       ! reallocate send and recv buffers to the correct sizes for
@@ -668,12 +615,12 @@ CONTAINS
       IF (SIZE(recv_buf) > 0) recv_buf = 0
       send_sizes = 0
       DO itask = 1, ntasks_in
-         rank = INT(tasks_in(rank_pos, itask))+1
+         rank = INT(tasks_in(rank_pos, itask)) + 1
          DO ii = 1, task_dim
-            ind = send_disps(rank)+send_sizes(rank)+ii
+            ind = send_disps(rank) + send_sizes(rank) + ii
             send_buf(ind) = INT(tasks_in(ii, itask))
          END DO
-         send_sizes(rank) = send_sizes(rank)+task_dim
+         send_sizes(rank) = send_sizes(rank) + task_dim
       END DO
       ! do communication
       CALL mp_alltoall(send_buf, send_sizes, send_disps, &
@@ -693,10 +640,10 @@ CONTAINS
       ! do unpacking
       itask = 0
       DO ipe = 1, para_env%num_pe
-         DO ii = 0, recv_sizes(ipe)/task_dim-1
-            itask = itask+1
+         DO ii = 0, recv_sizes(ipe)/task_dim - 1
+            itask = itask + 1
             DO jj = 1, task_dim
-               ind = recv_disps(ipe)+ii*task_dim+jj
+               ind = recv_disps(ipe) + ii*task_dim + jj
                tasks_out(jj, itask) = recv_buf(ind)
             END DO
          END DO
@@ -752,8 +699,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: natoms_encode
       CHARACTER(len=*), INTENT(IN)                       :: send_or_recv
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'fb_com_tasks_build_atom_pairs', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'fb_com_tasks_build_atom_pairs'
 
       INTEGER                                            :: handle, iatom, ii, itask, jatom, npairs, &
                                                             ntasks, rank, rank_pos
@@ -812,8 +758,8 @@ CONTAINS
          npairs = 1
          ! first atom pair must be allowed
          DO ii = 2, ntasks
-            IF (pairs(ii) > pairs(ii-1)) THEN
-               npairs = npairs+1
+            IF (pairs(ii) > pairs(ii - 1)) THEN
+               npairs = npairs + 1
                pairs(npairs) = pairs(ii)
             END IF
          END DO
@@ -843,16 +789,13 @@ CONTAINS
       INTEGER(KIND=int_8), INTENT(OUT)                   :: ind
       INTEGER, INTENT(IN)                                :: iatom, jatom, natoms
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'fb_com_tasks_encode_pair', &
-         routineP = moduleN//':'//routineN
-
       INTEGER(KIND=int_8)                                :: iatom8, jatom8, natoms8
 
       natoms8 = INT(natoms, int_8)
       iatom8 = INT(iatom, int_8)
       jatom8 = INT(jatom, int_8)
 
-      ind = (iatom8-1_int_8)*natoms8+(jatom8-1_int_8)
+      ind = (iatom8 - 1_int_8)*natoms8 + (jatom8 - 1_int_8)
    END SUBROUTINE fb_com_tasks_encode_pair
 
 ! **********************************************************************
@@ -869,14 +812,11 @@ CONTAINS
       INTEGER, INTENT(OUT)                               :: iatom, jatom
       INTEGER, INTENT(IN)                                :: natoms
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'fb_com_tasks_decode_pair', &
-         routineP = moduleN//':'//routineN
-
       INTEGER(KIND=int_8)                                :: iatom8, jatom8, natoms8
 
       natoms8 = INT(natoms, int_8)
-      iatom8 = ind/natoms8+1_int_8
-      jatom8 = MOD(ind, natoms8)+1_int_8
+      iatom8 = ind/natoms8 + 1_int_8
+      jatom8 = MOD(ind, natoms8) + 1_int_8
       iatom = INT(iatom8, int_4)
       jatom = INT(jatom8, int_4)
    END SUBROUTINE fb_com_tasks_decode_pair
@@ -896,16 +836,13 @@ CONTAINS
       INTEGER(KIND=int_8), INTENT(OUT)                   :: ind
       INTEGER, INTENT(IN)                                :: pe, iatom, jatom, natoms
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'fb_com_atom_pairs_encode', &
-         routineP = moduleN//':'//routineN
-
       INTEGER(KIND=int_8)                                :: natoms8, pair
 
 ! pe must start count from 0 (i.e same as MPI convension)
 
       natoms8 = INT(natoms, int_8)
       CALL fb_com_tasks_encode_pair(pair, iatom, jatom, natoms)
-      ind = INT(pe, int_8)*natoms8*natoms8+pair
+      ind = INT(pe, int_8)*natoms8*natoms8 + pair
    END SUBROUTINE fb_com_atom_pairs_encode
 
 ! **********************************************************************
@@ -924,9 +861,6 @@ CONTAINS
       INTEGER(KIND=int_8), INTENT(IN)                    :: ind
       INTEGER, INTENT(OUT)                               :: pe, iatom, jatom
       INTEGER, INTENT(IN)                                :: natoms
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'fb_com_atom_pairs_decode', &
-         routineP = moduleN//':'//routineN
 
       INTEGER(KIND=int_8)                                :: natoms8, pair
 
@@ -986,9 +920,6 @@ CONTAINS
                                                             sendrecv_pair_disps
       INTEGER, DIMENSION(:), INTENT(IN), OPTIONAL        :: row_map, col_map
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'fb_com_atom_pairs_calc_buffer_sizes', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iatom, ipair, ipe, jatom, natoms_encode, &
                                                             ncols_blk, npairs, nrows_blk, pe
       INTEGER(KIND=int_8), DIMENSION(:), POINTER         :: pairs
@@ -1016,21 +947,21 @@ CONTAINS
          ! decode processor and (iatom, jatom) information
          CALL fb_com_atom_pairs_decode(pairs(ipair), &
                                        pe, iatom, jatom, natoms_encode)
-         pe = pe+1 ! we need proc to count from 1
+         pe = pe + 1 ! we need proc to count from 1
          IF (PRESENT(row_map)) iatom = row_map(iatom)
          IF (PRESENT(col_map)) jatom = row_map(jatom)
          nrows_blk = row_blk_sizes(iatom)
          ncols_blk = col_blk_sizes(jatom)
-         sendrecv_sizes(pe) = sendrecv_sizes(pe)+nrows_blk*ncols_blk
-         sendrecv_pair_counts(pe) = sendrecv_pair_counts(pe)+1
+         sendrecv_sizes(pe) = sendrecv_sizes(pe) + nrows_blk*ncols_blk
+         sendrecv_pair_counts(pe) = sendrecv_pair_counts(pe) + 1
       END DO
       ! calculate displacements of the data of each destibation pe in
       ! send buffer and in the list of pairs to be sent
       sendrecv_disps = 0
       sendrecv_pair_disps = 0
       DO ipe = 2, nprocs
-         sendrecv_disps(ipe) = sendrecv_disps(ipe-1)+sendrecv_sizes(ipe-1)
-         sendrecv_pair_disps(ipe) = sendrecv_pair_disps(ipe-1)+sendrecv_pair_counts(ipe-1)
+         sendrecv_disps(ipe) = sendrecv_disps(ipe - 1) + sendrecv_sizes(ipe - 1)
+         sendrecv_pair_disps(ipe) = sendrecv_pair_disps(ipe - 1) + sendrecv_pair_counts(ipe - 1)
       END DO
 
    END SUBROUTINE fb_com_atom_pairs_calc_buffer_sizes
@@ -1060,8 +991,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(fb_matrix_data_obj), INTENT(INOUT)            :: matrix_storage
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'fb_com_atom_pairs_gather_blks', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'fb_com_atom_pairs_gather_blks'
 
       INTEGER :: handle, iatom, ii, ind, ipair, ipe, jatom, jj, ncols_blk, ncols_blk_max, &
          npairs_recv, npairs_send, nrows_blk, nrows_blk_max, numprocs, pe, recv_encode, send_encode
@@ -1143,7 +1073,7 @@ CONTAINS
          ! need to reuse send_sizes as an accumulative displacement, so recalculate
          send_sizes(ipe) = 0
          DO ipair = 1, send_pair_count(ipe)
-            CALL fb_com_atom_pairs_decode(pairs_send(send_pair_disps(ipe)+ipair), &
+            CALL fb_com_atom_pairs_decode(pairs_send(send_pair_disps(ipe) + ipair), &
                                           pe, iatom, jatom, send_encode)
             nrows_blk = row_block_size_data(iatom)
             ncols_blk = col_block_size_data(jatom)
@@ -1157,11 +1087,11 @@ CONTAINS
                DO jj = 1, ncols_blk
                   DO ii = 1, nrows_blk
                      ! column major format in blocks
-                     ind = send_disps(ipe)+send_sizes(ipe)+ii+(jj-1)*nrows_blk
+                     ind = send_disps(ipe) + send_sizes(ipe) + ii + (jj - 1)*nrows_blk
                      send_buf(ind) = mat_block(ii, jj)
                   END DO ! ii
                END DO ! jj
-               send_sizes(ipe) = send_sizes(ipe)+nrows_blk*ncols_blk
+               send_sizes(ipe) = send_sizes(ipe) + nrows_blk*ncols_blk
             END IF
          END DO ! ipair
       END DO ! ipe
@@ -1186,7 +1116,7 @@ CONTAINS
       DO ipe = 1, numprocs
          recv_sizes(ipe) = 0
          DO ipair = 1, recv_pair_count(ipe)
-            CALL fb_com_atom_pairs_decode(pairs_recv(recv_pair_disps(ipe)+ipair), &
+            CALL fb_com_atom_pairs_decode(pairs_recv(recv_pair_disps(ipe) + ipair), &
                                           pe, iatom, jatom, recv_encode)
             nrows_blk = row_block_size_data(iatom)
             ncols_blk = col_block_size_data(jatom)
@@ -1196,14 +1126,14 @@ CONTAINS
             DO jj = 1, ncols_blk
                DO ii = 1, nrows_blk
                   ! column major format in blocks
-                  ind = recv_disps(ipe)+recv_sizes(ipe)+ii+(jj-1)*nrows_blk
+                  ind = recv_disps(ipe) + recv_sizes(ipe) + ii + (jj - 1)*nrows_blk
                   mat_block(ii, jj) = recv_buf(ind)
                END DO ! ii
             END DO ! jj
             CALL fb_matrix_data_add(matrix_storage, &
                                     iatom, jatom, &
                                     mat_block(1:nrows_blk, 1:ncols_blk))
-            recv_sizes(ipe) = recv_sizes(ipe)+nrows_blk*ncols_blk
+            recv_sizes(ipe) = recv_sizes(ipe) + nrows_blk*ncols_blk
             ! DEALLOCATE(mat_block, STAT=stat)
             ! CPPostcondition(stat==0, cp_failure_level, routineP,failure)
          END DO ! ipair
@@ -1223,7 +1153,7 @@ CONTAINS
 
 ! ****************************************************************************
 !> \brief Given send and recv fb_com_atom_pair object, distribute the matrix
-!>        blocks stored in a fb_matrix_data object to a compatable DBCSR
+!>        blocks stored in a fb_matrix_data object to a computable DBCSR
 !>        matrix. It is assumed in this subroutine that the sizes of each
 !>        block stored in fb_matrix_data object is consistent with the
 !>        pre-defined block sizes in the DBCSR matrix.
@@ -1247,8 +1177,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(dbcsr_type), POINTER                          :: dbcsr_mat
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'fb_com_atom_pairs_distribute_blks', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'fb_com_atom_pairs_distribute_blks'
 
       INTEGER :: handle, iatom, ii, ind, ipair, ipe, jatom, jj, ncols_blk, npairs_recv, &
          npairs_send, nrows_blk, numprocs, pe, recv_encode, send_encode
@@ -1330,7 +1259,7 @@ CONTAINS
          ! need to reuse send_sizes as an accumulative displacement, so recalculate
          send_sizes(ipe) = 0
          DO ipair = 1, send_pair_count(ipe)
-            CALL fb_com_atom_pairs_decode(pairs_send(send_pair_disps(ipe)+ipair), &
+            CALL fb_com_atom_pairs_decode(pairs_send(send_pair_disps(ipe) + ipair), &
                                           pe, iatom, jatom, send_encode)
             CALL fb_matrix_data_get(matrix_storage, &
                                     iatom, jatom, &
@@ -1343,11 +1272,11 @@ CONTAINS
                DO jj = 1, ncols_blk
                   DO ii = 1, nrows_blk
                      ! column major format in blocks
-                     ind = send_disps(ipe)+send_sizes(ipe)+ii+(jj-1)*nrows_blk
+                     ind = send_disps(ipe) + send_sizes(ipe) + ii + (jj - 1)*nrows_blk
                      send_buf(ind) = mat_block(ii, jj)
                   END DO ! ii
                END DO ! jj
-               send_sizes(ipe) = send_sizes(ipe)+nrows_blk*ncols_blk
+               send_sizes(ipe) = send_sizes(ipe) + nrows_blk*ncols_blk
             END IF
          END DO ! ipair
       END DO ! ipe
@@ -1368,15 +1297,15 @@ CONTAINS
       DO ipe = 1, numprocs
          recv_sizes(ipe) = 0
          DO ipair = 1, recv_pair_count(ipe)
-            CALL fb_com_atom_pairs_decode(pairs_recv(recv_pair_disps(ipe)+ipair), &
+            CALL fb_com_atom_pairs_decode(pairs_recv(recv_pair_disps(ipe) + ipair), &
                                           pe, iatom, jatom, recv_encode)
             nrows_blk = row_block_size_data(iatom)
             ncols_blk = col_block_size_data(jatom)
-            ind = recv_disps(ipe)+recv_sizes(ipe)
+            ind = recv_disps(ipe) + recv_sizes(ipe)
             CALL dbcsr_put_block(dbcsr_mat, &
                                  iatom, jatom, &
-                                 recv_buf((ind+1):(ind+nrows_blk*ncols_blk)))
-            recv_sizes(ipe) = recv_sizes(ipe)+nrows_blk*ncols_blk
+                                 recv_buf((ind + 1):(ind + nrows_blk*ncols_blk)))
+            recv_sizes(ipe) = recv_sizes(ipe) + nrows_blk*ncols_blk
          END DO ! ipair
       END DO ! ipe
 

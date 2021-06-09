@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -27,10 +29,12 @@ MODULE qs_energy_types
                        core_self, &
                        repulsive, &
                        dispersion, &
+                       gcp, &
                        ex, &
                        exc, &
                        exc_aux_fit, &
                        exc1, &
+                       exc1_aux_fit, & !the GAPW contribution to ADMM
                        hartree, &
                        hartree_1c, &
                        e_hartree, & ! contains the hartree energy of electrons only
@@ -55,6 +59,7 @@ MODULE qs_energy_types
                        ktS, & ! electronic entropic contribution
                        efermi, & ! Fermi energy
                        dftb3, & ! DFTB 3rd order correction
+                       nonscf_correction, & ! e.g. Harris correction
                        mp2, &
                        ! single excitations correction for all
                        ! non-scf orbital(density) corrections
@@ -65,7 +70,9 @@ MODULE qs_energy_types
                        kinetic, & !total kinetic energy [rk]
                        s_square, &
                        surf_dipole, &
-                       embed_corr ! correction for embedding potential
+                       embed_corr, & ! correction for embedding potential
+                       xtb_xb_inter, & ! correction for halogen bonding within GFN1-xTB
+                       xtb_nonbonded ! correction for nonbonded interactions within GFN1-xTB
       REAL(KIND=dp), DIMENSION(:), POINTER :: ddapc_restraint
    END TYPE qs_energy_type
 
@@ -92,8 +99,7 @@ CONTAINS
 
       TYPE(qs_energy_type), POINTER                      :: qs_energy
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_qs_energy', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_qs_energy'
 
       INTEGER                                            :: handle
 
@@ -117,9 +123,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE deallocate_qs_energy(qs_energy)
       TYPE(qs_energy_type), POINTER                      :: qs_energy
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_qs_energy', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(qs_energy)) THEN
          IF (ASSOCIATED(qs_energy%ddapc_restraint)) THEN
@@ -145,8 +148,6 @@ CONTAINS
 
       TYPE(qs_energy_type), POINTER                      :: qs_energy
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_qs_energy', routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(qs_energy)) THEN
          qs_energy%core = 0.0_dp
          qs_energy%core_overlap = 0.0_dp
@@ -154,12 +155,14 @@ CONTAINS
          qs_energy%core_self = 0.0_dp
          qs_energy%repulsive = 0.0_dp
          qs_energy%dispersion = 0.0_dp
+         qs_energy%gcp = 0.0_dp
          qs_energy%qmmm_el = 0.0_dp
          qs_energy%qmmm_nu = 0.0_dp
          qs_energy%ex = 0.0_dp
          qs_energy%exc = 0.0_dp
          qs_energy%exc_aux_fit = 0.0_dp
          qs_energy%exc1 = 0.0_dp
+         qs_energy%exc1_aux_fit = 0.0_dp
          qs_energy%e_hartree = 0.0_dp
          qs_energy%hartree = 0.0_dp
          qs_energy%hartree_1c = 0.0_dp
@@ -186,6 +189,7 @@ CONTAINS
          qs_energy%surf_dipole = 0.0_dp
          qs_energy%total = 0.0_dp
          qs_energy%singles_corr = 0.0_dp
+         qs_energy%nonscf_correction = 0.0_dp
          IF (.NOT. ASSOCIATED(qs_energy%ddapc_restraint)) THEN
             ALLOCATE (qs_energy%ddapc_restraint(1))
          END IF

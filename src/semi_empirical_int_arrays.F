@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -138,9 +140,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE init_se_intd_array()
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_se_intd_array', &
-         routineP = moduleN//':'//routineN
-
       CALL setup_index_array()
       CALL setup_indrot_array()
       CALL setup_clm_array()
@@ -155,9 +154,6 @@ CONTAINS
 !> \author Teodoro Laino [tlaino] - University of Zurich
 ! **************************************************************************************************
    SUBROUTINE setup_index_array()
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'setup_index_array', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, j
 
@@ -174,7 +170,7 @@ CONTAINS
             !     dzy   7   15   22   28   33   37   40   41   42
             !  dx2-y2   8   16   23   29   34   38   41   43   44
             !     dxy   9   17   24   30   35   39   42   44   45
-            indexa(i, j) = (9*(j-1))-(j*(j-1))/2+i
+            indexa(i, j) = (9*(j - 1)) - (j*(j - 1))/2 + i
             indexa(j, i) = indexa(i, j)
             ! indexb:
             !           s   pz   px   py  dz2  dzx  dzy dx2-y2 dxy
@@ -187,7 +183,7 @@ CONTAINS
             !     dzy  22   23   24   25   26   27   28   35   43
             !  dx2-y2  29   30   31   32   33   34   35   36   44
             !     dxy  37   38   39   40   41   42   43   44   45
-            indexb(i, j) = (i*(i-1))/2+j
+            indexb(i, j) = (i*(i - 1))/2 + j
             indexb(j, i) = indexb(i, j)
          END DO
       END DO
@@ -200,9 +196,6 @@ CONTAINS
 !> \author Teodoro Laino [tlaino] - University of Zurich
 ! **************************************************************************************************
    SUBROUTINE setup_indrot_array()
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'setup_indrot_array', &
-         routineP = moduleN//':'//routineN
 
 ! Setup indexes for integral rotations
 ! INDPP
@@ -267,9 +260,6 @@ CONTAINS
 !> \author Teodoro Laino [tlaino] - University of Zurich
 ! **************************************************************************************************
    SUBROUTINE setup_clm_array()
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'setup_clm_array', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: CLM1, CLM1m
       REAL(KIND=dp) :: ALM1, ALMs15_49, ALMs15_49m, ALMs15m, ALMs20_49, ALMs20_49m, ALMs35, &
@@ -478,9 +468,6 @@ CONTAINS
 !> \author Teodoro Laino [tlaino] - University of Zurich
 ! **************************************************************************************************
    SUBROUTINE setup_ijkl_array()
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'setup_ijkl_array', &
-         routineP = moduleN//':'//routineN
 
 ! Address unique indexes (excluding those related by rotations)
 ! Indexes according:

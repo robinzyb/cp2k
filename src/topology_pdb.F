@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -101,8 +103,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(section_vals_type), POINTER                   :: subsys_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_coordinate_pdb', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'read_coordinate_pdb'
       INTEGER, PARAMETER                                 :: nblock = 1000
 
       CHARACTER(LEN=default_path_length)                 :: line
@@ -156,7 +157,7 @@ CONTAINS
          record = TRIM(record)
 
          IF ((record == "ATOM") .OR. (record == "HETATM")) THEN
-            natom = natom+1
+            natom = natom + 1
             topology%natoms = natom
             IF (natom > SIZE(atom_info%id_atmname)) THEN
                newsize = INT(pfactor*natom)
@@ -232,7 +233,7 @@ CONTAINS
             atom_info%r(2, natom) = cp_unit_to_cp2k(atom_info%r(2, natom), "angstrom")
             atom_info%r(3, natom) = cp_unit_to_cp2k(atom_info%r(3, natom), "angstrom")
          CASE ("TER")
-            inum_mol = inum_mol+1
+            inum_mol = inum_mol + 1
             WRITE (UNIT=root_mol_name, FMT='(A3,I0)') "MOL", inum_mol
          CASE ("REMARK")
             IF (iw > 0) WRITE (UNIT=iw, FMT=*) TRIM(line)
@@ -282,8 +283,7 @@ CONTAINS
       TYPE(topology_parameters_type)                     :: topology
       TYPE(section_vals_type), POINTER                   :: subsys_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'write_coordinate_pdb', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'write_coordinate_pdb'
 
       CHARACTER(LEN=120)                                 :: line
       CHARACTER(LEN=default_string_length)               :: my_tag1, my_tag2, my_tag3, my_tag4, &
@@ -338,7 +338,7 @@ CONTAINS
             idres = atom_info%resid(i)
          ELSE
             IF ((id1 /= atom_info%map_mol_num(i)) .OR. (id2 /= atom_info%map_mol_typ(i))) THEN
-               idres = idres+1
+               idres = idres + 1
                id1 = atom_info%map_mol_num(i)
                id2 = atom_info%map_mol_typ(i)
             END IF
@@ -377,7 +377,7 @@ CONTAINS
             ELSE IF (charge_extended) THEN
                WRITE (UNIT=line(81:), FMT="(F20.16)") atom_info%atm_charge(i)
             ELSE
-               ! Wrtie no atomic charge
+               ! Write no atomic charge
             END IF
          END IF
          WRITE (UNIT=line(73:76), FMT="(A4)") ADJUSTL(my_tag3)

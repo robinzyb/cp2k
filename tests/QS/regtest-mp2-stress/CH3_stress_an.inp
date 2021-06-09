@@ -1,4 +1,4 @@
-&GLOBAL                                                                                           
+&GLOBAL
   PROJECT  CH3_stress
   PRINT_LEVEL LOW
   RUN_TYPE CELL_OPT
@@ -16,15 +16,17 @@
   STRESS_TENSOR  ANALYTICAL
   &PRINT
     &FORCES
-    &END
+    &END FORCES
     &STRESS_TENSOR
-    &END
+     COMPONENTS
+    &END STRESS_TENSOR
   &END
   &DFT
+    BASIS_SET_FILE_NAME  GTH_BASIS_SETS
     BASIS_SET_FILE_NAME  HFX_BASIS
     POTENTIAL_FILE_NAME  POTENTIAL
     &MGRID
-      CUTOFF  100
+      CUTOFF  50
       REL_CUTOFF  20
     &END MGRID
     &QS
@@ -43,7 +45,8 @@
         FRACTION 1.0000000
         &SCREENING
           EPS_SCHWARZ 1.0E-4
-          SCREEN_ON_INITIAL_P FALSE 
+          EPS_SCHWARZ_FORCES 1.0E-4
+          SCREEN_ON_INITIAL_P FALSE
         &END SCREENING
         &INTERACTION_POTENTIAL
           POTENTIAL_TYPE TRUNCATED
@@ -52,19 +55,19 @@
         &END
       &END HF
       &WF_CORRELATION
-        METHOD  RI_MP2_GPW
         &RI_MP2
           BLOCK_SIZE  1
           EPS_CANONICAL 0.1
           FREE_HFX_BUFFER .TRUE.
         &END RI_MP2
+        &INTEGRALS
         &WFC_GPW
-          CUTOFF  30
+          CUTOFF  20
           REL_CUTOFF 6
-        &END
+        &END WFC_GPW
+        &END INTEGRALS
         MEMORY  500.0
         NUMBER_PROC  1
-        CALC_COND_NUM
       &END
     &END XC
     UKS
@@ -76,21 +79,21 @@
           -2.5559027122990370E-04   -9.2228252501752594E-04    4.5286618039725633E-04
            1.6657210614800535E-04   -8.4758917186367037E-04   -2.2362984387179316E-03
            0.0                       0.0                       0.0
-    &END VELOCITY        
+    &END VELOCITY
     &CELL
-      ABC [angstrom] 5.0 5.0 5.0
+      ABC [angstrom] 7.0 7.0 7.0
     &END CELL
     &KIND H
-      BASIS_SET  DZVP-GTH
+      BASIS_SET  SZV-GTH
       BASIS_SET RI_AUX  RI_DZVP-GTH
       POTENTIAL  GTH-HF-q1
     &END KIND
     &KIND C
-      BASIS_SET  DZVP-GTH
+      BASIS_SET  SZV-GTH
       BASIS_SET RI_AUX  RI_DZVP-GTH
       POTENTIAL  GTH-HF-q4
     &END KIND
-    &COORD 
+    &COORD
         C     0.000     0.000     0.300
         H     0.000     1.173     0.000
         H     0.929    -0.536     0.000

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 MODULE atom_grb
@@ -77,9 +79,6 @@ CONTAINS
       TYPE(atom_p_type), DIMENSION(:, :), POINTER        :: atom_info
       TYPE(section_vals_type), POINTER                   :: atom_section
       INTEGER, INTENT(IN)                                :: iw
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'atom_grb_construction', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(len=default_string_length)               :: abas, basname
       CHARACTER(len=default_string_length), DIMENSION(1) :: basline
@@ -172,7 +171,7 @@ CONTAINS
       basis%am = 0._dp
       DO l = 0, lmat
          DO i = 1, basis%nbas(l)
-            ll = i-1
+            ll = i - 1
             basis%am(i, l) = aval*cval**(ll)
          END DO
       END DO
@@ -199,9 +198,9 @@ CONTAINS
                rk = basis%grid%rad(k)
                ear = EXP(-al*basis%grid%rad(k)**2)
                basis%bf(k, i, l) = rk**l*ear
-               basis%dbf(k, i, l) = (REAL(l, dp)*rk**(l-1)-2._dp*al*rk**(l+1))*ear
-               basis%ddbf(k, i, l) = (REAL(l*(l-1), dp)*rk**(l-2)- &
-                                      2._dp*al*REAL(2*l+1, dp)*rk**(l)+4._dp*al*rk**(l+2))*ear
+               basis%dbf(k, i, l) = (REAL(l, dp)*rk**(l - 1) - 2._dp*al*rk**(l + 1))*ear
+               basis%ddbf(k, i, l) = (REAL(l*(l - 1), dp)*rk**(l - 2) - &
+                                      2._dp*al*REAL(2*l + 1, dp)*rk**(l) + 4._dp*al*rk**(l + 2))*ear
             END DO
          END DO
       END DO
@@ -242,7 +241,7 @@ CONTAINS
       s1 = SIZE(atom%orbitals%wfn, 1)
       s2 = SIZE(atom%orbitals%wfn, 2)
       ALLOCATE (wfn(s1, s2, 0:lmat, -nder:nder))
-      s2 = MAXVAL(state%maxn_occ)+nder
+      s2 = MAXVAL(state%maxn_occ) + nder
       ALLOCATE (rbasis(s1, s2, 0:lmat), qbasis(s1, s2, 0:lmat))
       rbasis = 0._dp
       qbasis = 0._dp
@@ -263,13 +262,13 @@ CONTAINS
       DO ider = -nder, nder
          dene = REAL(ider, KIND=dp)*delta
          CPASSERT(fhomo > ABS(dene))
-         state%occupation(lhomo, nhomo) = fhomo+dene
+         state%occupation(lhomo, nhomo) = fhomo + dene
          CALL calculate_atom(atom, iw=0, noguess=.TRUE.)
          wfn(:, :, :, ider) = atom%orbitals%wfn
          state%occupation(lhomo, nhomo) = fhomo
       END DO
       IF (iw > 0) THEN
-         WRITE (iw, '(A,T76,I5)') " Total number of electronic structure calculations ", 2*nder+1
+         WRITE (iw, '(A,T76,I5)') " Total number of electronic structure calculations ", 2*nder + 1
       END IF
 
       ovlp => atom%integrals%ovlp
@@ -287,24 +286,24 @@ CONTAINS
             i = MAX(state%maxn_occ(l), 1)
             SELECT CASE (ider)
             CASE (1)
-               rbasis(:, i+1, l) = 0.5_dp*(wfn(:, i, l, 1)-wfn(:, i, l, -1))/delta
+               rbasis(:, i + 1, l) = 0.5_dp*(wfn(:, i, l, 1) - wfn(:, i, l, -1))/delta
             CASE (2)
-               rbasis(:, i+2, l) = 0.25_dp*(wfn(:, i, l, 2)-2._dp*wfn(:, i, l, 0)+wfn(:, i, l, -2))/delta**2
+               rbasis(:, i + 2, l) = 0.25_dp*(wfn(:, i, l, 2) - 2._dp*wfn(:, i, l, 0) + wfn(:, i, l, -2))/delta**2
             CASE (3)
-               rbasis(:, i+3, l) = 0.125_dp*(wfn(:, i, l, 3)-3._dp*wfn(:, i, l, 1) &
-                                             +3._dp*wfn(:, i, l, -1)-wfn(:, i, l, -3))/delta**3
+               rbasis(:, i + 3, l) = 0.125_dp*(wfn(:, i, l, 3) - 3._dp*wfn(:, i, l, 1) &
+                                               + 3._dp*wfn(:, i, l, -1) - wfn(:, i, l, -3))/delta**3
             CASE DEFAULT
                CPABORT("")
             END SELECT
          END DO
 
          ! orthogonalization, use gram-schmidt in order to keep the natural order (semi-core, valence, response) of the wfn.
-         n = state%maxn_occ(l)+nder
+         n = state%maxn_occ(l) + nder
          m = atom%basis%nbas(l)
          DO i = 1, n
-            DO j = 1, i-1
+            DO j = 1, i - 1
                o = DOT_PRODUCT(rbasis(1:m, j, l), RESHAPE(MATMUL(ovlp(1:m, 1:m, l), rbasis(1:m, i:i, l)), (/m/)))
-               rbasis(1:m, i, l) = rbasis(1:m, i, l)-o*rbasis(1:m, j, l)
+               rbasis(1:m, i, l) = rbasis(1:m, i, l) - o*rbasis(1:m, j, l)
             ENDDO
             o = DOT_PRODUCT(rbasis(1:m, i, l), RESHAPE(MATMUL(ovlp(1:m, 1:m, l), rbasis(1:m, i:i, l)), (/m/)))
             rbasis(1:m, i, l) = rbasis(1:m, i, l)/SQRT(o)
@@ -314,7 +313,7 @@ CONTAINS
          ALLOCATE (amat(n, n))
          amat(1:n, 1:n) = MATMUL(TRANSPOSE(rbasis(1:m, 1:n, l)), MATMUL(ovlp(1:m, 1:m, l), rbasis(1:m, 1:n, l)))
          DO i = 1, n
-            amat(i, i) = amat(i, i)-1._dp
+            amat(i, i) = amat(i, i) - 1._dp
          END DO
          IF (MAXVAL(ABS(amat)) > 1.e-12) THEN
             IF (iw > 0) WRITE (iw, '(A,G20.10)') " Orthogonality error  ", MAXVAL(ABS(amat))
@@ -322,8 +321,8 @@ CONTAINS
          DEALLOCATE (amat)
 
          ! Quickstep normalization
-         expzet = 0.25_dp*REAL(2*l+3, dp)
-         prefac = SQRT(SQRT(pi)/2._dp**(l+2)*dfac(2*l+1))
+         expzet = 0.25_dp*REAL(2*l + 3, dp)
+         prefac = SQRT(SQRT(pi)/2._dp**(l + 2)*dfac(2*l + 1))
          DO i = 1, m
             zeta = (2._dp*atom%basis%am(i, l))**expzet
             qbasis(i, 1:n, l) = rbasis(i, 1:n, l)*prefac/zeta
@@ -352,7 +351,7 @@ CONTAINS
          basis_vrb%nprim = basis%nprim
          basis_vrb%nbas = 0
          DO l = 0, state%maxl_occ
-            basis_vrb%nbas(l) = state%maxn_occ(l)+ider
+            basis_vrb%nbas(l) = state%maxn_occ(l) + ider
          END DO
          m = MAXVAL(basis_vrb%nprim)
          n = MAXVAL(basis_vrb%nbas)
@@ -382,12 +381,12 @@ CONTAINS
                   rk = basis_vrb%grid%rad(k)
                   ear = EXP(-al*basis_vrb%grid%rad(k)**2)
                   DO j = 1, basis_vrb%nbas(l)
-                     basis_vrb%bf(k, j, l) = basis_vrb%bf(k, j, l)+rk**l*ear*basis_vrb%cm(i, j, l)
+                     basis_vrb%bf(k, j, l) = basis_vrb%bf(k, j, l) + rk**l*ear*basis_vrb%cm(i, j, l)
                      basis_vrb%dbf(k, j, l) = basis_vrb%dbf(k, j, l) &
-                                              +(REAL(l, dp)*rk**(l-1)-2._dp*al*rk**(l+1))*ear*basis_vrb%cm(i, j, l)
-                     basis_vrb%ddbf(k, j, l) = basis_vrb%ddbf(k, j, l)+ &
-                                               (REAL(l*(l-1), dp)*rk**(l-2)-2._dp*al*REAL(2*l+1, dp)*rk**(l)+ &
-                                                4._dp*al*rk**(l+2))*ear*basis_vrb%cm(i, j, l)
+                                              + (REAL(l, dp)*rk**(l - 1) - 2._dp*al*rk**(l + 1))*ear*basis_vrb%cm(i, j, l)
+                     basis_vrb%ddbf(k, j, l) = basis_vrb%ddbf(k, j, l) + &
+                                               (REAL(l*(l - 1), dp)*rk**(l - 2) - 2._dp*al*REAL(2*l + 1, dp)*rk**(l) + &
+                                                4._dp*al*rk**(l + 2))*ear*basis_vrb%cm(i, j, l)
                   END DO
                END DO
             END DO
@@ -412,42 +411,45 @@ CONTAINS
       CALL deallocate_orbital_pointers
       CALL deallocate_spherical_harmonics
 
-      ! generate polarization sets
-      IF (iw > 0) THEN
-         WRITE (iw, '(/,A)') " Polarization basis set  "
-      END IF
-      maxl = atom%state%maxl_occ
-      CALL section_vals_val_get(grb_section, "NUM_GTO_POLARIZATION", i_val=num_gto)
-      CPASSERT(num_gto > 0)
-      num_pol = num_gto
-      ALLOCATE (pbasis(num_gto, num_gto, 0:7), alp(num_gto))
-      pbasis = 0.0_dp
       ! get density maximum
       ALLOCATE (rho(basis%grid%nr))
       CALL calculate_atom(atom, iw=0, noguess=.TRUE.)
       CALL atom_density(rho(:), atom%orbitals%pmat, atom%basis, maxl, typ="RHO")
       n = SUM(MAXLOC(rho(:)))
       rmax = basis%grid%rad(n)
+      IF (rmax < 0.1_dp) rmax = 1.0_dp
       DEALLOCATE (rho)
-      ! optimize exponents
-      lval = maxl+1
-      zval = SQRT(REAL(2*lval+2, dp))*REAL(lval+1, dp)/(2._dp*rmax)
-      aval = atom%basis%am(1, 0)
-      cval = 2.5_dp
-      rconf = atom%potential%scon
-      CALL atom_fit_pol(zval, rconf, lval, aval, cval, num_gto, iw, powell_section)
-      ! calculate contractions
-      DO i = 1, num_gto
-         alp(i) = aval*cval**(i-1)
-      END DO
-      ALLOCATE (rho(num_gto))
-      DO l = maxl+1, MIN(maxl+num_gto, 7)
-         zval = SQRT(REAL(2*l+2, dp))*REAL(l+1, dp)/(2._dp*rmax)
-         CALL hydrogenic(zval, rconf, l, alp, num_gto, rho, pbasis(:, :, l))
-         IF (iw > 0) WRITE (iw, '(T5,A,i5,T66,A,F10.4)') &
-            " Polarization basis set contraction for lval=", l, "zval=", zval
-      END DO
-      DEALLOCATE (rho)
+
+      ! generate polarization sets
+      maxl = atom%state%maxl_occ
+      CALL section_vals_val_get(grb_section, "NUM_GTO_POLARIZATION", i_val=num_gto)
+      num_pol = num_gto
+      IF (num_gto > 0) THEN
+         IF (iw > 0) THEN
+            WRITE (iw, '(/,A)') " Polarization basis set  "
+         END IF
+         ALLOCATE (pbasis(num_gto, num_gto, 0:7), alp(num_gto))
+         pbasis = 0.0_dp
+         ! optimize exponents
+         lval = maxl + 1
+         zval = SQRT(REAL(2*lval + 2, dp))*REAL(lval + 1, dp)/(2._dp*rmax)
+         aval = atom%basis%am(1, 0)
+         cval = 2.5_dp
+         rconf = atom%potential%scon
+         CALL atom_fit_pol(zval, rconf, lval, aval, cval, num_gto, iw, powell_section)
+         ! calculate contractions
+         DO i = 1, num_gto
+            alp(i) = aval*cval**(i - 1)
+         END DO
+         ALLOCATE (rho(num_gto))
+         DO l = maxl + 1, MIN(maxl + num_gto, 7)
+            zval = SQRT(REAL(2*l + 2, dp))*REAL(l + 1, dp)/(2._dp*rmax)
+            CALL hydrogenic(zval, rconf, l, alp, num_gto, rho, pbasis(:, :, l))
+            IF (iw > 0) WRITE (iw, '(T5,A,i5,T66,A,F10.4)') &
+               " Polarization basis set contraction for lval=", l, "zval=", zval
+         END DO
+         DEALLOCATE (rho)
+      END IF
 
       ! generate valence expansion sets
       maxl = atom%state%maxl_occ
@@ -456,11 +458,11 @@ CONTAINS
       next_bas(0:lmat) = 0
       IF (num_bas(1) == -1) THEN
          DO l = 0, maxl
-            next_bas(l) = maxl-l+1
+            next_bas(l) = maxl - l + 1
          END DO
       ELSE
          n = MIN(SIZE(num_bas, 1), 4)
-         next_bas(0:n-1) = num_bas(1:n)
+         next_bas(0:n - 1) = num_bas(1:n)
       END IF
       next_prim = 0
       DO l = 0, lmat
@@ -476,14 +478,14 @@ CONTAINS
       basis_vrb => vbasis(0)%basis
       amin = atom%basis%aval/atom%basis%cval**1.5_dp
       DO i = 1, n
-         ale(i) = amin*atom%basis%cval**(i-1)
+         ale(i) = amin*atom%basis%cval**(i - 1)
       END DO
       ebasis = 0._dp
       ALLOCATE (rho(n))
       rconf = 2.0_dp*atom%potential%scon
       DO l = 0, lmat
          IF (next_bas(l) < 1) CYCLE
-         zval = SQRT(REAL(2*l+2, dp))*REAL(l+1, dp)/(2._dp*rmax)
+         zval = SQRT(REAL(2*l + 2, dp))*REAL(l + 1, dp)/(2._dp*rmax)
          CALL hydrogenic(zval, rconf, l, ale, n, rho, ebasis(:, :, l))
          IF (iw > 0) WRITE (iw, '(T5,A,i5,T66,A,F10.4)') &
             " Extension basis set contraction for lval=", l, "zval=", zval
@@ -507,10 +509,10 @@ CONTAINS
          basis_vrb%eps_eig = basis_ref%eps_eig
          basis_vrb%geometrical = .FALSE.
          basis_vrb%basis_type = CGTO_BASIS
-         basis_vrb%nprim = basis%nprim+next_prim
+         basis_vrb%nprim = basis%nprim + next_prim
          basis_vrb%nbas = 0
          DO l = 0, state%maxl_occ
-            basis_vrb%nbas(l) = state%maxn_occ(l)+ider+next_bas(l)
+            basis_vrb%nbas(l) = state%maxn_occ(l) + ider + next_bas(l)
          END DO
          m = MAXVAL(basis_vrb%nprim)
          ALLOCATE (basis_vrb%am(m, 0:lmat))
@@ -519,7 +521,7 @@ CONTAINS
          basis_vrb%am(1:m, :) = basis%am(1:m, :)
          n = SIZE(ale, 1)
          DO l = 0, state%maxl_occ
-            basis_vrb%am(m+1:m+n, l) = ale(1:n)
+            basis_vrb%am(m + 1:m + n, l) = ale(1:n)
          END DO
          ! contractions
          m = MAXVAL(basis_vrb%nprim)
@@ -528,9 +530,9 @@ CONTAINS
          basis_vrb%cm = 0.0_dp
          DO l = 0, state%maxl_occ
             m = basis%nprim(l)
-            n = state%maxn_occ(l)+ider
+            n = state%maxn_occ(l) + ider
             basis_vrb%cm(1:m, 1:n, l) = rbasis(1:m, 1:n, l)
-            basis_vrb%cm(m+1:m+next_prim(l), n+1:n+next_bas(l), l) = ebasis(1:next_prim(l), 1:next_bas(l), l)
+            basis_vrb%cm(m + 1:m + next_prim(l), n + 1:n + next_bas(l), l) = ebasis(1:next_prim(l), 1:next_bas(l), l)
          END DO
 
          ! initialize basis function on a radial grid
@@ -549,12 +551,12 @@ CONTAINS
                   rk = basis_vrb%grid%rad(k)
                   ear = EXP(-al*basis_vrb%grid%rad(k)**2)
                   DO j = 1, basis_vrb%nbas(l)
-                     basis_vrb%bf(k, j, l) = basis_vrb%bf(k, j, l)+rk**l*ear*basis_vrb%cm(i, j, l)
+                     basis_vrb%bf(k, j, l) = basis_vrb%bf(k, j, l) + rk**l*ear*basis_vrb%cm(i, j, l)
                      basis_vrb%dbf(k, j, l) = basis_vrb%dbf(k, j, l) &
-                                              +(REAL(l, dp)*rk**(l-1)-2._dp*al*rk**(l+1))*ear*basis_vrb%cm(i, j, l)
-                     basis_vrb%ddbf(k, j, l) = basis_vrb%ddbf(k, j, l)+ &
-                                               (REAL(l*(l-1), dp)*rk**(l-2)-2._dp*al*REAL(2*l+1, dp)*rk**(l)+ &
-                                                4._dp*al*rk**(l+2))*ear*basis_vrb%cm(i, j, l)
+                                              + (REAL(l, dp)*rk**(l - 1) - 2._dp*al*rk**(l + 1))*ear*basis_vrb%cm(i, j, l)
+                     basis_vrb%ddbf(k, j, l) = basis_vrb%ddbf(k, j, l) + &
+                                               (REAL(l*(l - 1), dp)*rk**(l - 2) - 2._dp*al*REAL(2*l + 1, dp)*rk**(l) + &
+                                                4._dp*al*rk**(l + 2))*ear*basis_vrb%cm(i, j, l)
                   END DO
                END DO
             END DO
@@ -574,7 +576,7 @@ CONTAINS
          cradx = crad*1.20_dp
          CALL atom_basis_condnum(basis_vrb, cradx, cnum)
          IF (iw > 0) WRITE (iw, '(T5,A,F15.3,T50,A,F14.4)') " Lattice constant:", cradx, "Condition number:", cnum
-         vbasis(nder+1+ider)%basis => basis_vrb
+         vbasis(nder + 1 + ider)%basis => basis_vrb
       END DO
       CALL deallocate_orbital_pointers
       CALL deallocate_spherical_harmonics
@@ -583,7 +585,7 @@ CONTAINS
       energy_ref = atom_ref%energy%etot
       IF (iw > 0) WRITE (iw, '(/,A,A)') " Basis set tests    "
       IF (iw > 0) WRITE (iw, '(T10,A,T59,F22.9)') " Reference Energy [a.u.]  ", energy_ref
-      DO ider = 0, 2*nder+1
+      DO ider = 0, 2*nder + 1
          ! generate an atom type
          NULLIFY (atom_test)
          CALL create_atom_type(atom_test)
@@ -611,12 +613,12 @@ CONTAINS
          IF (ider <= nder) THEN
             energy_vb(ider) = atom_test%energy%etot
             IF (iw > 0) WRITE (iw, '(T10,A,i1,A,T40,F13.9,T59,F22.9)') " GRB (VB)", ider, " Energy [a.u.]  ", &
-               energy_ref-energy_vb(ider), energy_vb(ider)
+               energy_ref - energy_vb(ider), energy_vb(ider)
          ELSE
-            i = ider-nder-1
+            i = ider - nder - 1
             energy_ex(i) = atom_test%energy%etot
             IF (iw > 0) WRITE (iw, '(T10,A,i1,A,T40,F13.9,T59,F22.9)') " GRB (EX)", i, " Energy [a.u.]  ", &
-               energy_ref-energy_ex(i), energy_ex(i)
+               energy_ref - energy_ex(i), energy_ex(i)
          END IF
          CALL atom_int_release(atint)
          CALL atom_ppint_release(atint)
@@ -627,8 +629,8 @@ CONTAINS
 
       ! Quickstep normalization polarization basis
       DO l = 0, 7
-         expzet = 0.25_dp*REAL(2*l+3, dp)
-         prefac = SQRT(SQRT(pi)/2._dp**(l+2)*dfac(2*l+1))
+         expzet = 0.25_dp*REAL(2*l + 3, dp)
+         prefac = SQRT(SQRT(pi)/2._dp**(l + 2)*dfac(2*l + 1))
          DO i = 1, num_pol
             zeta = (2._dp*alp(i))**expzet
             pbasis(i, 1:num_pol, l) = pbasis(i, 1:num_pol, l)*prefac/zeta
@@ -636,8 +638,8 @@ CONTAINS
       END DO
       ! Quickstep normalization extended basis
       DO l = 0, lmat
-         expzet = 0.25_dp*REAL(2*l+3, dp)
-         prefac = SQRT(SQRT(pi)/2._dp**(l+2)*dfac(2*l+1))
+         expzet = 0.25_dp*REAL(2*l + 3, dp)
+         prefac = SQRT(SQRT(pi)/2._dp**(l + 2)*dfac(2*l + 1))
          DO i = 1, next_prim(l)
             zeta = (2._dp*ale(i))**expzet
             ebasis(i, 1:next_bas(l), l) = ebasis(i, 1:next_bas(l), l)*prefac/zeta
@@ -664,25 +666,30 @@ CONTAINS
       END DO
       ! polarization basis
       maxl = atom_ref%state%maxl_occ
-      DO l = maxl+1, MIN(maxl+num_pol, 7)
+      DO l = maxl + 1, MIN(maxl + num_pol, 7)
          nbas = 0
-         DO i = maxl+1, l
-            nbas(i) = l-i+1
+         DO i = maxl + 1, l
+            nbas(i) = l - i + 1
          END DO
-         i = l-maxl
+         i = l - maxl
          basline(1) = ""
          WRITE (basline(1), "(T2,A,T5,A,I1)") ADJUSTL(ptable(atom_ref%z)%symbol), TRIM(ADJUSTL(basname))//"-POL-", i
          CALL grb_print_basis(header=basline, nprim=num_pol, nbas=nbas, al=alp, gcc=pbasis, iunit=iunit)
       END DO
       ! extension set
-      basline(1) = ""
-      WRITE (basline(1), "(T2,A,T5,A)") ADJUSTL(ptable(atom_ref%z)%symbol), TRIM(ADJUSTL(basname))//"-EXT"
-      CALL grb_print_basis(header=basline, nprim=next_prim(0), nbas=next_bas, al=ale, gcc=ebasis, iunit=iunit)
+      IF (SUM(next_bas) > 0) THEN
+         basline(1) = ""
+         WRITE (basline(1), "(T2,A,T5,A)") ADJUSTL(ptable(atom_ref%z)%symbol), TRIM(ADJUSTL(basname))//"-EXT"
+         CALL grb_print_basis(header=basline, nprim=next_prim(0), nbas=next_bas, al=ale, gcc=ebasis, iunit=iunit)
+      END IF
       !
       CALL close_file(unit_number=iunit)
 
       ! clean up
-      DEALLOCATE (wfn, rbasis, qbasis, ebasis, pbasis, ale, alp)
+      IF (ALLOCATED(pbasis)) DEALLOCATE (pbasis)
+      IF (ALLOCATED(alp)) DEALLOCATE (alp)
+      IF (ALLOCATED(ebasis)) DEALLOCATE (ebasis)
+      DEALLOCATE (wfn, rbasis, qbasis, ale)
 
       DO ider = 0, 10
          IF (ASSOCIATED(vbasis(ider)%basis)) THEN
@@ -723,9 +730,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :, 0:), INTENT(IN), &
          OPTIONAL                                        :: gcc
       INTEGER, INTENT(IN)                                :: iunit
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'grb_print_basis', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, j, l, lmax, lmin, nval
 
@@ -787,7 +791,6 @@ CONTAINS
       CHARACTER(len=*), INTENT(out)                      :: label
       INTEGER, DIMENSION(0:), INTENT(in)                 :: np, nb
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'basis_label', routineP = moduleN//':'//routineN
       INTEGER                                            :: i, l, lmax
       CHARACTER(len=1), DIMENSION(0:7), PARAMETER :: &
          lq = (/"s", "p", "d", "f", "g", "h", "i", "k"/)
@@ -798,34 +801,34 @@ CONTAINS
       label(i:i) = "("
       DO l = 0, lmax
          IF (np(l) > 0) THEN
-            i = i+1
+            i = i + 1
             IF (np(l) > 9) THEN
-               WRITE (label(i:i+1), "(I2)") np(l)
-               i = i+2
+               WRITE (label(i:i + 1), "(I2)") np(l)
+               i = i + 2
             ELSE
                WRITE (label(i:i), "(I1)") np(l)
-               i = i+1
+               i = i + 1
             END IF
             label(i:i) = lq(l)
          END IF
       END DO
-      i = i+1
-      label(i:i+6) = ") --> ["
-      i = i+6
+      i = i + 1
+      label(i:i + 6) = ") --> ["
+      i = i + 6
       DO l = 0, lmax
          IF (nb(l) > 0) THEN
-            i = i+1
+            i = i + 1
             IF (nb(l) > 9) THEN
-               WRITE (label(i:i+1), "(I2)") nb(l)
-               i = i+2
+               WRITE (label(i:i + 1), "(I2)") nb(l)
+               i = i + 2
             ELSE
                WRITE (label(i:i), "(I1)") nb(l)
-               i = i+1
+               i = i + 1
             END IF
             label(i:i) = lq(l)
          END IF
       END DO
-      i = i+1
+      i = i + 1
       label(i:i) = "]"
 
    END SUBROUTINE basis_label
@@ -844,8 +847,6 @@ CONTAINS
       TYPE(atom_basis_type), POINTER                     :: basis
       REAL(dp), INTENT(OUT)                              :: afun
       INTEGER, INTENT(IN)                                :: iw
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'grb_fit', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: do_eric, do_erie, reltyp, zval
       LOGICAL                                            :: eri_c, eri_e
@@ -953,8 +954,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: iunit
       TYPE(section_vals_type), POINTER                   :: powell_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'atom_fit_grb', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, k, l, ll, n10, nr
       REAL(KIND=dp)                                      :: al, cnum, crad, cradx, ear, fopt, rk
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:)           :: x
@@ -990,7 +989,7 @@ CONTAINS
             basis%am = 0._dp
             DO l = 0, lmat
                DO i = 1, basis%nbas(l)
-                  ll = i-1+basis%start(l)
+                  ll = i - 1 + basis%start(l)
                   basis%am(i, l) = x(1)*x(1)*(x(2)*x(2))**(ll)
                END DO
             END DO
@@ -1007,9 +1006,9 @@ CONTAINS
                      rk = basis%grid%rad(k)
                      ear = EXP(-al*basis%grid%rad(k)**2)
                      basis%bf(k, i, l) = rk**l*ear
-                     basis%dbf(k, i, l) = (REAL(l, dp)*rk**(l-1)-2._dp*al*rk**(l+1))*ear
-                     basis%ddbf(k, i, l) = (REAL(l*(l-1), dp)*rk**(l-2)- &
-                                            2._dp*al*REAL(2*l+1, dp)*rk**(l)+4._dp*al*rk**(l+2))*ear
+                     basis%dbf(k, i, l) = (REAL(l, dp)*rk**(l - 1) - 2._dp*al*rk**(l + 1))*ear
+                     basis%ddbf(k, i, l) = (REAL(l*(l - 1), dp)*rk**(l - 2) - &
+                                            2._dp*al*REAL(2*l + 1, dp)*rk**(l) + 4._dp*al*rk**(l + 2))*ear
                   END DO
                END DO
             END DO
@@ -1022,7 +1021,7 @@ CONTAINS
          CALL powell_optimize(ostate%nvar, x, ostate)
 
          IF (ostate%nf == 2 .AND. iunit > 0) THEN
-            WRITE (iunit, '(" POWELL| Inital value of function",T61,F20.10)') ostate%f
+            WRITE (iunit, '(" POWELL| Initial value of function",T61,F20.10)') ostate%f
          END IF
          IF (MOD(ostate%nf, n10) == 0 .AND. iunit > 0) THEN
             WRITE (iunit, '(" POWELL| Reached",i4,"% of maximal function calls",T61,F20.10)') &
@@ -1042,7 +1041,7 @@ CONTAINS
       basis%am = 0._dp
       DO l = 0, lmat
          DO i = 1, basis%nbas(l)
-            ll = i-1+basis%start(l)
+            ll = i - 1 + basis%start(l)
             basis%am(i, l) = x(1)*x(1)*(x(2)*x(2))**(ll)
          END DO
       END DO
@@ -1059,9 +1058,9 @@ CONTAINS
                rk = basis%grid%rad(k)
                ear = EXP(-al*basis%grid%rad(k)**2)
                basis%bf(k, i, l) = rk**l*ear
-               basis%dbf(k, i, l) = (REAL(l, dp)*rk**(l-1)-2._dp*al*rk**(l+1))*ear
-               basis%ddbf(k, i, l) = (REAL(l*(l-1), dp)*rk**(l-2)- &
-                                      2._dp*al*REAL(2*l+1, dp)*rk**(l)+4._dp*al*rk**(l+2))*ear
+               basis%dbf(k, i, l) = (REAL(l, dp)*rk**(l - 1) - 2._dp*al*rk**(l + 1))*ear
+               basis%ddbf(k, i, l) = (REAL(l*(l - 1), dp)*rk**(l - 2) - &
+                                      2._dp*al*REAL(2*l + 1, dp)*rk**(l) + 4._dp*al*rk**(l + 2))*ear
             END DO
          END DO
       END DO
@@ -1116,8 +1115,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: nbas, iunit
       TYPE(section_vals_type), POINTER                   :: powell_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'atom_fit_pol', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, n10
       REAL(KIND=dp)                                      :: fopt, x(2)
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:)           :: am, ener
@@ -1153,7 +1150,7 @@ CONTAINS
             aval = x(1)*x(1)
             cval = x(2)*x(2)
             DO i = 1, nbas
-               am(i) = aval*cval**(i-1)
+               am(i) = aval*cval**(i - 1)
             END DO
             CALL hydrogenic(zval, rconf, lval, am, nbas, ener, orb)
             ostate%f = ener(1)
@@ -1165,7 +1162,7 @@ CONTAINS
          CALL powell_optimize(ostate%nvar, x, ostate)
 
          IF (ostate%nf == 2 .AND. iunit > 0) THEN
-            WRITE (iunit, '(" POWELL| Inital value of function",T61,F20.10)') ostate%f
+            WRITE (iunit, '(" POWELL| Initial value of function",T61,F20.10)') ostate%f
          END IF
          IF (MOD(ostate%nf, n10) == 0 .AND. iunit > 0) THEN
             WRITE (iunit, '(" POWELL| Reached",i4,"% of maximal function calls",T61,F20.10)') &
@@ -1217,8 +1214,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:), INTENT(OUT)           :: ener
       REAL(KIND=dp), DIMENSION(:, :), INTENT(OUT)        :: orb
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'hydrogenic', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: info, k, lwork, n
       REAL(KIND=dp)                                      :: cf
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:)           :: w, work
@@ -1237,7 +1232,7 @@ CONTAINS
       k = 10
       CALL sg_conf(confmat, rconf, k, lval, am(1:n), am(1:n))
       ! Hamiltionian
-      hmat(1:n, 1:n) = tmat(1:n, 1:n)-zval*potmat(1:n, 1:n)+cf*confmat(1:n, 1:n)
+      hmat(1:n, 1:n) = tmat(1:n, 1:n) - zval*potmat(1:n, 1:n) + cf*confmat(1:n, 1:n)
       ! solve
       lwork = 100*n
       ALLOCATE (w(n), work(lwork))

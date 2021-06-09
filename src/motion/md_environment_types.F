@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -103,12 +105,10 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(force_env_type), POINTER                      :: force_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'md_env_create', routineP = moduleN//':'//routineN
-
       TYPE(section_vals_type), POINTER                   :: averages_section
 
       ALLOCATE (md_env)
-      last_md_env_id = last_md_env_id+1
+      last_md_env_id = last_md_env_id + 1
       md_env%id_nr = last_md_env_id
       md_env%ref_count = 1
 
@@ -155,11 +155,9 @@ CONTAINS
    SUBROUTINE md_env_release(md_env)
       TYPE(md_environment_type), POINTER                 :: md_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'md_env_release', routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(md_env)) THEN
          CPASSERT(md_env%ref_count > 0)
-         md_env%ref_count = md_env%ref_count-1
+         md_env%ref_count = md_env%ref_count - 1
          IF (md_env%ref_count == 0) THEN
             CALL fe_env_release(md_env%fe_env)
             CALL cp_para_env_release(md_env%para_env)
@@ -238,8 +236,6 @@ CONTAINS
       TYPE(average_quantities_type), OPTIONAL, POINTER   :: averages
       TYPE(thermal_regions_type), OPTIONAL, POINTER      :: thermal_regions
       LOGICAL, OPTIONAL                                  :: ehrenfest_md
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_md_env', routineP = moduleN//':'//routineN
 
       LOGICAL                                            :: check
 
@@ -335,8 +331,6 @@ CONTAINS
       TYPE(average_quantities_type), OPTIONAL, POINTER   :: averages
       TYPE(thermal_regions_type), OPTIONAL, POINTER      :: thermal_regions
       LOGICAL, OPTIONAL                                  :: ehrenfest_md
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'set_md_env', routineP = moduleN//':'//routineN
 
       LOGICAL                                            :: check
 

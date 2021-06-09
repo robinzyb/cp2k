@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -10,6 +12,7 @@
 !> \author JGH
 ! **************************************************************************************************
 MODULE hirshfeld_methods
+   USE ao_util,                         ONLY: exp_radius_very_extended
    USE atom_kind_orbitals,              ONLY: calculate_atomic_density
    USE atomic_kind_types,               ONLY: atomic_kind_type,&
                                               get_atomic_kind
@@ -19,6 +22,9 @@ MODULE hirshfeld_methods
    USE cp_para_types,                   ONLY: cp_para_env_type
    USE cp_units,                        ONLY: cp_unit_to_cp2k
    USE cube_utils,                      ONLY: cube_info_type
+   USE grid_api,                        ONLY: GRID_FUNC_AB,&
+                                              collocate_pgf_product,&
+                                              integrate_pgf_product
    USE hirshfeld_types,                 ONLY: get_hirshfeld_info,&
                                               hirshfeld_type,&
                                               set_hirshfeld_info
@@ -29,8 +35,7 @@ MODULE hirshfeld_methods
                                               radius_vdw,&
                                               shape_function_density,&
                                               shape_function_gaussian
-   USE kinds,                           ONLY: dp,&
-                                              int_8
+   USE kinds,                           ONLY: dp
    USE mathconstants,                   ONLY: pi
    USE message_passing,                 ONLY: mp_sum
    USE particle_types,                  ONLY: particle_type
@@ -45,13 +50,10 @@ MODULE hirshfeld_methods
                                               REALSPACE,&
                                               pw_p_type,&
                                               pw_release
-   USE qs_collocate_density,            ONLY: collocate_pgf_product_rspace
    USE qs_environment_types,            ONLY: get_qs_env,&
                                               qs_environment_type
-   USE qs_integrate_potential_low,      ONLY: integrate_pgf_product_rspace
    USE qs_kind_types,                   ONLY: get_qs_kind,&
                                               qs_kind_type
-   USE qs_modify_pab_block,             ONLY: FUNC_AB
    USE qs_rho_types,                    ONLY: qs_rho_get,&
                                               qs_rho_type
    USE realspace_grid_types,            ONLY: pw2rs,&
@@ -92,9 +94,6 @@ CONTAINS
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
       INTEGER, INTENT(IN)                                :: unit_nr
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'write_hirshfeld_charges', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(len=2)                                   :: element_symbol
       INTEGER                                            :: iatom, ikind, natom, nspin
       REAL(KIND=dp)                                      :: refc, tc1, zeff
@@ -118,13 +117,13 @@ CONTAINS
          CALL get_qs_kind(qs_kind_set(ikind), zeff=zeff)
          IF (nspin == 1) THEN
             WRITE (UNIT=unit_nr, FMT="(i7,T15,A2,T20,i3,T27,F8.3,T42,F8.3,T72,F8.3)") &
-               iatom, element_symbol, ikind, refc, charges(iatom, 1), zeff-charges(iatom, 1)
+               iatom, element_symbol, ikind, refc, charges(iatom, 1), zeff - charges(iatom, 1)
          ELSE
             WRITE (UNIT=unit_nr, FMT="(i7,T15,A2,T20,i3,T27,F8.3,T36,2F8.3,T61,F8.3,T72,F8.3)") &
                iatom, element_symbol, ikind, refc, charges(iatom, 1), charges(iatom, 2), &
-               charges(iatom, 1)-charges(iatom, 2), zeff-SUM(charges(iatom, :))
+               charges(iatom, 1) - charges(iatom, 2), zeff - SUM(charges(iatom, :))
          END IF
-         tc1 = tc1+(zeff-SUM(charges(iatom, :)))
+         tc1 = tc1 + (zeff - SUM(charges(iatom, :)))
       END DO
       WRITE (UNIT=unit_nr, FMT="(/,T3,A,T72,F8.3)") "Total Charge ", tc1
       WRITE (unit_nr, '(T2,A)') '!-----------------------------------------------------------------------------!'
@@ -146,8 +145,6 @@ CONTAINS
       REAL(KIND=dp), OPTIONAL                            :: radius
       REAL(KIND=dp), DIMENSION(:), OPTIONAL, POINTER     :: radii_list
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_shape_function', &
-         routineP = moduleN//':'//routineN
       INTEGER, PARAMETER                                 :: ngto = 8
 
       CHARACTER(len=2)                                   :: esym
@@ -237,9 +234,6 @@ CONTAINS
       TYPE(hirshfeld_type), POINTER                      :: hirshfeld_env
       REAL(KIND=dp), DIMENSION(:, :), INTENT(inout)      :: charges
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'comp_hirshfeld_charges', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: is
       LOGICAL                                            :: rho_r_valid
       REAL(KIND=dp)                                      :: tnfun
@@ -254,7 +248,7 @@ CONTAINS
       CALL calculate_hirshfeld_normalization(qs_env, hirshfeld_env)
       ! check normalization
       tnfun = pw_integrate_function(hirshfeld_env%fnorm%pw)
-      tnfun = ABS(tnfun-SUM(hirshfeld_env%charges))
+      tnfun = ABS(tnfun - SUM(hirshfeld_env%charges))
       !
       ALLOCATE (rhonorm)
       !
@@ -288,7 +282,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :, :), INTENT(OUT)     :: fout
       REAL(KIND=dp), DIMENSION(:, :, :), INTENT(IN)      :: fun1, fun2
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'hfun_scale', routineP = moduleN//':'//routineN
       REAL(KIND=dp), PARAMETER                           :: small = 1.0e-12_dp
 
       INTEGER                                            :: i1, i2, i3, n1, n2, n3
@@ -330,8 +323,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :), INTENT(inout)      :: charges
       INTEGER, INTENT(IN)                                :: ounit
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'comp_hirshfeld_i_charges', &
-         routineP = moduleN//':'//routineN
       INTEGER, PARAMETER                                 :: maxloop = 100
       REAL(KIND=dp), PARAMETER                           :: maxres = 1.0e-2_dp
 
@@ -364,7 +355,7 @@ CONTAINS
          CALL calculate_hirshfeld_normalization(qs_env, hirshfeld_env)
          ! check normalization
          tnfun = pw_integrate_function(hirshfeld_env%fnorm%pw)
-         tnfun = ABS(tnfun-SUM(hirshfeld_env%charges))
+         tnfun = ABS(tnfun - SUM(hirshfeld_env%charges))
          ! loop over spins
          DO is = 1, SIZE(rho_r)
             IF (rho_r_valid) THEN
@@ -379,7 +370,7 @@ CONTAINS
          ! residual
          res = 0.0_dp
          DO iat = 1, natom
-            res = res+(SUM(charges(iat, :))-hirshfeld_env%charges(iat))**2
+            res = res + (SUM(charges(iat, :)) - hirshfeld_env%charges(iat))**2
          END DO
          res = SQRT(res/REAL(natom, KIND=dp))
          IF (ounit > 0) THEN
@@ -411,15 +402,13 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(hirshfeld_type), POINTER                      :: hirshfeld_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_hirshfeld_normalization', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_hirshfeld_normalization'
 
       INTEGER                                            :: atom_a, handle, iatom, iex, ikind, &
                                                             ithread, j, natom, npme, nthread, &
-                                                            numexp
-      INTEGER(KIND=int_8)                                :: subpatch_pattern
+                                                            numexp, subpatch_pattern
       INTEGER, DIMENSION(:), POINTER                     :: atom_list, cores
-      REAL(KIND=dp)                                      :: alpha, coef, eps_rho_rspace
+      REAL(KIND=dp)                                      :: alpha, coef, eps_rho_rspace, radius
       REAL(KIND=dp), DIMENSION(3)                        :: ra
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: pab
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
@@ -440,7 +429,7 @@ CONTAINS
       CALL pw_env_get(pw_env, auxbas_rs_desc=auxbas_rs_desc, auxbas_rs_grid=rs_rho, &
                       auxbas_pw_pool=auxbas_pw_pool)
       cube_info = pw_env%cube_info(1)
-      ! be careful in parallel nsmax is choosen with multigrid in mind!
+      ! be careful in parallel nsmax is chosen with multigrid in mind!
       CALL rs_grid_retain(rs_rho)
       CALL rs_grid_zero(rs_rho)
 
@@ -466,11 +455,11 @@ CONTAINS
                IF (rs_rho%desc%parallel .AND. .NOT. rs_rho%desc%distributed) THEN
                   ! replicated realspace grid, split the atoms up between procs
                   IF (MODULO(iatom, rs_rho%desc%group_size) == rs_rho%desc%my_pos) THEN
-                     npme = npme+1
+                     npme = npme + 1
                      cores(npme) = iatom
                   ENDIF
                ELSE
-                  npme = npme+1
+                  npme = npme + 1
                   cores(npme) = iatom
                ENDIF
             END DO
@@ -480,12 +469,16 @@ CONTAINS
                pab(1, 1) = hirshfeld_env%charges(atom_a)*coef
                ra(:) = pbc(particle_set(atom_a)%r, cell)
                subpatch_pattern = 0
+               radius = exp_radius_very_extended(la_min=0, la_max=0, lb_min=0, lb_max=0, &
+                                                 ra=ra, rb=ra, rp=ra, zetp=alpha, eps=eps_rho_rspace, &
+                                                 pab=pab, o1=0, o2=0, &  ! without map_consistent
+                                                 prefactor=1.0_dp, cutoff=0.0_dp)
+
                ! la_max==0 so set lmax_global to 0
-               CALL collocate_pgf_product_rspace(0, alpha, 0, 0, 0.0_dp, 0, ra, &
-                                                 (/0.0_dp, 0.0_dp, 0.0_dp/), 0.0_dp, 1.0_dp, pab, 0, 0, rs_rho, &
-                                                 cell, cube_info, eps_rho_rspace, ga_gb_function=FUNC_AB, &
-                                                 ithread=ithread, use_subpatch=.TRUE., subpatch_pattern=subpatch_pattern, &
-                                                 lmax_global=0)
+               CALL collocate_pgf_product(0, alpha, 0, 0, 0.0_dp, 0, ra, &
+                                          (/0.0_dp, 0.0_dp, 0.0_dp/), 1.0_dp, pab, 0, 0, rs_rho, &
+                                          cell, cube_info, radius=radius, ga_gb_function=GRID_FUNC_AB, &
+                                          use_subpatch=.TRUE., subpatch_pattern=subpatch_pattern)
             END DO
          END DO
 
@@ -528,8 +521,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :), INTENT(inout), &
          OPTIONAL                                        :: fderiv
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'hirshfeld_integration', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'hirshfeld_integration'
 
       INTEGER                                            :: atom_a, handle, iatom, iex, ikind, &
                                                             ithread, j, natom, npme, nthread, &
@@ -537,7 +529,7 @@ CONTAINS
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: cores
       INTEGER, DIMENSION(:), POINTER                     :: atom_list
       LOGICAL                                            :: do_force
-      REAL(KIND=dp)                                      :: alpha, coef, dvol, eps_rho_rspace
+      REAL(KIND=dp)                                      :: alpha, coef, dvol, eps_rho_rspace, radius
       REAL(KIND=dp), DIMENSION(3)                        :: force_a, force_b, ra
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: hab, pab
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
@@ -587,11 +579,11 @@ CONTAINS
                IF (rs_v%desc%parallel .AND. .NOT. rs_v%desc%distributed) THEN
                   ! replicated realspace grid, split the atoms up between procs
                   IF (MODULO(iatom, rs_v%desc%group_size) == rs_v%desc%my_pos) THEN
-                     npme = npme+1
+                     npme = npme + 1
                      cores(npme) = iatom
                   ENDIF
                ELSE
-                  npme = npme+1
+                  npme = npme + 1
                   cores(npme) = iatom
                ENDIF
             END DO
@@ -604,16 +596,22 @@ CONTAINS
                hab(1, 1) = 0.0_dp
                force_a(:) = 0.0_dp
                force_b(:) = 0.0_dp
-               !
-               CALL integrate_pgf_product_rspace(0, alpha, 0, &
-                                                 0, 0.0_dp, 0, ra, (/0.0_dp, 0.0_dp, 0.0_dp/), 0.0_dp, &
-                                                 rs_v, cell, pw_env%cube_info(1), hab, pab=pab, o1=0, o2=0, &
-                                                 eps_gvg_rspace=eps_rho_rspace, calculate_forces=do_force, &
-                                                 force_a=force_a, force_b=force_b, use_virial=.FALSE., &
-                                                 use_subpatch=.TRUE., subpatch_pattern=0_int_8)
-               fval(atom_a) = fval(atom_a)+hab(1, 1)*dvol*coef
+
+               radius = exp_radius_very_extended(la_min=0, la_max=0, lb_min=0, lb_max=0, &
+                                                 ra=ra, rb=ra, rp=ra, &
+                                                 zetp=alpha, eps=eps_rho_rspace, &
+                                                 pab=pab, o1=0, o2=0, &  ! without map_consistent
+                                                 prefactor=1.0_dp, cutoff=1.0_dp)
+
+               CALL integrate_pgf_product(0, alpha, 0, &
+                                          0, 0.0_dp, 0, ra, (/0.0_dp, 0.0_dp, 0.0_dp/), &
+                                          rs_v, cell, pw_env%cube_info(1), hab, pab=pab, o1=0, o2=0, &
+                                          radius=radius, calculate_forces=do_force, &
+                                          force_a=force_a, force_b=force_b, use_virial=.FALSE., &
+                                          use_subpatch=.TRUE., subpatch_pattern=0)
+               fval(atom_a) = fval(atom_a) + hab(1, 1)*dvol*coef
                IF (do_force) THEN
-                  fderiv(:, atom_a) = fderiv(:, atom_a)+force_a(:)*dvol
+                  fderiv(:, atom_a) = fderiv(:, atom_a) + force_a(:)*dvol
                END IF
             END DO
 

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -62,7 +64,7 @@ MODULE pw_pool_types
 
 ! **************************************************************************************************
 !> \brief Manages a pool of grids (to be used for example as tmp objects),
-!>      but can also be used to intantiate grids that are never given back.
+!>      but can also be used to instantiate grids that are never given back.
 !> \param ref_count reference count (see /cp2k/doc/ReferenceCounting.html)
 !> \param id_nr number that identifies each pool
 !> \param real 1d_pw, real3d_pw, complex1d_pw, complex3d_pw: liked list with
@@ -110,8 +112,6 @@ CONTAINS
       TYPE(pw_grid_type), POINTER                        :: pw_grid
       INTEGER, OPTIONAL                                  :: max_cache
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pw_pool_create', routineP = moduleN//':'//routineN
-
       TYPE(cp_logger_type), POINTER                      :: logger
 
       logger => cp_get_default_logger()
@@ -119,7 +119,7 @@ CONTAINS
       ALLOCATE (pool)
       pool%pw_grid => pw_grid
       CALL pw_grid_retain(pw_grid)
-      last_pw_pool_id_nr = last_pw_pool_id_nr+1
+      last_pw_pool_id_nr = last_pw_pool_id_nr + 1
       pool%id_nr = last_pw_pool_id_nr
       pool%ref_count = 1
       pool%max_cache = default_max_cache
@@ -144,8 +144,6 @@ CONTAINS
    SUBROUTINE pw_pool_retain(pool)
       TYPE(pw_pool_type), POINTER                        :: pool
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pw_pool_retain', routineP = moduleN//':'//routineN
-
       TYPE(cp_logger_type), POINTER                      :: logger
 
       logger => cp_get_default_logger()
@@ -153,7 +151,7 @@ CONTAINS
       CPASSERT(ASSOCIATED(pool))
       CPASSERT(pool%ref_count > 0)
 
-      pool%ref_count = pool%ref_count+1
+      pool%ref_count = pool%ref_count + 1
       IF (debug_this_module) THEN
          WRITE (unit=cp_logger_get_default_unit_nr(logger, local=.TRUE.), &
                 fmt="(' *** pw_pool ',i4,' has been retained, ref_count=',i4)") &
@@ -171,9 +169,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pw_pool_flush_cache(pool)
       TYPE(pw_pool_type), POINTER                        :: pool
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'pw_pool_flush_cache', &
-         routineP = moduleN//':'//routineN
 
       REAL(kind=dp), DIMENSION(:, :, :), POINTER         :: array_att
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -247,16 +242,13 @@ CONTAINS
    SUBROUTINE pw_pool_release(pool)
       TYPE(pw_pool_type), POINTER                        :: pool
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pw_pool_release', &
-         routineP = moduleN//':'//routineN
-
       TYPE(cp_logger_type), POINTER                      :: logger
 
       logger => cp_get_default_logger()
 
       IF (ASSOCIATED(pool)) THEN
          CPASSERT(pool%ref_count > 0)
-         pool%ref_count = pool%ref_count-1
+         pool%ref_count = pool%ref_count - 1
          IF (debug_this_module) THEN
             WRITE (unit=cp_logger_get_default_unit_nr(logger, local=.TRUE.), &
                    fmt="(' *** pw_pool ',i4,' released ref_count=',i4)") &
@@ -315,8 +307,7 @@ CONTAINS
       INTEGER, INTENT(in)                                :: use_data
       INTEGER, INTENT(in), OPTIONAL                      :: in_space
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pw_pool_create_pw', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'pw_pool_create_pw'
 
       INTEGER                                            :: handle
       REAL(kind=dp), DIMENSION(:, :, :), POINTER         :: cr3d_ptr
@@ -404,8 +395,7 @@ CONTAINS
       TYPE(pw_type), POINTER                             :: pw
       LOGICAL, INTENT(in), OPTIONAL                      :: accept_non_compatible
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pw_pool_give_back_pw', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'pw_pool_give_back_pw'
 
       INTEGER                                            :: handle
       LOGICAL                                            :: failure, my_accept_non_compatible
@@ -509,7 +499,7 @@ CONTAINS
    END SUBROUTINE pw_pool_give_back_pw
 
 ! **************************************************************************************************
-!> \brief returns a 3d real array of coefficents as the one used by pw with
+!> \brief returns a 3d real array of coefficients as the one used by pw with
 !>      REALDATA3D, allocating it if none is present in the pool
 !> \param pw_pool the pool that caches the cr3d
 !> \param cr3d the pointer that will contain the array
@@ -520,9 +510,6 @@ CONTAINS
    SUBROUTINE pw_pool_create_cr3d(pw_pool, cr3d)
       TYPE(pw_pool_type), POINTER                        :: pw_pool
       REAL(kind=dp), DIMENSION(:, :, :), POINTER         :: cr3d
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'pw_pool_create_cr3d', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: stat
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -566,7 +553,7 @@ CONTAINS
    END SUBROUTINE pw_pool_create_cr3d
 
 ! **************************************************************************************************
-!> \brief returns a 3d real array of coefficents as the one used by pw with
+!> \brief returns a 3d real array of coefficients as the one used by pw with
 !>      REALDATA3D, allocating it if none is present in the pool
 !> \param pw_pool the pool that caches the cr3d
 !> \param cr3d the pointer that will contain the array
@@ -580,9 +567,6 @@ CONTAINS
       TYPE(pw_pool_type), POINTER                        :: pw_pool
       REAL(kind=dp), DIMENSION(:, :, :), POINTER         :: cr3d
       LOGICAL, INTENT(in), OPTIONAL                      :: accept_non_compatible
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'pw_pool_give_back_cr3d', &
-         routineP = moduleN//':'//routineN
 
       LOGICAL                                            :: compatible, my_accept_non_compatible
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -650,9 +634,6 @@ CONTAINS
       INTEGER, INTENT(in)                                :: use_data
       INTEGER, INTENT(in), OPTIONAL                      :: in_space
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pw_pools_create_pws', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
 
       CPASSERT(ASSOCIATED(pools))
@@ -665,9 +646,9 @@ CONTAINS
    END SUBROUTINE pw_pools_create_pws
 
 ! **************************************************************************************************
-!> \brief returns the pw part of the coefficents into the pools
+!> \brief returns the pw part of the coefficients into the pools
 !> \param pools the pools that will cache the pws %pw
-!> \param pws the coefficents to give back
+!> \param pws the coefficients to give back
 !> \par History
 !>      08.2002 created [fawzi]
 !> \author Fawzi Mohamed
@@ -675,9 +656,6 @@ CONTAINS
    SUBROUTINE pw_pools_give_back_pws(pools, pws)
       TYPE(pw_pool_p_type), DIMENSION(:), POINTER        :: pools
       TYPE(pw_p_type), DIMENSION(:), POINTER             :: pws
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'pw_pools_give_back_pws', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
 
@@ -701,8 +679,6 @@ CONTAINS
    SUBROUTINE pw_pools_copy(source_pools, target_pools)
       TYPE(pw_pool_p_type), DIMENSION(:), POINTER        :: source_pools, target_pools
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pw_pools_copy', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
 
       CPASSERT(ASSOCIATED(source_pools))
@@ -723,9 +699,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pw_pools_dealloc(pools)
       TYPE(pw_pool_p_type), DIMENSION(:), POINTER        :: pools
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'pw_pools_dealloc', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
 

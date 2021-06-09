@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 MODULE dkh_main
    USE cp_blacs_env,                    ONLY: cp_blacs_env_type
@@ -25,7 +27,7 @@ MODULE dkh_main
                                               cp_fm_type
    USE cp_gemm_interface,               ONLY: cp_gemm
    USE kinds,                           ONLY: dp
-   USE physcon,                         ONLY: a_fine
+   USE physcon,                         ONLY: c_light_au
    USE qs_environment_types,            ONLY: get_qs_env,&
                                               qs_environment_type
 #include "./base/base_uses.f90"
@@ -87,10 +89,10 @@ CONTAINS
 !>    ev2  (:,:) DKH-even2 matrix in position space
 !>    ove (:,:) scratch
 !>    aux (:,:) scratch
-!>    velit  velocity of light 137 a.u.
-!>    prea   prefactor, 1/137^2
-!>    con2   prefactor, 2/137^2
-!>    con    prefactor, 137^2
+!>    c_light_au  velocity of light 137 a.u.
+!>    prea        prefactor, 1/137^2
+!>    con2        prefactor, 2/137^2
+!>    con         prefactor, 137^2
 !> \author
 !>     Jens Thar, Barbara Kirchner: Uni Bonn (09/2006)
 !>     Markus Reiher: ETH Zurich (09/2006)
@@ -101,11 +103,9 @@ CONTAINS
       TYPE(cp_fm_type), POINTER                          :: matrix_s, matrix_v, matrix_t, matrix_pVp
       INTEGER, INTENT(IN)                                :: n, dkh_order
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'DKH_full_transformation', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'DKH_full_transformation'
 
       INTEGER                                            :: handle, i
-      REAL(KIND=dp)                                      :: velit
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:)           :: aa, e, ev0t, rr, tt
       TYPE(cp_blacs_env_type), POINTER                   :: blacs_env
       TYPE(cp_fm_struct_type), POINTER                   :: matrix_full
@@ -114,12 +114,6 @@ CONTAINS
 
       CALL timeset(routineN, handle)
       NULLIFY (blacs_env)
-      !-----------------------------------------------------------------------
-      !     Define velocity of light
-      !-----------------------------------------------------------------------
-
-      !     velit = 137.0359895_dp   ! 1/a_fine  physcon
-      velit = 1._dp/a_fine
 
       !-----------------------------------------------------------------------
       !     Construct the matrix structure
@@ -182,7 +176,7 @@ CONTAINS
       !     Calculate kinetic part of Hamiltonian in T-basis
       !-----------------------------------------------------------------------
 
-      CALL kintegral(n, ev0t, tt, e, velit)
+      CALL kintegral(n, ev0t, tt, e)
 
       !-----------------------------------------------------------------------
       !     Calculate reverse transformation matrix revt
@@ -205,8 +199,8 @@ CONTAINS
       !-----------------------------------------------------------------------
 
       DO i = 1, n
-         aa(i) = SQRT((velit*velit+e(i))/(2.0_dp*e(i)))
-         rr(i) = SQRT(velit*velit)/(velit*velit+e(i))
+         aa(i) = SQRT((c_light_au**2 + e(i))/(2.0_dp*e(i)))
+         rr(i) = SQRT(c_light_au**2)/(c_light_au**2 + e(i))
       END DO
 
       !-----------------------------------------------------------------------
@@ -329,21 +323,19 @@ CONTAINS
 !> \param ev0t ...
 !> \param tt ...
 !> \param e ...
-!> \param velit ...
 ! **************************************************************************************************
-   SUBROUTINE kintegral(n, ev0t, tt, e, velit)
+   SUBROUTINE kintegral(n, ev0t, tt, e)
       INTEGER, INTENT(IN)                                :: n
       REAL(KIND=dp), DIMENSION(:), INTENT(OUT)           :: ev0t
       REAL(KIND=dp), DIMENSION(:), INTENT(IN)            :: tt
       REAL(KIND=dp), DIMENSION(:), INTENT(OUT)           :: e
-      REAL(KIND=dp), INTENT(IN)                          :: velit
 
       INTEGER                                            :: i
       REAL(KIND=dp)                                      :: con, con2, prea, ratio, tv1, tv2, tv3, &
                                                             tv4
 
-      prea = 1/(velit*velit)
-      con2 = prea+prea
+      prea = 1/(c_light_au**2)
+      con2 = prea + prea
       con = 1.0_dp/prea
 
       DO i = 1, n
@@ -355,17 +347,17 @@ CONTAINS
          !       cancellation, otherwise calculate SQRT directly
 
          ev0t(i) = tt(i)
-         ratio = tt(i)/velit
+         ratio = tt(i)/c_light_au
          IF (ratio .LE. 0.02_dp) THEN
             tv1 = tt(i)
             tv2 = -tv1*tt(i)*prea*0.5_dp
             tv3 = -tv2*tt(i)*prea
             tv4 = -tv3*tt(i)*prea*1.25_dp
-            ev0t(i) = tv1+tv2+tv3+tv4
+            ev0t(i) = tv1 + tv2 + tv3 + tv4
          ELSE
-            ev0t(i) = con*(SQRT(1.0_dp+con2*tt(i))-1.0_dp)
+            ev0t(i) = con*(SQRT(1.0_dp + con2*tt(i)) - 1.0_dp)
          END IF
-         e(i) = ev0t(i)+con
+         e(i) = ev0t(i) + con
       END DO
 
       RETURN
@@ -1003,7 +995,7 @@ CONTAINS
    !                                                                      -
    !     Matrix routines for DKH-procedure                                -
    !     Alexander Wolf                                                   -
-   !     modifed: Jens Thar: Mem manager deleted                          -
+   !     modified: Jens Thar: Mem manager deleted                          -
    !     This file contains the                                           -
    !      following subroutines:                                          -
    !                                 1. mat_1_over_h                      -
@@ -1045,7 +1037,7 @@ CONTAINS
 
       DO j = 1, ncol_local
          DO i = 1, nrow_local
-            matrix_aux%local_data(i, j) = 1/(e(row_indices(i))+e(col_indices(j)))
+            matrix_aux%local_data(i, j) = 1/(e(row_indices(i)) + e(col_indices(j)))
          ENDDO
       ENDDO
 
@@ -1329,10 +1321,10 @@ CONTAINS
       !    ev2  (:,:) DKH-even2 matrix in position space                     *
       !    ove (:,:) scratch                                                 *
       !    aux (:,:) scratch                                                 *
-      !    velit  velocity of light 137 a.u.                                 *
-      !    prea   prefactor, 1/137^2                                         *
-      !    con2   prefactor, 2/137^2                                         *
-      !    con    prefactor, 137^2                                           *
+      !    c_light_au  velocity of light 137 a.u.                            *
+      !    prea        prefactor, 1/137^2                                    *
+      !    con2        prefactor, 2/137^2                                    *
+      !    con         prefactor, 137^2                                      *
       !-----------------------------------------------------------------------
 
       !-----------------------------------------------------------------------
@@ -1340,11 +1332,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :), INTENT(INOUT)      :: s, v, h, pVp
       INTEGER, INTENT(IN)                                :: n, dkh_order
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'DKH_atom_transformation', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, j, k
-      REAL(KIND=dp)                                      :: velit
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:)           :: aa, e, ev0t, rr, tt
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :)        :: aux, eig, ev1, ev1t, ev2, ev2t, ev3, &
                                                             ev3t, ev4, ev4t, ove, pev1tp, pVpt, &
@@ -1353,12 +1341,6 @@ CONTAINS
       IF (dkh_order .LT. 0) RETURN
 
       !CAW  pp: p^2-values (in momentum-space), stored as matrix!!
-      !-----------------------------------------------------------------------
-      !     Define velocity of light
-      !-----------------------------------------------------------------------
-      !      velit = 137.0359895_dp
-
-      velit = 1._dp/a_fine
 
       !-----------------------------------------------------------------------
       !     Allocate some matrices
@@ -1402,7 +1384,7 @@ CONTAINS
       !     Calculate kinetic part of Hamiltonian in T-basis
       !-----------------------------------------------------------------------
 
-      CALL kintegral_a(n, ev0t, tt, e, velit)
+      CALL kintegral_a(n, ev0t, tt, e)
 
       !-----------------------------------------------------------------------
       !     Calculate reverse transformation matrix revt
@@ -1419,7 +1401,7 @@ CONTAINS
       DO i = 1, n
          DO j = 1, i
             DO k = 1, n
-               h(i, j) = h(i, j)+revt(i, k)*revt(j, k)*ev0t(k)
+               h(i, j) = h(i, j) + revt(i, k)*revt(j, k)*ev0t(k)
                h(j, i) = h(i, j)
             END DO
          END DO
@@ -1430,8 +1412,8 @@ CONTAINS
       !-----------------------------------------------------------------------
 
       DO i = 1, n
-         aa(i) = SQRT((velit*velit+e(i))/(2.0_dp*e(i)))
-         rr(i) = SQRT(velit*velit)/(velit*velit+e(i))
+         aa(i) = SQRT((c_light_au**2 + e(i))/(2.0_dp*e(i)))
+         rr(i) = SQRT(c_light_au**2)/(c_light_au**2 + e(i))
       END DO
 
       !-----------------------------------------------------------------------
@@ -1546,9 +1528,8 @@ CONTAINS
 !> \param ev0t ...
 !> \param tt ...
 !> \param e ...
-!> \param velit ...
 ! **************************************************************************************************
-   SUBROUTINE kintegral_a(n, ev0t, tt, e, velit)
+   SUBROUTINE kintegral_a(n, ev0t, tt, e)
 
       !-----------------------------------------------------------------------
 
@@ -1556,7 +1537,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:), INTENT(OUT)           :: ev0t
       REAL(KIND=dp), DIMENSION(:), INTENT(IN)            :: tt
       REAL(KIND=dp), DIMENSION(:), INTENT(OUT)           :: e
-      REAL(KIND=dp), INTENT(IN)                          :: velit
 
       INTEGER                                            :: i
       REAL(KIND=dp)                                      :: con, con2, prea, ratio, tv1, tv2, tv3, &
@@ -1571,25 +1551,25 @@ CONTAINS
 
          !       Calculate some constants
 
-         prea = 1/(velit*velit)
-         con2 = prea+prea
+         prea = 1/(c_light_au**2)
+         con2 = prea + prea
          con = 1.0_dp/prea
 
          !       If T is sufficiently small, use series expansion to avoid
          !       cancellation, otherwise calculate SQRT directly
 
          ev0t(i) = tt(i)
-         ratio = tt(i)/velit
+         ratio = tt(i)/c_light_au
          IF (ratio .LE. 0.02_dp) THEN
             tv1 = tt(i)
             tv2 = -tv1*tt(i)*prea/2.0_dp
             tv3 = -tv2*tt(i)*prea
             tv4 = -tv3*tt(i)*prea*1.25_dp
-            ev0t(i) = tv1+tv2+tv3+tv4
+            ev0t(i) = tv1 + tv2 + tv3 + tv4
          ELSE
-            ev0t(i) = con*(SQRT(1.0_dp+con2*tt(i))-1.0_dp)
+            ev0t(i) = con*(SQRT(1.0_dp + con2*tt(i)) - 1.0_dp)
          END IF
-         e(i) = ev0t(i)+con
+         e(i) = ev0t(i) + con
       END DO
 
       RETURN
@@ -1632,7 +1612,7 @@ CONTAINS
 
       DO i = 1, n
          DO j = 1, i
-            ev1t(i, j) = vt(i, j)*aa(i)*aa(j)+pVpt(i, j)*aa(i)*rr(i)*aa(j)*rr(j)
+            ev1t(i, j) = vt(i, j)*aa(i)*aa(j) + pVpt(i, j)*aa(i)*rr(i)*aa(j)*rr(j)
             ev1t(j, i) = ev1t(i, j)
          END DO
       END DO
@@ -1678,7 +1658,7 @@ CONTAINS
 
       DO i = 1, n
          DO j = 1, i
-            pev1tp(i, j) = 4.0_dp*vt(i, j)*aa(i)*aa(j)*rr(i)*rr(i)*rr(j)*rr(j)*tt(i)*tt(j)+ &
+            pev1tp(i, j) = 4.0_dp*vt(i, j)*aa(i)*aa(j)*rr(i)*rr(i)*rr(j)*rr(j)*tt(i)*tt(j) + &
                            pVpt(i, j)*aa(i)*rr(i)*aa(j)*rr(j)
             pev1tp(j, i) = pev1tp(i, j)
          END DO
@@ -2208,7 +2188,7 @@ CONTAINS
    !                                                                      -
    !     Matrix routines for DKH-procedure                                -
    !     Alexander Wolf                                                   -
-   !     modifed: Jens Thar: Mem manager deleted                          -
+   !     modified: Jens Thar: Mem manager deleted                          -
    !     This file contains the                                           -
    !      following subroutines:                                          -
    !                                 1. mat_1_over_h                      -
@@ -2246,7 +2226,7 @@ CONTAINS
 
       DO i = 1, n
          DO j = 1, n
-            p(i, j) = p(i, j)/(e(i)+e(j))
+            p(i, j) = p(i, j)/(e(i) + e(j))
          ENDDO
       ENDDO
 
@@ -2468,7 +2448,7 @@ CONTAINS
 
       DO i = 1, n
          DO j = 1, n
-            p(i, j) = alpha*p(i, j)+beta*r(i, j)
+            p(i, j) = alpha*p(i, j) + beta*r(i, j)
          ENDDO
       ENDDO
 
@@ -2519,7 +2499,7 @@ CONTAINS
 
       DO i = 1, n
          DO j = 1, n
-            p(i, j) = alpha*q(i, j)+beta*r(i, j)
+            p(i, j) = alpha*q(i, j) + beta*r(i, j)
          ENDDO
       ENDDO
 
@@ -2553,7 +2533,7 @@ CONTAINS
       IJ = 0
       DO I = 1, N
          DO J = 1, I
-            IJ = IJ+1
+            IJ = IJ + 1
             C(I, J) = 0.0_dp
             C(J, I) = 0.0_dp
             H(I, J) = 0.0_dp
@@ -2563,7 +2543,7 @@ CONTAINS
       DO I = 1, N
          DO L = 1, N
             DO K = 1, N
-               H(I, L) = B(K, I)*W(K, L)+H(I, L)
+               H(I, L) = B(K, I)*W(K, L) + H(I, L)
             END DO
          END DO
       END DO
@@ -2571,9 +2551,9 @@ CONTAINS
       IJ = 0
       DO I = 1, N
          DO J = 1, I
-            IJ = IJ+1
+            IJ = IJ + 1
             DO L = 1, N
-               C(I, J) = H(I, L)*B(L, J)+C(I, J)
+               C(I, J) = H(I, L)*B(L, J) + C(I, J)
                C(J, I) = C(I, J)
             END DO
          END DO
@@ -2615,7 +2595,7 @@ CONTAINS
 
       CALL dgemm("T", "N", n, n, n, 1.0_dp, matrix_sinv_pgf, n, eig, n, 0.0_dp, aux, n)
 
-      n2 = 3*n-1
+      n2 = 3*n - 1
 
       CALL JACOB2(AUX, EIG, EW, N, IC)
       RETURN
@@ -2653,7 +2633,7 @@ CONTAINS
             IF (i .NE. j) THEN
                eigv(i, j) = 0.0_dp
                eigv(j, i) = 0.0_dp
-               ext_norm = ext_norm+sogt(i, j)*sogt(i, j)
+               ext_norm = ext_norm + sogt(i, j)*sogt(i, j)
             END IF
          END DO
       END DO
@@ -2669,75 +2649,75 @@ CONTAINS
             DO
                l = 1
                DO
-                  m = l+1
+                  m = l + 1
                   DO
-                     IF ((ABS(sogt(m, l))-thr) .GE. 0.0_dp) THEN
+                     IF ((ABS(sogt(m, l)) - thr) .GE. 0.0_dp) THEN
                         ind = 1
-                        x = 0.5_dp*(eigw(l)-eigw(m))
-                        y = -sogt(m, l)/SQRT(sogt(m, l)*sogt(m, l)+x*x)
+                        x = 0.5_dp*(eigw(l) - eigw(m))
+                        y = -sogt(m, l)/SQRT(sogt(m, l)*sogt(m, l) + x*x)
                         IF (x .LT. 0.0_dp) y = -y
 
                         IF (y .GT. 1.0_dp) y = 1.0_dp
                         IF (y .LT. -1.0_dp) y = -1.0_dp
-                        xy = 1.0_dp-y*y
-                        sint = y/SQRT(2.0_dp*(1.0_dp+SQRT(xy)))
+                        xy = 1.0_dp - y*y
+                        sint = y/SQRT(2.0_dp*(1.0_dp + SQRT(xy)))
                         sint2 = sint*sint
-                        cost2 = 1.0_dp-sint2
+                        cost2 = 1.0_dp - sint2
                         cost = SQRT(cost2)
                         sincs = sint*cost
 
                         DO i = 1, n
-                           IF ((i-m) .NE. 0) THEN
-                              IF ((i-m) .LT. 0) THEN
+                           IF ((i - m) .NE. 0) THEN
+                              IF ((i - m) .LT. 0) THEN
                                  im = m
                                  mm = i
                               ELSE
                                  im = i
                                  mm = m
                               END IF
-                              IF ((i-l) .NE. 0) THEN
-                                 IF ((i-l) .LT. 0) THEN
+                              IF ((i - l) .NE. 0) THEN
+                                 IF ((i - l) .LT. 0) THEN
                                     il = l
                                     ll = i
                                  ELSE
                                     il = i
                                     ll = l
                                  END IF
-                                 x = sogt(il, ll)*cost-sogt(im, mm)*sint
-                                 sogt(im, mm) = sogt(il, ll)*sint+sogt(im, mm)*cost
+                                 x = sogt(il, ll)*cost - sogt(im, mm)*sint
+                                 sogt(im, mm) = sogt(il, ll)*sint + sogt(im, mm)*cost
                                  sogt(il, ll) = x
                               END IF
                            END IF
 
-                           x = eigv(i, l)*cost-eigv(i, m)*sint
-                           eigv(i, m) = eigv(i, l)*sint+eigv(i, m)*cost
+                           x = eigv(i, l)*cost - eigv(i, m)*sint
+                           eigv(i, m) = eigv(i, l)*sint + eigv(i, m)*cost
                            eigv(i, l) = x
                         END DO
 
                         x = 2.0_dp*sogt(m, l)*sincs
-                        y = eigw(l)*cost2+eigw(m)*sint2-x
-                        x = eigw(l)*sint2+eigw(m)*cost2+x
-                        sogt(m, l) = (eigw(l)-eigw(m))*sincs+sogt(m, l)*(cost2-sint2)
+                        y = eigw(l)*cost2 + eigw(m)*sint2 - x
+                        x = eigw(l)*sint2 + eigw(m)*cost2 + x
+                        sogt(m, l) = (eigw(l) - eigw(m))*sincs + sogt(m, l)*(cost2 - sint2)
                         eigw(l) = y
                         eigw(m) = x
                      END IF
-                     IF ((m-n) .EQ. 0) EXIT
-                     m = m+1
+                     IF ((m - n) .EQ. 0) EXIT
+                     m = m + 1
                   END DO
-                  IF ((l-m+1) .EQ. 0) EXIT
-                  l = l+1
+                  IF ((l - m + 1) .EQ. 0) EXIT
+                  l = l + 1
                END DO
-               IF ((ind-1) .NE. 0.0_dp) EXIT
+               IF ((ind - 1) .NE. 0.0_dp) EXIT
                ind = 0
             END DO
-            IF ((thr-thr_min) .LE. 0.0_dp) EXIT
+            IF ((thr - thr_min) .LE. 0.0_dp) EXIT
          END DO
       END IF
 
       IF (ic .NE. 0) THEN
          DO i = 1, n
             DO j = 1, n
-               IF ((eigw(i)-eigw(j)) .GT. 0.0_dp) THEN
+               IF ((eigw(i) - eigw(j)) .GT. 0.0_dp) THEN
                   x = eigw(i)
                   eigw(i) = eigw(j)
                   eigw(j) = x
@@ -2792,19 +2772,19 @@ CONTAINS
          g(jn, jn) = 1.0_dp
 
          IF (jn .NE. 1) THEN
-            DO j = 1, jn-1
+            DO j = 1, jn - 1
                scalar = 0.0_dp
                DO i = 1, j
-                  scalar = scalar+matrix_s_pgf(i, jn)*g(i, j)
+                  scalar = scalar + matrix_s_pgf(i, jn)*g(i, j)
                END DO
-               diag_s = diag_s-scalar*scalar
+               diag_s = diag_s - scalar*scalar
                a(j) = scalar
             END DO
 
-            DO j = 1, jn-1
+            DO j = 1, jn - 1
                row_sum = 0.0_dp
-               DO k = j, jn-1
-                  row_sum = row_sum+a(k)*g(j, k)
+               DO k = j, jn - 1
+                  row_sum = row_sum + a(k)*g(j, k)
                END DO
                g(j, jn) = -row_sum
             END DO

@@ -5,16 +5,12 @@
       METHOD xTB
       &xTB
          DO_EWALD T
-         &PARAMETER
-             DISPERSION_PARAMETER_FILE dftd3.dat
-         &END PARAMETER
       &END XTB
     &END QS
     &POISSON
       &EWALD
        ALPHA 2.0
        EWALD_TYPE SPME
-       GMAX 24
       &END EWALD
     &END POISSON
     &KPOINTS
@@ -34,6 +30,18 @@
       &END
       ADDED_MOS 100
     &END SCF
+    &PRINT
+      &KS_CSR_WRITE
+        BINARY .TRUE.
+        UPPER_TRIANGULAR .TRUE.
+        THRESHOLD 1.0E-4
+      &END
+      &S_CSR_WRITE
+        BINARY .TRUE.
+        UPPER_TRIANGULAR .TRUE.
+        THRESHOLD 1.0E-4
+      &END
+    &END
   &END DFT
   &SUBSYS
     &TOPOLOGY
@@ -59,7 +67,7 @@
 &END FORCE_EVAL
 &GLOBAL
   PROJECT Si
-  RUN_TYPE GEO_OPT     
+  RUN_TYPE GEO_OPT
   PRINT_LEVEL LOW
 &END GLOBAL
 &MOTION

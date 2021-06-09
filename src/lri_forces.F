@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -83,8 +85,7 @@ CONTAINS
       TYPE(dbcsr_p_type), DIMENSION(:, :), POINTER       :: pmatrix
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_lri_forces', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_lri_forces'
 
       INTEGER                                            :: handle, iatom, ikind, ispin, natom, &
                                                             nkind, nspin
@@ -132,7 +133,7 @@ CONTAINS
                   v_dfdr => lri_coef(ikind)%v_dfdr(iatom, :)
 
                   force(ikind)%rho_lri_elec(:, iatom) = force(ikind)%rho_lri_elec(:, iatom) &
-                                                        +v_dfdr(:)+v_dadr(:)
+                                                        + v_dfdr(:) + v_dadr(:)
 
                END DO
             END DO
@@ -166,8 +167,7 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: use_virial
       TYPE(virial_type), POINTER                         :: virial
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_v_dadr_sr', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_v_dadr_sr'
 
       INTEGER :: atom_a, atom_b, handle, i, iac, iatom, ic, ikind, ilist, ispin, jatom, jkind, &
          jneighbor, k, mepos, natom, nba, nbb, nfa, nfb, nkind, nlist, nn, nspin, nthread
@@ -238,7 +238,7 @@ CONTAINS
                                       iatom=iatom, jatom=jatom, nlist=nlist, ilist=ilist, &
                                       inode=jneighbor, r=rab, cell=cell)
 
-               iac = ikind+nkind*(jkind-1)
+               iac = ikind + nkind*(jkind - 1)
 
                IF (.NOT. ASSOCIATED(lri_env%lri_ints%lri_atom(iac)%lri_node)) CYCLE
 
@@ -258,7 +258,7 @@ CONTAINS
                nfb = lrii%nfb
                nba = lrii%nba
                nbb = lrii%nbb
-               nn = nfa+nfb
+               nn = nfa + nfb
 
                IF (use_cell_mapping) THEN
                   ic = cell_to_index(cell(1), cell(2), cell(3))
@@ -309,7 +309,7 @@ CONTAINS
                   END DO
                   DO i = 1, nfb
                      IF (lrii%abbscr(i) > threshold) THEN
-                        dtvec(nfa+i, k) = SUM(pab(1:nba, 1:nbb)*lridint%dabbint(1:nba, 1:nbb, i, k))
+                        dtvec(nfa + i, k) = SUM(pab(1:nba, 1:nbb)*lridint%dabbint(1:nba, 1:nbb, i, k))
                      END IF
                   END DO
                ENDDO
@@ -320,7 +320,7 @@ CONTAINS
                atom_b = atom_of_kind(jatom)
                ALLOCATE (vint(nn))
                vint(1:nfa) = lri_coef(ikind)%v_int(atom_a, 1:nfa)
-               vint(nfa+1:nn) = lri_coef(jkind)%v_int(atom_b, 1:nfb)
+               vint(nfa + 1:nn) = lri_coef(jkind)%v_int(atom_b, 1:nfb)
 
                isn = SUM(vint(1:nn)*lrii%sn(1:nn))
                DO k = 1, 3
@@ -333,25 +333,25 @@ CONTAINS
                !dS: dsaa and dsbb are zero, only work with ab blocks in following
                st(1:nn) = MATMUL(lrii%sinv(1:nn, 1:nn), lrho%tvec(1:nn))
                DO k = 1, 3
-                  dsst(1:nfa, k) = MATMUL(lridint%dsabint(1:nfa, 1:nfb, k), st(nfa+1:nn))
-                  dsst(nfa+1:nn, k) = MATMUL(st(1:nfa), lridint%dsabint(1:nfa, 1:nfb, k))
+                  dsst(1:nfa, k) = MATMUL(lridint%dsabint(1:nfa, 1:nfb, k), st(nfa + 1:nn))
+                  dsst(nfa + 1:nn, k) = MATMUL(st(1:nfa), lridint%dsabint(1:nfa, 1:nfb, k))
                   nsdsst(k) = SUM(lrii%sn(1:nn)*dsst(1:nn, k))
-                  dssn(1:nfa, k) = MATMUL(lridint%dsabint(1:nfa, 1:nfb, k), lrii%sn(nfa+1:nn))
-                  dssn(nfa+1:nn, k) = MATMUL(lrii%sn(1:nfa), lridint%dsabint(1:nfa, 1:nfb, k))
+                  dssn(1:nfa, k) = MATMUL(lridint%dsabint(1:nfa, 1:nfb, k), lrii%sn(nfa + 1:nn))
+                  dssn(nfa + 1:nn, k) = MATMUL(lrii%sn(1:nfa), lridint%dsabint(1:nfa, 1:nfb, k))
                   nsdssn(k) = SUM(lrii%sn(1:nn)*dssn(1:nn, k))
                   nsdt(k) = SUM(dtvec(1:nn, k)*lrii%sn(1:nn))
                ENDDO
                ! dlambda/dRa
                DO k = 1, 3
-                  dlambda(k) = (nsdsst(k)-nsdt(k))/lrii%nsn &
-                               +(lrho%charge-lrho%nst)*nsdssn(k)/(lrii%nsn*lrii%nsn)
+                  dlambda(k) = (nsdsst(k) - nsdt(k))/lrii%nsn &
+                               + (lrho%charge - lrho%nst)*nsdssn(k)/(lrii%nsn*lrii%nsn)
                ENDDO
                DO k = 1, 3
-                  force_a(k) = force_a(k)+2.0_dp*fw*isn*dlambda(k)
-                  force_b(k) = force_b(k)-2.0_dp*fw*isn*dlambda(k)
+                  force_a(k) = force_a(k) + 2.0_dp*fw*isn*dlambda(k)
+                  force_b(k) = force_b(k) - 2.0_dp*fw*isn*dlambda(k)
                ENDDO
                DO k = 1, 3
-                  st(1:nn) = dtvec(1:nn, k)-dsst(1:nn, k)-lrho%lambda*dssn(1:nn, k)
+                  st(1:nn) = dtvec(1:nn, k) - dsst(1:nn, k) - lrho%lambda*dssn(1:nn, k)
                   idav(k) = SUM(vint(1:nn)*MATMUL(lrii%sinv(1:nn, 1:nn), st(1:nn)))
                ENDDO
 
@@ -361,15 +361,15 @@ CONTAINS
                ! sum over atom pairs
                DO k = 1, 3
                   ai = 2.0_dp*fw*idav(k)
-                  force_a(k) = force_a(k)+ai
-                  force_b(k) = force_b(k)-ai
+                  force_a(k) = force_a(k) + ai
+                  force_b(k) = force_b(k) - ai
                ENDDO
                IF (ABS(dfw) > 0.0_dp) THEN
                   dab = SQRT(SUM(rab(1:3)*rab(1:3)))
                   ai = 2.0_dp*dfw/dab*SUM(lrho%avec(1:nn)*vint(1:nn))
                   DO k = 1, 3
-                     force_a(k) = force_a(k)-ai*rab(k)
-                     force_b(k) = force_b(k)+ai*rab(k)
+                     force_a(k) = force_a(k) - ai*rab(k)
+                     force_b(k) = force_b(k) + ai*rab(k)
                   ENDDO
                END IF
 
@@ -379,8 +379,8 @@ CONTAINS
                v_dadrb => lri_coef(jkind)%v_dadr(atom_b, :)
 !$OMP CRITICAL(addforces)
                DO k = 1, 3
-                  v_dadra(k) = v_dadra(k)+force_a(k)
-                  v_dadrb(k) = v_dadrb(k)+force_b(k)
+                  v_dadra(k) = v_dadra(k) + force_a(k)
+                  v_dadrb(k) = v_dadrb(k) + force_b(k)
                ENDDO
 !$OMP END CRITICAL(addforces)
 
@@ -389,8 +389,10 @@ CONTAINS
                   !periodic self-pairs aa' contribute only with factor 0.5
 !$OMP CRITICAL(addvirial)
                   IF (iatom == jatom) THEN
+                     CALL virial_pair_force(virial%pv_lrigpw, 0.5_dp, force_a, rab)
                      CALL virial_pair_force(virial%pv_virial, 0.5_dp, force_a, rab)
                   ELSE
+                     CALL virial_pair_force(virial%pv_lrigpw, 1.0_dp, force_a, rab)
                      CALL virial_pair_force(virial%pv_virial, 1.0_dp, force_a, rab)
                   ENDIF
 !$OMP END CRITICAL(addvirial)
@@ -435,8 +437,7 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: use_virial
       TYPE(virial_type), POINTER                         :: virial
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_v_dadr_ff', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_v_dadr_ff'
 
       INTEGER :: atom_a, atom_b, handle, i, iac, iatom, ic, ikind, ilist, ispin, jatom, jkind, &
          jneighbor, k, mepos, natom, nba, nbb, nfa, nfb, nkind, nlist, nn, nspin, nthread
@@ -504,7 +505,7 @@ CONTAINS
                                       iatom=iatom, jatom=jatom, nlist=nlist, ilist=ilist, &
                                       inode=jneighbor, r=rab, cell=cell)
 
-               iac = ikind+nkind*(jkind-1)
+               iac = ikind + nkind*(jkind - 1)
 
                IF (.NOT. ASSOCIATED(lri_env%lri_ints%lri_atom(iac)%lri_node)) CYCLE
 
@@ -524,7 +525,7 @@ CONTAINS
                nfb = lrii%nfb
                nba = lrii%nba
                nbb = lrii%nbb
-               nn = nfa+nfb
+               nn = nfa + nfb
 
                IF (use_cell_mapping) THEN
                   ic = cell_to_index(cell(1), cell(2), cell(3))
@@ -549,7 +550,7 @@ CONTAINS
 
                ALLOCATE (wab(nba, nbb), wbb(nba, nbb))
                wab(1:nba, 1:nbb) = lri_env%wmat(ikind, jkind)%mat(1:nba, 1:nbb)
-               wbb(1:nba, 1:nbb) = 1.0_dp-lri_env%wmat(ikind, jkind)%mat(1:nba, 1:nbb)
+               wbb(1:nba, 1:nbb) = 1.0_dp - lri_env%wmat(ikind, jkind)%mat(1:nba, 1:nbb)
 
                obasa => lri_env%orb_basis(ikind)%gto_basis_set
                obasb => lri_env%orb_basis(jkind)%gto_basis_set
@@ -597,16 +598,16 @@ CONTAINS
                isna = SUM(vinta(1:nfa)*lrii%sna(1:nfa))
                isnb = SUM(vintb(1:nfb)*lrii%snb(1:nfb))
                DO k = 1, 3
-                  ai = isna/lrii%nsna*dchargea(k)+isnb/lrii%nsnb*dchargeb(k)
+                  ai = isna/lrii%nsna*dchargea(k) + isnb/lrii%nsnb*dchargeb(k)
                   force_a(k) = 2.0_dp*fw*ai
                   force_b(k) = -2.0_dp*fw*ai
                ENDDO
 
                DO k = 1, 3
                   sta(1:nfa) = MATMUL(lrii%asinv(1:nfa, 1:nfa), dtveca(1:nfa, k))
-                  idava(k) = SUM(vinta(1:nfa)*sta(1:nfa))-isna/lrii%nsna*SUM(lrii%na(1:nfa)*sta(1:nfa))
+                  idava(k) = SUM(vinta(1:nfa)*sta(1:nfa)) - isna/lrii%nsna*SUM(lrii%na(1:nfa)*sta(1:nfa))
                   stb(1:nfb) = MATMUL(lrii%bsinv(1:nfb, 1:nfb), dtvecb(1:nfb, k))
-                  idavb(k) = SUM(vintb(1:nfb)*stb(1:nfb))-isnb/lrii%nsnb*SUM(lrii%nb(1:nfb)*stb(1:nfb))
+                  idavb(k) = SUM(vintb(1:nfb)*stb(1:nfb)) - isnb/lrii%nsnb*SUM(lrii%nb(1:nfb)*stb(1:nfb))
                ENDDO
 
                ! deallocate derivative integrals
@@ -614,18 +615,18 @@ CONTAINS
 
                ! sum over atom pairs
                DO k = 1, 3
-                  ai = 2.0_dp*fw*(idava(k)+idavb(k))
-                  force_a(k) = force_a(k)+ai
-                  force_b(k) = force_b(k)-ai
+                  ai = 2.0_dp*fw*(idava(k) + idavb(k))
+                  force_a(k) = force_a(k) + ai
+                  force_b(k) = force_b(k) - ai
                ENDDO
                IF (ABS(dfw) > 0.0_dp) THEN
                   dab = SQRT(SUM(rab(1:3)*rab(1:3)))
                   ai = 2.0_dp*dfw/dab* &
-                       (SUM(lrho%aveca(1:nfa)*vinta(1:nfa))+ &
+                       (SUM(lrho%aveca(1:nfa)*vinta(1:nfa)) + &
                         SUM(lrho%avecb(1:nfb)*vintb(1:nfb)))
                   DO k = 1, 3
-                     force_a(k) = force_a(k)-ai*rab(k)
-                     force_b(k) = force_b(k)+ai*rab(k)
+                     force_a(k) = force_a(k) - ai*rab(k)
+                     force_b(k) = force_b(k) + ai*rab(k)
                   ENDDO
                END IF
                v_dadra => lri_coef(ikind)%v_dadr(atom_a, :)
@@ -633,8 +634,8 @@ CONTAINS
 
 !$OMP CRITICAL(addforces)
                DO k = 1, 3
-                  v_dadra(k) = v_dadra(k)+force_a(k)
-                  v_dadrb(k) = v_dadrb(k)+force_b(k)
+                  v_dadra(k) = v_dadra(k) + force_a(k)
+                  v_dadrb(k) = v_dadrb(k) + force_b(k)
                ENDDO
 !$OMP END CRITICAL(addforces)
 
@@ -643,8 +644,10 @@ CONTAINS
                   !periodic self-pairs aa' contribute only with factor 0.5
 !$OMP CRITICAL(addvirial)
                   IF (iatom == jatom) THEN
+                     CALL virial_pair_force(virial%pv_lrigpw, 0.5_dp, force_a, rab)
                      CALL virial_pair_force(virial%pv_virial, 0.5_dp, force_a, rab)
                   ELSE
+                     CALL virial_pair_force(virial%pv_lrigpw, 1.0_dp, force_a, rab)
                      CALL virial_pair_force(virial%pv_virial, 1.0_dp, force_a, rab)
                   ENDIF
 !$OMP END CRITICAL(addvirial)
@@ -684,8 +687,7 @@ CONTAINS
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: pmatrix
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_ri_forces', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_ri_forces'
 
       INTEGER                                            :: handle, iatom, ikind, ispin, natom, &
                                                             nkind, nspin
@@ -721,7 +723,7 @@ CONTAINS
                v_dfdr => lri_coef(ikind)%v_dfdr(iatom, :)
 
                force(ikind)%rho_lri_elec(:, iatom) = force(ikind)%rho_lri_elec(:, iatom) &
-                                                     +v_dfdr(:)+v_dadr(:)
+                                                     + v_dfdr(:) + v_dadr(:)
 
             END DO
          END DO
@@ -753,8 +755,7 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: use_virial
       TYPE(virial_type), POINTER                         :: virial
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_v_dadr_ri', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_v_dadr_ri'
 
       INTEGER                                            :: atom_a, atom_b, atom_c, handle, i, i1, &
                                                             i2, iatom, ikind, ispin, jatom, jkind, &
@@ -809,15 +810,15 @@ CONTAINS
                                     rij=rij, rik=rik, force_i=fi, force_j=fj, force_k=fk)
          i1 = bas_ptr(1, katom)
          i2 = bas_ptr(2, katom)
-         m = i2-i1+1
+         m = i2 - i1 + 1
          DO i = 1, 3
             force_a(i) = 0.0_dp
             force_b(i) = 0.0_dp
             force_c(i) = 0.0_dp
             DO ispin = 1, nspin
-               force_a(i) = force_a(i)+SUM(fi(1:m, i)*fo(i1:i2, ispin))
-               force_b(i) = force_b(i)+SUM(fj(1:m, i)*fo(i1:i2, ispin))
-               force_c(i) = force_c(i)+SUM(fk(1:m, i)*fo(i1:i2, ispin))
+               force_a(i) = force_a(i) + SUM(fi(1:m, i)*fo(i1:i2, ispin))
+               force_b(i) = force_b(i) + SUM(fj(1:m, i)*fo(i1:i2, ispin))
+               force_c(i) = force_c(i) + SUM(fk(1:m, i)*fo(i1:i2, ispin))
             END DO
          END DO
          atom_a = atom_of_kind(iatom)
@@ -829,15 +830,17 @@ CONTAINS
          v_dadrc => lri_coef(kkind)%v_dadr(atom_c, :)
          !
 !$OMP CRITICAL(addforce)
-         v_dadra(1:3) = v_dadra(1:3)+force_a(1:3)
-         v_dadrb(1:3) = v_dadrb(1:3)+force_b(1:3)
-         v_dadrc(1:3) = v_dadrc(1:3)+force_c(1:3)
+         v_dadra(1:3) = v_dadra(1:3) + force_a(1:3)
+         v_dadrb(1:3) = v_dadrb(1:3) + force_b(1:3)
+         v_dadrc(1:3) = v_dadrc(1:3) + force_c(1:3)
          !
          IF (use_virial) THEN
-            rjk(1:3) = rik(1:3)-rij(1:3)
+            rjk(1:3) = rik(1:3) - rij(1:3)
             ! to be debugged
             fscal = 1.0_dp
             IF (iatom == jatom) fscal = 1.0_dp
+            CALL virial_pair_force(virial%pv_lrigpw, 1.0_dp, force_a, rik)
+            CALL virial_pair_force(virial%pv_lrigpw, 1.0_dp, force_b, rjk)
             CALL virial_pair_force(virial%pv_virial, 1.0_dp, force_a, rik)
             CALL virial_pair_force(virial%pv_virial, 1.0_dp, force_b, rjk)
          ENDIF

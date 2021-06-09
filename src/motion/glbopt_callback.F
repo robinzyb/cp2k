@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -43,9 +45,6 @@ CONTAINS
       TYPE(md_environment_type), POINTER                 :: md_env
       LOGICAL, INTENT(inout)                             :: should_stop
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'glbopt_md_callback', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, iw, n_atoms
       INTEGER, POINTER                                   :: itimes
       LOGICAL                                            :: passed_minimum
@@ -70,18 +69,18 @@ CONTAINS
       ! check if we passed a minimum
       passed_minimum = .TRUE.
       DO i = 1, mdctrl_data%bump_steps_upwards
-         IF (mdctrl_data%epot_history(i) <= mdctrl_data%epot_history(i+1)) &
+         IF (mdctrl_data%epot_history(i) <= mdctrl_data%epot_history(i + 1)) &
             passed_minimum = .FALSE.
       END DO
 
-      DO i = mdctrl_data%bump_steps_upwards+1, mdctrl_data%bump_steps_upwards+mdctrl_data%bump_steps_downwards
-         IF (mdctrl_data%epot_history(i) >= mdctrl_data%epot_history(i+1)) &
+      DO i = mdctrl_data%bump_steps_upwards + 1, mdctrl_data%bump_steps_upwards + mdctrl_data%bump_steps_downwards
+         IF (mdctrl_data%epot_history(i) >= mdctrl_data%epot_history(i + 1)) &
             passed_minimum = .FALSE.
       END DO
 
       ! count the passed bumps and stop md_run when md_bumps_max is reached.
       IF (passed_minimum) &
-         mdctrl_data%md_bump_counter = mdctrl_data%md_bump_counter+1
+         mdctrl_data%md_bump_counter = mdctrl_data%md_bump_counter + 1
 
       IF (mdctrl_data%md_bump_counter >= mdctrl_data%md_bumps_max) THEN
          should_stop = .TRUE.

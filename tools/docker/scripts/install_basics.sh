@@ -2,29 +2,42 @@
 
 # author: Ole Schuett
 
-# install Ubuntu packages
-apt-get update -qq
-apt-get install -qq --no-install-recommends \
-    autoconf                               \
-    autogen                                \
-    automake                               \
-    autotools-dev                          \
-    ca-certificates                        \
-    cmake                                  \
-    git                                    \
-    less                                   \
-    libtool                                \
-    make                                   \
-    nano                                   \
-    pkg-config                             \
-    python                                 \
-    rsync                                  \
-    unzip                                  \
+if grep -q -e "Ubuntu" -e "Debian" /etc/os-release; then
+  echo -n "Installing Ubuntu packages... "
+  apt-get update -qq
+  apt-get install -qq --no-install-recommends \
+    ca-certificates \
+    git \
+    less \
+    nano \
+    python3 \
+    rsync \
     wget
+  rm -rf /var/lib/apt/lists/*
+  echo "done."
 
-rm -rf /var/lib/apt/lists/*
+elif grep -q "Fedora" /etc/os-release; then
+  echo -n "Installing Fedora packages... "
+  dnf -qy install \
+    ca-certificates \
+    git \
+    less \
+    nano \
+    python3 \
+    rsync \
+    wget
+  dnf -q clean all
+  echo "done."
+
+else
+  echo "Unknown Linux distribution."
+  exit 1
+
+fi
 
 # clone cp2k repository
-git clone --quiet --recursive --depth=1 --single-branch -b master https://github.com/cp2k/cp2k.git /workspace/cp2k
+echo -n "Cloning cp2k repository... "
+git clone --quiet --recursive --single-branch -b master https://github.com/cp2k/cp2k.git /workspace/cp2k
+echo "done."
 
 #EOF

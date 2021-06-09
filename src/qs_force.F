@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -31,6 +33,7 @@ MODULE qs_force
                                               dbcsr_set
    USE dft_plus_u,                      ONLY: plus_u
    USE efield_utils,                    ONLY: calculate_ecore_efield
+   USE energy_corrections,              ONLY: energy_correction
    USE input_constants,                 ONLY: do_admm_purify_none
    USE input_section_types,             ONLY: section_vals_get_subs_vals,&
                                               section_vals_type,&
@@ -75,7 +78,8 @@ MODULE qs_force
                                               rt_admm_force
    USE se_core_core,                    ONLY: se_core_core_interaction
    USE se_core_matrix,                  ONLY: build_se_core_matrix
-   USE virial_types,                    ONLY: virial_type
+   USE virial_types,                    ONLY: symmetrize_virial,&
+                                              virial_type
    USE xtb_matrices,                    ONLY: build_xtb_matrices
 #include "./base/base_uses.f90"
 
@@ -104,9 +108,6 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       LOGICAL                                            :: calc_force, consistent_energies, linres
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_calc_energy_force', &
-         routineP = moduleN//':'//routineN
-
       qs_env%linres_run = linres
       CALL set_qs_env(qs_env)
       IF (calc_force) THEN
@@ -129,9 +130,9 @@ CONTAINS
 
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_forces', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'qs_forces'
 
-      INTEGER                                            :: after, dir, handle, i, iatom, ic, ikind, &
+      INTEGER                                            :: after, handle, i, iatom, ic, ikind, &
                                                             ispin, iw, natom, nkind, nspin, &
                                                             output_unit
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: atom_of_kind, kind_of, natom_of_kind
@@ -330,7 +331,7 @@ CONTAINS
          CALL qs_rho_update_rho(rho, qs_env=qs_env)
          CALL qs_ks_did_change(ks_env, rho_changed=.TRUE.)
          CALL qs_ks_update_qs_env(qs_env, just_energy=.TRUE.)
-         energy%total = energy%total+energy%mp2
+         energy%total = energy%total + energy%mp2
 
          ! Compute MP2 properties
          ! Get the HF+MP2 density
@@ -380,7 +381,12 @@ CONTAINS
          CALL calc_mixed_overlap_force(qs_env)
       END IF
 
-      !  *** replicate forces ***
+      ! Energy_correction
+      CALL energy_correction(qs_env, ec_init=.FALSE., calculate_forces=.TRUE.)
+
+      ! replicate forces (get current pointer)
+      NULLIFY (force)
+      CALL get_qs_env(qs_env=qs_env, force=force)
       CALL replicate_qs_force(force, para_env)
 
       DO iatom = 1, natom
@@ -391,30 +397,45 @@ CONTAINS
          ! Things should have the right name
          ! The minus sign below is a hack
          ! XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-         force(ikind)%other(1:3, i) = -particle_set(iatom)%f(1:3)+force(ikind)%ch_pulay(1:3, i)
-         force(ikind)%total(1:3, i) = force(ikind)%total(1:3, i)+force(ikind)%other(1:3, i)
+         force(ikind)%other(1:3, i) = -particle_set(iatom)%f(1:3) + force(ikind)%ch_pulay(1:3, i)
+         force(ikind)%total(1:3, i) = force(ikind)%total(1:3, i) + force(ikind)%other(1:3, i)
          particle_set(iatom)%f = -force(ikind)%total(1:3, i)
       END DO
 
       NULLIFY (virial, energy)
       CALL get_qs_env(qs_env=qs_env, virial=virial, energy=energy)
-      !   *** distribute virial ***
       IF (virial%pv_availability) THEN
+         CALL mp_sum(virial%pv_overlap, para_env%group)
+         CALL mp_sum(virial%pv_ekinetic, para_env%group)
+         CALL mp_sum(virial%pv_ppl, para_env%group)
+         CALL mp_sum(virial%pv_ppnl, para_env%group)
+         CALL mp_sum(virial%pv_ecore_overlap, para_env%group)
+         CALL mp_sum(virial%pv_ehartree, para_env%group)
+         CALL mp_sum(virial%pv_exc, para_env%group)
+         CALL mp_sum(virial%pv_exx, para_env%group)
+         CALL mp_sum(virial%pv_vdw, para_env%group)
+         CALL mp_sum(virial%pv_mp2, para_env%group)
+         CALL mp_sum(virial%pv_nlcc, para_env%group)
+         CALL mp_sum(virial%pv_gapw, para_env%group)
+         CALL mp_sum(virial%pv_lrigpw, para_env%group)
          CALL mp_sum(virial%pv_virial, para_env%group)
-         !  *** add the volume terms of the virial ***
+         CALL symmetrize_virial(virial)
+         ! Add the volume terms of the virial
          IF ((.NOT. virial%pv_numer) .AND. &
              (.NOT. (dft_control%qs_control%dftb .OR. &
                      dft_control%qs_control%xtb .OR. &
                      dft_control%qs_control%semi_empirical))) THEN
-            DO dir = 1, 3
-               virial%pv_virial(dir, dir) = virial%pv_virial(dir, dir)-energy%exc &
-                                            -2.0_dp*energy%hartree
+            DO i = 1, 3
+               virial%pv_ehartree(i, i) = virial%pv_ehartree(i, i) - 2.0_dp*(energy%hartree + energy%sccs_pol)
+               virial%pv_virial(i, i) = virial%pv_virial(i, i) - energy%exc - 2.0_dp*(energy%hartree + energy%sccs_pol)
+               virial%pv_exc(i, i) = virial%pv_exc(i, i) - energy%exc
                IF (dft_control%do_admm) THEN
-                  virial%pv_virial(dir, dir) = virial%pv_virial(dir, dir)-energy%exc_aux_fit
+                  virial%pv_exc(i, i) = virial%pv_exc(i, i) - energy%exc_aux_fit
+                  virial%pv_virial(i, i) = virial%pv_virial(i, i) - energy%exc_aux_fit
                END IF
                ! The factor 2 is a hack. It compensates the plus sign in h_stress/pw_poisson_solve.
                ! The sign in pw_poisson_solve is correct for FIST, but not for QS.
-               ! There should be a more elegant solution to that...
+               ! There should be a more elegant solution to that ...
             END DO
          END IF
       END IF
@@ -474,8 +495,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: ftype, output_unit
       TYPE(section_vals_type), POINTER                   :: print_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'write_forces', routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=13)                                  :: fmtstr5
       CHARACTER(LEN=15)                                  :: fmtstr4
       CHARACTER(LEN=20)                                  :: fmtstr3
@@ -506,19 +525,19 @@ CONTAINS
                                    i_val=ndigits)
 
          fmtstr1 = "(/,/,T2,A,/,/,T3,A,T11,A,T23,A,T40,A1,2(  X,A1))"
-         WRITE (UNIT=fmtstr1(41:42), FMT="(I2)") ndigits+5
+         WRITE (UNIT=fmtstr1(41:42), FMT="(I2)") ndigits + 5
 
          fmtstr2 = "(/,(T2,I5,4X,I4,T18,A,T34,3F  .  ))"
          WRITE (UNIT=fmtstr2(32:33), FMT="(I2)") ndigits
-         WRITE (UNIT=fmtstr2(29:30), FMT="(I2)") ndigits+6
+         WRITE (UNIT=fmtstr2(29:30), FMT="(I2)") ndigits + 6
 
          fmtstr3 = "(/,T3,A,T34,3F  .  )"
          WRITE (UNIT=fmtstr3(18:19), FMT="(I2)") ndigits
-         WRITE (UNIT=fmtstr3(15:16), FMT="(I2)") ndigits+6
+         WRITE (UNIT=fmtstr3(15:16), FMT="(I2)") ndigits + 6
 
          fmtstr4 = "((T34,3F  .  ))"
          WRITE (UNIT=fmtstr4(12:13), FMT="(I2)") ndigits
-         WRITE (UNIT=fmtstr4(9:10), FMT="(I2)") ndigits+6
+         WRITE (UNIT=fmtstr4(9:10), FMT="(I2)") ndigits + 6
 
          fmtstr5 = "(/T2,A//T3,A)"
 
@@ -536,7 +555,7 @@ CONTAINS
                i = atom_of_kind(iatom)
                WRITE (UNIT=output_unit, FMT=fmtstr2) &
                   iatom, ikind, "         total", qs_force(ikind)%total(1:3, i)
-               grand_total(1:3) = grand_total(1:3)+qs_force(ikind)%total(1:3, i)
+               grand_total(1:3) = grand_total(1:3) + qs_force(ikind)%total(1:3, i)
             END DO
          CASE (0)
             DO iatom = 1, natom
@@ -552,9 +571,10 @@ CONTAINS
                   iatom, ikind, "  core_overlap", qs_force(ikind)%core_overlap(1:3, i), &
                   iatom, ikind, "      rho_core", qs_force(ikind)%rho_core(1:3, i), &
                   iatom, ikind, "      rho_elec", qs_force(ikind)%rho_elec(1:3, i), &
-                  iatom, ikind, "      rho_lri_elec", qs_force(ikind)%rho_lri_elec(1:3, i), &
+                  iatom, ikind, "  rho_lri_elec", qs_force(ikind)%rho_lri_elec(1:3, i), &
                   iatom, ikind, "      ch_pulay", qs_force(ikind)%ch_pulay(1:3, i), &
                   iatom, ikind, "    dispersion", qs_force(ikind)%dispersion(1:3, i), &
+                  iatom, ikind, "           gCP", qs_force(ikind)%gcp(1:3, i), &
                   iatom, ikind, "         other", qs_force(ikind)%other(1:3, i), &
                   iatom, ikind, "       fock_4c", qs_force(ikind)%fock_4c(1:3, i), &
                   iatom, ikind, "     ehrenfest", qs_force(ikind)%ehrenfest(1:3, i), &
@@ -563,7 +583,7 @@ CONTAINS
                   iatom, ikind, "   mp2_non_sep", qs_force(ikind)%mp2_non_sep(1:3, i), &
                   iatom, ikind, "       mp2_sep", qs_force(ikind)%mp2_sep(1:3, i), &
                   iatom, ikind, "         total", qs_force(ikind)%total(1:3, i)
-               grand_total(1:3) = grand_total(1:3)+qs_force(ikind)%total(1:3, i)
+               grand_total(1:3) = grand_total(1:3) + qs_force(ikind)%total(1:3, i)
             END DO
          CASE (1)
             DO iatom = 1, natom
@@ -580,18 +600,19 @@ CONTAINS
                   iatom, ikind, "  core_overlap", qs_force(ikind)%core_overlap(1:3, i), &
                   iatom, ikind, "      rho_core", qs_force(ikind)%rho_core(1:3, i), &
                   iatom, ikind, "      rho_elec", qs_force(ikind)%rho_elec(1:3, i), &
-                  iatom, ikind, "      rho_lri_elec", qs_force(ikind)%rho_lri_elec(1:3, i), &
+                  iatom, ikind, "  rho_lri_elec", qs_force(ikind)%rho_lri_elec(1:3, i), &
                   iatom, ikind, "     vhxc_atom", qs_force(ikind)%vhxc_atom(1:3, i), &
                   iatom, ikind, "   g0s_Vh_elec", qs_force(ikind)%g0s_Vh_elec(1:3, i), &
                   iatom, ikind, "      ch_pulay", qs_force(ikind)%ch_pulay(1:3, i), &
                   iatom, ikind, "    dispersion", qs_force(ikind)%dispersion(1:3, i), &
+                  iatom, ikind, "           gCP", qs_force(ikind)%gcp(1:3, i), &
                   iatom, ikind, "       fock_4c", qs_force(ikind)%fock_4c(1:3, i), &
                   iatom, ikind, "        efield", qs_force(ikind)%efield(1:3, i), &
                   iatom, ikind, "           eev", qs_force(ikind)%eev(1:3, i), &
                   iatom, ikind, "   mp2_non_sep", qs_force(ikind)%mp2_non_sep(1:3, i), &
                   iatom, ikind, "       mp2_sep", qs_force(ikind)%mp2_sep(1:3, i), &
                   iatom, ikind, "         total", qs_force(ikind)%total(1:3, i)
-               grand_total(1:3) = grand_total(1:3)+qs_force(ikind)%total(1:3, i)
+               grand_total(1:3) = grand_total(1:3) + qs_force(ikind)%total(1:3, i)
             END DO
          CASE (2)
             DO iatom = 1, natom
@@ -600,9 +621,8 @@ CONTAINS
                WRITE (UNIT=output_unit, FMT=fmtstr2) &
                   iatom, ikind, " all_potential", qs_force(ikind)%all_potential(1:3, i), &
                   iatom, ikind, "      rho_elec", qs_force(ikind)%rho_elec(1:3, i), &
-                  iatom, ikind, "      rho_lri_elec", qs_force(ikind)%rho_lri_elec(1:3, i), &
                   iatom, ikind, "         total", qs_force(ikind)%total(1:3, i)
-               grand_total(1:3) = grand_total(1:3)+qs_force(ikind)%total(1:3, i)
+               grand_total(1:3) = grand_total(1:3) + qs_force(ikind)%total(1:3, i)
             END DO
          CASE (3)
             DO iatom = 1, natom
@@ -618,13 +638,12 @@ CONTAINS
                   iatom, ikind, "   core_overlap", qs_force(ikind)%core_overlap(1:3, i), &
                   iatom, ikind, "       rho_core", qs_force(ikind)%rho_core(1:3, i), &
                   iatom, ikind, "       rho_elec", qs_force(ikind)%rho_elec(1:3, i), &
-                  iatom, ikind, "       rho_lri_elec", qs_force(ikind)%rho_lri_elec(1:3, i), &
                   iatom, ikind, "       ch_pulay", qs_force(ikind)%ch_pulay(1:3, i), &
                   iatom, ikind, "        fock_4c", qs_force(ikind)%fock_4c(1:3, i), &
                   iatom, ikind, "   mp2_non_sep", qs_force(ikind)%mp2_non_sep(1:3, i), &
                   iatom, ikind, "       mp2_sep", qs_force(ikind)%mp2_sep(1:3, i), &
                   iatom, ikind, "          total", qs_force(ikind)%total(1:3, i)
-               grand_total(1:3) = grand_total(1:3)+qs_force(ikind)%total(1:3, i)
+               grand_total(1:3) = grand_total(1:3) + qs_force(ikind)%total(1:3, i)
             END DO
          CASE (4)
             DO iatom = 1, natom
@@ -639,7 +658,7 @@ CONTAINS
                   iatom, ikind, "        efield", qs_force(ikind)%efield(1:3, i), &
                   iatom, ikind, "     ehrenfest", qs_force(ikind)%ehrenfest(1:3, i), &
                   iatom, ikind, "          total", qs_force(ikind)%total(1:3, i)
-               grand_total(1:3) = grand_total(1:3)+qs_force(ikind)%total(1:3, i)
+               grand_total(1:3) = grand_total(1:3) + qs_force(ikind)%total(1:3, i)
             END DO
          CASE (5)
             DO iatom = 1, natom
@@ -649,12 +668,11 @@ CONTAINS
                   iatom, ikind, "       overlap", qs_force(ikind)%overlap(1:3, i), &
                   iatom, ikind, "       kinetic", qs_force(ikind)%kinetic(1:3, i), &
                   iatom, ikind, "      rho_elec", qs_force(ikind)%rho_elec(1:3, i), &
-                  iatom, ikind, "      rho_lri_elec", qs_force(ikind)%rho_lri_elec(1:3, i), &
                   iatom, ikind, "    dispersion", qs_force(ikind)%dispersion(1:3, i), &
                   iatom, ikind, " all potential", qs_force(ikind)%all_potential(1:3, i), &
                   iatom, ikind, "         other", qs_force(ikind)%other(1:3, i), &
                   iatom, ikind, "         total", qs_force(ikind)%total(1:3, i)
-               grand_total(1:3) = grand_total(1:3)+qs_force(ikind)%total(1:3, i)
+               grand_total(1:3) = grand_total(1:3) + qs_force(ikind)%total(1:3, i)
             END DO
          END SELECT
 

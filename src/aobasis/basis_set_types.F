@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -58,6 +60,10 @@ MODULE basis_set_types
    ! Global parameters (only in this module)
 
    CHARACTER(len=*), PARAMETER, PRIVATE :: moduleN = 'basis_set_types'
+
+   ! basis set sort criteria
+   INTEGER, PARAMETER, PUBLIC               :: basis_sort_default = 0, &
+                                               basis_sort_zet = 1
 
 ! **************************************************************************************************
    ! Define the Gaussian-type orbital basis set type
@@ -119,6 +125,7 @@ MODULE basis_set_types
              create_primitive_basis_set, &
              combine_basis_sets, &
              set_gto_basis_set, &
+             sort_gto_basis_set, &
              write_gto_basis_set, &
              write_orb_basis_set
 
@@ -147,9 +154,6 @@ CONTAINS
       ! - Creation (26.10.2000,MK)
 
       TYPE(gto_basis_set_type), POINTER                  :: gto_basis_set
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_gto_basis_set', &
-         routineP = moduleN//':'//routineN
 
       CALL deallocate_gto_basis_set(gto_basis_set)
 
@@ -197,9 +201,6 @@ CONTAINS
 
       TYPE(gto_basis_set_type), POINTER                  :: gto_basis_set
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_gto_basis_set', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(gto_basis_set)) THEN
          IF (ASSOCIATED(gto_basis_set%cgf_symbol)) THEN
             DEALLOCATE (gto_basis_set%cgf_symbol)
@@ -245,9 +246,6 @@ CONTAINS
       ! Copy a Gaussian-type orbital (GTO) basis set data set.
 
       TYPE(gto_basis_set_type), POINTER                  :: basis_set_in, basis_set_out
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'copy_gto_basis_set', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: maxco, maxpgf, maxshell, ncgf, nset, nsgf
       TYPE(gto_basis_set_type), POINTER                  :: bin, bout
@@ -325,9 +323,6 @@ CONTAINS
 
       TYPE(gto_basis_set_type), POINTER                  :: basis_set, pbasis
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_primitive_basis_set', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, ico, ip, ipgf, iset, ishell, l, lm, &
                                                             lshell, m, maxco, mpgf, nc, ncgf, ns, &
                                                             nset, nsgf
@@ -339,7 +334,7 @@ CONTAINS
 
       mpgf = SUM(basis_set%npgf)
       lm = MAXVAL(basis_set%lmax)
-      ALLOCATE (zet(mpgf, 0:lm), zeta(mpgf, lm+1), nindex(mpgf), nprim(0:lm))
+      ALLOCATE (zet(mpgf, 0:lm), zeta(mpgf, lm + 1), nindex(mpgf), nprim(0:lm))
       zet = 0.0_dp
       zeta = 0.0_dp
       DO l = 0, lm
@@ -347,7 +342,7 @@ CONTAINS
          DO iset = 1, basis_set%nset
             IF (basis_set%lmin(iset) <= l .AND. basis_set%lmax(iset) >= l) THEN
                DO ipgf = 1, basis_set%npgf(iset)
-                  ip = ip+1
+                  ip = ip + 1
                   zet(ip, l) = basis_set%zet(ipgf, iset)
                END DO
             END IF
@@ -363,14 +358,14 @@ CONTAINS
          ip = 0
          zet0 = 0.0_dp
          DO i = 1, nprim(l)
-            IF (ABS(zet0-zet(i, l)) > 1.e-6_dp) THEN
-               ip = ip+1
-               zeta(ip, l+1) = zet(i, l)
+            IF (ABS(zet0 - zet(i, l)) > 1.e-6_dp) THEN
+               ip = ip + 1
+               zeta(ip, l + 1) = zet(i, l)
             END IF
          END DO
          nprim(l) = ip
          !
-         zeta(1:ip, l+1) = -zeta(1:ip, l+1)
+         zeta(1:ip, l + 1) = -zeta(1:ip, l + 1)
       END DO
 
       CALL allocate_gto_basis_set(pbasis)
@@ -379,20 +374,20 @@ CONTAINS
       pbasis%kind_radius = basis_set%kind_radius
       pbasis%short_kind_radius = basis_set%short_kind_radius
       pbasis%norm_type = basis_set%norm_type
-      nset = lm+1
+      nset = lm + 1
       pbasis%nset = nset
       ALLOCATE (pbasis%lmax(nset), pbasis%lmin(nset), pbasis%npgf(nset), pbasis%nshell(nset))
       DO iset = 1, nset
-         pbasis%lmax(iset) = iset-1
-         pbasis%lmin(iset) = iset-1
-         pbasis%npgf(iset) = nprim(iset-1)
-         pbasis%nshell(iset) = nprim(iset-1)
+         pbasis%lmax(iset) = iset - 1
+         pbasis%lmin(iset) = iset - 1
+         pbasis%npgf(iset) = nprim(iset - 1)
+         pbasis%nshell(iset) = nprim(iset - 1)
       END DO
       pbasis%ncgf = 0
       pbasis%nsgf = 0
       DO l = 0, lm
-         pbasis%ncgf = pbasis%ncgf+nprim(l)*((l+1)*(l+2))/2
-         pbasis%nsgf = pbasis%nsgf+nprim(l)*(2*l+1)
+         pbasis%ncgf = pbasis%ncgf + nprim(l)*((l + 1)*(l + 2))/2
+         pbasis%nsgf = pbasis%nsgf + nprim(l)*(2*l + 1)
       END DO
       mpgf = MAXVAL(nprim)
       ALLOCATE (pbasis%zet(mpgf, nset))
@@ -400,9 +395,9 @@ CONTAINS
 
       ALLOCATE (pbasis%l(mpgf, nset), pbasis%n(mpgf, nset))
       DO iset = 1, nset
-         DO ip = 1, nprim(iset-1)
-            pbasis%l(ip, iset) = iset-1
-            pbasis%n(ip, iset) = iset+ip-1
+         DO ip = 1, nprim(iset - 1)
+            pbasis%l(ip, iset) = iset - 1
+            pbasis%n(ip, iset) = iset + ip - 1
          END DO
       END DO
 
@@ -417,13 +412,13 @@ CONTAINS
       ncgf = 0
       nsgf = 0
       DO iset = 1, nset
-         l = iset-1
-         pbasis%ncgf_set(iset) = nprim(l)*((l+1)*(l+2))/2
-         pbasis%nsgf_set(iset) = nprim(l)*(2*l+1)
+         l = iset - 1
+         pbasis%ncgf_set(iset) = nprim(l)*((l + 1)*(l + 2))/2
+         pbasis%nsgf_set(iset) = nprim(l)*(2*l + 1)
          DO ishell = 1, pbasis%nshell(iset)
             lshell = pbasis%l(ishell, iset)
-            DO ico = ncoset(lshell-1)+1, ncoset(lshell)
-               ncgf = ncgf+1
+            DO ico = ncoset(lshell - 1) + 1, ncoset(lshell)
+               ncgf = ncgf + 1
                pbasis%lx(ncgf) = indco(1, ico)
                pbasis%ly(ncgf) = indco(2, ico)
                pbasis%lz(ncgf) = indco(3, ico)
@@ -431,7 +426,7 @@ CONTAINS
                   cgf_symbol(pbasis%n(ishell, iset), (/pbasis%lx(ncgf), pbasis%ly(ncgf), pbasis%lz(ncgf)/))
             END DO
             DO m = -lshell, lshell
-               nsgf = nsgf+1
+               nsgf = nsgf + 1
                pbasis%m(nsgf) = m
                pbasis%sgf_symbol(nsgf) = sgf_symbol(pbasis%n(ishell, iset), lshell, m)
             END DO
@@ -458,11 +453,11 @@ CONTAINS
       DO iset = 1, nset
          DO ishell = 1, pbasis%nshell(iset)
             lshell = pbasis%l(ishell, iset)
-            pbasis%first_cgf(ishell, iset) = nc+1
-            nc = nc+nco(lshell)
+            pbasis%first_cgf(ishell, iset) = nc + 1
+            nc = nc + nco(lshell)
             pbasis%last_cgf(ishell, iset) = nc
-            pbasis%first_sgf(ishell, iset) = ns+1
-            ns = ns+nso(lshell)
+            pbasis%first_sgf(ishell, iset) = ns + 1
+            ns = ns + nso(lshell)
             pbasis%last_sgf(ishell, iset) = ns
          END DO
          maxco = MAX(maxco, pbasis%npgf(iset)*ncoset(pbasis%lmax(iset)))
@@ -471,7 +466,7 @@ CONTAINS
       ALLOCATE (pbasis%norm_cgf(ncgf))
       ALLOCATE (pbasis%cphi(maxco, ncgf))
       pbasis%cphi = 0.0_dp
-      ALLOCATE (pbasis%sphi(maxco, ncgf))
+      ALLOCATE (pbasis%sphi(maxco, nsgf))
       pbasis%sphi = 0.0_dp
       ALLOCATE (pbasis%scon(maxco, ncgf))
       pbasis%scon = 0.0_dp
@@ -496,9 +491,6 @@ CONTAINS
 
       TYPE(gto_basis_set_type), POINTER                  :: basis_set, basis_set_add
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'combine_basis_sets', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=12), DIMENSION(:), POINTER           :: cgf_symbol
       CHARACTER(LEN=6), DIMENSION(:), POINTER            :: sgf_symbol
       INTEGER                                            :: iset, ishell, lshell, maxco, maxpgf, &
@@ -513,39 +505,39 @@ CONTAINS
       bout => basis_set
 
       bout%name = bout%name//bad%name
-      bout%nset = bout%nset+bad%nset
-      bout%ncgf = bout%ncgf+bad%ncgf
-      bout%nsgf = bout%nsgf+bad%nsgf
+      bout%nset = bout%nset + bad%nset
+      bout%ncgf = bout%ncgf + bad%ncgf
+      bout%nsgf = bout%nsgf + bad%nsgf
       nset = bout%nset
       ncgf = bout%ncgf
       nsgf = bout%nsgf
 
       nsetn = bad%nset
-      nseto = nset-nsetn
+      nseto = nset - nsetn
       CALL reallocate(bout%set_radius, 1, nset) ! to be defined later
       CALL reallocate(bout%lmax, 1, nset)
       CALL reallocate(bout%lmin, 1, nset)
       CALL reallocate(bout%npgf, 1, nset)
       CALL reallocate(bout%nshell, 1, nset)
-      bout%lmax(nseto+1:nset) = bad%lmax(1:nsetn)
-      bout%lmin(nseto+1:nset) = bad%lmin(1:nsetn)
-      bout%npgf(nseto+1:nset) = bad%npgf(1:nsetn)
-      bout%nshell(nseto+1:nset) = bad%nshell(1:nsetn)
+      bout%lmax(nseto + 1:nset) = bad%lmax(1:nsetn)
+      bout%lmin(nseto + 1:nset) = bad%lmin(1:nsetn)
+      bout%npgf(nseto + 1:nset) = bad%npgf(1:nsetn)
+      bout%nshell(nseto + 1:nset) = bad%nshell(1:nsetn)
       CALL reallocate(bout%ncgf_set, 1, nset)
       CALL reallocate(bout%nsgf_set, 1, nset)
-      bout%ncgf_set(nseto+1:nset) = bad%ncgf_set(1:nsetn)
-      bout%nsgf_set(nseto+1:nset) = bad%nsgf_set(1:nsetn)
+      bout%ncgf_set(nseto + 1:nset) = bad%ncgf_set(1:nsetn)
+      bout%nsgf_set(nseto + 1:nset) = bad%nsgf_set(1:nsetn)
 
       nsgfn = bad%nsgf
-      nsgfo = nsgf-nsgfn
+      nsgfo = nsgf - nsgfn
       ncgfn = bad%ncgf
-      ncgfo = ncgf-ncgfn
+      ncgfo = ncgf - ncgfn
 
       ALLOCATE (cgf_symbol(ncgf), sgf_symbol(nsgf))
       cgf_symbol(1:ncgfo) = bout%cgf_symbol(1:ncgfo)
-      cgf_symbol(ncgfo+1:ncgf) = bad%cgf_symbol(1:ncgfn)
+      cgf_symbol(ncgfo + 1:ncgf) = bad%cgf_symbol(1:ncgfn)
       sgf_symbol(1:nsgfo) = bout%sgf_symbol(1:nsgfo)
-      sgf_symbol(nsgfo+1:nsgf) = bad%sgf_symbol(1:nsgfn)
+      sgf_symbol(nsgfo + 1:nsgf) = bad%sgf_symbol(1:nsgfn)
       DEALLOCATE (bout%cgf_symbol, bout%sgf_symbol)
       ALLOCATE (bout%cgf_symbol(ncgf), bout%sgf_symbol(nsgf))
       bout%cgf_symbol = cgf_symbol
@@ -556,16 +548,16 @@ CONTAINS
       CALL reallocate(bout%ly, 1, ncgf)
       CALL reallocate(bout%lz, 1, ncgf)
       CALL reallocate(bout%m, 1, nsgf)
-      bout%lx(ncgfo+1:ncgf) = bad%lx(1:ncgfn)
-      bout%ly(ncgfo+1:ncgf) = bad%ly(1:ncgfn)
-      bout%lz(ncgfo+1:ncgf) = bad%lz(1:ncgfn)
-      bout%m(nsgfo+1:nsgf) = bad%m(1:nsgfn)
+      bout%lx(ncgfo + 1:ncgf) = bad%lx(1:ncgfn)
+      bout%ly(ncgfo + 1:ncgf) = bad%ly(1:ncgfn)
+      bout%lz(ncgfo + 1:ncgf) = bad%lz(1:ncgfn)
+      bout%m(nsgfo + 1:nsgf) = bad%m(1:nsgfn)
 
       maxpgf = MAXVAL(bout%npgf)
       CALL reallocate(bout%zet, 1, maxpgf, 1, nset)
       nc = SIZE(bad%zet, 1)
       DO iset = 1, nsetn
-         bout%zet(1:nc, nseto+iset) = bad%zet(1:nc, iset)
+         bout%zet(1:nc, nseto + iset) = bad%zet(1:nc, iset)
       END DO
 
       maxshell = MAXVAL(bout%nshell)
@@ -573,8 +565,8 @@ CONTAINS
       CALL reallocate(bout%n, 1, maxshell, 1, nset)
       nc = SIZE(bad%l, 1)
       DO iset = 1, nsetn
-         bout%l(1:nc, nseto+iset) = bad%l(1:nc, iset)
-         bout%n(1:nc, nseto+iset) = bad%n(1:nc, iset)
+         bout%l(1:nc, nseto + iset) = bad%l(1:nc, iset)
+         bout%n(1:nc, nseto + iset) = bad%n(1:nc, iset)
       END DO
 
       CALL reallocate(bout%first_cgf, 1, maxshell, 1, nset)
@@ -586,11 +578,11 @@ CONTAINS
       DO iset = 1, nset
          DO ishell = 1, bout%nshell(iset)
             lshell = bout%l(ishell, iset)
-            bout%first_cgf(ishell, iset) = nc+1
-            nc = nc+nco(lshell)
+            bout%first_cgf(ishell, iset) = nc + 1
+            nc = nc + nco(lshell)
             bout%last_cgf(ishell, iset) = nc
-            bout%first_sgf(ishell, iset) = ns+1
-            ns = ns+nso(lshell)
+            bout%first_sgf(ishell, iset) = ns + 1
+            ns = ns + nso(lshell)
             bout%last_sgf(ishell, iset) = ns
          END DO
       END DO
@@ -599,7 +591,7 @@ CONTAINS
       nc = SIZE(bad%gcc, 1)
       ns = SIZE(bad%gcc, 2)
       DO iset = 1, nsetn
-         bout%gcc(1:nc, 1:ns, nseto+iset) = bad%gcc(1:nc, 1:ns, iset)
+         bout%gcc(1:nc, 1:ns, nseto + iset) = bad%gcc(1:nc, 1:ns, iset)
       END DO
 
       ! these arrays are determined later using initialization calls
@@ -692,9 +684,6 @@ CONTAINS
       INTEGER, INTENT(IN), OPTIONAL                      :: maxder
       REAL(KIND=dp), INTENT(OUT), OPTIONAL               :: short_kind_radius
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_gto_basis_set', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iset, nder
 
 ! -------------------------------------------------------------------------
@@ -743,7 +732,7 @@ CONTAINS
             END IF
             DO iset = 1, gto_basis_set%nset
                maxco = MAX(maxco, gto_basis_set%npgf(iset)* &
-                           ncoset(gto_basis_set%lmax(iset)+nder))
+                           ncoset(gto_basis_set%lmax(iset) + nder))
             END DO
          END IF
          IF (PRESENT(maxl)) THEN
@@ -781,7 +770,7 @@ CONTAINS
          IF (PRESENT(nco_sum)) THEN
             nco_sum = 0
             DO iset = 1, gto_basis_set%nset
-               nco_sum = nco_sum+gto_basis_set%npgf(iset)* &
+               nco_sum = nco_sum + gto_basis_set%npgf(iset)* &
                          ncoset(gto_basis_set%lmax(iset))
             END DO
          END IF
@@ -805,8 +794,7 @@ CONTAINS
 
       TYPE(gto_basis_set_type), POINTER                  :: gto_basis_set
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_aux_basis_set', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'init_aux_basis_set'
 
       INTEGER                                            :: handle
 
@@ -849,8 +837,7 @@ CONTAINS
 
       TYPE(gto_basis_set_type), POINTER                  :: gto_basis_set
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_cphi_and_sphi', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'init_cphi_and_sphi'
 
       INTEGER                                            :: first_cgf, first_sgf, handle, icgf, ico, &
                                                             ipgf, iset, ishell, l, last_sgf, lmax, &
@@ -874,7 +861,7 @@ CONTAINS
                DO ipgf = 1, gto_basis_set%npgf(iset)
                   gto_basis_set%cphi(ico, icgf) = gto_basis_set%norm_cgf(icgf)* &
                                                   gto_basis_set%gcc(ipgf, ishell, iset)
-                  ico = ico+n
+                  ico = ico + n
                END DO
             END DO
          END DO
@@ -913,14 +900,14 @@ CONTAINS
             lmin = gto_basis_set%lmin(iset)
             lmax = gto_basis_set%lmax(iset)
             npgf = gto_basis_set%npgf(iset)
-            nn = ncoset(lmax)-ncoset(lmin-1)
+            nn = ncoset(lmax) - ncoset(lmin - 1)
             DO ishell = 1, gto_basis_set%nshell(iset)
                first_sgf = gto_basis_set%first_sgf(ishell, iset)
                last_sgf = gto_basis_set%last_sgf(ishell, iset)
                DO ipgf = 1, npgf
-                  nn1 = (ipgf-1)*ncoset(lmax)+ncoset(lmin-1)+1
+                  nn1 = (ipgf - 1)*ncoset(lmax) + ncoset(lmin - 1) + 1
                   nn2 = ipgf*ncoset(lmax)
-                  n1 = (ipgf-1)*nn+1
+                  n1 = (ipgf - 1)*nn + 1
                   n2 = ipgf*nn
                   gto_basis_set%scon(n1:n2, first_sgf:last_sgf) = gto_basis_set%sphi(nn1:nn2, first_sgf:last_sgf)
                END DO
@@ -945,9 +932,6 @@ CONTAINS
 
       TYPE(gto_basis_set_type), POINTER                  :: gto_basis_set
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_norm_cgf_aux', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: icgf, ico, ipgf, iset, ishell, jco, &
                                                             jpgf, ll, lmax, lmin, lx, ly, lz, n, &
                                                             npgfa
@@ -967,8 +951,8 @@ CONTAINS
       END DO
 
       ALLOCATE (gaa(n, n))
-      ALLOCATE (vv(ncoset(ll), ncoset(ll), ll+ll+1))
-      ALLOCATE (ff(0:ll+ll))
+      ALLOCATE (vv(ncoset(ll), ncoset(ll), ll + ll + 1))
+      ALLOCATE (ff(0:ll + ll))
 
       DO iset = 1, gto_basis_set%nset
          lmax = gto_basis_set%lmax(iset)
@@ -993,10 +977,10 @@ CONTAINS
                   jco = coset(lx, ly, lz)
                   DO jpgf = 1, npgfa
                      gccb = gto_basis_set%gcc(jpgf, ishell, iset)
-                     fnorm = fnorm+gcca*gccb*gaa(ico, jco)
-                     jco = jco+n
+                     fnorm = fnorm + gcca*gccb*gaa(ico, jco)
+                     jco = jco + n
                   END DO
-                  ico = ico+n
+                  ico = ico + n
                END DO
                gto_basis_set%norm_cgf(icgf) = 1.0_dp/SQRT(fnorm)
             END DO
@@ -1061,7 +1045,7 @@ CONTAINS
 
             l = gto_basis_set%l(ishell, iset)
 
-            expzet = 0.5_dp*REAL(2*l+3, dp)
+            expzet = 0.5_dp*REAL(2*l + 3, dp)
 
             fnorm = 0.0_dp
 
@@ -1071,7 +1055,7 @@ CONTAINS
                DO jpgf = 1, gto_basis_set%npgf(iset)
                   gccb = gto_basis_set%gcc(jpgf, ishell, iset)
                   zetb = gto_basis_set%zet(jpgf, iset)
-                  fnorm = fnorm+gcca*gccb/(zeta+zetb)**expzet
+                  fnorm = fnorm + gcca*gccb/(zeta + zetb)**expzet
                END DO
             END DO
 
@@ -1082,7 +1066,7 @@ CONTAINS
                lx = gto_basis_set%lx(icgf)
                ly = gto_basis_set%ly(icgf)
                lz = gto_basis_set%lz(icgf)
-               prefac = dfac(2*lx-1)*dfac(2*ly-1)*dfac(2*lz-1)
+               prefac = dfac(2*lx - 1)*dfac(2*ly - 1)*dfac(2*lz - 1)
                gto_basis_set%norm_cgf(icgf) = 1.0_dp/SQRT(prefac*fnorm)
             END DO
 
@@ -1112,7 +1096,7 @@ CONTAINS
       DO iset = 1, gto_basis_set%nset
          DO ishell = 1, gto_basis_set%nshell(iset)
             l = gto_basis_set%l(ishell, iset)
-            expzet = 0.5_dp*REAL(2*l+3, dp)
+            expzet = 0.5_dp*REAL(2*l + 3, dp)
             prefac = (1.0_dp/pi)**1.5_dp
             DO ipgf = 1, gto_basis_set%npgf(iset)
                gcca = gto_basis_set%gcc(ipgf, ishell, iset)
@@ -1140,8 +1124,7 @@ CONTAINS
 
       TYPE(gto_basis_set_type), POINTER                  :: gto_basis_set
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_orb_basis_set', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'init_orb_basis_set'
 
       INTEGER                                            :: handle
 
@@ -1195,7 +1178,7 @@ CONTAINS
       DO iset = 1, gto_basis_set%nset
          DO ishell = 1, gto_basis_set%nshell(iset)
             l = gto_basis_set%l(ishell, iset)
-            expzet = 0.25_dp*REAL(2*l+3, dp)
+            expzet = 0.25_dp*REAL(2*l + 3, dp)
             prefac = 2.0_dp**l*(2.0_dp/pi)**0.75_dp
             DO ipgf = 1, gto_basis_set%npgf(iset)
                gcca = gto_basis_set%gcc(ipgf, ishell, iset)
@@ -1227,9 +1210,6 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(section_vals_type), POINTER                   :: dft_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_gto_basis_set1', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=240)                                 :: line
       CHARACTER(LEN=242)                                 :: line2
       CHARACTER(len=default_path_length)                 :: basis_set_file_name, tmp
@@ -1239,10 +1219,8 @@ CONTAINS
       CHARACTER(LEN=LEN(basis_set_name)+2)               :: bsname2
       CHARACTER(LEN=LEN(element_symbol))                 :: symbol
       CHARACTER(LEN=LEN(element_symbol)+2)               :: symbol2
-      INTEGER                                            :: i, ibasis, ico, ipgf, irep, iset, &
-                                                            ishell, lshell, m, maxco, maxl, &
-                                                            maxpgf, maxshell, nbasis, ncgf, nmin, &
-                                                            nset, nsgf, strlen1, strlen2
+      INTEGER :: i, ibasis, ico, ipgf, irep, iset, ishell, lshell, m, maxco, maxl, maxpgf, &
+         maxshell, nbasis, ncgf, nmin, nset, nsgf, sort_method, strlen1, strlen2
       INTEGER, DIMENSION(:), POINTER                     :: lmax, lmin, npgf, nshell
       INTEGER, DIMENSION(:, :), POINTER                  :: l, n
       LOGICAL                                            :: basis_found, found, match
@@ -1340,15 +1318,15 @@ CONTAINS
                   line2 = " "//line//" "
                   symbol2 = " "//TRIM(symbol)//" "
                   bsname2 = " "//TRIM(bsname)//" "
-                  strlen1 = LEN_TRIM(symbol2)+1
-                  strlen2 = LEN_TRIM(bsname2)+1
+                  strlen1 = LEN_TRIM(symbol2) + 1
+                  strlen2 = LEN_TRIM(bsname2) + 1
 
                   IF ((INDEX(line2, symbol2(:strlen1)) > 0) .AND. &
                       (INDEX(line2, bsname2(:strlen2)) > 0)) match = .TRUE.
                   IF (match) THEN
                      ! copy all names into aliases field
                      i = INDEX(line2, symbol2(:strlen1))
-                     i = i+1+INDEX(line2(i+1:), " ")
+                     i = i + 1 + INDEX(line2(i + 1:), " ")
                      gto_basis_set%aliases = line2(i:)
 
                      NULLIFY (gcc, l, lmax, lmin, n, npgf, nshell, zet)
@@ -1378,9 +1356,9 @@ CONTAINS
                         END IF
                         nshell(iset) = 0
                         DO lshell = lmin(iset), lmax(iset)
-                           nmin = n(1, iset)+lshell-lmin(iset)
+                           nmin = n(1, iset) + lshell - lmin(iset)
                            CALL parser_get_object(parser, ishell)
-                           nshell(iset) = nshell(iset)+ishell
+                           nshell(iset) = nshell(iset) + ishell
                            IF (nshell(iset) > maxshell) THEN
                               maxshell = nshell(iset)
                               CALL reallocate(n, 1, maxshell, 1, nset)
@@ -1388,8 +1366,8 @@ CONTAINS
                               CALL reallocate(gcc, 1, maxpgf, 1, maxshell, 1, nset)
                            END IF
                            DO i = 1, ishell
-                              n(nshell(iset)-ishell+i, iset) = nmin+i-1
-                              l(nshell(iset)-ishell+i, iset) = lshell
+                              n(nshell(iset) - ishell + i, iset) = nmin + i - 1
+                              l(nshell(iset) - ishell + i, iset) = lshell
                            END DO
                         END DO
                         DO ipgf = 1, npgf(iset)
@@ -1455,16 +1433,16 @@ CONTAINS
                         gto_basis_set%nsgf_set(iset) = 0
                         DO ishell = 1, nshell(iset)
                            lshell = gto_basis_set%l(ishell, iset)
-                           gto_basis_set%first_cgf(ishell, iset) = ncgf+1
-                           ncgf = ncgf+nco(lshell)
+                           gto_basis_set%first_cgf(ishell, iset) = ncgf + 1
+                           ncgf = ncgf + nco(lshell)
                            gto_basis_set%last_cgf(ishell, iset) = ncgf
                            gto_basis_set%ncgf_set(iset) = &
-                              gto_basis_set%ncgf_set(iset)+nco(lshell)
-                           gto_basis_set%first_sgf(ishell, iset) = nsgf+1
-                           nsgf = nsgf+nso(lshell)
+                              gto_basis_set%ncgf_set(iset) + nco(lshell)
+                           gto_basis_set%first_sgf(ishell, iset) = nsgf + 1
+                           nsgf = nsgf + nso(lshell)
                            gto_basis_set%last_sgf(ishell, iset) = nsgf
                            gto_basis_set%nsgf_set(iset) = &
-                              gto_basis_set%nsgf_set(iset)+nso(lshell)
+                              gto_basis_set%nsgf_set(iset) + nso(lshell)
                         END DO
                         maxco = MAX(maxco, npgf(iset)*ncoset(lmax(iset)))
                      END DO
@@ -1490,8 +1468,8 @@ CONTAINS
                      DO iset = 1, nset
                         DO ishell = 1, nshell(iset)
                            lshell = gto_basis_set%l(ishell, iset)
-                           DO ico = ncoset(lshell-1)+1, ncoset(lshell)
-                              ncgf = ncgf+1
+                           DO ico = ncoset(lshell - 1) + 1, ncoset(lshell)
+                              ncgf = ncgf + 1
                               gto_basis_set%lx(ncgf) = indco(1, ico)
                               gto_basis_set%ly(ncgf) = indco(2, ico)
                               gto_basis_set%lz(ncgf) = indco(3, ico)
@@ -1501,7 +1479,7 @@ CONTAINS
                                                                gto_basis_set%lz(ncgf)/))
                            END DO
                            DO m = -lshell, lshell
-                              nsgf = nsgf+1
+                              nsgf = nsgf + 1
                               gto_basis_set%m(nsgf) = m
                               gto_basis_set%sgf_symbol(nsgf) = &
                                  sgf_symbol(n(ishell, iset), lshell, m)
@@ -1543,6 +1521,9 @@ CONTAINS
       END IF
       DEALLOCATE (cbasis)
 
+      CALL section_vals_val_get(dft_section, "SORT_BASIS", i_val=sort_method)
+      CALL sort_gto_basis_set(gto_basis_set, sort_method)
+
    END SUBROUTINE read_gto_basis_set1
 
 ! **************************************************************************************************
@@ -1552,9 +1533,10 @@ CONTAINS
 !> \param gto_basis_set ...
 !> \param basis_section ...
 !> \param irep ...
+!> \param dft_section ...
 ! **************************************************************************************************
    SUBROUTINE read_gto_basis_set2(element_symbol, basis_type, gto_basis_set, &
-                                  basis_section, irep)
+                                  basis_section, irep, dft_section)
 
       ! Read a Gaussian-type orbital (GTO) basis set from the database file.
 
@@ -1565,9 +1547,7 @@ CONTAINS
       TYPE(gto_basis_set_type), POINTER                  :: gto_basis_set
       TYPE(section_vals_type), OPTIONAL, POINTER         :: basis_section
       INTEGER                                            :: irep
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_gto_basis_set2', &
-         routineP = moduleN//':'//routineN
+      TYPE(section_vals_type), OPTIONAL, POINTER         :: dft_section
 
       CHARACTER(len=20*default_string_length)            :: line_att
       CHARACTER(LEN=240)                                 :: line
@@ -1577,7 +1557,7 @@ CONTAINS
       CHARACTER(LEN=LEN(element_symbol)+2)               :: symbol2
       INTEGER                                            :: i, ico, ipgf, iset, ishell, lshell, m, &
                                                             maxco, maxl, maxpgf, maxshell, ncgf, &
-                                                            nmin, nset, nsgf
+                                                            nmin, nset, nsgf, sort_method
       INTEGER, DIMENSION(:), POINTER                     :: lmax, lmin, npgf, nshell
       INTEGER, DIMENSION(:, :), POINTER                  :: l, n
       LOGICAL                                            :: is_ok
@@ -1679,10 +1659,10 @@ CONTAINS
          END IF
          nshell(iset) = 0
          DO lshell = lmin(iset), lmax(iset)
-            nmin = n(1, iset)+lshell-lmin(iset)
+            nmin = n(1, iset) + lshell - lmin(iset)
             READ (line_att, *) ishell
             CALL remove_word(line_att)
-            nshell(iset) = nshell(iset)+ishell
+            nshell(iset) = nshell(iset) + ishell
             IF (nshell(iset) > maxshell) THEN
                maxshell = nshell(iset)
                CALL reallocate(n, 1, maxshell, 1, nset)
@@ -1690,8 +1670,8 @@ CONTAINS
                CALL reallocate(gcc, 1, maxpgf, 1, maxshell, 1, nset)
             END IF
             DO i = 1, ishell
-               n(nshell(iset)-ishell+i, iset) = nmin+i-1
-               l(nshell(iset)-ishell+i, iset) = lshell
+               n(nshell(iset) - ishell + i, iset) = nmin + i - 1
+               l(nshell(iset) - ishell + i, iset) = lshell
             END DO
          END DO
          IF (LEN_TRIM(line_att) /= 0) &
@@ -1759,16 +1739,16 @@ CONTAINS
          gto_basis_set%nsgf_set(iset) = 0
          DO ishell = 1, nshell(iset)
             lshell = gto_basis_set%l(ishell, iset)
-            gto_basis_set%first_cgf(ishell, iset) = ncgf+1
-            ncgf = ncgf+nco(lshell)
+            gto_basis_set%first_cgf(ishell, iset) = ncgf + 1
+            ncgf = ncgf + nco(lshell)
             gto_basis_set%last_cgf(ishell, iset) = ncgf
             gto_basis_set%ncgf_set(iset) = &
-               gto_basis_set%ncgf_set(iset)+nco(lshell)
-            gto_basis_set%first_sgf(ishell, iset) = nsgf+1
-            nsgf = nsgf+nso(lshell)
+               gto_basis_set%ncgf_set(iset) + nco(lshell)
+            gto_basis_set%first_sgf(ishell, iset) = nsgf + 1
+            nsgf = nsgf + nso(lshell)
             gto_basis_set%last_sgf(ishell, iset) = nsgf
             gto_basis_set%nsgf_set(iset) = &
-               gto_basis_set%nsgf_set(iset)+nso(lshell)
+               gto_basis_set%nsgf_set(iset) + nso(lshell)
          END DO
          maxco = MAX(maxco, npgf(iset)*ncoset(lmax(iset)))
       END DO
@@ -1794,8 +1774,8 @@ CONTAINS
       DO iset = 1, nset
          DO ishell = 1, nshell(iset)
             lshell = gto_basis_set%l(ishell, iset)
-            DO ico = ncoset(lshell-1)+1, ncoset(lshell)
-               ncgf = ncgf+1
+            DO ico = ncoset(lshell - 1) + 1, ncoset(lshell)
+               ncgf = ncgf + 1
                gto_basis_set%lx(ncgf) = indco(1, ico)
                gto_basis_set%ly(ncgf) = indco(2, ico)
                gto_basis_set%lz(ncgf) = indco(3, ico)
@@ -1805,7 +1785,7 @@ CONTAINS
                                                 gto_basis_set%lz(ncgf)/))
             END DO
             DO m = -lshell, lshell
-               nsgf = nsgf+1
+               nsgf = nsgf + 1
                gto_basis_set%m(nsgf) = m
                gto_basis_set%sgf_symbol(nsgf) = &
                   sgf_symbol(n(ishell, iset), lshell, m)
@@ -1814,6 +1794,11 @@ CONTAINS
       END DO
 
       DEALLOCATE (gcc, l, lmax, lmin, n, npgf, nshell, zet)
+
+      IF (PRESENT(dft_section)) THEN
+         CALL section_vals_val_get(dft_section, "SORT_BASIS", i_val=sort_method)
+         CALL sort_gto_basis_set(gto_basis_set, sort_method)
+      ENDIF
 
    END SUBROUTINE read_gto_basis_set2
 
@@ -1882,9 +1867,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :, :), OPTIONAL, &
          POINTER                                         :: gcc
       REAL(KIND=dp), INTENT(IN), OPTIONAL                :: short_kind_radius
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_gto_basis_set', &
-         routineP = moduleN//':'//routineN
 
 ! -------------------------------------------------------------------------
 
@@ -2044,7 +2026,7 @@ CONTAINS
             DO ishell = 1, orb_basis_set%nshell(iset)
                WRITE (UNIT=output_unit, FMT="(A)") ""
                DO ico = 1, nco(orb_basis_set%l(ishell, iset))
-                  icgf = icgf+1
+                  icgf = icgf + 1
                   WRITE (UNIT=output_unit, &
                          FMT="(T25,I3,4X,I4,3X,A12,(T51,2F15.6))") &
                      iset, ishell, orb_basis_set%cgf_symbol(icgf), &
@@ -2067,9 +2049,6 @@ CONTAINS
 
       TYPE(sto_basis_set_type), POINTER                  :: sto_basis_set
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_sto_basis_set', &
-         routineP = moduleN//':'//routineN
-
 ! -------------------------------------------------------------------------
 
       CALL deallocate_sto_basis_set(sto_basis_set)
@@ -2091,9 +2070,6 @@ CONTAINS
    SUBROUTINE deallocate_sto_basis_set(sto_basis_set)
 
       TYPE(sto_basis_set_type), POINTER                  :: sto_basis_set
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_sto_basis_set', &
-         routineP = moduleN//':'//routineN
 
 ! -------------------------------------------------------------------------
 
@@ -2138,9 +2114,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:), OPTIONAL, POINTER     :: zet
       INTEGER, INTENT(OUT), OPTIONAL                     :: maxlq, numsto
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_sto_basis_set', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iset
 
 ! -------------------------------------------------------------------------
@@ -2158,7 +2131,7 @@ CONTAINS
          IF (PRESENT(numsto)) THEN
             numsto = 0
             DO iset = 1, sto_basis_set%nshell
-               numsto = numsto+2*sto_basis_set%lq(iset)+1
+               numsto = numsto + 2*sto_basis_set%lq(iset) + 1
             END DO
          END IF
       ELSE
@@ -2186,9 +2159,6 @@ CONTAINS
       CHARACTER(LEN=6), DIMENSION(:), OPTIONAL, POINTER  :: symbol
       INTEGER, DIMENSION(:), OPTIONAL, POINTER           :: nq, lq
       REAL(KIND=dp), DIMENSION(:), OPTIONAL, POINTER     :: zet
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_sto_basis_set', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ns
 
@@ -2240,9 +2210,6 @@ CONTAINS
       TYPE(sto_basis_set_type), POINTER                  :: sto_basis_set
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(section_vals_type), POINTER                   :: dft_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_sto_basis_set', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=10)                                  :: nlsym
       CHARACTER(LEN=2)                                   :: lsym
@@ -2314,8 +2281,8 @@ CONTAINS
                   line2 = " "//line//" "
                   symbol2 = " "//TRIM(symbol)//" "
                   bsname2 = " "//TRIM(bsname)//" "
-                  strlen1 = LEN_TRIM(symbol2)+1
-                  strlen2 = LEN_TRIM(bsname2)+1
+                  strlen1 = LEN_TRIM(symbol2) + 1
+                  strlen2 = LEN_TRIM(bsname2) + 1
 
                   IF ((INDEX(line2, symbol2(:strlen1)) > 0) .AND. &
                       (INDEX(line2, bsname2(:strlen2)) > 0)) match = .TRUE.
@@ -2337,7 +2304,7 @@ CONTAINS
                         sto_basis_set%zet(iset) = zet
                         WRITE (nlsym, "(I2,A)") nq, TRIM(lsym)
                         sto_basis_set%symbol(iset) = TRIM(nlsym)
-                        SELECT CASE (TRIM (lsym))
+                        SELECT CASE (TRIM(lsym))
                         CASE ("S", "s")
                            sto_basis_set%lq(iset) = 0
                         CASE ("P", "p")
@@ -2361,7 +2328,7 @@ CONTAINS
                         CASE DEFAULT
                            CALL cp_abort(__LOCATION__, &
                                          "The requested basis set <"//TRIM(bsname)// &
-                                         "> for element <"//TRIM(symbol)//"> has an ivalid component: ")
+                                         "> for element <"//TRIM(symbol)//"> has an invalid component: ")
                         END SELECT
                      END DO
 
@@ -2411,8 +2378,6 @@ CONTAINS
       INTEGER, OPTIONAL                                  :: ngauss
       LOGICAL, OPTIONAL                                  :: ortho
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_gto_from_sto_basis', &
-         routineP = moduleN//':'//routineN
       INTEGER, PARAMETER                                 :: maxng = 6
 
       CHARACTER(LEN=default_string_length)               :: name, sng
@@ -2460,7 +2425,7 @@ CONTAINS
          gto_basis_set%lmin(iset) = lq(iset)
          gto_basis_set%npgf(iset) = ng
          gto_basis_set%nshell(iset) = 1
-         gto_basis_set%n(1, iset) = lq(iset)+1
+         gto_basis_set%n(1, iset) = lq(iset) + 1
          gto_basis_set%l(1, iset) = lq(iset)
          DO ipgf = 1, ng
             gto_basis_set%gcc(ipgf, 1, iset) = gcc(ipgf)
@@ -2472,7 +2437,7 @@ CONTAINS
          mxf = 0
          DO iset = 1, nset
             l = gto_basis_set%l(1, iset)
-            mxf(l) = mxf(l)+1
+            mxf(l) = mxf(l) + 1
          END DO
          m = MAXVAL(mxf)
          IF (m > 1) THEN
@@ -2493,8 +2458,8 @@ CONTAINS
             mxf = 0
             DO iset = 1, nset
                l = gto_basis_set%l(1, iset)
-               mxf(l) = mxf(l)+1
-               i1 = mxf(l)*ng-ng+1
+               mxf(l) = mxf(l) + 1
+               i1 = mxf(l)*ng - ng + 1
                i2 = mxf(l)*ng
                zll(i1:i2, l) = zal(1:ng, iset)
                gto_basis_set%gcc(i1:i2, 1, iset) = gal(1:ng, iset)
@@ -2505,7 +2470,7 @@ CONTAINS
             END DO
             DO iset = 1, nset
                l = gto_basis_set%l(1, iset)
-               DO jset = 1, iset-1
+               DO jset = 1, iset - 1
                   IF (gto_basis_set%l(1, iset) == l) THEN
                      m = mxf(l)*ng
                      CALL orthofun(gto_basis_set%zet(1:m, iset), gto_basis_set%gcc(1:m, 1, iset), &
@@ -2535,16 +2500,16 @@ CONTAINS
          gto_basis_set%ncgf_set(iset) = 0
          gto_basis_set%nsgf_set(iset) = 0
          lshell = gto_basis_set%l(1, iset)
-         gto_basis_set%first_cgf(1, iset) = ncgf+1
-         ncgf = ncgf+nco(lshell)
+         gto_basis_set%first_cgf(1, iset) = ncgf + 1
+         ncgf = ncgf + nco(lshell)
          gto_basis_set%last_cgf(1, iset) = ncgf
          gto_basis_set%ncgf_set(iset) = &
-            gto_basis_set%ncgf_set(iset)+nco(lshell)
-         gto_basis_set%first_sgf(1, iset) = nsgf+1
-         nsgf = nsgf+nso(lshell)
+            gto_basis_set%ncgf_set(iset) + nco(lshell)
+         gto_basis_set%first_sgf(1, iset) = nsgf + 1
+         nsgf = nsgf + nso(lshell)
          gto_basis_set%last_sgf(1, iset) = nsgf
          gto_basis_set%nsgf_set(iset) = &
-            gto_basis_set%nsgf_set(iset)+nso(lshell)
+            gto_basis_set%nsgf_set(iset) + nso(lshell)
          ngs = gto_basis_set%npgf(iset)
          maxco = MAX(maxco, ngs*ncoset(lshell))
       END DO
@@ -2568,9 +2533,9 @@ CONTAINS
 
       DO iset = 1, nset
          lshell = gto_basis_set%l(1, iset)
-         np = lshell+1
-         DO ico = ncoset(lshell-1)+1, ncoset(lshell)
-            ncgf = ncgf+1
+         np = lshell + 1
+         DO ico = ncoset(lshell - 1) + 1, ncoset(lshell)
+            ncgf = ncgf + 1
             gto_basis_set%lx(ncgf) = indco(1, ico)
             gto_basis_set%ly(ncgf) = indco(2, ico)
             gto_basis_set%lz(ncgf) = indco(3, ico)
@@ -2580,7 +2545,7 @@ CONTAINS
                                 gto_basis_set%lz(ncgf)/))
          END DO
          DO m = -lshell, lshell
-            nsgf = nsgf+1
+            nsgf = nsgf + 1
             gto_basis_set%m(nsgf) = m
             gto_basis_set%sgf_symbol(nsgf) = sgf_symbol(np, lshell, m)
          END DO
@@ -2607,7 +2572,7 @@ CONTAINS
       CALL aovlp(l, zet, cr, cr, ss)
       cr(:) = cr(:)/SQRT(ss)
       CALL aovlp(l, zet, co, cr, ss)
-      co(:) = co(:)-ss*cr(:)
+      co(:) = co(:) - ss*cr(:)
       CALL aovlp(l, zet, co, co, ss)
       co(:) = co(:)/SQRT(ss)
 
@@ -2638,7 +2603,7 @@ CONTAINS
          ai = (2.0_dp*zet(i)/pi)**0.75_dp
          DO j = 1, m
             aj = (2.0_dp*zet(j)/pi)**0.75_dp
-            ab = 1._dp/(zet(i)+zet(j))
+            ab = 1._dp/(zet(i) + zet(j))
             s00 = ai*aj*(pi*ab)**1.50_dp
             IF (l == 0) THEN
                sss = s00
@@ -2647,7 +2612,7 @@ CONTAINS
             ELSE
                CPABORT("aovlp lvalue")
             END IF
-            ss = ss+sss*ca(i)*cb(j)
+            ss = ss + sss*ca(i)*cb(j)
          END DO
       END DO
 
@@ -2676,7 +2641,7 @@ CONTAINS
 
       s = 0.0_dp
       ! The complete shell
-      l1 = MIN(l+1, 4)
+      l1 = MIN(l + 1, 4)
       nn = MIN(n, 7)
       IF (l1 == 1) l2 = 2
       IF (l1 == 2) l2 = 1
@@ -2686,33 +2651,222 @@ CONTAINS
       ! Rule b) 0.35 (1s 0.3) from each other electron in the same shell
       IF (n == 1) THEN
          m = ne(1, 1)
-         s = s+0.3_dp*REAL(m-1, dp)
+         s = s + 0.3_dp*REAL(m - 1, dp)
       ELSE
-         m = ne(l1, nn)+ne(l2, nn)
-         s = s+0.35_dp*REAL(m-1, dp)
+         m = ne(l1, nn) + ne(l2, nn)
+         s = s + 0.35_dp*REAL(m - 1, dp)
       END IF
       ! Rule c) if (s,p) shell 0.85 from each electron with n-1, and 1.0
       !      from all electrons further in
-      IF (l1+l2 == 3) THEN
+      IF (l1 + l2 == 3) THEN
          IF (nn > 1) THEN
-            m1 = ne(1, nn-1)+ne(2, nn-1)+ne(3, nn-1)+ne(4, nn-1)
+            m1 = ne(1, nn - 1) + ne(2, nn - 1) + ne(3, nn - 1) + ne(4, nn - 1)
             m2 = 0
-            DO i = 1, nn-2
-               m2 = m2+ne(1, i)+ne(2, i)+ne(3, i)+ne(4, I)
+            DO i = 1, nn - 2
+               m2 = m2 + ne(1, i) + ne(2, i) + ne(3, i) + ne(4, I)
             END DO
-            s = s+0.85_dp*REAL(m1, dp)+1._dp*REAL(m2, dp)
+            s = s + 0.85_dp*REAL(m1, dp) + 1._dp*REAL(m2, dp)
          END IF
       ELSE
          ! Rule d) if (d,f) shell 1.0 from each electron inside
          m = 0
-         DO i = 1, nn-1
-            m = m+ne(1, i)+ne(2, i)+ne(3, i)+ne(4, i)
+         DO i = 1, nn - 1
+            m = m + ne(1, i) + ne(2, i) + ne(3, i) + ne(4, i)
          END DO
-         s = s+1._dp*REAL(m, dp)
+         s = s + 1._dp*REAL(m, dp)
       END IF
       ! Slater exponent is (Z-S)/NS
-      srules = (REAL(z, dp)-s)/xns(nn)
+      srules = (REAL(z, dp) - s)/xns(nn)
    END FUNCTION srules
+
+! **************************************************************************************************
+!> \brief sort basis sets w.r.t. radius
+!> \param basis_set ...
+!> \param sort_method ...
+! **************************************************************************************************
+   SUBROUTINE sort_gto_basis_set(basis_set, sort_method)
+      TYPE(gto_basis_set_type), POINTER                  :: basis_set
+      INTEGER, INTENT(IN)                                :: sort_method
+
+      CHARACTER(LEN=12), DIMENSION(:), POINTER           :: cgf_symbol
+      CHARACTER(LEN=6), DIMENSION(:), POINTER            :: sgf_symbol
+      INTEGER :: ic, ic_max, icgf, icgf_new, icgf_old, ico, is, is_max, iset, isgf, isgf_new, &
+         isgf_old, ishell, lshell, maxco, maxpgf, maxshell, mm, nc, ncgf, ns, nset
+      INTEGER, ALLOCATABLE, DIMENSION(:)                 :: sort_index
+      INTEGER, ALLOCATABLE, DIMENSION(:, :)              :: icgf_set, isgf_set
+      INTEGER, DIMENSION(:), POINTER                     :: lx, ly, lz, m, npgf
+      REAL(dp), ALLOCATABLE, DIMENSION(:)                :: tmp
+      REAL(dp), DIMENSION(:), POINTER                    :: set_radius
+      REAL(dp), DIMENSION(:, :), POINTER                 :: zet
+      REAL(KIND=dp), DIMENSION(:), POINTER               :: norm_cgf
+      REAL(KIND=dp), DIMENSION(:, :), POINTER            :: cphi, scon, sphi
+      TYPE(gto_basis_set_type), POINTER                  :: b
+
+      CPASSERT(ASSOCIATED(basis_set))
+
+      NULLIFY (set_radius, zet)
+
+      IF (sort_method == basis_sort_default) RETURN
+
+      b => basis_set
+      CALL get_gto_basis_set(gto_basis_set=b, &
+                             nset=nset, &
+                             maxshell=maxshell, &
+                             maxpgf=maxpgf, &
+                             maxco=maxco, &
+                             ncgf=ncgf, &
+                             npgf=npgf, &
+                             set_radius=set_radius, &
+                             zet=zet)
+
+      ALLOCATE (sort_index(nset))
+      ALLOCATE (tmp(nset))
+      SELECT CASE (sort_method)
+      CASE (basis_sort_zet)
+         DO iset = 1, nset
+            tmp(iset) = MINVAL(basis_set%zet(:npgf(iset), iset))
+         ENDDO
+      CASE DEFAULT
+         CPABORT("Request basis sort criterion not implemented.")
+      END SELECT
+
+      CALL sort(tmp(1:nset), nset, sort_index)
+
+      ic_max = 0
+      is_max = 0
+      DO iset = 1, nset
+         ic = 0
+         is = 0
+         DO ishell = 1, b%nshell(iset)
+            DO ico = 1, nco(b%l(ishell, iset))
+               ic = ic + 1
+               IF (ic > ic_max) ic_max = ic
+            ENDDO
+            lshell = b%l(ishell, iset)
+            DO mm = -lshell, lshell
+               is = is + 1
+               IF (is > is_max) is_max = is
+            ENDDO
+         ENDDO
+      ENDDO
+
+      icgf = 0
+      isgf = 0
+      ALLOCATE (icgf_set(nset, ic_max))
+      icgf_set(:, :) = 0
+      ALLOCATE (isgf_set(nset, is_max))
+      isgf_set(:, :) = 0
+
+      DO iset = 1, nset
+         ic = 0
+         is = 0
+         DO ishell = 1, b%nshell(iset)
+            DO ico = 1, nco(b%l(ishell, iset))
+               icgf = icgf + 1
+               ic = ic + 1
+               icgf_set(iset, ic) = icgf
+            ENDDO
+            lshell = b%l(ishell, iset)
+            DO mm = -lshell, lshell
+               isgf = isgf + 1
+               is = is + 1
+               isgf_set(iset, is) = isgf
+            ENDDO
+         ENDDO
+      ENDDO
+
+      ALLOCATE (cgf_symbol(SIZE(b%cgf_symbol)))
+      ALLOCATE (norm_cgf(SIZE(b%norm_cgf)))
+      ALLOCATE (lx(SIZE(b%lx)))
+      ALLOCATE (ly(SIZE(b%ly)))
+      ALLOCATE (lz(SIZE(b%lz)))
+      ALLOCATE (cphi(SIZE(b%cphi, 1), SIZE(b%cphi, 2)))
+      cphi = 0.0_dp
+      ALLOCATE (sphi(SIZE(b%sphi, 1), SIZE(b%sphi, 2)))
+      sphi = 0.0_dp
+      ALLOCATE (scon(SIZE(b%scon, 1), SIZE(b%scon, 2)))
+      scon = 0.0_dp
+
+      ALLOCATE (sgf_symbol(SIZE(b%sgf_symbol)))
+      ALLOCATE (m(SIZE(b%m)))
+
+      icgf_new = 0
+      isgf_new = 0
+      DO iset = 1, nset
+         DO ic = 1, ic_max
+            icgf_old = icgf_set(sort_index(iset), ic)
+            IF (icgf_old == 0) CYCLE
+            icgf_new = icgf_new + 1
+            norm_cgf(icgf_new) = b%norm_cgf(icgf_old)
+            lx(icgf_new) = b%lx(icgf_old)
+            ly(icgf_new) = b%ly(icgf_old)
+            lz(icgf_new) = b%lz(icgf_old)
+            cphi(:, icgf_new) = b%cphi(:, icgf_old)
+            cgf_symbol(icgf_new) = b%cgf_symbol(icgf_old)
+         ENDDO
+         DO is = 1, is_max
+            isgf_old = isgf_set(sort_index(iset), is)
+            IF (isgf_old == 0) CYCLE
+            isgf_new = isgf_new + 1
+            m(isgf_new) = b%m(isgf_old)
+            sphi(:, isgf_new) = b%sphi(:, isgf_old)
+            scon(:, isgf_new) = b%scon(:, isgf_old)
+            sgf_symbol(isgf_new) = b%sgf_symbol(isgf_old)
+         ENDDO
+      ENDDO
+
+      DEALLOCATE (b%cgf_symbol)
+      b%cgf_symbol => cgf_symbol
+      DEALLOCATE (b%norm_cgf)
+      b%norm_cgf => norm_cgf
+      DEALLOCATE (b%lx)
+      b%lx => lx
+      DEALLOCATE (b%ly)
+      b%ly => ly
+      DEALLOCATE (b%lz)
+      b%lz => lz
+      DEALLOCATE (b%cphi)
+      b%cphi => cphi
+      DEALLOCATE (b%sphi)
+      b%sphi => sphi
+      DEALLOCATE (b%scon)
+      b%scon => scon
+
+      DEALLOCATE (b%m)
+      b%m => m
+      DEALLOCATE (b%sgf_symbol)
+      b%sgf_symbol => sgf_symbol
+
+      b%lmax = b%lmax(sort_index)
+      b%lmin = b%lmin(sort_index)
+      b%npgf = b%npgf(sort_index)
+      b%nshell = b%nshell(sort_index)
+      b%ncgf_set = b%ncgf_set(sort_index)
+      b%nsgf_set = b%nsgf_set(sort_index)
+
+      b%n(:, :) = b%n(:, sort_index)
+      b%l(:, :) = b%l(:, sort_index)
+      b%zet(:, :) = b%zet(:, sort_index)
+
+      b%gcc(:, :, :) = b%gcc(:, :, sort_index)
+      b%set_radius(:) = b%set_radius(sort_index)
+      b%pgf_radius(:, :) = b%pgf_radius(:, sort_index)
+
+      nc = 0
+      ns = 0
+      DO iset = 1, nset
+         DO ishell = 1, b%nshell(iset)
+            lshell = b%l(ishell, iset)
+            b%first_cgf(ishell, iset) = nc + 1
+            nc = nc + nco(lshell)
+            b%last_cgf(ishell, iset) = nc
+            b%first_sgf(ishell, iset) = ns + 1
+            ns = ns + nso(lshell)
+            b%last_sgf(ishell, iset) = ns
+         END DO
+      END DO
+
+   END SUBROUTINE
 
 ! **************************************************************************************************
 

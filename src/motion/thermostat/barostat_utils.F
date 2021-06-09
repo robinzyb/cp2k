@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -57,9 +59,6 @@ CONTAINS
       TYPE(npt_info_type), DIMENSION(:, :), INTENT(IN)   :: npt
       REAL(KIND=dp), INTENT(OUT)                         :: baro_kin, baro_pot
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_baro_energies', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, j
       REAL(dp)                                           :: iv0, v0, v_shock
 
@@ -71,7 +70,7 @@ CONTAINS
          baro_kin = 0.0_dp
          DO i = 1, 3
             DO j = 1, 3
-               baro_kin = baro_kin+0.5_dp*npt(i, j)%v**2*npt(i, j)%mass
+               baro_kin = baro_kin + 0.5_dp*npt(i, j)%v**2*npt(i, j)%mass
             END DO
          END DO
       ELSEIF (simpar%ensemble == nph_uniaxial_ensemble .OR. simpar%ensemble == nph_uniaxial_damped_ensemble) THEN
@@ -80,7 +79,7 @@ CONTAINS
          v_shock = simpar%v_shock
 
          ! Valid only for orthorhombic cell
-         baro_pot = -0.5_dp*v_shock*v_shock*(1._dp-cell%deth*iv0)**2-simpar%p0*(v0-cell%deth)
+         baro_pot = -0.5_dp*v_shock*v_shock*(1._dp - cell%deth*iv0)**2 - simpar%p0*(v0 - cell%deth)
          ! Valid only for orthorhombic cell
          baro_kin = 0.5_dp*npt(1, 1)%v*npt(1, 1)%v*npt(1, 1)%mass
       END IF
@@ -105,9 +104,6 @@ CONTAINS
       TYPE(cell_type), POINTER                           :: cell
       INTEGER, INTENT(IN)                                :: itimes
       REAL(KIND=dp), INTENT(IN)                          :: time
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'print_barostat_status', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: baro, nfree
       LOGICAL                                            :: new_file

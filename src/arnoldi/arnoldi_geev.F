@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -54,18 +56,16 @@ CONTAINS
       COMPLEX(real_8), DIMENSION(:)                      :: evals
       COMPLEX(real_8), DIMENSION(:, :)                   :: revec
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'arnoldi_zheevd', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, info, liwork, lrwork, lwork, &
-                                                            iwork(3+5*ndim)
-      COMPLEX(real_8)                                    :: work(2*ndim+ndim**2), &
+                                                            iwork(3 + 5*ndim)
+      COMPLEX(real_8)                                    :: work(2*ndim + ndim**2), &
                                                             tmp_array(ndim, ndim)
-      REAL(real_8)                                       :: rwork(1+5*ndim+2*ndim**2)
+      REAL(real_8)                                       :: rwork(1 + 5*ndim + 2*ndim**2)
 
       tmp_array(:, :) = matrix(:, :)
-      lwork = 2*ndim+ndim**2
-      lrwork = 1+5*ndim+2*ndim**2
-      liwork = 3+5*ndim
+      lwork = 2*ndim + ndim**2
+      lrwork = 1 + 5*ndim + 2*ndim**2
+      liwork = 3 + 5*ndim
 
       CALL zheevd(jobvr, 'U', ndim, tmp_array, evals, ndim, work, lwork, rwork, lrwork, iwork, liwork, info)
 
@@ -90,20 +90,18 @@ CONTAINS
       COMPLEX(real_4), DIMENSION(:)                      :: evals
       COMPLEX(real_4), DIMENSION(:, :)                   :: revec
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'arnoldi_cheevd', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, info, liwork, lrwork, lwork, &
-                                                            iwork(3+5*ndim)
-      COMPLEX(real_4)                                    :: work(2*ndim+ndim**2), &
+                                                            iwork(3 + 5*ndim)
+      COMPLEX(real_4)                                    :: work(2*ndim + ndim**2), &
                                                             tmp_array(ndim, ndim)
-      REAL(real_4)                                       :: rwork(1+5*ndim+2*ndim**2)
+      REAL(real_4)                                       :: rwork(1 + 5*ndim + 2*ndim**2)
 
       tmp_array(:, :) = matrix(:, :)
-      lwork = 2*ndim+ndim**2
-      lrwork = 1+5*ndim+2*ndim**2
-      liwork = 3+5*ndim
+      lwork = 2*ndim + ndim**2
+      lrwork = 1 + 5*ndim + 2*ndim**2
+      liwork = 3 + 5*ndim
 
-      CALL zheevd(jobvr, 'U', ndim, tmp_array, evals, ndim, work, lwork, rwork, lrwork, iwork, liwork, info)
+      CALL cheevd(jobvr, 'U', ndim, tmp_array, evals, ndim, work, lwork, rwork, lrwork, iwork, liwork, info)
 
       DO i = 1, ndim
          revec(:, i) = tmp_array(:, i)
@@ -126,15 +124,13 @@ CONTAINS
       COMPLEX(real_8), DIMENSION(:)                      :: evals
       COMPLEX(real_8), DIMENSION(:, :)                   :: revec
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'arnoldi_dsyevd', routineP = moduleN//':'//routineN
-
-      INTEGER                                            :: i, info, liwork, lwork, iwork(3+5*ndim)
+      INTEGER                                            :: i, info, liwork, lwork, iwork(3 + 5*ndim)
       REAL(real_8)                                       :: tmp_array(ndim, ndim), &
-                                                            work(1+6*ndim+2*ndim**2)
+                                                            work(1 + 6*ndim + 2*ndim**2)
       REAL(real_8), DIMENSION(ndim)                      :: eval
 
-      lwork = 1+6*ndim+2*ndim**2
-      liwork = 3+5*ndim
+      lwork = 1 + 6*ndim + 2*ndim**2
+      liwork = 3 + 5*ndim
 
       tmp_array(:, :) = matrix(:, :)
       CALL dsyevd(jobvr, "U", ndim, tmp_array, ndim, eval, work, lwork, iwork, liwork, info)
@@ -161,16 +157,14 @@ CONTAINS
       COMPLEX(real_4), DIMENSION(:)                      :: evals
       COMPLEX(real_4), DIMENSION(:, :)                   :: revec
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'arnoldi_ssyevd', routineP = moduleN//':'//routineN
-
-      INTEGER                                            :: i, info, liwork, lwork, iwork(3+5*ndim)
+      INTEGER                                            :: i, info, liwork, lwork, iwork(3 + 5*ndim)
       REAL(real_4)                                       :: tmp_array(ndim, ndim), &
-                                                            work(1+6*ndim+2*ndim**2)
+                                                            work(1 + 6*ndim + 2*ndim**2)
       REAL(real_4), DIMENSION(ndim)                      :: eval
 
       MARK_USED(jobvr) !the argument has to be here for the template to work
-      lwork = 1+6*ndim+2*ndim**2
-      liwork = 3+5*ndim
+      lwork = 1 + 6*ndim + 2*ndim**2
+      liwork = 3 + 5*ndim
 
       tmp_array(:, :) = matrix(:, :)
       CALL ssyevd("V", "U", ndim, tmp_array, ndim, eval, work, lwork, iwork, liwork, info)
@@ -199,8 +193,6 @@ CONTAINS
       COMPLEX(real_4), DIMENSION(:)                      :: evals
       COMPLEX(real_4), DIMENSION(:, :)                   :: revec, levec
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'arnoldi_sstev', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, info
       REAL(real_4)                                       :: work(20*ndim)
       REAL(real_4), DIMENSION(ndim)                      :: diag, offdiag
@@ -211,9 +203,9 @@ CONTAINS
       levec(1, 1) = CMPLX(0.0, 0.0, real_4)
       info = 0
       diag(ndim) = matrix(ndim, ndim)
-      DO i = 1, ndim-1
+      DO i = 1, ndim - 1
          diag(i) = matrix(i, i)
-         offdiag(i) = matrix(i+1, i)
+         offdiag(i) = matrix(i + 1, i)
       END DO
 
       CALL sstev(jobvr, ndim, diag, offdiag, evec_r, ndim, work, info)
@@ -241,8 +233,6 @@ CONTAINS
       COMPLEX(real_8), DIMENSION(:)                      :: evals
       COMPLEX(real_8), DIMENSION(:, :)                   :: revec, levec
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'arnoldi_dstev', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, info
       REAL(real_8)                                       :: work(20*ndim)
       REAL(real_8), DIMENSION(ndim)                      :: diag, offdiag
@@ -253,9 +243,9 @@ CONTAINS
       levec(1, 1) = CMPLX(0.0, 0.0, real_8)
       info = 0
       diag(ndim) = matrix(ndim, ndim)
-      DO i = 1, ndim-1
+      DO i = 1, ndim - 1
          diag(i) = matrix(i, i)
-         offdiag(i) = matrix(i+1, i)
+         offdiag(i) = matrix(i + 1, i)
 
       END DO
 
@@ -282,8 +272,6 @@ CONTAINS
       INTEGER                                            :: ndim
       COMPLEX(real_4), DIMENSION(:)                      :: evals
       COMPLEX(real_4), DIMENSION(:, :)                   :: revec, levec
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'arnoldi_sgeev', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, info, lwork
       LOGICAL                                            :: selects(ndim)
@@ -314,14 +302,14 @@ CONTAINS
             evec_r(:, i) = evec_r(:, i)/SQRT(DOT_PRODUCT(evec_r(:, i), evec_r(:, i)))
             revec(:, i) = CMPLX(evec_r(:, i), REAL(0.0, real_4), real_4)
             levec(:, i) = CMPLX(evec_l(:, i), REAL(0.0, real_4), real_4)
-            i = i+1
+            i = i + 1
          ELSE IF (eval2(i) .GT. EPSILON(REAL(0.0, real_4))) THEN
-            norm = SQRT(SUM(evec_r(:, i)**2.0_real_4)+SUM(evec_r(:, i+1)**2.0_real_4))
-            revec(:, i) = CMPLX(evec_r(:, i), evec_r(:, i+1), real_4)/norm
-            revec(:, i+1) = CMPLX(evec_r(:, i), -evec_r(:, i+1), real_4)/norm
-            levec(:, i) = CMPLX(evec_l(:, i), evec_l(:, i+1), real_4)
-            levec(:, i+1) = CMPLX(evec_l(:, i), -evec_l(:, i+1), real_4)
-            i = i+2
+            norm = SQRT(SUM(evec_r(:, i)**2.0_real_4) + SUM(evec_r(:, i + 1)**2.0_real_4))
+            revec(:, i) = CMPLX(evec_r(:, i), evec_r(:, i + 1), real_4)/norm
+            revec(:, i + 1) = CMPLX(evec_r(:, i), -evec_r(:, i + 1), real_4)/norm
+            levec(:, i) = CMPLX(evec_l(:, i), evec_l(:, i + 1), real_4)
+            levec(:, i + 1) = CMPLX(evec_l(:, i), -evec_l(:, i + 1), real_4)
+            i = i + 2
          ELSE
             CPABORT('something went wrong while sorting the EV in arnoldi_geev')
          END IF
@@ -350,8 +338,6 @@ CONTAINS
       INTEGER                                            :: ndim
       COMPLEX(real_8), DIMENSION(:)                      :: evals
       COMPLEX(real_8), DIMENSION(:, :)                   :: revec, levec
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'arnoldi_dgeev', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, info, lwork
       LOGICAL                                            :: selects(ndim)
@@ -382,14 +368,14 @@ CONTAINS
             evec_r(:, i) = evec_r(:, i)/SQRT(DOT_PRODUCT(evec_r(:, i), evec_r(:, i)))
             revec(:, i) = CMPLX(evec_r(:, i), REAL(0.0, real_8), real_8)
             levec(:, i) = CMPLX(evec_l(:, i), REAL(0.0, real_8), real_8)
-            i = i+1
+            i = i + 1
          ELSE IF (eval2(i) .GT. EPSILON(REAL(0.0, real_8))) THEN
-            norm = SQRT(SUM(evec_r(:, i)**2.0_real_8)+SUM(evec_r(:, i+1)**2.0_real_8))
-            revec(:, i) = CMPLX(evec_r(:, i), evec_r(:, i+1), real_8)/norm
-            revec(:, i+1) = CMPLX(evec_r(:, i), -evec_r(:, i+1), real_8)/norm
-            levec(:, i) = CMPLX(evec_l(:, i), evec_l(:, i+1), real_8)
-            levec(:, i+1) = CMPLX(evec_l(:, i), -evec_l(:, i+1), real_8)
-            i = i+2
+            norm = SQRT(SUM(evec_r(:, i)**2.0_real_8) + SUM(evec_r(:, i + 1)**2.0_real_8))
+            revec(:, i) = CMPLX(evec_r(:, i), evec_r(:, i + 1), real_8)/norm
+            revec(:, i + 1) = CMPLX(evec_r(:, i), -evec_r(:, i + 1), real_8)/norm
+            levec(:, i) = CMPLX(evec_l(:, i), evec_l(:, i + 1), real_8)
+            levec(:, i + 1) = CMPLX(evec_l(:, i), -evec_l(:, i + 1), real_8)
+            i = i + 2
          ELSE
             CPABORT('something went wrong while sorting the EV in arnoldi_geev')
          END IF
@@ -418,8 +404,6 @@ CONTAINS
       INTEGER                                            :: ndim
       COMPLEX(real_8), DIMENSION(:)                      :: evals
       COMPLEX(real_8), DIMENSION(:, :)                   :: revec, levec
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'arnoldi_zgeev', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: info, lwork
       COMPLEX(real_8)                                    :: work(20*ndim), tmp_array(ndim, ndim)
@@ -452,8 +436,6 @@ CONTAINS
       INTEGER                                            :: ndim
       COMPLEX(real_4), DIMENSION(:)                      :: evals
       COMPLEX(real_4), DIMENSION(:, :)                   :: revec, levec
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'arnoldi_cgeev', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: info, lwork
       COMPLEX(real_4)                                    :: work(20*ndim), tmp_array(ndim, ndim)

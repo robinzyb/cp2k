@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -142,7 +144,7 @@ CONTAINS
       ! setup description of potential
       lb_min = lpot
       lb_max = lpot
-      ncfgb = ncoset(lb_max)-ncoset(lb_min-1)
+      ncfgb = ncoset(lb_max) - ncoset(lb_min - 1)
       npgfb = 1 ! number of exponents
       nb = npgfb*ncfgb
 
@@ -157,8 +159,8 @@ CONTAINS
       DO ishell = 1, basis_set%nshell(iset)
       DO jshell = 1, basis_set%nshell(jset)
          IF (PRESENT(min_shell) .AND. PRESENT(max_shell)) THEN
-            ishell_abs = SUM(basis_set%nshell(1:iset-1))+ishell
-            jshell_abs = SUM(basis_set%nshell(1:jset-1))+jshell
+            ishell_abs = SUM(basis_set%nshell(1:iset - 1)) + ishell
+            jshell_abs = SUM(basis_set%nshell(1:jset - 1)) + jshell
             IF (MIN(ishell_abs, jshell_abs) /= min_shell) CYCLE
             IF (MAX(ishell_abs, jshell_abs) /= max_shell) CYCLE
          ENDIF
@@ -171,7 +173,7 @@ CONTAINS
          la1_max = basis_set%l(ishell, iset)
          la1_min = basis_set%l(ishell, iset)
          npgfa1 = basis_set%npgf(iset)
-         ncfga1 = ncoset(la1_max)-ncoset(la1_min-1)
+         ncfga1 = ncoset(la1_max) - ncoset(la1_min - 1)
          na1 = npgfa1*ncfga1
          zeta1 => basis_set%zet(:, iset)
          rpgfa1 => basis_set%pgf_radius(:, iset)
@@ -180,7 +182,7 @@ CONTAINS
          la2_max = basis_set%l(jshell, jset)
          la2_min = basis_set%l(jshell, jset)
          npgfa2 = basis_set%npgf(jset)
-         ncfga2 = ncoset(la2_max)-ncoset(la2_min-1)
+         ncfga2 = ncoset(la2_max) - ncoset(la2_min - 1)
          na2 = npgfa2*ncfga2
          zeta2 => basis_set%zet(:, jset)
          rpgfa2 => basis_set%pgf_radius(:, jset)
@@ -209,8 +211,8 @@ CONTAINS
             ALLOCATE (sab(na1, na2))
             sab = 0.0_dp
             DO ic = 1, ncfgb
-               coeff = multinomial(lpot/2, indco(:, ncoset(lpot-1)+ic)/2)
-               sab = sab+coeff*saab(:, :, ic)
+               coeff = multinomial(lpot/2, indco(:, ncoset(lpot - 1) + ic)/2)
+               sab = sab + coeff*saab(:, :, ic)
             ENDDO
             CALL my_contract(sab=sab, block=new_block_V, basis_set=basis_set, &
                              iset=iset, ishell=ishell, jset=jset, jshell=jshell)
@@ -221,8 +223,8 @@ CONTAINS
             ALLOCATE (dab(na1, na2, 3))
             dab = 0.0_dp
             DO ic = 1, ncfgb
-               coeff = multinomial(lpot/2, indco(:, ncoset(lpot-1)+ic)/2)
-               dab = dab+coeff*daab(:, :, ic, :)
+               coeff = multinomial(lpot/2, indco(:, ncoset(lpot - 1) + ic)/2)
+               dab = dab + coeff*daab(:, :, ic, :)
             ENDDO
             DO i = 1, 3
                CALL my_contract(sab=dab(:, :, i), block=new_block_D(:, :, i), basis_set=basis_set, &
@@ -238,18 +240,18 @@ CONTAINS
       DEALLOCATE (rpgfb, zetb)
 
       ! post-processing
-      norm2 = (2.0_dp*beta)**(-0.5_dp-lpot)*gamma1(lpot)
+      norm2 = (2.0_dp*beta)**(-0.5_dp - lpot)*gamma1(lpot)
       IF (PRESENT(block_V)) THEN
-         block_V = block_V+weight*new_block_V/SQRT(norm2)
+         block_V = block_V + weight*new_block_V/SQRT(norm2)
          DEALLOCATE (new_block_V)
-         block_V = 0.5_dp*(block_V+TRANSPOSE(block_V)) ! symmetrize
+         block_V = 0.5_dp*(block_V + TRANSPOSE(block_V)) ! symmetrize
       ENDIF
 
       IF (PRESENT(block_D)) THEN
-         block_D = block_D+weight*new_block_D/SQRT(norm2)
+         block_D = block_D + weight*new_block_D/SQRT(norm2)
          DEALLOCATE (new_block_D)
          DO i = 1, 3
-            block_D(:, :, i) = 0.5_dp*(block_D(:, :, i)+TRANSPOSE(block_D(:, :, i))) ! symmetrize
+            block_D(:, :, i) = 0.5_dp*(block_D(:, :, i) + TRANSPOSE(block_D(:, :, i))) ! symmetrize
          ENDDO
       ENDIF
 
@@ -289,7 +291,7 @@ CONTAINS
       ! Calculate strides of sphi matrix.
       ! This matrix is in the uncontraced cartesian basis.
       ! It contains all shells of the set.
-      ! It's index runs over all primitive gaussians of the set
+      ! Its index runs over all primitive gaussians of the set
       ! and then for each gaussian over all configurations of *the entire set*. (0->lmax)
       nn1 = ncoset(basis_set%lmax(iset))
       nn2 = ncoset(basis_set%lmax(jset))
@@ -297,30 +299,30 @@ CONTAINS
       ! Calculate strides of sab matrix
       ! This matrix is also in the uncontraced cartensian basis,
       ! however it contains only a single shell.
-      ! It's index runs over all primitive gaussians of the set
+      ! Its index runs over all primitive gaussians of the set
       ! and then for each gaussian over all configrations of *the given shell*.
       l1 = basis_set%l(ishell, iset)
       l2 = basis_set%l(jshell, jset)
-      n1 = ncoset(l1)-ncoset(l1-1)
-      n2 = ncoset(l2)-ncoset(l2-1)
+      n1 = ncoset(l1) - ncoset(l1 - 1)
+      n2 = ncoset(l2) - ncoset(l2 - 1)
 
       DO ipgf = 1, basis_set%npgf(iset)
       DO jpgf = 1, basis_set%npgf(jset)
          ! prepare first trafo-matrix
-         a = (ipgf-1)*nn1+ncoset(l1-1)+1
-         T1 => basis_set%sphi(a:a+n1-1, sgfa1:sgla1)
+         a = (ipgf - 1)*nn1 + ncoset(l1 - 1) + 1
+         T1 => basis_set%sphi(a:a + n1 - 1, sgfa1:sgla1)
 
          ! prepare second trafo-matrix
-         b = (jpgf-1)*nn2+ncoset(l2-1)+1
-         T2 => basis_set%sphi(b:b+n2-1, sgfa2:sgla2)
+         b = (jpgf - 1)*nn2 + ncoset(l2 - 1) + 1
+         T2 => basis_set%sphi(b:b + n2 - 1, sgfa2:sgla2)
 
          ! prepare SAB matrix
-         c = (ipgf-1)*n1+1
-         d = (jpgf-1)*n2+1
-         S => sab(c:c+n1-1, d:d+n2-1)
+         c = (ipgf - 1)*n1 + 1
+         d = (jpgf - 1)*n2 + 1
+         S => sab(c:c + n1 - 1, d:d + n2 - 1)
 
          ! do the transformation
-         V = V+MATMUL(TRANSPOSE(T1), MATMUL(S, T2))
+         V = V + MATMUL(TRANSPOSE(T1), MATMUL(S, T2))
       ENDDO
       ENDDO
 

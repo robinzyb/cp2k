@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -70,14 +72,14 @@ CONTAINS
       INTEGER                                            :: handle, ig, ng
       REAL(dp)                                           :: g2
       TYPE(pw_grid_type), POINTER                        :: grid
-      CHARACTER(len=*), PARAMETER :: routineN = 'mult_G_ov_G2_grid', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'mult_G_ov_G2_grid'
 
       TYPE(pw_type), POINTER                             :: frho, influence_fn
 
       CALL timeset(routineN, handle)
 
       CPASSERT(ASSOCIATED(cell))
+      MARK_USED(cell)
 
       CALL pw_pool_create_pw(pw_pool, influence_fn, &
                              use_data=COMPLEXDATA1D, in_space=RECIPROCALSPACE)

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -14,6 +16,8 @@ MODULE cp_control_types
    USE kinds,                           ONLY: default_path_length,&
                                               default_string_length,&
                                               dp
+   USE pair_potential_types,            ONLY: pair_potential_p_release,&
+                                              pair_potential_p_type
    USE qs_cdft_types,                   ONLY: cdft_control_create,&
                                               cdft_control_release,&
                                               cdft_control_type
@@ -111,12 +115,20 @@ MODULE cp_control_types
       REAL(KIND=dp)                        :: kxr, kx2
       !
       LOGICAL                              :: xb_interaction
+      LOGICAL                              :: do_nonbonded
       LOGICAL                              :: coulomb_interaction
       LOGICAL                              :: tb3_interaction
+      LOGICAL                              :: check_atomic_charges
+      !
       REAL(KIND=dp)                        :: xb_radius
       !
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:, :), POINTER          :: kab_param
+      INTEGER, DIMENSION(:, :), POINTER    :: kab_types
+      INTEGER                              :: kab_nval
+      REAL, DIMENSION(:), POINTER          :: kab_vals
+      !
+      TYPE(pair_potential_p_type), POINTER :: nonbonded
    END TYPE xtb_control_type
 
 ! **************************************************************************************************
@@ -257,12 +269,30 @@ MODULE cp_control_types
    END TYPE admm_control_type
 
 ! **************************************************************************************************
+! \brief Parameters for external potential
+! **************************************************************************************************
+   TYPE expot_control_type
+      LOGICAL                              :: read_from_cube
+      LOGICAL                              :: maxwell_solver
+      LOGICAL                              :: static
+      REAL(KIND=dp)                        :: scaling_factor
+   END TYPE expot_control_type
+
+! **************************************************************************************************
+! \brief Parameters useful for Maxwell equation evaluation of external potential
+! **************************************************************************************************
+   TYPE maxwell_control_type
+      LOGICAL                              :: log_test
+      INTEGER                              :: int_test
+      REAL(KIND=dp)                        :: real_test
+   END TYPE maxwell_control_type
+
+! **************************************************************************************************
 ! \brief Control parameters for a QUICKSTEP and KIM-GORDON calculation ***
 !        eps_pgf_orb: Cutoff value for the interaction of the primitive
 !                     Gaussian-type functions (primitive basis functions).
 ! **************************************************************************************************
    TYPE qs_control_type
-      CHARACTER(LEN=10)                    :: method
       INTEGER                              :: method_id
       REAL(KIND=dp)                        :: eps_core_charge, &
                                               eps_kg_orb, &
@@ -280,7 +310,6 @@ MODULE cp_control_types
       LOGICAL                              :: do_kg
       LOGICAL                              :: commensurate_mgrids
       LOGICAL                              :: realspace_mgrids
-      LOGICAL                              :: map_consistent
       LOGICAL                              :: gapw, gapw_xc, gpw, pao
       LOGICAL                              :: lrigpw, rigpw
       LOGICAL                              :: lri_optbas
@@ -355,7 +384,7 @@ MODULE cp_control_types
 !   - lumos_eigenvalues : holds the eigenvalues of the lumos (if calculated in QS)
 !
 ! \par  NOTES
-!   The lumos are helpfull in choosing a initial vector for the TDDFPT
+!   The lumos are helpful in choosing a initial vector for the TDDFPT
 !   calculation, since they can be used to construct the solutions of the
 !   TDDFPT operator without the perturbation kernel.
 ! **************************************************************************************************
@@ -384,6 +413,17 @@ MODULE cp_control_types
    END TYPE tddfpt_control_type
 
 ! **************************************************************************************************
+! \brief Control parameters for simplified Tamm Dancoff approximation (sTDA)
+! \par  ATTRIBUTES
+! \par  NOTES
+! **************************************************************************************************
+   TYPE stda_control_type
+      LOGICAL                                :: do_ewald
+      REAL(KIND=dp)                          :: hfx_fraction
+      REAL(KIND=dp)                          :: eps_td_filter
+   END TYPE stda_control_type
+
+! **************************************************************************************************
 ! \brief Control parameters for a Time-Dependent DFT calculation.
 ! **************************************************************************************************
    TYPE tddfpt2_control_type
@@ -399,6 +439,14 @@ MODULE cp_control_types
       INTEGER                              :: nlumo
       !> minimal number of MPI processes to be used per excited state
       INTEGER                              :: nprocs
+      !> type of kernel function/approximation to use
+      INTEGER                              :: kernel
+      !> options used in sTDA calculation (Kernel)
+      TYPE(stda_control_type)              :: stda_control
+      !> algorithm to correct orbital energies
+      INTEGER                              :: oe_corr
+      !> eigenvalue shifts
+      REAL(KIND=dp)                        :: ev_shift, eos_shift
       !> target accuracy
       REAL(kind=dp)                        :: conv
       !> the smallest excitation amplitude to print
@@ -448,6 +496,8 @@ MODULE cp_control_types
 
 ! **************************************************************************************************
 ! \brief Control parameters for a DFT calculation
+! \par History
+!      10.2019 added variables related to surface dipole correction [Soumya Ghosh]
 ! **************************************************************************************************
    TYPE dft_control_type
       TYPE(admm_control_type), POINTER     :: admm_control
@@ -458,6 +508,8 @@ MODULE cp_control_types
       TYPE(tddfpt_control_type), POINTER   :: tddfpt_control
       TYPE(tddfpt2_control_type), POINTER  :: tddfpt2_control
       TYPE(xas_control_type), POINTER      :: xas_control
+      TYPE(expot_control_type), POINTER    :: expot_control
+      TYPE(maxwell_control_type), POINTER  :: maxwell_control
       TYPE(efield_p_type), POINTER, &
          DIMENSION(:)                      :: efield_fields
       INTEGER                              :: nspins, &
@@ -473,12 +525,16 @@ MODULE cp_control_types
       INTEGER                              :: auto_basis_ri_aux = 1, &
                                               auto_basis_aux_fit = 1, &
                                               auto_basis_lri_aux = 1, &
-                                              auto_basis_ri_hxc = 1
+                                              auto_basis_ri_hxc = 1, &
+                                              auto_basis_ri_xas = 1, &
+                                              auto_basis_ri_hfx = 1
       REAL(KIND=dp)                        :: relax_multiplicity, &
                                               sic_scaling_a, &
-                                              sic_scaling_b
+                                              sic_scaling_b, &
+                                              pos_dir_surf_dip
       LOGICAL                              :: do_tddfpt_calculation, &
                                               do_xas_calculation, &
+                                              do_xas_tdp_calculation, &
                                               drho_by_collocation, &
                                               use_kinetic_energy_density, &
                                               restricted, &
@@ -501,6 +557,9 @@ MODULE cp_control_types
                                               apply_external_vxc, &
                                               read_external_vxc, &
                                               correct_surf_dip, &
+                                              surf_dip_correct_switch, &
+                                              switch_surf_dip, &
+                                              correct_el_density_dip, &
                                               do_sccs, &
                                               apply_embed_pot, &
                                               apply_dmfet_pot
@@ -524,8 +583,11 @@ MODULE cp_control_types
              semi_empirical_control_type, &
              s2_restraint_type, &
              admm_control_type, &
+             maxwell_control_type, &
+             expot_control_type, &
              rtp_control_type, &
-             sccs_control_type
+             sccs_control_type, &
+             stda_control_type
 
    ! Public subroutines
 
@@ -534,6 +596,8 @@ MODULE cp_control_types
              dft_control_create, &
              tddfpt_control_create, &
              admm_control_create, &
+             maxwell_control_create, &
+             expot_control_create, &
              ddapc_control_create, &
              sccs_control_create
 
@@ -547,9 +611,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE mulliken_control_create(mulliken_restraint_control)
       TYPE(mulliken_restraint_type), POINTER             :: mulliken_restraint_control
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'mulliken_control_create', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(.NOT. ASSOCIATED(mulliken_restraint_control))
       ALLOCATE (mulliken_restraint_control)
@@ -570,12 +631,9 @@ CONTAINS
    SUBROUTINE mulliken_control_release(mulliken_restraint_control)
       TYPE(mulliken_restraint_type), POINTER             :: mulliken_restraint_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mulliken_control_release', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(mulliken_restraint_control))
       CPASSERT(mulliken_restraint_control%ref_count > 0)
-      mulliken_restraint_control%ref_count = mulliken_restraint_control%ref_count-1
+      mulliken_restraint_control%ref_count = mulliken_restraint_control%ref_count - 1
       IF (mulliken_restraint_control%ref_count == 0) THEN
          IF (ASSOCIATED(mulliken_restraint_control%atoms)) &
             DEALLOCATE (mulliken_restraint_control%atoms)
@@ -596,12 +654,9 @@ CONTAINS
    SUBROUTINE mulliken_control_retain(mulliken_restraint_control)
       TYPE(mulliken_restraint_type), POINTER             :: mulliken_restraint_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mulliken_control_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(mulliken_restraint_control))
 
-      mulliken_restraint_control%ref_count = mulliken_restraint_control%ref_count+1
+      mulliken_restraint_control%ref_count = mulliken_restraint_control%ref_count + 1
    END SUBROUTINE mulliken_control_retain
 
 ! **************************************************************************************************
@@ -612,9 +667,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE ddapc_control_create(ddapc_restraint_control)
       TYPE(ddapc_restraint_type), POINTER                :: ddapc_restraint_control
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'ddapc_control_create', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(.NOT. ASSOCIATED(ddapc_restraint_control))
       ALLOCATE (ddapc_restraint_control)
@@ -640,12 +692,9 @@ CONTAINS
    SUBROUTINE ddapc_control_release(ddapc_restraint_control)
       TYPE(ddapc_restraint_type), POINTER                :: ddapc_restraint_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ddapc_control_release', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(ddapc_restraint_control))
       CPASSERT(ddapc_restraint_control%ref_count > 0)
-      ddapc_restraint_control%ref_count = ddapc_restraint_control%ref_count-1
+      ddapc_restraint_control%ref_count = ddapc_restraint_control%ref_count - 1
       IF (ddapc_restraint_control%ref_count == 0) THEN
          IF (ASSOCIATED(ddapc_restraint_control%atoms)) &
             DEALLOCATE (ddapc_restraint_control%atoms)
@@ -668,12 +717,9 @@ CONTAINS
    SUBROUTINE ddapc_control_retain(ddapc_restraint_control)
       TYPE(ddapc_restraint_type), POINTER                :: ddapc_restraint_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ddapc_control_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(ddapc_restraint_control))
 
-      ddapc_restraint_control%ref_count = ddapc_restraint_control%ref_count+1
+      ddapc_restraint_control%ref_count = ddapc_restraint_control%ref_count + 1
    END SUBROUTINE ddapc_control_retain
 
 ! **************************************************************************************************
@@ -684,9 +730,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE s2_control_create(s2_restraint_control)
       TYPE(s2_restraint_type), POINTER                   :: s2_restraint_control
-
-      CHARACTER(len=*), PARAMETER :: routineN = 's2_control_create', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(.NOT. ASSOCIATED(s2_restraint_control))
       ALLOCATE (s2_restraint_control)
@@ -707,12 +750,9 @@ CONTAINS
    SUBROUTINE s2_control_release(s2_restraint_control)
       TYPE(s2_restraint_type), POINTER                   :: s2_restraint_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 's2_control_release', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(s2_restraint_control))
       CPASSERT(s2_restraint_control%ref_count > 0)
-      s2_restraint_control%ref_count = s2_restraint_control%ref_count-1
+      s2_restraint_control%ref_count = s2_restraint_control%ref_count - 1
       IF (s2_restraint_control%ref_count == 0) THEN
          s2_restraint_control%ref_count = 0
          s2_restraint_control%strength = 0.0_dp
@@ -730,11 +770,8 @@ CONTAINS
    SUBROUTINE s2_control_retain(s2_restraint_control)
       TYPE(s2_restraint_type), POINTER                   :: s2_restraint_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 's2_control_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(s2_restraint_control))
-      s2_restraint_control%ref_count = s2_restraint_control%ref_count+1
+      s2_restraint_control%ref_count = s2_restraint_control%ref_count + 1
    END SUBROUTINE s2_control_retain
 
 ! **************************************************************************************************
@@ -747,13 +784,10 @@ CONTAINS
    SUBROUTINE dft_control_create(dft_control)
       TYPE(dft_control_type), POINTER                    :: dft_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'dft_control_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(dft_control))
       ALLOCATE (dft_control)
       dft_control%ref_count = 1
-      last_dft_control_id = last_dft_control_id+1
+      last_dft_control_id = last_dft_control_id + 1
       dft_control%id_nr = last_dft_control_id
       NULLIFY (dft_control%xas_control)
       NULLIFY (dft_control%qs_control)
@@ -762,6 +796,8 @@ CONTAINS
       NULLIFY (dft_control%efield_fields)
       NULLIFY (dft_control%period_efield)
       NULLIFY (dft_control%admm_control)
+      NULLIFY (dft_control%expot_control)
+      NULLIFY (dft_control%maxwell_control)
       NULLIFY (dft_control%rtp_control)
       NULLIFY (dft_control%sccs_control)
       dft_control%do_sccs = .FALSE.
@@ -781,12 +817,9 @@ CONTAINS
    SUBROUTINE dft_control_retain(dft_control)
       TYPE(dft_control_type), POINTER                    :: dft_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'dft_control_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(dft_control))
       CPASSERT(dft_control%ref_count > 0)
-      dft_control%ref_count = dft_control%ref_count+1
+      dft_control%ref_count = dft_control%ref_count + 1
    END SUBROUTINE dft_control_retain
 
 ! **************************************************************************************************
@@ -799,18 +832,17 @@ CONTAINS
    SUBROUTINE dft_control_release(dft_control)
       TYPE(dft_control_type), POINTER                    :: dft_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'dft_control_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(dft_control)) THEN
          CPASSERT(dft_control%ref_count > 0)
-         dft_control%ref_count = dft_control%ref_count-1
+         dft_control%ref_count = dft_control%ref_count - 1
          IF (dft_control%ref_count == 0) THEN
             CALL qs_control_release(dft_control%qs_control)
             CALL tddfpt_control_release(dft_control%tddfpt_control)
             CALL tddfpt2_control_release(dft_control%tddfpt2_control)
             CALL xas_control_release(dft_control%xas_control)
             CALL admm_control_release(dft_control%admm_control)
+            CALL expot_control_release(dft_control%expot_control)
+            CALL maxwell_control_release(dft_control%maxwell_control)
             CALL efield_fields_release(dft_control%efield_fields)
             CALL sccs_control_release(dft_control%sccs_control)
             IF (ASSOCIATED(dft_control%period_efield)) THEN
@@ -832,9 +864,6 @@ CONTAINS
    SUBROUTINE gapw_control_create(gapw_control)
       TYPE(gapw_control_type), POINTER                   :: gapw_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'gapw_control_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(gapw_control))
       ALLOCATE (gapw_control)
    END SUBROUTINE gapw_control_create
@@ -845,9 +874,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE qs_control_create(qs_control)
       TYPE(qs_control_type), POINTER                     :: qs_control
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_control_create', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(.NOT. ASSOCIATED(qs_control))
       ALLOCATE (qs_control)
@@ -878,9 +904,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE qs_control_release(qs_control)
       TYPE(qs_control_type), POINTER                     :: qs_control
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_control_release', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
 
@@ -915,9 +938,6 @@ CONTAINS
    SUBROUTINE tddfpt_control_create(tddfpt_control)
       TYPE(tddfpt_control_type), POINTER                 :: tddfpt_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'tddfpt_control_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(tddfpt_control))
       ALLOCATE (tddfpt_control)
       NULLIFY (tddfpt_control%lumos)
@@ -931,9 +951,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE tddfpt_control_release(tddfpt_control)
       TYPE(tddfpt_control_type), POINTER                 :: tddfpt_control
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'tddfpt_control_release', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ispin
       LOGICAL                                            :: dummy
@@ -966,8 +983,7 @@ CONTAINS
    SUBROUTINE tddfpt2_control_create(tddfpt_control)
       TYPE(tddfpt2_control_type), POINTER                :: tddfpt_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'tddfpt2_control_create', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'tddfpt2_control_create'
 
       INTEGER                                            :: handle
 
@@ -988,8 +1004,7 @@ CONTAINS
    SUBROUTINE tddfpt2_control_release(tddfpt_control)
       TYPE(tddfpt2_control_type), POINTER                :: tddfpt_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'tddfpt2_control_release', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'tddfpt2_control_release'
 
       INTEGER                                            :: handle
 
@@ -1008,9 +1023,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE efield_fields_release(efield_fields)
       TYPE(efield_p_type), DIMENSION(:), POINTER         :: efield_fields
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'efield_fields_release', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
 
@@ -1040,9 +1052,6 @@ CONTAINS
    SUBROUTINE dftb_control_create(dftb_control)
       TYPE(dftb_control_type), POINTER                   :: dftb_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'dftb_control_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(dftb_control))
       ALLOCATE (dftb_control)
 
@@ -1055,9 +1064,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE dftb_control_release(dftb_control)
       TYPE(dftb_control_type), POINTER                   :: dftb_control
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'dftb_control_release', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(dftb_control)) THEN
          IF (ASSOCIATED(dftb_control%sk_pair_list)) THEN
@@ -1074,13 +1080,13 @@ CONTAINS
    SUBROUTINE xtb_control_create(xtb_control)
       TYPE(xtb_control_type), POINTER                    :: xtb_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xtb_control_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(xtb_control))
       ALLOCATE (xtb_control)
 
       NULLIFY (xtb_control%kab_param)
+      NULLIFY (xtb_control%kab_vals)
+      NULLIFY (xtb_control%kab_types)
+      NULLIFY (xtb_control%nonbonded)
 
    END SUBROUTINE xtb_control_create
 
@@ -1091,12 +1097,18 @@ CONTAINS
    SUBROUTINE xtb_control_release(xtb_control)
       TYPE(xtb_control_type), POINTER                    :: xtb_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xtb_control_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(xtb_control)) THEN
          IF (ASSOCIATED(xtb_control%kab_param)) THEN
             DEALLOCATE (xtb_control%kab_param)
+         END IF
+         IF (ASSOCIATED(xtb_control%kab_vals)) THEN
+            DEALLOCATE (xtb_control%kab_vals)
+         END IF
+         IF (ASSOCIATED(xtb_control%kab_types)) THEN
+            DEALLOCATE (xtb_control%kab_types)
+         END IF
+         IF (ASSOCIATED(xtb_control%nonbonded)) THEN
+            CALL pair_potential_p_release(xtb_control%nonbonded)
          END IF
          DEALLOCATE (xtb_control)
       END IF
@@ -1109,9 +1121,6 @@ CONTAINS
    SUBROUTINE se_control_create(se_control)
       TYPE(semi_empirical_control_type), POINTER         :: se_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'se_control_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(se_control))
       ALLOCATE (se_control)
    END SUBROUTINE se_control_create
@@ -1122,9 +1131,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE se_control_release(se_control)
       TYPE(semi_empirical_control_type), POINTER         :: se_control
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'se_control_release', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(se_control)) THEN
          DEALLOCATE (se_control)
@@ -1138,9 +1144,6 @@ CONTAINS
    SUBROUTINE admm_control_create(admm_control)
       TYPE(admm_control_type), POINTER                   :: admm_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'admm_control_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(admm_control))
       ALLOCATE (admm_control)
 
@@ -1152,9 +1155,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE admm_control_release(admm_control)
       TYPE(admm_control_type), POINTER                   :: admm_control
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'admm_control_release', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(admm_control)) THEN
          DEALLOCATE (admm_control)
@@ -1171,9 +1171,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE sccs_control_create(sccs_control)
       TYPE(sccs_control_type), POINTER                   :: sccs_control
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'sccs_control_create', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(.NOT. ASSOCIATED(sccs_control))
       ALLOCATE (sccs_control)
@@ -1209,17 +1206,68 @@ CONTAINS
    SUBROUTINE sccs_control_release(sccs_control)
       TYPE(sccs_control_type), POINTER                   :: sccs_control
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'sccs_control_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(sccs_control)) THEN
          CPASSERT(sccs_control%ref_count > 0)
-         sccs_control%ref_count = sccs_control%ref_count-1
+         sccs_control%ref_count = sccs_control%ref_count - 1
          IF (sccs_control%ref_count == 0) THEN
             DEALLOCATE (sccs_control)
          END IF
       END IF
 
    END SUBROUTINE sccs_control_release
+
+! **************************************************************************************************
+!> \brief ...
+!> \param expot_control ...
+! **************************************************************************************************
+   SUBROUTINE expot_control_create(expot_control)
+      TYPE(expot_control_type), POINTER                  :: expot_control
+
+      CPASSERT(.NOT. ASSOCIATED(expot_control))
+      ALLOCATE (expot_control)
+      expot_control%read_from_cube = .FALSE.
+      expot_control%maxwell_solver = .FALSE.
+      expot_control%static = .TRUE.
+      expot_control%scaling_factor = 1.0_dp
+
+   END SUBROUTINE expot_control_create
+
+! **************************************************************************************************
+!> \brief ...
+!> \param expot_control ...
+! **************************************************************************************************
+   SUBROUTINE expot_control_release(expot_control)
+      TYPE(expot_control_type), POINTER                  :: expot_control
+
+      IF (ASSOCIATED(expot_control)) THEN
+         DEALLOCATE (expot_control)
+      END IF
+
+   END SUBROUTINE expot_control_release
+
+! **************************************************************************************************
+!> \brief ...
+!> \param maxwell_control ...
+! **************************************************************************************************
+   SUBROUTINE maxwell_control_create(maxwell_control)
+      TYPE(maxwell_control_type), POINTER                :: maxwell_control
+
+      CPASSERT(.NOT. ASSOCIATED(maxwell_control))
+      ALLOCATE (maxwell_control)
+
+   END SUBROUTINE maxwell_control_create
+
+! **************************************************************************************************
+!> \brief ...
+!> \param maxwell_control ...
+! **************************************************************************************************
+   SUBROUTINE maxwell_control_release(maxwell_control)
+      TYPE(maxwell_control_type), POINTER                :: maxwell_control
+
+      IF (ASSOCIATED(maxwell_control)) THEN
+         DEALLOCATE (maxwell_control)
+      END IF
+
+   END SUBROUTINE maxwell_control_release
 
 END MODULE cp_control_types

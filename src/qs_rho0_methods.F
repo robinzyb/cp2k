@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -14,8 +16,7 @@ MODULE qs_rho0_methods
                                               get_atomic_kind_set
    USE basis_set_types,                 ONLY: get_gto_basis_set,&
                                               gto_basis_set_type
-   USE cp_control_types,                ONLY: dft_control_type,&
-                                              gapw_control_type
+   USE cp_control_types,                ONLY: gapw_control_type
    USE cp_log_handling,                 ONLY: cp_get_default_logger,&
                                               cp_logger_type
    USE cp_output_handling,              ONLY: cp_print_key_finished_output,&
@@ -25,8 +26,7 @@ MODULE qs_rho0_methods
                                               section_vals_val_get
    USE kinds,                           ONLY: default_string_length,&
                                               dp
-   USE mathconstants,                   ONLY: dfac,&
-                                              fourpi
+   USE mathconstants,                   ONLY: fourpi
    USE memory_utilities,                ONLY: reallocate
    USE orbital_pointers,                ONLY: indco,&
                                               indso,&
@@ -36,8 +36,7 @@ MODULE qs_rho0_methods
                                               nsoset
    USE orbital_transformation_matrices, ONLY: orbtramat
    USE qs_environment_types,            ONLY: get_qs_env,&
-                                              qs_environment_type,&
-                                              set_qs_env
+                                              qs_environment_type
    USE qs_grid_atom,                    ONLY: grid_atom_type
    USE qs_harmonics_atom,               ONLY: get_none0_cg_list,&
                                               harmonics_atom_type
@@ -47,9 +46,9 @@ MODULE qs_rho0_methods
    USE qs_local_rho_types,              ONLY: allocate_rhoz,&
                                               calculate_rhoz,&
                                               local_rho_type,&
-                                              rhoz_type
+                                              rhoz_type,&
+                                              set_local_rho
    USE qs_oce_methods,                  ONLY: prj_scatter
-   USE qs_rho0_ggrid,                   ONLY: rho0_s_grid_create
    USE qs_rho0_types,                   ONLY: &
         allocate_multipoles, allocate_rho0_atom, allocate_rho0_atom_rad, allocate_rho0_mpole, &
         calculate_g0, get_rho0_mpole, initialize_mpole_rho, mpole_gau_overlap, mpole_rho_atom, &
@@ -63,11 +62,11 @@ MODULE qs_rho0_methods
 
    PRIVATE
 
-! *** Global parameters (only in this module)
+   ! Global parameters (only in this module)
 
    CHARACTER(len=*), PARAMETER, PRIVATE :: moduleN = 'qs_rho0_methods'
 
-! *** Public subroutines ***
+   ! Public subroutines
 
    PUBLIC :: calculate_rho0_atom, init_rho0
 
@@ -88,17 +87,16 @@ CONTAINS
       TYPE(harmonics_atom_type), POINTER                 :: harmonics
       INTEGER, INTENT(IN)                                :: nchannels, nsotot
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_mpole_gau', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_mpole_gau'
 
       INTEGER :: handle, icg, ig1, ig2, ipgf1, ipgf2, iset1, iset2, iso, iso1, iso2, l, l1, l2, &
          llmax, m1, m2, max_iso_not0_local, max_s_harm, maxl, maxso, n1, n2, nset
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: cg_n_list
       INTEGER, ALLOCATABLE, DIMENSION(:, :, :)           :: cg_list
       INTEGER, DIMENSION(:), POINTER                     :: lmax, lmin, npgf
-      REAL(dp)                                           :: zet1, zet2
-      REAL(dp), DIMENSION(:, :), POINTER                 :: zet
-      REAL(dp), DIMENSION(:, :, :), POINTER              :: my_CG
+      REAL(KIND=dp)                                      :: zet1, zet2
+      REAL(KIND=dp), DIMENSION(:, :), POINTER            :: zet
+      REAL(KIND=dp), DIMENSION(:, :, :), POINTER         :: my_CG
 
       CALL timeset(routineN, handle)
 
@@ -141,19 +139,19 @@ CONTAINS
 
                         l1 = indso(1, iso1)
                         l2 = indso(1, iso2)
-                        ig1 = iso1+n1*(ipgf1-1)+m1
-                        ig2 = iso2+n2*(ipgf2-1)+m2
+                        ig1 = iso1 + n1*(ipgf1 - 1) + m1
+                        ig2 = iso2 + n2*(ipgf2 - 1) + m2
 
-                        mp_gau%Qlm_gg(ig1, ig2, iso) = fourpi/(2._dp*l+1._dp)* &
-                                                       my_CG(iso1, iso2, iso)*gaussint_sph(zet1+zet2, l+l1+l2)
+                        mp_gau%Qlm_gg(ig1, ig2, iso) = fourpi/(2._dp*l + 1._dp)* &
+                                                       my_CG(iso1, iso2, iso)*gaussint_sph(zet1 + zet2, l + l1 + l2)
                      END DO ! icg
                   END DO ! iso
 
                END DO ! ipgf2
             END DO ! ipgf1
-            m2 = m2+maxso
+            m2 = m2 + maxso
          END DO ! iset2
-         m1 = m1+maxso
+         m1 = m1 + maxso
       END DO ! iset1
 
       DEALLOCATE (cg_list, cg_n_list)
@@ -168,41 +166,35 @@ CONTAINS
 !> \param rho0_atom_set ...
 !> \param rho0_mp ...
 !> \param a_list ...
-!> \param g_atom ...
-!> \param paw_atom ...
 !> \param natom ...
 !> \param ikind ...
 !> \param qs_kind ...
-!> \param harmonics ...
 !> \param rho0_h_tot ...
 ! **************************************************************************************************
    SUBROUTINE calculate_rho0_atom(gapw_control, rho_atom_set, rho0_atom_set, &
-                                  rho0_mp, a_list, g_atom, &
-                                  paw_atom, natom, ikind, qs_kind, harmonics, &
-                                  rho0_h_tot)
+                                  rho0_mp, a_list, natom, ikind, qs_kind, rho0_h_tot)
 
       TYPE(gapw_control_type), POINTER                   :: gapw_control
       TYPE(rho_atom_type), DIMENSION(:), POINTER         :: rho_atom_set
       TYPE(rho0_atom_type), DIMENSION(:), POINTER        :: rho0_atom_set
       TYPE(rho0_mpole_type), POINTER                     :: rho0_mp
       INTEGER, DIMENSION(:), INTENT(IN)                  :: a_list
-      TYPE(grid_atom_type), INTENT(IN)                   :: g_atom
-      LOGICAL, INTENT(IN)                                :: paw_atom
       INTEGER, INTENT(IN)                                :: natom, ikind
       TYPE(qs_kind_type), INTENT(IN)                     :: qs_kind
-      TYPE(harmonics_atom_type), POINTER                 :: harmonics
-      REAL(dp), INTENT(INOUT)                            :: rho0_h_tot
+      REAL(KIND=dp), INTENT(INOUT)                       :: rho0_h_tot
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_rho0_atom', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_rho0_atom'
 
       INTEGER                                            :: handle, iat, iatom, ic, ico, ir, is, &
                                                             iso, ispin, l, lmax0, lshell, lx, ly, &
                                                             lz, nr, nsotot, nspins
-      REAL(dp)                                           :: sum1
-      REAL(dp), ALLOCATABLE, DIMENSION(:, :, :)          :: cpc_ah, cpc_as
-      REAL(dp), DIMENSION(:), POINTER                    :: norm_g0l_h
-      REAL(dp), DIMENSION(:, :), POINTER                 :: g0_h, vg0_h
+      LOGICAL                                            :: paw_atom
+      REAL(KIND=dp)                                      :: sum1
+      REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :, :)     :: cpc_ah, cpc_as
+      REAL(KIND=dp), DIMENSION(:), POINTER               :: norm_g0l_h
+      REAL(KIND=dp), DIMENSION(:, :), POINTER            :: g0_h, vg0_h
+      TYPE(grid_atom_type), POINTER                      :: g_atom
+      TYPE(harmonics_atom_type), POINTER                 :: harmonics
       TYPE(mpole_gau_overlap), POINTER                   :: mpole_gau
       TYPE(mpole_rho_atom), POINTER                      :: mpole_rho
       TYPE(rho_atom_coeff), DIMENSION(:), POINTER        :: cpc_h, cpc_s
@@ -212,8 +204,8 @@ CONTAINS
 
       NULLIFY (mpole_gau)
       NULLIFY (mpole_rho)
-      NULLIFY (g0_h, vg0_h)
-      NULLIFY (norm_g0l_h)
+      NULLIFY (g0_h, vg0_h, g_atom)
+      NULLIFY (norm_g0l_h, harmonics)
 
       CALL get_rho0_mpole(rho0_mpole=rho0_mp, ikind=ikind, &
                           l0_ikind=lmax0, mp_gau_ikind=mpole_gau, &
@@ -221,9 +213,11 @@ CONTAINS
                           vg0_h=vg0_h, &
                           norm_g0l_h=norm_g0l_h)
 
+      CALL get_qs_kind(qs_kind, harmonics=harmonics, paw_atom=paw_atom, grid_atom=g_atom)
+
       nr = g_atom%nr
 
-! Set density coefficient to zero before the calculation
+      ! Set density coefficient to zero before the calculation
       DO iat = 1, natom
          iatom = a_list(iat)
          rho0_atom_set(iatom)%rho0_rad_h%r_coef = 0.0_dp
@@ -231,7 +225,7 @@ CONTAINS
          rho0_mp%mp_rho(iatom)%Qlm_tot(1) = rho0_mp%mp_rho(iatom)%Qlm_z
          rho0_mp%mp_rho(iatom)%Q0 = 0.0_dp
          rho0_mp%mp_rho(iatom)%Qlm_car = 0.0_dp
-      ENDDO
+      END DO
 
       IF (.NOT. (.NOT. paw_atom .AND. gapw_control%nopaw_as_gpw)) THEN
          DO iat = 1, natom
@@ -259,8 +253,8 @@ CONTAINS
                DO ispin = 1, nspins
                   mpole_rho%Q0(ispin) = (trace_r_AxB(mpole_gau%Qlm_gg(:, :, 1), nsotot, &
                                                      cpc_ah(:, :, ispin), nsotot, nsotot, nsotot) &
-                                         -trace_r_AxB(mpole_gau%Qlm_gg(:, :, 1), nsotot, &
-                                                      cpc_as(:, :, ispin), nsotot, nsotot, nsotot))/SQRT(fourpi)
+                                         - trace_r_AxB(mpole_gau%Qlm_gg(:, :, 1), nsotot, &
+                                                       cpc_as(:, :, ispin), nsotot, nsotot, nsotot))/SQRT(fourpi)
                END DO
             END IF
             ! Multipoles of local charge distribution
@@ -271,16 +265,16 @@ CONTAINS
                   mpole_rho%Qlm_s(iso) = 0.0_dp
 
                   DO ispin = 1, nspins
-                     mpole_rho%Qlm_h(iso) = mpole_rho%Qlm_h(iso)+ &
+                     mpole_rho%Qlm_h(iso) = mpole_rho%Qlm_h(iso) + &
                                             trace_r_AxB(mpole_gau%Qlm_gg(:, :, iso), nsotot, &
                                                         cpc_ah(:, :, ispin), nsotot, nsotot, nsotot)
-                     mpole_rho%Qlm_s(iso) = mpole_rho%Qlm_s(iso)+ &
+                     mpole_rho%Qlm_s(iso) = mpole_rho%Qlm_s(iso) + &
                                             trace_r_AxB(mpole_gau%Qlm_gg(:, :, iso), nsotot, &
                                                         cpc_as(:, :, ispin), nsotot, nsotot, nsotot)
                   END DO ! ispin
 
-                  mpole_rho%Qlm_tot(iso) = mpole_rho%Qlm_tot(iso)+ &
-                                           mpole_rho%Qlm_h(iso)-mpole_rho%Qlm_s(iso)
+                  mpole_rho%Qlm_tot(iso) = mpole_rho%Qlm_tot(iso) + &
+                                           mpole_rho%Qlm_h(iso) - mpole_rho%Qlm_s(iso)
                END IF
 
                rho0_atom_set(iatom)%rho0_rad_h%r_coef(1:nr, iso) = &
@@ -290,10 +284,10 @@ CONTAINS
 
                sum1 = 0.0_dp
                DO ir = 1, nr
-                  sum1 = sum1+g_atom%wr(ir)* &
+                  sum1 = sum1 + g_atom%wr(ir)* &
                          rho0_atom_set(iatom)%rho0_rad_h%r_coef(ir, iso)
-               ENDDO
-               rho0_h_tot = rho0_h_tot+sum1*harmonics%slm_int(iso)
+               END DO
+               rho0_h_tot = rho0_h_tot + sum1*harmonics%slm_int(iso)
             END DO ! iso
             IF (paw_atom) THEN
                DEALLOCATE (cpc_ah, cpc_as)
@@ -301,7 +295,7 @@ CONTAINS
          END DO ! iat
       END IF
 
-!   Transform the coefficinets from spherical to cartesian
+      ! Transform the coefficinets from spherical to Cartesian
       IF (.NOT. paw_atom .AND. gapw_control%nopaw_as_gpw) THEN
          DO iat = 1, natom
             iatom = a_list(iat)
@@ -309,7 +303,7 @@ CONTAINS
 
             DO lshell = 0, lmax0
                DO ic = 1, nco(lshell)
-                  ico = ic+ncoset(lshell-1)
+                  ico = ic + ncoset(lshell - 1)
                   mpole_rho%Qlm_car(ico) = 0.0_dp
                END DO
             END DO
@@ -318,29 +312,26 @@ CONTAINS
          DO iat = 1, natom
             iatom = a_list(iat)
             mpole_rho => rho0_mp%mp_rho(iatom)
-
             DO lshell = 0, lmax0
                DO ic = 1, nco(lshell)
-                  ico = ic+ncoset(lshell-1)
+                  ico = ic + ncoset(lshell - 1)
                   mpole_rho%Qlm_car(ico) = 0.0_dp
                   lx = indco(1, ico)
                   ly = indco(2, ico)
                   lz = indco(3, ico)
-
                   DO is = 1, nso(lshell)
-                     iso = is+nsoset(lshell-1)
-
-                     mpole_rho%Qlm_car(ico) = mpole_rho%Qlm_car(ico)+ &
-                                              orbtramat(lshell)%c2s(is, ic)*mpole_rho%Qlm_tot(iso)* &
-                                              norm_g0l_h(lshell) &
-                                              /SQRT(dfac(2*lx-1)*dfac(2*ly-1)*dfac(2*lz-1)*fourpi/dfac(2*lshell+1))
+                     iso = is + nsoset(lshell - 1)
+                     mpole_rho%Qlm_car(ico) = mpole_rho%Qlm_car(ico) + &
+                                              norm_g0l_h(lshell)* &
+                                              orbtramat(lshell)%slm(is, ic)* &
+                                              mpole_rho%Qlm_tot(iso)
 
                   END DO
                END DO
             END DO ! lshell
          END DO ! iat
       END IF
-!MI get rid of full gapw
+      !MI Get rid of full gapw
 
       CALL timestop(handle)
 
@@ -348,33 +339,30 @@ CONTAINS
 
 ! **************************************************************************************************
 !> \brief ...
+!> \param local_rho_set ...
 !> \param qs_env ...
 !> \param gapw_control ...
 !> \param tddft ...
-!> \param tddft_local_rho_set ...
 ! **************************************************************************************************
-   SUBROUTINE init_rho0(qs_env, gapw_control, &
-                        tddft, tddft_local_rho_set)
+   SUBROUTINE init_rho0(local_rho_set, qs_env, gapw_control, tddft)
 
+      TYPE(local_rho_type), POINTER                      :: local_rho_set
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(gapw_control_type), POINTER                   :: gapw_control
-      LOGICAL, INTENT(IN), OPTIONAL                      :: tddft
-      TYPE(local_rho_type), OPTIONAL, POINTER            :: tddft_local_rho_set
+      LOGICAL, INTENT(in)                                :: tddft
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_rho0', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'init_rho0'
 
       CHARACTER(LEN=default_string_length)               :: unit_str
       INTEGER :: handle, iat, iatom, ikind, l, l_rho1_max, laddg, lmaxg, maxl, maxnset, maxso, &
          nat, natom, nchan_c, nchan_s, nkind, nr, nset, nsotot, output_unit
       INTEGER, DIMENSION(:), POINTER                     :: atom_list
-      LOGICAL                                            :: my_tddft, paw_atom
-      REAL(dp)                                           :: alpha_core, eps_Vrho0, max_rpgf0_s, &
+      LOGICAL                                            :: paw_atom
+      REAL(KIND=dp)                                      :: alpha_core, eps_Vrho0, max_rpgf0_s, &
                                                             radius, rc_min, rc_orb, &
-                                                            total_rho_core_rspace
-      REAL(KIND=dp)                                      :: zeff
+                                                            total_rho_core_rspace, zeff
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
       TYPE(cp_logger_type), POINTER                      :: logger
-      TYPE(dft_control_type), POINTER                    :: dft_control
       TYPE(grid_atom_type), POINTER                      :: grid_atom
       TYPE(gto_basis_set_type), POINTER                  :: orb_basis
       TYPE(harmonics_atom_type), POINTER                 :: harmonics
@@ -391,40 +379,35 @@ CONTAINS
 
       NULLIFY (qs_kind_set)
       NULLIFY (atomic_kind_set)
-      NULLIFY (dft_control)
       NULLIFY (harmonics)
       NULLIFY (orb_basis)
       NULLIFY (rho0_mpole)
       NULLIFY (rho0_atom_set)
       NULLIFY (rhoz_set)
 
-      my_tddft = .FALSE.
-      IF (PRESENT(tddft)) my_tddft = tddft
-
       CALL get_qs_env(qs_env=qs_env, qs_kind_set=qs_kind_set, &
-                      atomic_kind_set=atomic_kind_set, &
-                      dft_control=dft_control)
+                      atomic_kind_set=atomic_kind_set)
 
       nkind = SIZE(atomic_kind_set)
       eps_Vrho0 = gapw_control%eps_Vrho0
 
-!   Initialize rhoz total to zero
-!   in gapw rhoz is calculated on local the lebedev grids
+      ! Initialize rhoz total to zero
+      ! in gapw rhoz is calculated on local the lebedev grids
       total_rho_core_rspace = 0.0_dp
 
       CALL get_atomic_kind_set(atomic_kind_set, natom=natom)
 
-!   Initialize the multipole and the compensation charge type
+      ! Initialize the multipole and the compensation charge type
       CALL allocate_rho0_mpole(rho0_mpole)
       CALL allocate_rho0_atom(rho0_atom_set, natom)
 
-!   Allocate the multipole set
+      ! Allocate the multipole set
       CALL allocate_multipoles(rho0_mpole%mp_rho, natom, rho0_mpole%mp_gau, nkind)
 
-!   Allocate the core density on the radial grid for each kind: rhoz_set
+      ! Allocate the core density on the radial grid for each kind: rhoz_set
       CALL allocate_rhoz(rhoz_set, nkind)
 
-!   For each kind, determine the max l for the compensation charge density
+      ! For each kind, determine the max l for the compensation charge density
       lmaxg = gapw_control%lmax_rho0
       laddg = gapw_control%ladd_rho0
 
@@ -445,6 +428,9 @@ CONTAINS
                           zeff=zeff, &
                           alpha_core_charge=alpha_core)
 
+         ! Set charge distribution of ionic cores to zero when computing the response-density
+         IF (tddft) zeff = 0.0_dp
+
          CALL get_gto_basis_set(gto_basis_set=orb_basis, &
                                 maxl=maxl, &
                                 maxso=maxso, nset=nset)
@@ -453,7 +439,7 @@ CONTAINS
 
          l_rho1_max = indso(1, harmonics%max_iso_not0)
          IF (paw_atom) THEN
-            rho0_mpole%lmax0_kind(ikind) = MIN(2*maxl, l_rho1_max, maxl+laddg, lmaxg)
+            rho0_mpole%lmax0_kind(ikind) = MIN(2*maxl, l_rho1_max, maxl + laddg, lmaxg)
          ELSE
             rho0_mpole%lmax0_kind(ikind) = 0
          END IF
@@ -472,51 +458,51 @@ CONTAINS
 
          DO iat = 1, nat
             iatom = atom_list(iat)
-!        Allocate the multipole for rho1_h rho1_s and rho_z
-            CALL initialize_mpole_rho(rho0_mpole%mp_rho(iatom), nchan_s, nchan_c, zeff, my_tddft)
-!        Allocate the radial part of rho0_h and rho0_s
-!        This is calculated on the radial grid centered at the atomic position
+            ! Allocate the multipole for rho1_h rho1_s and rho_z
+            CALL initialize_mpole_rho(rho0_mpole%mp_rho(iatom), nchan_s, nchan_c, zeff)
+            ! Allocate the radial part of rho0_h and rho0_s
+            ! This is calculated on the radial grid centered at the atomic position
             CALL allocate_rho0_atom_rad(rho0_atom_set(iatom), nr, nchan_s)
          END DO
-!
+
          IF (paw_atom) THEN
-!        Calculate multipoles given by the product of 2 primitives Qlm_gg
+            ! Calculate multipoles given by the product of 2 primitives Qlm_gg
             CALL calculate_mpole_gau(rho0_mpole%mp_gau(ikind), &
                                      orb_basis, harmonics, nchan_s, nsotot)
          END IF
 
-!     Calculate the core density rhoz
-!                  exp(-alpha_c**2 r**2)Z(alpha_c**2/pi)**(3/2)
-!     on the logarithmic radial grid
-!     WARNING: alpha_core_charge = alpha_c**2
+         ! Calculate the core density rhoz
+         ! exp(-alpha_c**2 r**2)Z(alpha_c**2/pi)**(3/2)
+         ! on the logarithmic radial grid
+         ! WARNING: alpha_core_charge = alpha_c**2
          CALL calculate_rhoz(rhoz_set(ikind), grid_atom, alpha_core, zeff, &
                              nat, total_rho_core_rspace, harmonics)
       END DO ! ikind
       total_rho_core_rspace = -total_rho_core_rspace
 
       IF (gapw_control%alpha0_hard_from_input) THEN
-!   The Exponent for the compensation charge rho0_hard is read from input
+         ! The exponent for the compensation charge rho0_hard is read from input
          rho0_mpole%zet0_h = gapw_control%alpha0_hard
       ELSE
-!   Calculate the exponent for the compensation charge rho0_hard
+         ! Calculate the exponent for the compensation charge rho0_hard
          rho0_mpole%zet0_h = 0.1_dp
          DO
             radius = exp_radius(rho0_mpole%lmax_0, rho0_mpole%zet0_h, eps_Vrho0, 1.0_dp)
             IF (radius <= rc_min) EXIT
-            rho0_mpole%zet0_h = rho0_mpole%zet0_h+0.1_dp
+            rho0_mpole%zet0_h = rho0_mpole%zet0_h + 0.1_dp
          END DO
 
       END IF
 
-!   Allocate and calculate the normalization factors for g0_lm_h and g0_lm_s
+      ! Allocate and calculate the normalization factors for g0_lm_h and g0_lm_s
       CALL reallocate(rho0_mpole%norm_g0l_h, 0, rho0_mpole%lmax_0)
       DO l = 0, rho0_mpole%lmax_0
-         rho0_mpole%norm_g0l_h(l) = (2._dp*l+1._dp)/ &
+         rho0_mpole%norm_g0l_h(l) = (2._dp*l + 1._dp)/ &
                                     (fourpi*gaussint_sph(rho0_mpole%zet0_h, 2*l))
       END DO
 
-!   Allocate and Initialize the g0 gaussians used to build the compensation density
-!   and calculate the interaction radii
+      ! Allocate and Initialize the g0 gaussians used to build the compensation density
+      ! and calculate the interaction radii
       max_rpgf0_s = 0.0_dp
       DO ikind = 1, nkind
          CALL get_qs_kind(qs_kind_set(ikind), grid_atom=grid_atom)
@@ -525,18 +511,8 @@ CONTAINS
       END DO
       rho0_mpole%max_rpgf0_s = max_rpgf0_s
 
-      IF (.NOT. my_tddft) THEN
-         CALL set_qs_env(qs_env=qs_env, rho0_mpole=rho0_mpole, &
-                         rho0_atom_set=rho0_atom_set, &
-                         rhoz_set=rhoz_set, &
-                         rhoz_tot=total_rho_core_rspace)
-      ELSE
-         tddft_local_rho_set%rho0_mpole => rho0_mpole
-         tddft_local_rho_set%rho0_atom_set => rho0_atom_set
-         tddft_local_rho_set%rhoz_set => rhoz_set
-         tddft_local_rho_set%rhoz_tot = total_rho_core_rspace
-         CALL rho0_s_grid_create(qs_env, rho0_mpole, .TRUE.)
-      END IF
+      CALL set_local_rho(local_rho_set, rho0_atom_set=rho0_atom_set, rho0_mpole=rho0_mpole, rhoz_set=rhoz_set)
+      local_rho_set%rhoz_tot = total_rho_core_rspace
 
       dft_section => section_vals_get_subs_vals(qs_env%input, "DFT")
       output_unit = cp_print_key_unit_nr(logger, dft_section, "PRINT%GAPW%RHO0_INFORMATION", &
@@ -563,21 +539,18 @@ CONTAINS
 
       TYPE(rho0_mpole_type), POINTER                     :: rho0_mpole
       INTEGER, INTENT(IN)                                :: ik
-      REAL(dp), INTENT(IN)                               :: eps_Vrho0
-      REAL(dp), INTENT(INOUT)                            :: max_rpgf0_s
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'interaction_radii_g0', &
-         routineP = moduleN//':'//routineN
+      REAL(KIND=dp), INTENT(IN)                          :: eps_Vrho0
+      REAL(KIND=dp), INTENT(INOUT)                       :: max_rpgf0_s
 
       INTEGER                                            :: l, lmax
-      REAL(dp)                                           :: r_h, z0_h
-      REAL(dp), DIMENSION(:), POINTER                    :: ng0_h
+      REAL(KIND=dp)                                      :: r_h, z0_h
+      REAL(KIND=dp), DIMENSION(:), POINTER               :: ng0_h
 
       CALL get_rho0_mpole(rho0_mpole, ikind=ik, l0_ikind=lmax, &
                           zet0_h=z0_h, norm_g0l_h=ng0_h)
       r_h = 0.0_dp
       DO l = 0, lmax
-         r_h = MAX(r_h, exp_radius(l, z0_h, eps_Vrho0, ng0_h(l)))
+         r_h = MAX(r_h, exp_radius(l, z0_h, eps_Vrho0, ng0_h(l), rlow=r_h))
       END DO
 
       rho0_mpole%mp_gau(ik)%rpgf0_h = r_h
@@ -586,7 +559,4 @@ CONTAINS
 
    END SUBROUTINE interaction_radii_g0
 
-! **************************************************************************************************
-
 END MODULE qs_rho0_methods
-

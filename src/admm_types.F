@@ -1,12 +1,15 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
-!> \brief Types and set/get functions for auxiliary denisty matrix methods
+!> \brief Types and set/get functions for auxiliary density matrix methods
 !> \par History
 !>      05.2008 created [Manuel Guidon]
+!>      12.2019 Made GAPW compatiblae [Augustin Bussy]
 !> \author Manuel Guidon
 ! **************************************************************************************************
 MODULE admm_types
@@ -27,13 +30,21 @@ MODULE admm_types
    USE input_section_types,             ONLY: section_vals_release,&
                                               section_vals_type
    USE kinds,                           ONLY: dp
+   USE qs_kind_types,                   ONLY: deallocate_qs_kind_set,&
+                                              qs_kind_type
+   USE qs_local_rho_types,              ONLY: local_rho_set_release,&
+                                              local_rho_type
    USE qs_mo_types,                     ONLY: get_mo_set,&
                                               mo_set_p_type
+   USE qs_oce_types,                    ONLY: deallocate_oce_set,&
+                                              oce_matrix_type
+   USE task_list_types,                 ONLY: deallocate_task_list,&
+                                              task_list_type
 #include "./base/base_uses.f90"
 
    IMPLICIT NONE
    PRIVATE
-   PUBLIC :: admm_env_create, admm_env_release, admm_type
+   PUBLIC :: admm_env_create, admm_env_release, admm_type, admm_gapw_type
 
    CHARACTER(len=*), PARAMETER, PRIVATE :: moduleN = 'admm_types'
 
@@ -44,6 +55,20 @@ MODULE admm_types
    TYPE eigvals_p_type
       TYPE(eigvals_type), POINTER              :: eigvals
    END TYPE
+
+! **************************************************************************************************
+!> \brief A subtype of the admm_env that contains the extra data needed for an ADMM GAPW calculation
+!> \param admm_kind_set gets its own qs_kind set to store all relevant basis/grid/etc info
+!> \param local_rho_set caontains soft and hard AUX_FIT atomoc densities
+!> \param task_list the task list used for all soft density pw operations
+!> \param oce stores the precomputed oce integrals
+! **************************************************************************************************
+   TYPE admm_gapw_type
+      TYPE(qs_kind_type), DIMENSION(:), POINTER          :: admm_kind_set => Null()
+      TYPE(local_rho_type), POINTER                      :: local_rho_set => Null()
+      TYPE(task_list_type), POINTER                      :: task_list => Null()
+      TYPE(oce_matrix_type), POINTER                     :: oce => Null()
+   END TYPE admm_gapw_type
 
 ! **************************************************************************************************
 !> \brief stores some data used in wavefunction fitting
@@ -67,6 +92,8 @@ MODULE admm_types
 !> \param nmo number of molecular orbitals per spin
 !> \param eigvals_lamda eigenvalues of lambda matrix
 !> \param gsi contains ratio N_dens_m/N_aux_dens_m
+!> \param admm_gapw_env the type containing ADMM GAPW specific data
+!> \param do_gapw an internal logical switch for GAPW
 !> \par History
 !>      05.2008 created [Manuel Guidon]
 !> \author Manuel Guidon
@@ -129,7 +156,9 @@ MODULE admm_types
       REAL(KIND=dp), DIMENSION(3)              :: aux_x_param
       LOGICAL                                  :: block_dm = .FALSE.
       LOGICAL                                  :: block_fit = .FALSE.
-      INTEGER, DIMENSION(:, :), POINTER         :: block_map => Null()
+      INTEGER, DIMENSION(:, :), POINTER        :: block_map => Null()
+      TYPE(admm_gapw_type), POINTER            :: admm_gapw_env
+      LOGICAL                                  :: do_gapw = .FALSE.
    END TYPE
 
 CONTAINS
@@ -153,9 +182,6 @@ CONTAINS
       TYPE(mo_set_p_type), DIMENSION(:), POINTER         :: mos, mos_aux_fit
       TYPE(cp_para_env_type), POINTER                    :: para_env
       INTEGER, INTENT(IN)                                :: natoms
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'admm_env_create', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, iatom, iblock, ispin, j, jatom, &
                                                             nao_aux_fit, nao_orb, nmo, nspins
@@ -322,6 +348,10 @@ CONTAINS
             END DO
          END DO
       ENDIF
+
+      NULLIFY (admm_env%admm_gapw_env)
+      admm_env%do_gapw = .FALSE.
+
    END SUBROUTINE admm_env_create
 
 ! **************************************************************************************************
@@ -334,9 +364,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE admm_env_release(admm_env)
       TYPE(admm_type), POINTER                           :: admm_env
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'admm_env_release', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ispin
 
@@ -418,9 +445,39 @@ CONTAINS
       IF (ASSOCIATED(admm_env%xc_section_aux)) &
          CALL section_vals_release(admm_env%xc_section_aux)
 
+      IF (ASSOCIATED(admm_env%admm_gapw_env)) CALL admm_gapw_env_release(admm_env%admm_gapw_env)
+
       DEALLOCATE (admm_env)
 
    END SUBROUTINE admm_env_release
+
+! **************************************************************************************************
+!> \brief Release the ADMM GAPW stuff
+!> \param admm_gapw_env ...
+! **************************************************************************************************
+   SUBROUTINE admm_gapw_env_release(admm_gapw_env)
+
+      TYPE(admm_gapw_type), POINTER                      :: admm_gapw_env
+
+      IF (ASSOCIATED(admm_gapw_env%admm_kind_set)) THEN
+         CALL deallocate_qs_kind_set(admm_gapw_env%admm_kind_set)
+      END IF
+
+      IF (ASSOCIATED(admm_gapw_env%local_rho_set)) THEN
+         CALL local_rho_set_release(admm_gapw_env%local_rho_set)
+      END IF
+
+      IF (ASSOCIATED(admm_gapw_env%task_list)) THEN
+         CALL deallocate_task_list(admm_gapw_env%task_list)
+      END IF
+
+      IF (ASSOCIATED(admm_gapw_env%oce)) THEN
+         CALL deallocate_oce_set(admm_gapw_env%oce)
+      END IF
+
+      DEALLOCATE (admm_gapw_env)
+
+   END SUBROUTINE admm_gapw_env_release
 
 END MODULE admm_types
 

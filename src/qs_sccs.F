@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -55,7 +57,8 @@ MODULE qs_sccs
                                               default_string_length,&
                                               dp,&
                                               int_8
-   USE mathconstants,                   ONLY: twopi
+   USE mathconstants,                   ONLY: fourpi,&
+                                              twopi
    USE message_passing,                 ONLY: mp_max,&
                                               mp_sum
    USE particle_list_types,             ONLY: particle_list_type
@@ -128,8 +131,8 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(3, 3), INTENT(OUT), &
          OPTIONAL                                        :: h_stress
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'sccs', routineP = moduleN//':'//routineN
-      REAL(KIND=dp), PARAMETER                           :: tol = 1.0E-12_dp
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'sccs'
+      REAL(KIND=dp), PARAMETER                           :: epstol = 1.0E-8_dp
 
       CHARACTER(LEN=4*default_string_length)             :: message
       CHARACTER(LEN=default_path_length)                 :: mpi_filename
@@ -142,9 +145,9 @@ CONTAINS
       INTEGER, DIMENSION(3)                              :: lb, ub
       LOGICAL                                            :: append_cube, calculate_stress_tensor, &
                                                             mpi_io, should_output
-      REAL(KIND=dp) :: cavity_surface, cavity_volume, cell_volume, dphi2, dvol, eps0, f, &
-         norm_drho2, polarisation_charge, rho_delta, rho_delta_avg, rho_delta_max, rho_iter_new, &
-         tot_rho_elec, tot_rho_solute
+      REAL(KIND=dp) :: cavity_surface, cavity_volume, cell_volume, dphi2, dvol, e_tot, &
+         epsilon_solvent, f, norm_drho2, polarisation_charge, rho_delta, rho_delta_avg, &
+         rho_delta_max, rho_iter_new, tot_rho_elec, tot_rho_solute
       REAL(KIND=dp), DIMENSION(3)                        :: abc
       TYPE(cp_logger_type), POINTER                      :: logger
       TYPE(cp_para_env_type), POINTER                    :: para_env
@@ -155,13 +158,14 @@ CONTAINS
       TYPE(pw_p_type), DIMENSION(3)                      :: dln_eps_elec, dphi_tot, drho_elec
       TYPE(pw_p_type), DIMENSION(3, 3)                   :: d2rho_elec
       TYPE(pw_p_type), DIMENSION(5)                      :: work_r3d
-      TYPE(pw_p_type), DIMENSION(:), POINTER             :: rho_r
-      TYPE(pw_p_type), POINTER                           :: rho_r_sccs
+      TYPE(pw_p_type), DIMENSION(:), POINTER             :: rho_pw_r
+      TYPE(pw_p_type), POINTER                           :: rho_pw_r_sccs
       TYPE(pw_poisson_type), POINTER                     :: poisson_env
       TYPE(pw_pool_p_type), DIMENSION(:), POINTER        :: pw_pools
       TYPE(pw_pool_type), POINTER                        :: auxbas_pw_pool
       TYPE(pw_type), POINTER :: deps_elec, eps_elec, ln_eps_elec, norm_drho_elec, phi_pol, &
-         phi_solute, rho_elec, rho_iter_old, rho_solute, rho_tot, rho_tot_zero, theta
+         phi_solute, phi_tot, rho_elec, rho_iter_old, rho_pol, rho_solute, rho_tot, rho_tot_zero, &
+         theta
       TYPE(qs_energy_type), POINTER                      :: energy
       TYPE(qs_rho_type), POINTER                         :: rho
       TYPE(qs_scf_env_type), POINTER                     :: scf_env
@@ -184,12 +188,14 @@ CONTAINS
       NULLIFY (particles)
       NULLIFY (phi_pol)
       NULLIFY (phi_solute)
+      NULLIFY (phi_tot)
       NULLIFY (poisson_env)
       NULLIFY (pw_env)
       NULLIFY (pw_pools)
       NULLIFY (rho)
       NULLIFY (rho_elec)
       NULLIFY (rho_iter_old)
+      NULLIFY (rho_pol)
       NULLIFY (rho_solute)
       NULLIFY (rho_tot)
       NULLIFY (rho_tot_zero)
@@ -219,7 +225,7 @@ CONTAINS
       IF (PRESENT(h_stress)) THEN
          calculate_stress_tensor = .TRUE.
          h_stress(:, :) = 0.0_dp
-         CPABORT("No stress tensor is implemented for SCCS models yet")
+         CPWARN("The stress tensor for SCCS has not yet been fully validated")
       ELSE
          calculate_stress_tensor = .FALSE.
       END IF
@@ -238,14 +244,24 @@ CONTAINS
             IF ((scf_env%iter_delta > sccs_control%eps_scf) .OR. &
                 ((qs_env%scf_env%outer_scf%iter_count == 0) .AND. &
                  (qs_env%scf_env%iter_count <= 1))) THEN
-               CALL pw_poisson_solve(poisson_env=poisson_env, &
-                                     density=rho_tot_gspace, &
-                                     ehartree=energy%hartree, &
-                                     vhartree=v_hartree_gspace)
+               IF (calculate_stress_tensor) THEN
+                  ! Request also the calculation of the stress tensor contribution
+                  CALL pw_poisson_solve(poisson_env=poisson_env, &
+                                        density=rho_tot_gspace, &
+                                        ehartree=energy%hartree, &
+                                        vhartree=v_hartree_gspace, &
+                                        h_stress=h_stress)
+               ELSE
+                  CALL pw_poisson_solve(poisson_env=poisson_env, &
+                                        density=rho_tot_gspace, &
+                                        ehartree=energy%hartree, &
+                                        vhartree=v_hartree_gspace)
+               END IF
                energy%sccs_pol = 0.0_dp
                energy%sccs_cav = 0.0_dp
                energy%sccs_dis = 0.0_dp
                energy%sccs_rep = 0.0_dp
+               energy%sccs_hartree = energy%hartree
                CALL timestop(handle)
                RETURN
             END IF
@@ -288,17 +304,17 @@ CONTAINS
 
       ! Get rho
       CALL qs_rho_get(rho_struct=rho, &
-                      rho_r=rho_r, &
-                      rho_r_sccs=rho_r_sccs)
+                      rho_r=rho_pw_r, &
+                      rho_r_sccs=rho_pw_r_sccs)
 
       ! Retrieve the last rho_iter from the previous SCCS cycle if available
-      CPASSERT(ASSOCIATED(rho_r_sccs))
-      rho_iter_old => rho_r_sccs%pw
+      CPASSERT(ASSOCIATED(rho_pw_r_sccs))
+      rho_iter_old => rho_pw_r_sccs%pw
 
       ! Retrieve the total electronic density in r-space
-      CALL pw_copy(rho_r(1)%pw, rho_elec)
+      CALL pw_copy(rho_pw_r(1)%pw, rho_elec)
       DO ispin = 2, nspin
-         CALL pw_axpy(rho_r(ispin)%pw, rho_elec)
+         CALL pw_axpy(rho_pw_r(ispin)%pw, rho_elec)
       END DO
       tot_rho_elec = accurate_sum(rho_elec%cr3d)*dvol
       CALL mp_sum(tot_rho_elec, para_env%group)
@@ -306,13 +322,14 @@ CONTAINS
       ! Calculate the dielectric (smoothed) function of rho_elec in r-space
       eps_elec => work_r3d(2)%pw
       deps_elec => work_r3d(3)%pw
-      eps0 = sccs_control%epsilon_solvent
+      ! Relative permittivity or dielectric constant of the solvent (medium)
+      epsilon_solvent = sccs_control%epsilon_solvent
       SELECT CASE (sccs_control%method_id)
       CASE (sccs_andreussi)
-         CALL andreussi(rho_elec, eps_elec, deps_elec, eps0, sccs_control%rho_max, &
+         CALL andreussi(rho_elec, eps_elec, deps_elec, epsilon_solvent, sccs_control%rho_max, &
                         sccs_control%rho_min)
       CASE (sccs_fattebert_gygi)
-         CALL fattebert_gygi(rho_elec, eps_elec, deps_elec, eps0, sccs_control%beta, &
+         CALL fattebert_gygi(rho_elec, eps_elec, deps_elec, epsilon_solvent, sccs_control%beta, &
                              sccs_control%rho_zero)
       CASE DEFAULT
          CPABORT("Invalid method specified for SCCS model")
@@ -337,8 +354,9 @@ CONTAINS
             ELSE
                filename = mpi_filename
             END IF
-            WRITE (UNIT=output_unit, FMT="(/,T2,A,/,/,T2,A)") &
-               "The dielectric function is written in cube file format to the file:", TRIM(filename)
+            WRITE (UNIT=output_unit, FMT="(T3,A)") &
+               "SCCS| The dielectric function is written in cube file format to the file:", &
+               "SCCS| "//TRIM(filename)
          END IF
          CALL cp_pw_to_cube(eps_elec, cube_unit, TRIM(filename), particles=particles, &
                             stride=section_get_ivals(input, TRIM(cube_path)//"%STRIDE"), &
@@ -350,21 +368,21 @@ CONTAINS
       cavity_surface = 0.0_dp
       cavity_volume = 0.0_dp
 
-      IF (should_output .AND. (ABS(eps0-1.0_dp) > tol)) THEN
+      IF (should_output .AND. (ABS(epsilon_solvent - 1.0_dp) > epstol)) THEN
 
          ! Initialise the switching function theta
          theta => work_r3d(4)%pw
          CALL pw_zero(theta)
 
          ! Calculate the (quantum) volume of the solute cavity
-         f = 1.0_dp/(eps0-1.0_dp)
+         f = 1.0_dp/(epsilon_solvent - 1.0_dp)
 !$OMP    PARALLEL DO DEFAULT(NONE) &
 !$OMP                PRIVATE(i,j,k) &
-!$OMP                SHARED(eps0,eps_elec,f,lb,theta,ub)
+!$OMP                SHARED(epsilon_solvent,eps_elec,f,lb,theta,ub)
          DO k = lb(3), ub(3)
             DO j = lb(2), ub(2)
                DO i = lb(1), ub(1)
-                  theta%cr3d(i, j, k) = f*(eps0-eps_elec%cr3d(i, j, k))
+                  theta%cr3d(i, j, k) = f*(epsilon_solvent - eps_elec%cr3d(i, j, k))
                END DO
             END DO
          END DO
@@ -392,9 +410,9 @@ CONTAINS
             DO j = lb(2), ub(2)
                DO i = lb(1), ub(1)
                   norm_drho_elec%cr3d(i, j, k) = SQRT(drho_elec(1)%pw%cr3d(i, j, k)* &
-                                                      drho_elec(1)%pw%cr3d(i, j, k)+ &
+                                                      drho_elec(1)%pw%cr3d(i, j, k) + &
                                                       drho_elec(2)%pw%cr3d(i, j, k)* &
-                                                      drho_elec(2)%pw%cr3d(i, j, k)+ &
+                                                      drho_elec(2)%pw%cr3d(i, j, k) + &
                                                       drho_elec(3)%pw%cr3d(i, j, k)* &
                                                       drho_elec(3)%pw%cr3d(i, j, k))
                END DO
@@ -421,8 +439,9 @@ CONTAINS
                ELSE
                   filename = mpi_filename
                END IF
-               WRITE (UNIT=output_unit, FMT="(/,T2,A,/,/,T2,A)") &
-                  "The norm of the density gradient is written in cube file format to the file:", TRIM(filename)
+               WRITE (UNIT=output_unit, FMT="(T3,A)") &
+                  "SCCS| The norm of the density gradient is written in cube file format to the file:", &
+                  "SCCS| "//TRIM(filename)
             END IF
             CALL cp_pw_to_cube(norm_drho_elec, cube_unit, TRIM(filename), particles=particles, &
                                stride=section_get_ivals(input, TRIM(cube_path)//"%STRIDE"), &
@@ -433,11 +452,11 @@ CONTAINS
          ! Calculate the (quantum) surface of the solute cavity
          SELECT CASE (sccs_control%method_id)
          CASE (sccs_andreussi)
-            CALL surface_andreussi(rho_elec, norm_drho_elec, theta, eps0, &
+            CALL surface_andreussi(rho_elec, norm_drho_elec, theta, epsilon_solvent, &
                                    sccs_control%rho_max, sccs_control%rho_min, &
                                    sccs_control%delta_rho)
          CASE (sccs_fattebert_gygi)
-            CALL surface_fattebert_gygi(rho_elec, norm_drho_elec, theta, eps0, &
+            CALL surface_fattebert_gygi(rho_elec, norm_drho_elec, theta, epsilon_solvent, &
                                         sccs_control%beta, sccs_control%rho_zero, &
                                         sccs_control%delta_rho)
          CASE DEFAULT
@@ -480,7 +499,7 @@ CONTAINS
                            v_sccs%cr3d(i, j, k) = sccs_control%gamma_solvent*theta%cr3d(i, j, k)* &
                                                   (drho_elec(di)%pw%cr3d(i, j, k)* &
                                                    drho_elec(dj)%pw%cr3d(i, j, k)* &
-                                                   d2rho_elec(di, dj)%pw%cr3d(i, j, k)/norm_drho2- &
+                                                   d2rho_elec(di, dj)%pw%cr3d(i, j, k)/norm_drho2 - &
                                                    d2rho_elec(di, di)%pw%cr3d(i, j, k))/norm_drho2
                         END DO
                      END DO
@@ -524,7 +543,7 @@ CONTAINS
       DO k = lb(3), ub(3)
          DO j = lb(2), ub(2)
             DO i = lb(1), ub(1)
-               IF (eps_elec%cr3d(i, j, k) < 1.0E-12_dp) THEN
+               IF (eps_elec%cr3d(i, j, k) < 1.0_dp) THEN
                   WRITE (UNIT=message, FMT="(A,ES12.3,A,3(I0,A))") &
                      "SCCS| Invalid dielectric function value ", eps_elec%cr3d(i, j, k), &
                      " encountered at grid point (", i, ",", j, ",", k, ")"
@@ -555,22 +574,25 @@ CONTAINS
       ! Print header for the SCCS cycle
       IF (should_output .AND. (output_unit > 0)) THEN
          IF (print_level > low_print_level) THEN
-            WRITE (UNIT=output_unit, FMT="(/,(T3,A,T61,F20.10))") &
+            WRITE (UNIT=output_unit, FMT="(T3,A,T56,F25.12)") &
                "SCCS| Total electronic charge density ", -tot_rho_elec, &
                "SCCS| Total charge density (solute)   ", -tot_rho_solute
             WRITE (UNIT=output_unit, FMT="(T3,A,T56,F25.3)") &
-               "SCCS| Surface of the solute cavity [bohr^2]", cavity_surface, &
-               "SCCS|                              [angstrom^2]", &
-               cp_unit_from_cp2k(cavity_surface, "angstrom^2"), &
-               "SCCS| Volume of the solute cavity  [bohr^3]", cavity_volume, &
-               "SCCS|                              [angstrom^3]", &
-               cp_unit_from_cp2k(cavity_volume, "angstrom^3"), &
                "SCCS| Volume of the cell           [bohr^3]", cell_volume, &
                "SCCS|                              [angstrom^3]", &
                cp_unit_from_cp2k(cell_volume, "angstrom^3")
+            IF (ABS(epsilon_solvent - 1.0_dp) > epstol) THEN
+               WRITE (UNIT=output_unit, FMT="(T3,A,T56,F25.3)") &
+                  "SCCS| Volume of the solute cavity  [bohr^3]", cavity_volume, &
+                  "SCCS|                              [angstrom^3]", &
+                  cp_unit_from_cp2k(cavity_volume, "angstrom^3"), &
+                  "SCCS| Surface of the solute cavity [bohr^2]", cavity_surface, &
+                  "SCCS|                              [angstrom^2]", &
+                  cp_unit_from_cp2k(cavity_surface, "angstrom^2")
+            END IF
             WRITE (UNIT=output_unit, FMT="(T3,A)") &
                "SCCS|", &
-               "SCCS|   Step    Average residual    Maximum residual"
+               "SCCS|   Step    Average residual    Maximum residual         E(Hartree) [a.u.]"
          END IF
       END IF
 
@@ -587,9 +609,13 @@ CONTAINS
       rho_tot => ln_eps_elec
       NULLIFY (ln_eps_elec)
 
-      ! Initialise the total electronic density in r-space rho_tot with rho_tot_zero + rho_iter_zero
+      ! Initialise the total charge density in r-space rho_tot with rho_tot_zero + rho_iter_zero
       CALL pw_copy(rho_tot_zero, rho_tot)
       CALL pw_axpy(rho_iter_old, rho_tot)
+
+      phi_tot => work_r3d(5)%pw
+      CALL pw_zero(phi_tot)
+      NULLIFY (norm_drho_elec)
 
       ! Main SCCS iteration loop
       iter = 0
@@ -597,7 +623,7 @@ CONTAINS
       iter_loop: DO
 
          ! Increment iteration counter
-         iter = iter+1
+         iter = iter + 1
 
          ! Check if the requested maximum number of SCCS iterations is reached
          IF (iter > sccs_control%max_iter) THEN
@@ -612,11 +638,13 @@ CONTAINS
          ! Calculate derivative of the current total potential in r-space
          CALL pw_poisson_solve(poisson_env=poisson_env, &
                                density=rho_tot, &
+                               vhartree=phi_tot, &
                                dvhartree=dphi_tot)
+         energy%sccs_hartree = 0.5_dp*pw_integral_ab(rho_solute, phi_tot)
 
          ! Update total charge density (solute plus polarisation) in r-space
          ! based on the iterated polarisation charge density
-         f = 0.5_dp/twopi
+         f = 1.0_dp/fourpi
          rho_delta_avg = 0.0_dp
          rho_delta_max = 0.0_dp
 !$OMP    PARALLEL DO DEFAULT(NONE) &
@@ -628,15 +656,15 @@ CONTAINS
          DO k = lb(3), ub(3)
             DO j = lb(2), ub(2)
                DO i = lb(1), ub(1)
-                  rho_iter_new = (dln_eps_elec(1)%pw%cr3d(i, j, k)*dphi_tot(1)%pw%cr3d(i, j, k)+ &
-                                  dln_eps_elec(2)%pw%cr3d(i, j, k)*dphi_tot(2)%pw%cr3d(i, j, k)+ &
+                  rho_iter_new = (dln_eps_elec(1)%pw%cr3d(i, j, k)*dphi_tot(1)%pw%cr3d(i, j, k) + &
+                                  dln_eps_elec(2)%pw%cr3d(i, j, k)*dphi_tot(2)%pw%cr3d(i, j, k) + &
                                   dln_eps_elec(3)%pw%cr3d(i, j, k)*dphi_tot(3)%pw%cr3d(i, j, k))*f
-                  rho_iter_new = rho_iter_old%cr3d(i, j, k)+ &
-                                 sccs_control%mixing*(rho_iter_new-rho_iter_old%cr3d(i, j, k))
-                  rho_delta = ABS(rho_iter_new-rho_iter_old%cr3d(i, j, k))
+                  rho_iter_new = rho_iter_old%cr3d(i, j, k) + &
+                                 sccs_control%mixing*(rho_iter_new - rho_iter_old%cr3d(i, j, k))
+                  rho_delta = ABS(rho_iter_new - rho_iter_old%cr3d(i, j, k))
                   rho_delta_max = MAX(rho_delta, rho_delta_max)
-                  rho_delta_avg = rho_delta_avg+rho_delta
-                  rho_tot%cr3d(i, j, k) = rho_tot_zero%cr3d(i, j, k)+rho_iter_new
+                  rho_delta_avg = rho_delta_avg + rho_delta
+                  rho_tot%cr3d(i, j, k) = rho_tot_zero%cr3d(i, j, k) + rho_iter_new
                   rho_iter_old%cr3d(i, j, k) = rho_iter_new
                END DO
             END DO
@@ -651,11 +679,11 @@ CONTAINS
             IF (print_level > low_print_level) THEN
                IF ((ABS(rho_delta_avg) < 1.0E-8_dp) .OR. &
                    (ABS(rho_delta_avg) >= 1.0E5_dp)) THEN
-                  WRITE (UNIT=output_unit, FMT="(T3,A,I6,4X,ES16.4,4X,ES16.4)") &
-                     "SCCS| ", iter, rho_delta_avg, rho_delta_max
+                  WRITE (UNIT=output_unit, FMT="(T3,A,I6,4X,ES16.4,4X,ES16.4,1X,F25.12)") &
+                     "SCCS| ", iter, rho_delta_avg, rho_delta_max, energy%sccs_hartree
                ELSE
-                  WRITE (UNIT=output_unit, FMT="(T3,A,I6,4X,F16.8,4X,F16.8)") &
-                     "SCCS| ", iter, rho_delta_avg, rho_delta_max
+                  WRITE (UNIT=output_unit, FMT="(T3,A,I6,4X,F16.8,4X,F16.8,1X,F25.12)") &
+                     "SCCS| ", iter, rho_delta_avg, rho_delta_max, energy%sccs_hartree
                END IF
             END IF
          END IF
@@ -671,25 +699,58 @@ CONTAINS
 
       END DO iter_loop
 
-      ! Calculate the total Hartree energy, potential, and its derivatives of
-      ! the solute and the implicit solvent
+      ! Release work storage which is no longer needed
+      DO i = 1, 3
+         CALL pw_pool_give_back_pw(auxbas_pw_pool, dln_eps_elec(i)%pw)
+      END DO
+
+      ! Optional output of the total charge density in cube file format
+      filename = "TOTAL_CHARGE_DENSITY"
+      cube_path = TRIM(print_path)//"%"//TRIM(filename)
+      IF (BTEST(cp_print_key_should_output(logger%iter_info, input, TRIM(cube_path)), cp_p_file)) THEN
+         append_cube = section_get_lval(input, TRIM(cube_path)//"%APPEND")
+         my_pos_cube = "REWIND"
+         IF (append_cube) my_pos_cube = "APPEND"
+         mpi_io = .TRUE.
+         cube_unit = cp_print_key_unit_nr(logger, input, TRIM(cube_path), &
+                                          extension=".cube", middle_name=TRIM(filename), &
+                                          file_position=my_pos_cube, log_filename=.FALSE., &
+                                          mpi_io=mpi_io, fout=mpi_filename)
+         IF (output_unit > 0) THEN
+            IF (.NOT. mpi_io) THEN
+               INQUIRE (UNIT=cube_unit, NAME=filename)
+            ELSE
+               filename = mpi_filename
+            END IF
+            WRITE (UNIT=output_unit, FMT="(T3,A)") &
+               "SCCS| The total SCCS charge density is written in cube file format to the file:", &
+               "SCCS| "//TRIM(filename)
+         END IF
+         CALL cp_pw_to_cube(rho_tot, cube_unit, TRIM(filename), particles=particles, &
+                            stride=section_get_ivals(input, TRIM(cube_path)//"%STRIDE"), mpi_io=mpi_io)
+         CALL cp_print_key_finished_output(cube_unit, logger, input, TRIM(cube_path), mpi_io=mpi_io)
+      END IF
+
+      ! Calculate the total SCCS Hartree energy, potential, and its
+      ! derivatives of the solute and the implicit solvent
       CALL pw_transfer(rho_tot, rho_tot_gspace)
       IF (calculate_stress_tensor) THEN
+         ! Request also the calculation of the stress tensor contribution
          CALL pw_poisson_solve(poisson_env=poisson_env, &
                                density=rho_tot_gspace, &
-                               ehartree=energy%sccs_hartree, &
+                               ehartree=e_tot, &
                                vhartree=v_hartree_gspace, &
                                dvhartree=dphi_tot, &
                                h_stress=h_stress)
       ELSE
          CALL pw_poisson_solve(poisson_env=poisson_env, &
                                density=rho_tot_gspace, &
-                               ehartree=energy%sccs_hartree, &
+                               ehartree=e_tot, &
                                vhartree=v_hartree_gspace, &
                                dvhartree=dphi_tot)
       END IF
-      phi_pol => work_r3d(5)%pw
-      CALL pw_transfer(v_hartree_gspace, phi_pol)
+      CALL pw_transfer(v_hartree_gspace, phi_tot)
+      energy%sccs_hartree = 0.5_dp*pw_integral_ab(rho_solute, phi_tot)
 
       ! Calculate the Hartree energy and potential of the solute only
       phi_solute => rho_tot_zero
@@ -702,14 +763,11 @@ CONTAINS
 
       ! Calculate the polarisation potential
       ! phi_pol = phi_tot - phi_solute
-      CALL pw_axpy(phi_solute, phi_pol, alpha=-1.0_dp)
+      CALL pw_axpy(phi_solute, phi_tot, alpha=-1.0_dp)
+      phi_pol => phi_tot
+      NULLIFY (phi_tot)
 
-      ! Calculate the polarisation charge
-      ! rho_pol = rho_tot - rho_solute
-      CALL pw_axpy(rho_solute, rho_tot, alpha=-1.0_dp)
-      polarisation_charge = accurate_sum(rho_tot%cr3d)*dvol
-      CALL mp_sum(polarisation_charge, para_env%group)
-
+      ! Optional output of the SCCS polarisation potential in cube file format
       filename = "POLARISATION_POTENTIAL"
       cube_path = TRIM(print_path)//"%"//TRIM(filename)
       IF (BTEST(cp_print_key_should_output(logger%iter_info, input, TRIM(cube_path)), &
@@ -728,10 +786,47 @@ CONTAINS
             ELSE
                filename = mpi_filename
             END IF
-            WRITE (UNIT=output_unit, FMT="(/,T2,A,/,/,T2,A)") &
-               "The SCCS polarisation potential is written in cube file format to the file:", TRIM(filename)
+            WRITE (UNIT=output_unit, FMT="(T3,A)") &
+               "SCCS| The SCCS polarisation potential is written in cube file format to the file:", &
+               "SCCS| "//TRIM(filename)
          END IF
          CALL cp_pw_to_cube(phi_pol, cube_unit, TRIM(filename), particles=particles, &
+                            stride=section_get_ivals(input, TRIM(cube_path)//"%STRIDE"), mpi_io=mpi_io)
+         CALL cp_print_key_finished_output(cube_unit, logger, input, TRIM(cube_path), mpi_io=mpi_io)
+      END IF
+
+      ! Calculate the polarisation charge
+      ! rho_pol = rho_tot - rho_solute
+      CALL pw_axpy(rho_solute, rho_tot, alpha=-1.0_dp)
+      rho_pol => rho_tot
+      NULLIFY (rho_tot)
+      polarisation_charge = accurate_sum(rho_pol%cr3d)*dvol
+      CALL mp_sum(polarisation_charge, para_env%group)
+
+      ! Optional output of the SCCS polarisation charge in cube file format
+      filename = "POLARISATION_CHARGE_DENSITY"
+      cube_path = TRIM(print_path)//"%"//TRIM(filename)
+      IF (BTEST(cp_print_key_should_output(logger%iter_info, input, TRIM(cube_path)), &
+                cp_p_file)) THEN
+         append_cube = section_get_lval(input, TRIM(cube_path)//"%APPEND")
+         my_pos_cube = "REWIND"
+         IF (append_cube) my_pos_cube = "APPEND"
+         mpi_io = .TRUE.
+         cube_unit = cp_print_key_unit_nr(logger, input, TRIM(cube_path), &
+                                          extension=".cube", middle_name=TRIM(filename), &
+                                          file_position=my_pos_cube, log_filename=.FALSE., &
+                                          mpi_io=mpi_io, fout=mpi_filename)
+         IF (output_unit > 0) THEN
+            IF (.NOT. mpi_io) THEN
+               INQUIRE (UNIT=cube_unit, NAME=filename)
+            ELSE
+               filename = mpi_filename
+            END IF
+            WRITE (UNIT=output_unit, FMT="(T3,A)") &
+               "SCCS| The SCCS polarisation charge density is written in cube file format to the file:", &
+               "SCCS| "//TRIM(filename)
+         END IF
+         CALL cp_pw_to_cube(rho_pol, cube_unit, TRIM(filename), particles=particles, &
                             stride=section_get_ivals(input, TRIM(cube_path)//"%STRIDE"), mpi_io=mpi_io)
          CALL cp_print_key_finished_output(cube_unit, logger, input, TRIM(cube_path), mpi_io=mpi_io)
       END IF
@@ -754,39 +849,52 @@ CONTAINS
          WRITE (UNIT=output_unit, FMT="(T3,A,T56,F25.12)") &
             "SCCS| Polarisation charge", polarisation_charge
          WRITE (UNIT=output_unit, FMT="(T3,A,T56,F25.12)") &
-            "SCCS| Hartree energy of the solute only [Hartree]", energy%hartree, &
-            "SCCS| Hartree energy of solute and solvent [Hartree]", energy%sccs_hartree
+            !MK "SCCS| Total interaction energy [a.u.]", e_tot, &
+            "SCCS| Hartree energy of solute and solvent [a.u.]", energy%sccs_hartree, &
+            "SCCS| Hartree energy of the solute only [a.u.]", energy%hartree
          WRITE (UNIT=output_unit, FMT="(T3,A,T56,F25.12,/,T3,A,T61,F20.3)") &
-            "SCCS| Polarisation energy    [Hartree]", energy%sccs_pol, &
+            "SCCS| Polarisation energy    [a.u.]", energy%sccs_pol, &
             "SCCS|                        [kcal/mol]", &
-            cp_unit_from_cp2k(energy%sccs_pol, "kcalmol"), &
-            "SCCS| Makov-Payne correction [Hartree]", energy%sccs_mpc, &
-            "SCCS|                        [kcal/mol]", &
-            cp_unit_from_cp2k(energy%sccs_mpc, "kcalmol"), &
-            "SCCS| Cavitation energy      [Hartree]", energy%sccs_cav, &
-            "SCCS|                        [kcal/mol]", &
-            cp_unit_from_cp2k(energy%sccs_cav, "kcalmol"), &
-            "SCCS| Dispersion free energy [Hartree]", energy%sccs_dis, &
-            "SCCS|                        [kcal/mol]", &
-            cp_unit_from_cp2k(energy%sccs_dis, "kcalmol"), &
-            "SCCS| Repulsion free energy  [Hartree]", energy%sccs_rep, &
-            "SCCS|                        [kcal/mol]", &
-            cp_unit_from_cp2k(energy%sccs_rep, "kcalmol")
+            cp_unit_from_cp2k(energy%sccs_pol, "kcalmol")
+         IF (ABS(tot_rho_solute) > 1.0E-7) THEN
+            WRITE (UNIT=output_unit, FMT="(T3,A,T56,F25.12,/,T3,A,T61,F20.3)") &
+               "SCCS| Makov-Payne correction [a.u.]", energy%sccs_mpc, &
+               "SCCS|                        [kcal/mol]", &
+               cp_unit_from_cp2k(energy%sccs_mpc, "kcalmol")
+         END IF
+         IF (ABS(sccs_control%gamma_solvent) > 0.0_dp) THEN
+            WRITE (UNIT=output_unit, FMT="(T3,A,T56,F25.12,/,T3,A,T61,F20.3)") &
+               "SCCS| Cavitation energy      [a.u.]", energy%sccs_cav, &
+               "SCCS|                        [kcal/mol]", &
+               cp_unit_from_cp2k(energy%sccs_cav, "kcalmol")
+         END IF
+         IF (ABS(sccs_control%beta_solvent) > 0.0_dp) THEN
+            WRITE (UNIT=output_unit, FMT="(T3,A,T56,F25.12,/,T3,A,T61,F20.3)") &
+               "SCCS| Dispersion free energy [a.u.]", energy%sccs_dis, &
+               "SCCS|                        [kcal/mol]", &
+               cp_unit_from_cp2k(energy%sccs_dis, "kcalmol")
+         END IF
+         IF (ABS(sccs_control%alpha_solvent) > 0.0_dp) THEN
+            WRITE (UNIT=output_unit, FMT="(T3,A,T56,F25.12,/,T3,A,T61,F20.3)") &
+               "SCCS| Repulsion free energy  [a.u.]", energy%sccs_rep, &
+               "SCCS|                        [kcal/mol]", &
+               cp_unit_from_cp2k(energy%sccs_rep, "kcalmol")
+         END IF
       END IF
 
       ! Calculate SCCS contribution to the Kohn-Sham potential
-      f = -0.25_dp*dvol/twopi
+      f = -0.5_dp*dvol/fourpi
 !$OMP PARALLEL DO DEFAULT(NONE) &
 !$OMP             PRIVATE(dphi2,i,j,k) &
-!$OMP             SHARED(calculate_stress_tensor,f,deps_elec,dphi_tot) &
-!$OMP             SHARED(dvol,lb,ub,v_sccs)
+!$OMP             SHARED(f,deps_elec,dphi_tot) &
+!$OMP             SHARED(lb,ub,v_sccs)
       DO k = lb(3), ub(3)
          DO j = lb(2), ub(2)
             DO i = lb(1), ub(1)
-               dphi2 = dphi_tot(1)%pw%cr3d(i, j, k)*dphi_tot(1)%pw%cr3d(i, j, k)+ &
-                       dphi_tot(2)%pw%cr3d(i, j, k)*dphi_tot(2)%pw%cr3d(i, j, k)+ &
+               dphi2 = dphi_tot(1)%pw%cr3d(i, j, k)*dphi_tot(1)%pw%cr3d(i, j, k) + &
+                       dphi_tot(2)%pw%cr3d(i, j, k)*dphi_tot(2)%pw%cr3d(i, j, k) + &
                        dphi_tot(3)%pw%cr3d(i, j, k)*dphi_tot(3)%pw%cr3d(i, j, k)
-               v_sccs%cr3d(i, j, k) = v_sccs%cr3d(i, j, k)+f*deps_elec%cr3d(i, j, k)*dphi2
+               v_sccs%cr3d(i, j, k) = v_sccs%cr3d(i, j, k) + f*deps_elec%cr3d(i, j, k)*dphi2
             END DO
          END DO
       END DO
@@ -794,14 +902,15 @@ CONTAINS
 
       ! Release work storage
       NULLIFY (phi_solute)
-      NULLIFY (rho_tot)
+      NULLIFY (rho_pol)
       NULLIFY (deps_elec)
       NULLIFY (rho_solute)
+      NULLIFY (phi_pol)
       DO i = 1, SIZE(work_r3d)
          CALL pw_pool_give_back_pw(auxbas_pw_pool, work_r3d(i)%pw)
       END DO
+      NULLIFY (rho_iter_old)
       DO i = 1, 3
-         CALL pw_pool_give_back_pw(auxbas_pw_pool, dln_eps_elec(i)%pw)
          CALL pw_pool_give_back_pw(auxbas_pw_pool, dphi_tot(i)%pw)
       END DO
 
@@ -833,8 +942,8 @@ CONTAINS
       TYPE(pw_type), POINTER                             :: rho_elec, eps_elec, deps_elec
       REAL(KIND=dp), INTENT(IN)                          :: epsilon_solvent, rho_max, rho_min
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'andreussi', routineP = moduleN//':'//routineN
-      REAL(KIND=dp), PARAMETER                           :: tol = 1.0E-12_dp
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'andreussi'
+      REAL(KIND=dp), PARAMETER                           :: rhotol = 1.0E-12_dp
 
       INTEGER                                            :: handle, i, j, k
       INTEGER, DIMENSION(3)                              :: lb, ub
@@ -844,11 +953,12 @@ CONTAINS
       CALL timeset(routineN, handle)
 
       f = LOG(epsilon_solvent)/twopi
-      diff = rho_max-rho_min
-      IF (diff > tol) THEN
+      diff = rho_max - rho_min
+      IF (diff < SQRT(rhotol)) CPABORT("SCCS: Difference between rho(min) and rho(max) is too small")
+      IF (rho_min >= rhotol) THEN
          ln_rho_max = LOG(rho_max)
          ln_rho_min = LOG(rho_min)
-         q = twopi/(ln_rho_max-ln_rho_min)
+         q = twopi/(ln_rho_max - ln_rho_min)
          dq = -f*q
       END IF
 
@@ -858,7 +968,7 @@ CONTAINS
       ! Calculate the dielectric function and its derivative
 !$OMP PARALLEL DO DEFAULT(NONE) &
 !$OMP             PRIVATE(dt,i,j,k,rho,t,x,y) &
-!$OMP             SHARED(deps_elec,diff,dq,eps_elec,epsilon_solvent,f,lb,ub) &
+!$OMP             SHARED(deps_elec,dq,eps_elec,epsilon_solvent,f,lb,ub) &
 !$OMP             SHARED(ln_rho_max,rho_elec,q,rho_max,rho_min)
       DO k = lb(3), ub(3)
          DO j = lb(2), ub(2)
@@ -868,17 +978,12 @@ CONTAINS
                   eps_elec%cr3d(i, j, k) = epsilon_solvent
                   deps_elec%cr3d(i, j, k) = 0.0_dp
                ELSE IF (rho <= rho_max) THEN
-                  IF (diff > tol) THEN
-                     x = LOG(rho)
-                     y = q*(ln_rho_max-x)
-                     t = f*(y-SIN(y))
-                     eps_elec%cr3d(i, j, k) = EXP(t)
-                     dt = dq*(1.0_dp-COS(y))
-                     deps_elec%cr3d(i, j, k) = eps_elec%cr3d(i, j, k)*dt/rho
-                  ELSE
-                     eps_elec%cr3d(i, j, k) = 1.0_dp
-                     deps_elec%cr3d(i, j, k) = 0.0_dp
-                  END IF
+                  x = LOG(rho)
+                  y = q*(ln_rho_max - x)
+                  t = f*(y - SIN(y))
+                  eps_elec%cr3d(i, j, k) = EXP(t)
+                  dt = dq*(1.0_dp - COS(y))
+                  deps_elec%cr3d(i, j, k) = eps_elec%cr3d(i, j, k)*dt/rho
                ELSE
                   eps_elec%cr3d(i, j, k) = 1.0_dp
                   deps_elec%cr3d(i, j, k) = 0.0_dp
@@ -911,8 +1016,8 @@ CONTAINS
       TYPE(pw_type), POINTER                             :: rho_elec, eps_elec, deps_elec
       REAL(KIND=dp), INTENT(IN)                          :: epsilon_solvent, beta, rho_zero
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'fattebert_gygi', routineP = moduleN//':'//routineN
-      REAL(KIND=dp), PARAMETER                           :: tol = 1.0E-12_dp
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'fattebert_gygi'
+      REAL(KIND=dp), PARAMETER                           :: rhotol = 1.0E-12_dp
 
       INTEGER                                            :: handle, i, j, k
       INTEGER, DIMENSION(3)                              :: lb, ub
@@ -920,8 +1025,8 @@ CONTAINS
 
       CALL timeset(routineN, handle)
 
-      df = (1.0_dp-epsilon_solvent)/rho_zero
-      f = 0.5_dp*(epsilon_solvent-1.0_dp)
+      df = (1.0_dp - epsilon_solvent)/rho_zero
+      f = 0.5_dp*(epsilon_solvent - 1.0_dp)
       q = 1.0_dp/rho_zero
       twobeta = 2.0_dp*beta
 
@@ -937,14 +1042,14 @@ CONTAINS
          DO j = lb(2), ub(2)
             DO i = lb(1), ub(1)
                rho = rho_elec%cr3d(i, j, k)
-               IF (rho < tol) THEN
+               IF (rho < rhotol) THEN
                   eps_elec%cr3d(i, j, k) = epsilon_solvent
                   deps_elec%cr3d(i, j, k) = 0.0_dp
                ELSE
                   s = rho*q
                   p = s**twobeta
-                  t = 1.0_dp/(1.0_dp+p)
-                  eps_elec%cr3d(i, j, k) = 1.0_dp+f*(1.0_dp+(1.0_dp-p)*t)
+                  t = 1.0_dp/(1.0_dp + p)
+                  eps_elec%cr3d(i, j, k) = 1.0_dp + f*(1.0_dp + (1.0_dp - p)*t)
                   deps_elec%cr3d(i, j, k) = df*twobeta*t*t*p/s
                END IF
             END DO
@@ -978,7 +1083,7 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: input
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'derive', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'derive'
 
       INTEGER                                            :: border_points, handle, i
       INTEGER, DIMENSION(3)                              :: lb, n, ub
@@ -994,6 +1099,7 @@ CONTAINS
       CPASSERT(ASSOCIATED(f))
       CPASSERT(ASSOCIATED(pw_env))
       CPASSERT(ASSOCIATED(para_env))
+      MARK_USED(para_env)
 
       ! Perform method specific setup
       SELECT CASE (method)
@@ -1009,12 +1115,12 @@ CONTAINS
          CASE (sccs_derivative_cd7)
             border_points = 3
          END SELECT
-         CALL init_input_type(input_settings, 2*border_points+1, rs_grid_section, &
+         CALL init_input_type(input_settings, 2*border_points + 1, rs_grid_section, &
                               1, (/-1, -1, -1/))
          CALL rs_grid_create_descriptor(rs_desc, f%pw_grid, input_settings, &
                                         border_points=border_points)
          CALL rs_grid_create(rs_grid, rs_desc)
-!MK    CALL rs_grid_print(rs_grid,6)
+!MK      CALL rs_grid_print(rs_grid, 6)
       CASE (sccs_derivative_fft)
          lb(1:3) = f%pw_grid%bounds_local(1, 1:3)
          ub(1:3) = f%pw_grid%bounds_local(2, 1:3)
@@ -1091,9 +1197,8 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: epsilon_solvent, rho_max, rho_min, &
                                                             delta_rho
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'surface_andreussi', &
-         routineP = moduleN//':'//routineN
-      REAL(KIND=dp), PARAMETER                           :: tol = 1.0E-12_dp
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'surface_andreussi'
+      REAL(KIND=dp), PARAMETER                           :: rhotol = 1.0E-12_dp
 
       INTEGER                                            :: handle, i, j, k, l
       INTEGER, DIMENSION(3)                              :: lb, ub
@@ -1103,13 +1208,14 @@ CONTAINS
 
       CALL timeset(routineN, handle)
 
-      e = epsilon_solvent-1.0_dp
+      e = epsilon_solvent - 1.0_dp
       f = LOG(epsilon_solvent)/twopi
-      diff = rho_max-rho_min
-      IF (diff > tol) THEN
+      diff = rho_max - rho_min
+      IF (diff < SQRT(rhotol)) CPABORT("SCCS: Difference between rho(min) and rho(max) is too small")
+      IF (rho_min >= rhotol) THEN
          ln_rho_max = LOG(rho_max)
          ln_rho_min = LOG(rho_min)
-         q = twopi/(ln_rho_max-ln_rho_min)
+         q = twopi/(ln_rho_max - ln_rho_min)
       END IF
 
       lb(1:3) = rho_elec%pw_grid%bounds_local(1, 1:3)
@@ -1118,30 +1224,26 @@ CONTAINS
       ! Calculate finite difference between two isosurfaces
 !$OMP PARALLEL DO DEFAULT(NONE) &
 !$OMP             PRIVATE(eps_elec,i,j,k,l,rho,t,theta,x,y) &
-!$OMP             SHARED(delta_rho,diff,dtheta,e,epsilon_solvent,f,lb) &
+!$OMP             SHARED(delta_rho,dtheta,e,epsilon_solvent,f,lb) &
 !$OMP             SHARED(ln_rho_max,norm_drho_elec,rho_elec,q,rho_max,rho_min,ub)
       DO k = lb(3), ub(3)
          DO j = lb(2), ub(2)
             DO i = lb(1), ub(1)
                DO l = 1, 2
-                  rho = rho_elec%cr3d(i, j, k)+(REAL(l, KIND=dp)-1.5_dp)*delta_rho
+                  rho = rho_elec%cr3d(i, j, k) + (REAL(l, KIND=dp) - 1.5_dp)*delta_rho
                   IF (rho < rho_min) THEN
                      eps_elec = epsilon_solvent
                   ELSE IF (rho <= rho_max) THEN
-                     IF (diff > tol) THEN
-                        x = LOG(rho)
-                        y = q*(ln_rho_max-x)
-                        t = f*(y-SIN(y))
-                        eps_elec = EXP(t)
-                     ELSE
-                        eps_elec = 1.0_dp
-                     END IF
+                     x = LOG(rho)
+                     y = q*(ln_rho_max - x)
+                     t = f*(y - SIN(y))
+                     eps_elec = EXP(t)
                   ELSE
                      eps_elec = 1.0_dp
                   END IF
-                  theta(l) = (epsilon_solvent-eps_elec)/e
+                  theta(l) = (epsilon_solvent - eps_elec)/e
                END DO
-               dtheta%cr3d(i, j, k) = (theta(2)-theta(1))*norm_drho_elec%cr3d(i, j, k)/delta_rho
+               dtheta%cr3d(i, j, k) = (theta(2) - theta(1))*norm_drho_elec%cr3d(i, j, k)/delta_rho
             END DO
          END DO
       END DO
@@ -1175,9 +1277,8 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: epsilon_solvent, beta, rho_zero, &
                                                             delta_rho
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'surface_fattebert_gygi', &
-         routineP = moduleN//':'//routineN
-      REAL(KIND=dp), PARAMETER                           :: tol = 1.0E-12_dp
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'surface_fattebert_gygi'
+      REAL(KIND=dp), PARAMETER                           :: rhotol = 1.0E-12_dp
 
       INTEGER                                            :: handle, i, j, k, l
       INTEGER, DIMENSION(3)                              :: lb, ub
@@ -1186,7 +1287,7 @@ CONTAINS
 
       CALL timeset(routineN, handle)
 
-      e = epsilon_solvent-1.0_dp
+      e = epsilon_solvent - 1.0_dp
       f = 0.5_dp*e
       q = 1.0_dp/rho_zero
       twobeta = 2.0_dp*beta
@@ -1203,18 +1304,18 @@ CONTAINS
          DO j = lb(2), ub(2)
             DO i = lb(1), ub(1)
                DO l = 1, 2
-                  rho = rho_elec%cr3d(i, j, k)+(REAL(l, KIND=dp)-1.5_dp)*delta_rho
-                  IF (rho < tol) THEN
+                  rho = rho_elec%cr3d(i, j, k) + (REAL(l, KIND=dp) - 1.5_dp)*delta_rho
+                  IF (rho < rhotol) THEN
                      eps_elec = epsilon_solvent
                   ELSE
                      s = rho*q
                      p = s**twobeta
-                     t = 1.0_dp/(1.0_dp+p)
-                     eps_elec = 1.0_dp+f*(1.0_dp+(1.0_dp-p)*t)
+                     t = 1.0_dp/(1.0_dp + p)
+                     eps_elec = 1.0_dp + f*(1.0_dp + (1.0_dp - p)*t)
                   END IF
-                  theta(l) = (epsilon_solvent-eps_elec)/e
+                  theta(l) = (epsilon_solvent - eps_elec)/e
                END DO
-               dtheta%cr3d(i, j, k) = (theta(2)-theta(1))*norm_drho_elec%cr3d(i, j, k)/delta_rho
+               dtheta%cr3d(i, j, k) = (theta(2) - theta(1))*norm_drho_elec%cr3d(i, j, k)/delta_rho
             END DO
          END DO
       END DO

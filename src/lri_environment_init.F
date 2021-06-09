@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -63,8 +65,6 @@ CONTAINS
       TYPE(lri_environment_type), POINTER                :: lri_env
       TYPE(section_vals_type), POINTER                   :: lri_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'lri_env_init', routineP = moduleN//':'//routineN
-
       REAL(KIND=dp), DIMENSION(:), POINTER               :: radii
 
       NULLIFY (lri_env)
@@ -126,8 +126,6 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(lri_environment_type), POINTER                :: lri_env
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'lri_env_basis', routineP = moduleN//':'//routineN
 
       INTEGER :: i, i1, i2, iat, ikind, ip, ipgf, iset, ishell, jp, l, lmax_ikind_orb, &
          lmax_ikind_ri, maxl_orb, maxl_ri, n1, n2, natom, nbas, nkind, nribas, nspin
@@ -215,7 +213,7 @@ CONTAINS
                         DO ipgf = 1, orb_basis_set%npgf(iset)
                            gcc = orb_basis_set%gcc(ipgf, ishell, iset)
                            zeta = orb_basis_set%zet(ipgf, iset)
-                           rad = exp_radius(l, zeta, 1.e-5_dp, gcc)
+                           rad = exp_radius(l, zeta, 1.e-5_dp, gcc, rlow=xradius)
                            xradius = MAX(xradius, rad)
                         END DO
                         lri_env%wbas(i)%vec(i1:i2) = xradius
@@ -287,9 +285,9 @@ CONTAINS
          DO iat = 1, natom
             ikind = kind_of(iat)
             nribas = lri_env%ri_basis(ikind)%gto_basis_set%nsgf
-            lri_env%ri_fit%bas_ptr(1, iat) = nbas+1
-            lri_env%ri_fit%bas_ptr(2, iat) = nbas+nribas
-            nbas = nbas+nribas
+            lri_env%ri_fit%bas_ptr(1, iat) = nbas + 1
+            lri_env%ri_fit%bas_ptr(2, iat) = nbas + nribas
+            nbas = nbas + nribas
          END DO
          ! initialize vector t
          CALL get_qs_env(qs_env=qs_env, dft_control=dft_control)
@@ -334,8 +332,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE lri_basis_init(lri_env)
       TYPE(lri_environment_type), POINTER                :: lri_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'lri_basis_init', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ikind, nkind
       INTEGER, DIMENSION(:, :, :), POINTER               :: orb_index, ri_index
@@ -419,9 +415,6 @@ CONTAINS
       TYPE(gto_basis_set_type), POINTER                  :: basis
       REAL(dp), DIMENSION(:), POINTER                    :: norm
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'basis_norm_s_func', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ipgf, iset, isgf, ishell, jpgf, l, nbas
       REAL(KIND=dp)                                      :: aai, aaj, cci, ccj, expa, ppl
 
@@ -435,7 +428,7 @@ CONTAINS
          DO ishell = 1, basis%nshell(iset)
             l = basis%l(ishell, iset)
             IF (l /= 0) CYCLE
-            expa = 0.5_dp*REAL(2*l+3, dp)
+            expa = 0.5_dp*REAL(2*l + 3, dp)
             ppl = pi**(3._dp/2._dp)
             DO isgf = basis%first_sgf(ishell, iset), basis%last_sgf(ishell, iset)
                DO ipgf = 1, basis%npgf(iset)
@@ -444,7 +437,7 @@ CONTAINS
                   DO jpgf = 1, basis%npgf(iset)
                      ccj = basis%gcc(jpgf, ishell, iset)
                      aaj = basis%zet(jpgf, iset)
-                     norm(isgf) = norm(isgf)+cci*ccj*ppl/(aai+aaj)**expa
+                     norm(isgf) = norm(isgf) + cci*ccj*ppl/(aai + aaj)**expa
                   END DO
                END DO
                norm(isgf) = 1.0_dp/SQRT(norm(isgf))
@@ -465,9 +458,6 @@ CONTAINS
       TYPE(gto_basis_set_type), POINTER                  :: basis
       REAL(dp), DIMENSION(:), POINTER                    :: norm
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'basis_norm_radial', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ipgf, iset, isgf, ishell, jpgf, l, nbas
       REAL(KIND=dp)                                      :: aai, aaj, cci, ccj, expa, ppl
 
@@ -480,8 +470,8 @@ CONTAINS
       DO iset = 1, basis%nset
          DO ishell = 1, basis%nshell(iset)
             l = basis%l(ishell, iset)
-            expa = 0.5_dp*REAL(2*l+3, dp)
-            ppl = fac(2*l+2)*SQRT(pi)/2._dp**REAL(2*l+3, dp)/fac(l+1)
+            expa = 0.5_dp*REAL(2*l + 3, dp)
+            ppl = fac(2*l + 2)*SQRT(pi)/2._dp**REAL(2*l + 3, dp)/fac(l + 1)
             DO isgf = basis%first_sgf(ishell, iset), basis%last_sgf(ishell, iset)
                DO ipgf = 1, basis%npgf(iset)
                   cci = basis%gcc(ipgf, ishell, iset)
@@ -489,7 +479,7 @@ CONTAINS
                   DO jpgf = 1, basis%npgf(iset)
                      ccj = basis%gcc(jpgf, ishell, iset)
                      aaj = basis%zet(jpgf, iset)
-                     norm(isgf) = norm(isgf)+cci*ccj*ppl/(aai+aaj)**expa
+                     norm(isgf) = norm(isgf) + cci*ccj*ppl/(aai + aaj)**expa
                   END DO
                END DO
                norm(isgf) = 1.0_dp/SQRT(norm(isgf))
@@ -511,8 +501,6 @@ CONTAINS
       TYPE(gto_basis_set_type), POINTER                  :: basis
       REAL(dp), DIMENSION(:), POINTER                    :: int_aux, norm
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'basis_int', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ipgf, iset, isgf, ishell, l, nbas
       REAL(KIND=dp)                                      :: aa, cc, pp
 
@@ -529,7 +517,7 @@ CONTAINS
                   cc = basis%gcc(ipgf, ishell, iset)
                   aa = basis%zet(ipgf, iset)
                   pp = (pi/aa)**(3._dp/2._dp)
-                  int_aux(isgf) = int_aux(isgf)+norm(isgf)*cc*pp
+                  int_aux(isgf) = int_aux(isgf) + norm(isgf)*cc*pp
                END DO
             END DO
          END DO
@@ -552,8 +540,6 @@ CONTAINS
       REAL(dp), DIMENSION(:, :), POINTER                 :: ovlp
       REAL(dp), DIMENSION(:), POINTER                    :: norm
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'basis_ovlp', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ipgf, iset, isgf, ishell, jpgf, jset, &
                                                             jsgf, jshell, l, li, lj, m_i, m_j, nbas
       REAL(KIND=dp)                                      :: aai, aaj, cci, ccj, expa, norm_i, &
@@ -571,8 +557,8 @@ CONTAINS
                   lj = basis%l(jshell, jset)
                   IF (li == lj) THEN
                      l = li
-                     expa = 0.5_dp*REAL(2*l+3, dp)
-                     ppl = fac(2*l+2)*SQRT(pi)/2._dp**REAL(2*l+3, dp)/fac(l+1)
+                     expa = 0.5_dp*REAL(2*l + 3, dp)
+                     ppl = fac(2*l + 2)*SQRT(pi)/2._dp**REAL(2*l + 3, dp)/fac(l + 1)
                      DO isgf = basis%first_sgf(ishell, iset), basis%last_sgf(ishell, iset)
                         m_i = basis%m(isgf)
                         DO jsgf = basis%first_sgf(jshell, jset), basis%last_sgf(jshell, jset)
@@ -585,9 +571,9 @@ CONTAINS
                                  DO jpgf = 1, basis%npgf(jset)
                                     ccj = basis%gcc(jpgf, jshell, jset)
                                     aaj = basis%zet(jpgf, jset)
-                                    oo = 1._dp/(aai+aaj)**expa
+                                    oo = 1._dp/(aai + aaj)**expa
                                     norm_j = norm(jsgf)
-                                    ovlp(isgf, jsgf) = ovlp(isgf, jsgf)+norm_i*norm_j*ppl*cci*ccj*oo
+                                    ovlp(isgf, jsgf) = ovlp(isgf, jsgf) + norm_i*norm_j*ppl*cci*ccj*oo
                                  END DO
                               END DO
                            ENDIF

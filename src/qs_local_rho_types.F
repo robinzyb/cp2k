@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 ! **************************************************************************************************
 MODULE qs_local_rho_types
@@ -66,8 +68,6 @@ CONTAINS
       TYPE(rhoz_type), DIMENSION(:), POINTER             :: rhoz_set
       INTEGER                                            :: nkind
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_rhoz', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ikind
 
       IF (ASSOCIATED(rhoz_set)) THEN
@@ -104,8 +104,6 @@ CONTAINS
       REAL(dp), INTENT(INOUT)                            :: rhoz_tot
       TYPE(harmonics_atom_type)                          :: harmonics
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_rhoz', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ir, na, nr
       REAL(dp)                                           :: c1, c2, c3, prefactor1, prefactor2, &
                                                             prefactor3, sum
@@ -134,10 +132,10 @@ CONTAINS
             rhoz%dr_coef(ir) = prefactor2*rhoz%r_coef(ir)
          END IF
          rhoz%vr_coef(ir) = prefactor3*erf(grid_atom%rad(ir)*c3)/grid_atom%rad(ir)
-         sum = sum+rhoz%r_coef(ir)*grid_atom%wr(ir)
+         sum = sum + rhoz%r_coef(ir)*grid_atom%wr(ir)
       END DO
       rhoz%one_atom = sum*harmonics%slm_int(1)
-      rhoz_tot = rhoz_tot+natom*rhoz%one_atom
+      rhoz_tot = rhoz_tot + natom*rhoz%one_atom
 
    END SUBROUTINE calculate_rhoz
 
@@ -148,9 +146,6 @@ CONTAINS
    SUBROUTINE deallocate_rhoz(rhoz_set)
 
       TYPE(rhoz_type), DIMENSION(:), POINTER             :: rhoz_set
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_rhoz', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ikind, nkind
 
@@ -184,8 +179,6 @@ CONTAINS
       TYPE(rho0_mpole_type), OPTIONAL, POINTER           :: rho0_mpole
       TYPE(rhoz_type), DIMENSION(:), OPTIONAL, POINTER   :: rhoz_set
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_local_rho', routineP = moduleN//':'//routineN
-
       IF (PRESENT(rho_atom_set)) rho_atom_set => local_rho_set%rho_atom_set
       IF (PRESENT(rho0_atom_set)) rho0_atom_set => local_rho_set%rho0_atom_set
       IF (PRESENT(rho0_mpole)) rho0_mpole => local_rho_set%rho0_mpole
@@ -200,9 +193,6 @@ CONTAINS
    SUBROUTINE local_rho_set_create(local_rho_set)
 
       TYPE(local_rho_type), POINTER                      :: local_rho_set
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'local_rho_set_create', &
-         routineP = moduleN//':'//routineN
 
       ALLOCATE (local_rho_set)
 
@@ -220,9 +210,6 @@ CONTAINS
    SUBROUTINE local_rho_set_release(local_rho_set)
 
       TYPE(local_rho_type), POINTER                      :: local_rho_set
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'local_rho_set_release', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(local_rho_set)) THEN
          IF (ASSOCIATED(local_rho_set%rho_atom_set)) THEN
@@ -264,8 +251,6 @@ CONTAINS
          POINTER                                         :: rho0_atom_set
       TYPE(rho0_mpole_type), OPTIONAL, POINTER           :: rho0_mpole
       TYPE(rhoz_type), DIMENSION(:), OPTIONAL, POINTER   :: rhoz_set
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_local_rho', routineP = moduleN//':'//routineN
 
       IF (PRESENT(rho_atom_set)) THEN
          IF (ASSOCIATED(local_rho_set%rho_atom_set)) THEN

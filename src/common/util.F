@@ -1,10 +1,12 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
-!> \brief All kind of helpfull little routines
+!> \brief All kind of helpful little routines
 !> \par History
 !>      none
 !> \author CJM & JGH
@@ -60,8 +62,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: x
       INTEGER                                            :: x_index
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'locate', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: jl, jm, ju, n
 
       x_index = 0
@@ -70,9 +70,9 @@ CONTAINS
       n = SIZE(array)
       IF (x > array(n)) RETURN
       jl = 0
-      ju = n+1
-      DO WHILE (ju-jl > 1)
-         jm = (ju+jl)/2
+      ju = n + 1
+      DO WHILE (ju - jl > 1)
+         jm = (ju + jl)/2
          IF (x >= array(jm)) THEN
             jl = jm
          ELSE
@@ -93,8 +93,6 @@ CONTAINS
       INTEGER, DIMENSION(:), INTENT(INOUT)               :: arr
       LOGICAL, INTENT(OUT)                               :: unique
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'sort_unique1', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, n
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: wrk
 
@@ -103,7 +101,7 @@ CONTAINS
       ALLOCATE (wrk(n))
       CALL sort(arr, n, wrk)
       DO i = 2, n
-         IF (arr(i) == arr(i-1)) THEN
+         IF (arr(i) == arr(i - 1)) THEN
             unique = .FALSE.
             EXIT
          END IF
@@ -122,8 +120,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: n
       CHARACTER(LEN=*), INTENT(INOUT)                    :: arr(1:n)
       INTEGER, INTENT(OUT)                               :: INDEX(1:n)
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'sort_cv', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, j, max_length
       INTEGER, ALLOCATABLE, DIMENSION(:, :)              :: entries
@@ -209,14 +205,12 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: m, n, me
       INTEGER                                            :: nlim(2)
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_limit', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: nl, nu
       REAL(KIND=dp)                                      :: part
 
       part = REAL(m, KIND=dp)/REAL(n, KIND=dp)
-      nl = NINT(REAL(me, KIND=dp)*part)+1
-      nu = NINT(REAL(me+1, KIND=dp)*part)
+      nl = NINT(REAL(me, KIND=dp)*part) + 1
+      nu = NINT(REAL(me + 1, KIND=dp)*part)
       nlim(1) = MAX(1, nl)
       nlim(2) = MIN(m, nu)
 
@@ -239,8 +233,6 @@ CONTAINS
       INTEGER, INTENT(OUT)                               :: first, last
       INTEGER, INTENT(IN)                                :: search
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'find_boundary1', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
       LOGICAL                                            :: found
 
@@ -256,7 +248,7 @@ CONTAINS
             found = .TRUE.
          ELSE
             IF (found) THEN
-               last = i-1
+               last = i - 1
                EXIT
             END IF
             found = .FALSE.
@@ -286,8 +278,6 @@ CONTAINS
       INTEGER, INTENT(OUT)                               :: first, last
       INTEGER, INTENT(IN)                                :: search1, search2
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'find_boundary2', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, tfirst, tlast
       LOGICAL                                            :: found
 
@@ -305,7 +295,7 @@ CONTAINS
             found = .TRUE.
          ELSE
             IF (found) THEN
-               last = i-1
+               last = i - 1
                EXIT
             END IF
             found = .FALSE.

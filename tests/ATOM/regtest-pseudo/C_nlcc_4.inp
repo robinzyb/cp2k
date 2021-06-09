@@ -20,8 +20,12 @@
   &END METHOD
   &OPTIMIZATION
     MAX_ITER 100
-    EPS_SCF 1.e-8
-  &END 
+    EPS_SCF 1.e-6
+  &END
+
+  &AE_BASIS
+    GRID_POINTS 200
+  &END AE_BASIS
 
   &POTENTIAL
     PSEUDO_TYPE GTH
@@ -33,7 +37,7 @@
    2
         0.30228391  1      9.57595383
         0.36878252  1     -0.00996437
-    &END 
+    &END
   &END POTENTIAL
 
   &POWELL

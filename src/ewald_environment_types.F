@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -56,7 +58,7 @@ MODULE ewald_environment_types
       LOGICAL   :: do_multipoles ! Flag for using the multipole code
       INTEGER   :: do_ipol ! Solver for induced dipoles
       INTEGER   :: max_multipole ! max expansion in the multipoles
-      INTEGER   :: max_ipol_iter ! max number of interation for induced dipoles
+      INTEGER   :: max_ipol_iter ! max number of interaction for induced dipoles
       INTEGER   :: ewald_type ! type of ewald
       INTEGER   :: gmax(3) ! max Miller index
       INTEGER   :: ns_max ! # grid points for small grid (PME)
@@ -147,8 +149,6 @@ CONTAINS
          POINTER                                         :: interaction_cutoffs
       REAL(KIND=dp), DIMENSION(3, 3), OPTIONAL           :: cell_hmat
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ewald_env_get', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(ewald_env))
 
       IF (PRESENT(id_nr)) id_nr = ewald_env%id_nr
@@ -210,8 +210,6 @@ CONTAINS
          POINTER                                         :: interaction_cutoffs
       REAL(KIND=dp), DIMENSION(3, 3), OPTIONAL           :: cell_hmat
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ewald_env_set', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(ewald_env))
 
       IF (PRESENT(id_nr)) ewald_env%id_nr = id_nr
@@ -246,12 +244,9 @@ CONTAINS
       TYPE(ewald_environment_type), POINTER              :: ewald_env
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ewald_env_create', &
-         routineP = moduleN//':'//routineN
-
       ALLOCATE (ewald_env)
       ewald_env%ref_count = 1
-      last_ewald_env_id_nr = last_ewald_env_id_nr+1
+      last_ewald_env_id_nr = last_ewald_env_id_nr + 1
       ewald_env%id_nr = last_ewald_env_id_nr
       NULLIFY (ewald_env%poisson_section)
       CALL cp_para_env_retain(para_env)
@@ -269,12 +264,9 @@ CONTAINS
    SUBROUTINE ewald_env_retain(ewald_env)
       TYPE(ewald_environment_type), POINTER              :: ewald_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ewald_env_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(ewald_env))
       CPASSERT(ewald_env%ref_count > 0)
-      ewald_env%ref_count = ewald_env%ref_count+1
+      ewald_env%ref_count = ewald_env%ref_count + 1
    END SUBROUTINE ewald_env_retain
 
 ! **************************************************************************************************
@@ -287,12 +279,9 @@ CONTAINS
    SUBROUTINE ewald_env_release(ewald_env)
       TYPE(ewald_environment_type), POINTER              :: ewald_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ewald_env_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(ewald_env)) THEN
          CPASSERT(ewald_env%ref_count > 0)
-         ewald_env%ref_count = ewald_env%ref_count-1
+         ewald_env%ref_count = ewald_env%ref_count - 1
          IF (ewald_env%ref_count < 1) THEN
             CALL cp_para_env_release(ewald_env%para_env)
             CALL section_vals_release(ewald_env%poisson_section)
@@ -314,9 +303,6 @@ CONTAINS
    SUBROUTINE read_ewald_section(ewald_env, ewald_section)
       TYPE(ewald_environment_type), POINTER              :: ewald_env
       TYPE(section_vals_type), POINTER                   :: ewald_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_ewald_section', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: iw
       INTEGER, DIMENSION(:), POINTER                     :: gmax_read
@@ -348,7 +334,7 @@ CONTAINS
       SELECT CASE (ewald_env%ewald_type)
       CASE (do_ewald_ewald, do_ewald_spme)
          CALL section_vals_val_get(ewald_section, "GMAX", i_vals=gmax_read)
-         SELECT CASE (SIZE (gmax_read, 1))
+         SELECT CASE (SIZE(gmax_read, 1))
          CASE (1)
             ewald_env%gmax = gmax_read(1)
          CASE (3)
@@ -450,9 +436,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: ewald_section
       REAL(KIND=dp), DIMENSION(3, 3), INTENT(IN)         :: hmat
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_ewald_section_tb', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, iw, n(3)
       INTEGER, DIMENSION(:), POINTER                     :: gmax_read
       LOGICAL                                            :: explicit
@@ -499,7 +482,7 @@ CONTAINS
       CALL section_vals_val_get(ewald_section, "GMAX", explicit=explicit)
       IF (explicit) THEN
          CALL section_vals_val_get(ewald_section, "GMAX", i_vals=gmax_read)
-         SELECT CASE (SIZE (gmax_read, 1))
+         SELECT CASE (SIZE(gmax_read, 1))
          CASE (1)
             ewald_env%gmax = gmax_read(1)
          CASE (3)
@@ -513,7 +496,7 @@ CONTAINS
          DO i = 1, 3
             alat = SUM(hmat(:, i)**2)
             CPASSERT(alat /= 0._dp)
-            ewald_env%gmax(i) = 2*FLOOR(SQRT(2.0_dp*cutoff*alat)/twopi)+1
+            ewald_env%gmax(i) = 2*FLOOR(SQRT(2.0_dp*cutoff*alat)/twopi) + 1
          ENDDO
       ENDIF
       n = ewald_env%gmax
@@ -549,28 +532,25 @@ CONTAINS
    FUNCTION find_ewald_optimal_value(precs) RESULT(value)
       REAL(KIND=dp)                                      :: precs, value
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'find_ewald_optimal_value', &
-         routineP = moduleN//':'//routineN
-
       REAL(KIND=dp)                                      :: func, func1, func2, s, s1, s2
 
       s = 0.1_dp
-      func = EXP(-s**2)/s**2-precs
+      func = EXP(-s**2)/s**2 - precs
       CPASSERT(func > 0.0_dp)
       DO WHILE (func > 0.0_dp)
-         s = s+0.1_dp
-         func = EXP(-s**2)/s**2-precs
+         s = s + 0.1_dp
+         func = EXP(-s**2)/s**2 - precs
       END DO
       s2 = s
-      s1 = s-0.1_dp
+      s1 = s - 0.1_dp
       ! Start bisection
       DO WHILE (.TRUE.)
-         func2 = EXP(-s2**2)/s2**2-precs
-         func1 = EXP(-s1**2)/s1**2-precs
+         func2 = EXP(-s2**2)/s2**2 - precs
+         func1 = EXP(-s1**2)/s1**2 - precs
          CPASSERT(func1 >= 0)
          CPASSERT(func2 <= 0)
-         s = 0.5_dp*(s1+s2)
-         func = EXP(-s**2)/s**2-precs
+         s = 0.5_dp*(s1 + s2)
+         func = EXP(-s**2)/s**2 - precs
          IF (func > 0.0_dp) THEN
             s1 = s
          ELSE IF (func < 0.0_dp) THEN

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -15,16 +17,15 @@
 MODULE timings
    USE base_hooks,                      ONLY: timeset_hook,&
                                               timestop_hook
+   USE callgraph,                       ONLY: callgraph_destroy,&
+                                              callgraph_get,&
+                                              callgraph_init,&
+                                              callgraph_item_type,&
+                                              callgraph_items,&
+                                              callgraph_set
    USE cuda_profiling,                  ONLY: cuda_mem_info,&
                                               cuda_nvtx_range_pop,&
                                               cuda_nvtx_range_push
-   USE dict,                            ONLY: dict_destroy,&
-                                              dict_get,&
-                                              dict_i4tuple_callstat_item_type,&
-                                              dict_init,&
-                                              dict_items,&
-                                              dict_set,&
-                                              dict_size
    USE kinds,                           ONLY: default_string_length,&
                                               dp,&
                                               int_8
@@ -35,6 +36,11 @@ MODULE timings
                                               m_flush,&
                                               m_memory,&
                                               m_walltime
+   USE routine_map,                     ONLY: routine_map_destroy,&
+                                              routine_map_get,&
+                                              routine_map_init,&
+                                              routine_map_set,&
+                                              routine_map_size
    USE timings_base_type,               ONLY: call_stat_type,&
                                               callstack_entry_type,&
                                               routine_stat_type
@@ -106,16 +112,12 @@ CONTAINS
    SUBROUTINE timer_env_create(timer_env)
       TYPE(timer_env_type), POINTER                      :: timer_env
 
-      INTEGER                                            :: stat
-
-      ALLOCATE (timer_env, stat=stat)
-      IF (stat /= 0) &
-         CPABORT("timer_env_create: allocation failed")
+      ALLOCATE (timer_env)
       timer_env%ref_count = 0
       timer_env%trace_max = -1 ! tracing disabled by default
       timer_env%trace_all = .FALSE.
-      CALL dict_init(timer_env%routine_names)
-      CALL dict_init(timer_env%callgraph)
+      CALL routine_map_init(timer_env%routine_names)
+      CALL callgraph_init(timer_env%callgraph)
       CALL list_init(timer_env%routine_stats)
       CALL list_init(timer_env%callstack)
    END SUBROUTINE timer_env_create
@@ -159,7 +161,7 @@ CONTAINS
          CPABORT("timer_env_retain: not associated")
       IF (timer_env%ref_count < 0) &
          CPABORT("timer_env_retain: negativ ref_count")
-      timer_env%ref_count = timer_env%ref_count+1
+      timer_env%ref_count = timer_env%ref_count + 1
    END SUBROUTINE timer_env_retain
 
 ! **************************************************************************************************
@@ -171,15 +173,14 @@ CONTAINS
       TYPE(timer_env_type), POINTER                      :: timer_env
 
       INTEGER                                            :: i
-      TYPE(dict_i4tuple_callstat_item_type), &
-         DIMENSION(:), POINTER                           :: ct_items
+      TYPE(callgraph_item_type), DIMENSION(:), POINTER   :: ct_items
       TYPE(routine_stat_type), POINTER                   :: r_stat
 
       IF (.NOT. ASSOCIATED(timer_env)) &
          CPABORT("timer_env_release: not associated")
       IF (timer_env%ref_count < 0) &
          CPABORT("timer_env_release: negativ ref_count")
-      timer_env%ref_count = timer_env%ref_count-1
+      timer_env%ref_count = timer_env%ref_count - 1
       IF (timer_env%ref_count > 0) RETURN
 
       ! No more references left - let's tear down this timer_env...
@@ -189,14 +190,14 @@ CONTAINS
          DEALLOCATE (r_stat)
       END DO
 
-      ct_items => dict_items(timer_env%callgraph)
+      ct_items => callgraph_items(timer_env%callgraph)
       DO i = 1, SIZE(ct_items)
          DEALLOCATE (ct_items(i)%value)
       END DO
       DEALLOCATE (ct_items)
 
-      CALL dict_destroy(timer_env%routine_names)
-      CALL dict_destroy(timer_env%callgraph)
+      CALL routine_map_destroy(timer_env%routine_names)
+      CALL callgraph_destroy(timer_env%callgraph)
       CALL list_destroy(timer_env%callstack)
       CALL list_destroy(timer_env%routine_stats)
       DEALLOCATE (timer_env)
@@ -249,9 +250,9 @@ CONTAINS
       ! update routine r_stats
       r_stat => list_get(timer_env%routine_stats, routine_id)
       stack_size = list_size(timer_env%callstack)
-      r_stat%total_calls = r_stat%total_calls+1
-      r_stat%active_calls = r_stat%active_calls+1
-      r_stat%stackdepth_accu = r_stat%stackdepth_accu+stack_size+1
+      r_stat%total_calls = r_stat%total_calls + 1
+      r_stat%active_calls = r_stat%active_calls + 1
+      r_stat%stackdepth_accu = r_stat%stackdepth_accu + stack_size + 1
 
       ! add routine to callstack
       cs_entry%routine_id = routine_id
@@ -260,14 +261,14 @@ CONTAINS
       !..if debug mode echo the subroutine name
       IF ((timer_env%trace_all .OR. r_stat%trace) .AND. &
           (r_stat%total_calls < timer_env%trace_max)) THEN
-         WRITE (sformat, *) "(A,A,", MAX(1, 3*stack_size-4), "X,I4,1X,I6,1X,A,A)"
-         WRITE (mystring, sformat) timer_env%trace_str, ">>", stack_size+1, &
+         WRITE (sformat, *) "(A,A,", MAX(1, 3*stack_size - 4), "X,I4,1X,I6,1X,A,A)"
+         WRITE (mystring, sformat) timer_env%trace_str, ">>", stack_size + 1, &
             r_stat%total_calls, TRIM(r_stat%routineN), "       start"
          CALL cuda_mem_info(gpumem_free, gpumem_total)
          CALL m_memory(cpumem)
          WRITE (line, '(A,A,I0,A,A,I0,A)') TRIM(mystring), &
-            " Hostmem: ", (cpumem+1024*1024-1)/(1024*1024), " MB", &
-            " GPUmem: ", (gpumem_total-gpumem_free)/(1024*1024), " MB"
+            " Hostmem: ", (cpumem + 1024*1024 - 1)/(1024*1024), " MB", &
+            " GPUmem: ", (gpumem_total - gpumem_free)/(1024*1024), " MB"
          WRITE (timer_env%trace_unit, *) TRIM(line)
          CALL m_flush(timer_env%trace_unit)
       END IF
@@ -330,55 +331,55 @@ CONTAINS
          wt_now = m_walltime()
          en_now = m_energy()
          ! add the elapsed time for this timeset/timestop to the time accumulator
-         wt_elapsed = wt_now-cs_entry%walltime_start
-         en_elapsed = en_now-cs_entry%energy_start
+         wt_elapsed = wt_now - cs_entry%walltime_start
+         en_elapsed = en_now - cs_entry%energy_start
       ENDIF
-      r_stat%active_calls = r_stat%active_calls-1
+      r_stat%active_calls = r_stat%active_calls - 1
 
       ! if we're the last instance in the stack, we do the accounting of the total time
       IF (r_stat%active_calls == 0) THEN
-         r_stat%incl_walltime_accu = r_stat%incl_walltime_accu+wt_elapsed
-         r_stat%incl_energy_accu = r_stat%incl_energy_accu+en_elapsed
+         r_stat%incl_walltime_accu = r_stat%incl_walltime_accu + wt_elapsed
+         r_stat%incl_energy_accu = r_stat%incl_energy_accu + en_elapsed
       ENDIF
 
       ! exclusive time we always sum, since children will correct this time with their total time
-      r_stat%excl_walltime_accu = r_stat%excl_walltime_accu+wt_elapsed
-      r_stat%excl_energy_accu = r_stat%excl_energy_accu+en_elapsed
+      r_stat%excl_walltime_accu = r_stat%excl_walltime_accu + wt_elapsed
+      r_stat%excl_energy_accu = r_stat%excl_energy_accu + en_elapsed
 
       stack_size = list_size(timer_env%callstack)
       IF (stack_size > 0) THEN
          prev_cs_entry = list_peek(timer_env%callstack)
          prev_stat => list_get(timer_env%routine_stats, prev_cs_entry%routine_id)
          ! we fixup the clock of the caller
-         prev_stat%excl_walltime_accu = prev_stat%excl_walltime_accu-wt_elapsed
-         prev_stat%excl_energy_accu = prev_stat%excl_energy_accu-en_elapsed
+         prev_stat%excl_walltime_accu = prev_stat%excl_walltime_accu - wt_elapsed
+         prev_stat%excl_energy_accu = prev_stat%excl_energy_accu - en_elapsed
 
          !update callgraph
          routine_tuple = (/prev_cs_entry%routine_id, routine_id/)
-         c_stat => dict_get(timer_env%callgraph, routine_tuple, default_value=Null(c_stat))
+         c_stat => callgraph_get(timer_env%callgraph, routine_tuple, default_value=Null(c_stat))
          IF (.NOT. ASSOCIATED(c_stat)) THEN
             ALLOCATE (c_stat)
             c_stat%total_calls = 0
             c_stat%incl_walltime_accu = 0.0_dp
             c_stat%incl_energy_accu = 0.0_dp
-            CALL dict_set(timer_env%callgraph, routine_tuple, c_stat)
+            CALL callgraph_set(timer_env%callgraph, routine_tuple, c_stat)
          END IF
-         c_stat%total_calls = c_stat%total_calls+1
-         c_stat%incl_walltime_accu = c_stat%incl_walltime_accu+wt_elapsed
-         c_stat%incl_energy_accu = c_stat%incl_energy_accu+en_elapsed
+         c_stat%total_calls = c_stat%total_calls + 1
+         c_stat%incl_walltime_accu = c_stat%incl_walltime_accu + wt_elapsed
+         c_stat%incl_energy_accu = c_stat%incl_energy_accu + en_elapsed
       ENDIF
 
       !..if debug mode echo the subroutine name
       IF ((timer_env%trace_all .OR. r_stat%trace) .AND. &
           (r_stat%total_calls < timer_env%trace_max)) THEN
-         WRITE (sformat, *) "(A,A,", MAX(1, 3*stack_size-4), "X,I4,1X,I6,1X,A,F12.3)"
-         WRITE (mystring, sformat) timer_env%trace_str, "<<", stack_size+1, &
+         WRITE (sformat, *) "(A,A,", MAX(1, 3*stack_size - 4), "X,I4,1X,I6,1X,A,F12.3)"
+         WRITE (mystring, sformat) timer_env%trace_str, "<<", stack_size + 1, &
             r_stat%total_calls, TRIM(r_stat%routineN), wt_elapsed
          CALL cuda_mem_info(gpumem_free, gpumem_total)
          CALL m_memory(cpumem)
          WRITE (line, '(A,A,I0,A,A,I0,A)') TRIM(mystring), &
-            " Hostmem: ", (cpumem+1024*1024-1)/(1024*1024), " MB", &
-            " GPUmem: ", (gpumem_total-gpumem_free)/(1024*1024), " MB"
+            " Hostmem: ", (cpumem + 1024*1024 - 1)/(1024*1024), " MB", &
+            " GPUmem: ", (gpumem_total - gpumem_free)/(1024*1024), " MB"
          WRITE (timer_env%trace_unit, *) TRIM(line)
          CALL m_flush(timer_env%trace_unit)
       ENDIF
@@ -472,12 +473,11 @@ CONTAINS
       CHARACTER(LEN=default_string_length), INTENT(IN)   :: routineN
       INTEGER                                            :: routine_id
 
-      INTEGER                                            :: stat
       TYPE(routine_stat_type), POINTER                   :: r_stat
       TYPE(timer_env_type), POINTER                      :: timer_env
 
       timer_env => list_peek(timers_stack)
-      routine_id = dict_get(timer_env%routine_names, routineN, default_value=-1)
+      routine_id = routine_map_get(timer_env%routine_names, routineN, default_value=-1)
 
       IF (routine_id /= -1) RETURN ! found an id - let's return it
       ! routine not found - let's create it
@@ -488,12 +488,10 @@ CONTAINS
       END IF
 
       ! register routine_name_dsl with new routine_id
-      routine_id = dict_size(timer_env%routine_names)+1
-      CALL dict_set(timer_env%routine_names, routineN, routine_id)
+      routine_id = routine_map_size(timer_env%routine_names) + 1
+      CALL routine_map_set(timer_env%routine_names, routineN, routine_id)
 
-      ALLOCATE (r_stat, stat=stat)
-      IF (stat /= 0) &
-         CPABORT("timings_name2id: allocation failed")
+      ALLOCATE (r_stat)
       r_stat%routine_id = routine_id
       r_stat%routineN = routineN
       r_stat%active_calls = 0
@@ -505,8 +503,7 @@ CONTAINS
       r_stat%stackdepth_accu = 0
       r_stat%trace = .FALSE.
       CALL list_push(timer_env%routine_stats, r_stat)
-      IF (list_size(timer_env%routine_stats) /= dict_size(timer_env%routine_names)) &
-         CPABORT("timings_name2id: assertion failed")
+      CPASSERT(list_size(timer_env%routine_stats) == routine_map_size(timer_env%routine_names))
    END FUNCTION routine_name2id
 
 END MODULE timings

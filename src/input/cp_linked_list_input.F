@@ -1,13 +1,15 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 #:include '../common/cp_linked_list.fypp'
 
 MODULE cp_linked_list_input
-USE kinds,             only: dp, default_string_length
-USE input_val_types,   only: val_type, val_p_type
+   USE kinds, only: dp, default_string_length
+   USE input_val_types, only: val_type, val_p_type
 #include "../base/base_uses.f90"
 
 #:mute

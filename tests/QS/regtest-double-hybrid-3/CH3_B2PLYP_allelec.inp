@@ -1,4 +1,4 @@
-&GLOBAL                                                                                           
+&GLOBAL
   PROJECT  CH3_allelec_B2PLYP
   PRINT_LEVEL MEDIUM
   RUN_TYPE ENERGY
@@ -12,7 +12,7 @@
     BASIS_SET_FILE_NAME EMSL_BASIS_SETS
     POTENTIAL_FILE_NAME POTENTIAL
     &MGRID
-      CUTOFF  300
+      CUTOFF  100
       REL_CUTOFF  50
     &END MGRID
     &POISSON
@@ -43,12 +43,12 @@
         FRACTION   0.53
         &SCREENING
           EPS_SCHWARZ 1.0E-8
-          SCREEN_ON_INITIAL_P FALSE 
+          SCREEN_ON_INITIAL_P FALSE
         &END SCREENING
       &END HF
       &WF_CORRELATION
-        METHOD DIRECT_CANONICAL
-        &DIRECT_CANONICAL
+        &MP2
+          METHOD DIRECT_CANONICAL
           BIG_SEND
         &END
         SCALE_T  0.27

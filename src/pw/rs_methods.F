@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -62,7 +64,7 @@ CONTAINS
       TYPE(pw_p_type), DIMENSION(3), INTENT(INOUT)       :: df
       TYPE(realspace_grid_type), POINTER                 :: rs_grid
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'derive_fdm_cd3', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'derive_fdm_cd3'
 
       INTEGER                                            :: handle, i, j, k
       INTEGER, DIMENSION(3)                              :: lb, ub
@@ -98,9 +100,9 @@ CONTAINS
       DO k = lb(3), ub(3)
          DO j = lb(2), ub(2)
             DO i = lb(1), ub(1)
-               drdx(i, j, k) = (r(i+1, j, k)-r(i-1, j, k))/h(1)
-               drdy(i, j, k) = (r(i, j+1, k)-r(i, j-1, k))/h(2)
-               drdz(i, j, k) = (r(i, j, k+1)-r(i, j, k-1))/h(3)
+               drdx(i, j, k) = (r(i + 1, j, k) - r(i - 1, j, k))/h(1)
+               drdy(i, j, k) = (r(i, j + 1, k) - r(i, j - 1, k))/h(2)
+               drdz(i, j, k) = (r(i, j, k + 1) - r(i, j, k - 1))/h(3)
             END DO
          END DO
       END DO
@@ -133,7 +135,7 @@ CONTAINS
       TYPE(pw_p_type), DIMENSION(3), INTENT(INOUT)       :: df
       TYPE(realspace_grid_type), POINTER                 :: rs_grid
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'derive_fdm_cd5', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'derive_fdm_cd5'
 
       INTEGER                                            :: handle, i, j, k
       INTEGER, DIMENSION(3)                              :: lb, ub
@@ -169,9 +171,9 @@ CONTAINS
       DO k = lb(3), ub(3)
          DO j = lb(2), ub(2)
             DO i = lb(1), ub(1)
-               drdx(i, j, k) = (r(i-2, j, k)-r(i+2, j, k)+8.0_dp*(r(i+1, j, k)-r(i-1, j, k)))/h(1)
-               drdy(i, j, k) = (r(i, j-2, k)-r(i, j+2, k)+8.0_dp*(r(i, j+1, k)-r(i, j-1, k)))/h(2)
-               drdz(i, j, k) = (r(i, j, k-2)-r(i, j, k+2)+8.0_dp*(r(i, j, k+1)-r(i, j, k-1)))/h(3)
+               drdx(i, j, k) = (r(i - 2, j, k) - r(i + 2, j, k) + 8.0_dp*(r(i + 1, j, k) - r(i - 1, j, k)))/h(1)
+               drdy(i, j, k) = (r(i, j - 2, k) - r(i, j + 2, k) + 8.0_dp*(r(i, j + 1, k) - r(i, j - 1, k)))/h(2)
+               drdz(i, j, k) = (r(i, j, k - 2) - r(i, j, k + 2) + 8.0_dp*(r(i, j, k + 1) - r(i, j, k - 1)))/h(3)
             END DO
          END DO
       END DO
@@ -204,7 +206,7 @@ CONTAINS
       TYPE(pw_p_type), DIMENSION(3), INTENT(INOUT)       :: df
       TYPE(realspace_grid_type), POINTER                 :: rs_grid
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'derive_fdm_cd7', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'derive_fdm_cd7'
 
       INTEGER                                            :: handle, i, j, k
       INTEGER, DIMENSION(3)                              :: lb, ub
@@ -240,12 +242,12 @@ CONTAINS
       DO k = lb(3), ub(3)
          DO j = lb(2), ub(2)
             DO i = lb(1), ub(1)
-               drdx(i, j, k) = (r(i+3, j, k)-r(i-3, j, k)+9.0_dp*(r(i-2, j, k)-r(i+2, j, k))+ &
-                                45.0_dp*(r(i+1, j, k)-r(i-1, j, k)))/h(1)
-               drdy(i, j, k) = (r(i, j+3, k)-r(i, j-3, k)+9.0_dp*(r(i, j-2, k)-r(i, j+2, k))+ &
-                                45.0_dp*(r(i, j+1, k)-r(i, j-1, k)))/h(2)
-               drdz(i, j, k) = (r(i, j, k+3)-r(i, j, k-3)+9.0_dp*(r(i, j, k-2)-r(i, j, k+2))+ &
-                                45.0_dp*(r(i, j, k+1)-r(i, j, k-1)))/h(3)
+               drdx(i, j, k) = (r(i + 3, j, k) - r(i - 3, j, k) + 9.0_dp*(r(i - 2, j, k) - r(i + 2, j, k)) + &
+                                45.0_dp*(r(i + 1, j, k) - r(i - 1, j, k)))/h(1)
+               drdy(i, j, k) = (r(i, j + 3, k) - r(i, j - 3, k) + 9.0_dp*(r(i, j - 2, k) - r(i, j + 2, k)) + &
+                                45.0_dp*(r(i, j + 1, k) - r(i, j - 1, k)))/h(2)
+               drdz(i, j, k) = (r(i, j, k + 3) - r(i, j, k - 3) + 9.0_dp*(r(i, j, k - 2) - r(i, j, k + 2)) + &
+                                45.0_dp*(r(i, j, k + 1) - r(i, j, k - 1)))/h(3)
             END DO
          END DO
       END DO
@@ -282,8 +284,7 @@ CONTAINS
       REAL(dp), ALLOCATABLE, DIMENSION(:), INTENT(OUT)   :: x_glbl, y_glbl, z_glbl, x_locl, y_locl, &
                                                             z_locl
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'setup_grid_axes', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'setup_grid_axes'
 
       INTEGER                                            :: glb1, glb2, glb3, gub1, gub2, gub3, &
                                                             handle, i, lb1, lb2, lb3, ub1, ub2, ub3
@@ -313,12 +314,12 @@ CONTAINS
       ALLOCATE (x_locl(lb1:ub1), y_locl(lb2:ub2), z_locl(lb3:ub3))
       ALLOCATE (x_glbl(glb1:gub1), y_glbl(glb2:gub2), z_glbl(glb3:gub3))
 
-      gindx(:) = (/(i, i=0, npts(1)-1)/)
-      gindy(:) = (/(i, i=0, npts(2)-1)/)
-      gindz(:) = (/(i, i=0, npts(3)-1)/)
-      lindx(:) = (/(i, i=0, npts_local(1)-1)/)
-      lindy(:) = (/(i, i=0, npts_local(2)-1)/)
-      lindz(:) = (/(i, i=0, npts_local(3)-1)/)
+      gindx(:) = (/(i, i=0, npts(1) - 1)/)
+      gindy(:) = (/(i, i=0, npts(2) - 1)/)
+      gindz(:) = (/(i, i=0, npts(3) - 1)/)
+      lindx(:) = (/(i, i=0, npts_local(1) - 1)/)
+      lindy(:) = (/(i, i=0, npts_local(2) - 1)/)
+      lindz(:) = (/(i, i=0, npts_local(3) - 1)/)
 
       x_glbl(:) = gindx*dr(1)
       y_glbl(:) = gindy*dr(2)
@@ -328,17 +329,17 @@ CONTAINS
       IF (lb1 .EQ. ub1) THEN
          lindx(:) = lb1
       ELSE
-         lindx(:) = lindx(:)*((ub1-lb1)/(npts_local(1)-1))+lb1
+         lindx(:) = lindx(:)*((ub1 - lb1)/(npts_local(1) - 1)) + lb1
       END IF
       IF (lb2 .EQ. ub2) THEN
          lindy(:) = lb2
       ELSE
-         lindy(:) = lindy(:)*((ub2-lb2)/(npts_local(2)-1))+lb2
+         lindy(:) = lindy(:)*((ub2 - lb2)/(npts_local(2) - 1)) + lb2
       END IF
       IF (lb3 .EQ. ub3) THEN
          lindz(:) = lb3
       ELSE
-         lindz(:) = lindz(:)*((ub3-lb3)/(npts_local(3)-1))+lb3
+         lindz(:) = lindz(:)*((ub3 - lb3)/(npts_local(3) - 1)) + lb3
       END IF
 
       x_locl(:) = x_glbl(lindx)
@@ -358,7 +359,7 @@ CONTAINS
 !>        K(x) = \kappa \exp (\frac{1}{|x|^2 - 1}),  if |x| <= 1
 !>             = 0,                                  otherwise
 !> \param pw_pool pool of pw grid
-!> \param zeta paramter \zeta defining the width of the mollifier
+!> \param zeta parameter \zeta defining the width of the mollifier
 !> \param x_glbl x grid vector of the simulation box
 !> \param y_glbl y grid vector of the simulation box
 !> \param z_glbl z grid vector of the simulation box
@@ -378,8 +379,7 @@ CONTAINS
       TYPE(pw_type), INTENT(IN), POINTER       :: pw_in
       TYPE(pw_type), INTENT(INOUT), POINTER    :: pw_out
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pw_mollifier', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'pw_mollifier'
 
       INTEGER                                  :: handle, i, j, k, lb1, lb2, &
                                                   lb3, ub1, ub2, ub3
@@ -415,22 +415,22 @@ CONTAINS
          DO j = lb2, ub2
             DO i = lb1, ub1
                xi = x_glbl(i); yj = y_glbl(j); zk = z_glbl(k)
-               IF (vec_norm2((/(xi-xmin), (yj-ymin), (zk-zmin)/)) .LT. zeta-small_value) THEN
-                  G%cr3d(i, j, k) = EXP(1.0_dp/(vec_norm2((/(xi-xmin), (yj-ymin), (zk-zmin)/)/zeta)**2-1))
-               ELSE IF (vec_norm2((/(xi-xmax), (yj-ymax), (zk-zmax)/)) .LT. zeta-small_value) THEN
-                  G%cr3d(i, j, k) = EXP(1.0_dp/(vec_norm2((/(xi-xmax), (yj-ymax), (zk-zmax)/)/zeta)**2-1))
-               ELSE IF (vec_norm2((/(xi-xmin), (yj-ymax), (zk-zmax)/)) .LT. zeta-small_value) THEN
-                  G%cr3d(i, j, k) = EXP(1.0_dp/(vec_norm2((/(xi-xmin), (yj-ymax), (zk-zmax)/)/zeta)**2-1))
-               ELSE IF (vec_norm2((/(xi-xmax), (yj-ymin), (zk-zmax)/)) .LT. zeta-small_value) THEN
-                  G%cr3d(i, j, k) = EXP(1.0_dp/(vec_norm2((/(xi-xmax), (yj-ymin), (zk-zmax)/)/zeta)**2-1))
-               ELSE IF (vec_norm2((/(xi-xmax), (yj-ymax), (zk-zmin)/)) .LT. zeta-small_value) THEN
-                  G%cr3d(i, j, k) = EXP(1.0_dp/(vec_norm2((/(xi-xmax), (yj-ymax), (zk-zmin)/)/zeta)**2-1))
-               ELSE IF (vec_norm2((/(xi-xmin), (yj-ymin), (zk-zmax)/)) .LT. zeta-small_value) THEN
-                  G%cr3d(i, j, k) = EXP(1.0_dp/(vec_norm2((/(xi-xmin), (yj-ymin), (zk-zmax)/)/zeta)**2-1))
-               ELSE IF (vec_norm2((/(xi-xmin), (yj-ymax), (zk-zmin)/)) .LT. zeta-small_value) THEN
-                  G%cr3d(i, j, k) = EXP(1.0_dp/(vec_norm2((/(xi-xmin), (yj-ymax), (zk-zmin)/)/zeta)**2-1))
-               ELSE IF (vec_norm2((/(xi-xmax), (yj-ymin), (zk-zmin)/)) .LT. zeta-small_value) THEN
-                  G%cr3d(i, j, k) = EXP(1.0_dp/(vec_norm2((/(xi-xmax), (yj-ymin), (zk-zmin)/)/zeta)**2-1))
+               IF (vec_norm2((/(xi - xmin), (yj - ymin), (zk - zmin)/)) .LT. zeta - small_value) THEN
+                  G%cr3d(i, j, k) = EXP(1.0_dp/(vec_norm2((/(xi - xmin), (yj - ymin), (zk - zmin)/)/zeta)**2 - 1))
+               ELSE IF (vec_norm2((/(xi - xmax), (yj - ymax), (zk - zmax)/)) .LT. zeta - small_value) THEN
+                  G%cr3d(i, j, k) = EXP(1.0_dp/(vec_norm2((/(xi - xmax), (yj - ymax), (zk - zmax)/)/zeta)**2 - 1))
+               ELSE IF (vec_norm2((/(xi - xmin), (yj - ymax), (zk - zmax)/)) .LT. zeta - small_value) THEN
+                  G%cr3d(i, j, k) = EXP(1.0_dp/(vec_norm2((/(xi - xmin), (yj - ymax), (zk - zmax)/)/zeta)**2 - 1))
+               ELSE IF (vec_norm2((/(xi - xmax), (yj - ymin), (zk - zmax)/)) .LT. zeta - small_value) THEN
+                  G%cr3d(i, j, k) = EXP(1.0_dp/(vec_norm2((/(xi - xmax), (yj - ymin), (zk - zmax)/)/zeta)**2 - 1))
+               ELSE IF (vec_norm2((/(xi - xmax), (yj - ymax), (zk - zmin)/)) .LT. zeta - small_value) THEN
+                  G%cr3d(i, j, k) = EXP(1.0_dp/(vec_norm2((/(xi - xmax), (yj - ymax), (zk - zmin)/)/zeta)**2 - 1))
+               ELSE IF (vec_norm2((/(xi - xmin), (yj - ymin), (zk - zmax)/)) .LT. zeta - small_value) THEN
+                  G%cr3d(i, j, k) = EXP(1.0_dp/(vec_norm2((/(xi - xmin), (yj - ymin), (zk - zmax)/)/zeta)**2 - 1))
+               ELSE IF (vec_norm2((/(xi - xmin), (yj - ymax), (zk - zmin)/)) .LT. zeta - small_value) THEN
+                  G%cr3d(i, j, k) = EXP(1.0_dp/(vec_norm2((/(xi - xmin), (yj - ymax), (zk - zmin)/)/zeta)**2 - 1))
+               ELSE IF (vec_norm2((/(xi - xmax), (yj - ymin), (zk - zmin)/)) .LT. zeta - small_value) THEN
+                  G%cr3d(i, j, k) = EXP(1.0_dp/(vec_norm2((/(xi - xmax), (yj - ymin), (zk - zmin)/)/zeta)**2 - 1))
                END IF
             END DO
          END DO

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -68,9 +70,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_shg_integrals_test_section(section)
       TYPE(section_type), INTENT(INOUT), POINTER         :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_shg_integrals_test_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: subsection
@@ -206,8 +205,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: iw
       TYPE(section_vals_type), INTENT(INOUT), POINTER    :: shg_integrals_test_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'shg_integrals_perf_acc_test', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'shg_integrals_perf_acc_test'
 
       CHARACTER(LEN=default_string_length)               :: basis_type
       INTEGER                                            :: count_ab, handle, iab, jab, kab, lamax, &
@@ -251,19 +249,19 @@ CONTAINS
          CALL allocate_gto_basis_set(fba)
          CALL read_gto_basis_set(TRIM("CA"), basis_type, fba, basis_section, irep=3)
          lcamax = MAXVAL(fba%lmax)
-         lmax = MAX(lamax+lcamax, lbmax)
+         lmax = MAX(lamax + lcamax, lbmax)
       ENDIF
       IF (test_overlap_abb) THEN
          CALL allocate_gto_basis_set(fbb)
          CALL read_gto_basis_set(TRIM("CB"), basis_type, fbb, basis_section, irep=3)
          lcbmax = MAXVAL(fbb%lmax)
-         lmax = MAX(lamax, lbmax+lcbmax)
+         lmax = MAX(lamax, lbmax + lcbmax)
       ENDIF
       IF (test_overlap_aba .AND. test_overlap_abb) THEN
-         lmax = MAX(MAX(lamax+lcamax, lbmax), MAX(lamax, lbmax+lcbmax))
+         lmax = MAX(MAX(lamax + lcamax, lbmax), MAX(lamax, lbmax + lcbmax))
       ENDIF
       !*** Initialize basis set information
-      CALL init_orbital_pointers(lmax+1)
+      CALL init_orbital_pointers(lmax + 1)
       CALL init_spherical_harmonics(lmax, output_unit=-100)
       oba%norm_type = 2
       CALL init_orb_basis_set(oba)
@@ -283,7 +281,7 @@ CONTAINS
       CALL contraction_matrix_shg(obb, sconb_shg)
 
       !*** Create range of rab (atomic distances) to be tested
-      nab_xyz = CEILING(REAL(nab_min, KIND=dp)**(1.0_dp/3.0_dp)-1.0E-06)
+      nab_xyz = CEILING(REAL(nab_min, KIND=dp)**(1.0_dp/3.0_dp) - 1.0E-06)
       nab = nab_xyz**3
 
       ALLOCATE (rab(3, nab))
@@ -291,7 +289,7 @@ CONTAINS
       DO iab = 1, nab_xyz
          DO jab = 1, nab_xyz
             DO kab = 1, nab_xyz
-               count_ab = count_ab+1
+               count_ab = count_ab + 1
                rab(:, count_ab) = [iab*ABS(cell_par(1)), jab*ABS(cell_par(2)), kab*ABS(cell_par(3))]/nab_xyz
             ENDDO
          ENDDO
@@ -351,9 +349,6 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: calc_derivatives
       INTEGER, INTENT(IN)                                :: iw
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'test_shg_operator12_integrals', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iab, irep, nab, nfa, nfb
       LOGICAL                                            :: test_any, test_coulomb, test_gauss, &
                                                             test_verf, test_verfc, test_vgauss
@@ -407,7 +402,7 @@ CONTAINS
                                                 oba, obb, scona_shg, sconb_shg, omega, &
                                                 calc_derivatives)
                   CALL int_operators_r12_ab_os(operator_verf, vab_os, dvab_os, rab(:, iab), &
-                                               oba, obb, omega, calc_derivatives)
+                                               oba, obb, omega=omega, calculate_forces=calc_derivatives)
                   CALL calculate_deviation_ab(vab_shg, vab_os, dvab_shg, dvab_os, dtemp, ddtemp)
                   dmax_verf = MAX(dmax_verf, dtemp)
                   ddmax_verf = MAX(ddmax_verf, ddtemp)
@@ -418,7 +413,7 @@ CONTAINS
                                                 oba, obb, scona_shg, sconb_shg, omega, &
                                                 calc_derivatives)
                   CALL int_operators_r12_ab_os(operator_verfc, vab_os, dvab_os, rab(:, iab), &
-                                               oba, obb, omega, calc_derivatives)
+                                               oba, obb, omega=omega, calculate_forces=calc_derivatives)
                   CALL calculate_deviation_ab(vab_shg, vab_os, dvab_shg, dvab_os, dtemp, ddtemp)
                   dmax_verfc = MAX(dmax_verfc, dtemp)
                   ddmax_verfc = MAX(ddmax_verfc, ddtemp)
@@ -429,7 +424,7 @@ CONTAINS
                                                 oba, obb, scona_shg, sconb_shg, omega, &
                                                 calc_derivatives)
                   CALL int_operators_r12_ab_os(operator_vgauss, vab_os, dvab_os, rab(:, iab), &
-                                               oba, obb, omega, calc_derivatives)
+                                               oba, obb, omega=omega, calculate_forces=calc_derivatives)
                   CALL calculate_deviation_ab(vab_shg, vab_os, dvab_shg, dvab_os, dtemp, ddtemp)
                   dmax_vgauss = MAX(dmax_vgauss, dtemp)
                   ddmax_vgauss = MAX(ddmax_vgauss, ddtemp)
@@ -440,7 +435,7 @@ CONTAINS
                                                 oba, obb, scona_shg, sconb_shg, omega, &
                                                 calc_derivatives)
                   CALL int_operators_r12_ab_os(operator_gauss, vab_os, dvab_os, rab(:, iab), &
-                                               oba, obb, omega, calc_derivatives)
+                                               oba, obb, omega=omega, calculate_forces=calc_derivatives)
                   CALL calculate_deviation_ab(vab_shg, vab_os, dvab_shg, dvab_os, dtemp, ddtemp)
                   dmax_gauss = MAX(dmax_gauss, dtemp)
                   ddmax_gauss = MAX(ddmax_gauss, ddtemp)
@@ -522,9 +517,6 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: calc_derivatives
       INTEGER, INTENT(IN)                                :: iw
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'test_shg_overlap_integrals', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iab, irep, nab, nfa, nfb
       LOGICAL                                            :: test_overlap
       REAL(KIND=dp)                                      :: ddmax_overlap, ddtemp, dmax_overlap, &
@@ -603,9 +595,6 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: calc_derivatives
       INTEGER, INTENT(IN)                                :: iw
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'test_shg_ra2m_integrals', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iab, irep, m, nab, nfa, nfb
       LOGICAL                                            :: test_ra2m
       REAL(KIND=dp)                                      :: ddmax, ddtemp, dmax, dtemp
@@ -681,9 +670,6 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: calc_derivatives
       INTEGER, INTENT(IN)                                :: iw
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'test_shg_overlap_aba_integrals', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iab, irep, la_max, lb_max, lbb_max, &
                                                             maxl_orb, maxl_ri, nab, nba, nbb, nfa, &
                                                             nfb
@@ -718,7 +704,7 @@ CONTAINS
             fba%set_radius(:) = 1.0E+09_dp
             fba%pgf_radius(:, :) = 1.0E+09_dp
             nfa = fba%nsgf
-            maxl_ri = MAXVAL(fba%lmax)+1 ! + 1 to avoid fail for l=0
+            maxl_ri = MAXVAL(fba%lmax) + 1 ! + 1 to avoid fail for l=0
             ALLOCATE (saba_shg(nba, nbb, nfa), dsaba_shg(nba, nbb, nfa, 3))
             ALLOCATE (saba_os(nba, nbb, nfa), dsaba_os(nba, nbb, nfa, 3))
             CALL contraction_matrix_shg_mix(oba, fba, oba_index, fba_index, scona_mix)
@@ -727,8 +713,8 @@ CONTAINS
             fbb%set_radius(:) = 1.0E+09_dp
             fbb%pgf_radius(:, :) = 1.0E+09_dp
             nfb = fbb%nsgf
-            maxl_ri = MAXVAL(fbb%lmax)+1
-            lbb_max = MAXVAL(obb%lmax)+MAXVAL(fbb%lmax)
+            maxl_ri = MAXVAL(fbb%lmax) + 1
+            lbb_max = MAXVAL(obb%lmax) + MAXVAL(fbb%lmax)
             ALLOCATE (sabb_shg(nba, nbb, nfb), dsabb_shg(nba, nbb, nfb, 3))
             ALLOCATE (sabb_os(nba, nbb, nfb), dsabb_os(nba, nbb, nfb, 3))
             CALL contraction_matrix_shg_mix(obb, fbb, obb_index, fbb_index, sconb_mix)
@@ -814,9 +800,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :, :), INTENT(IN)      :: dvab_shg, dvab_os
       REAL(KIND=dp), INTENT(OUT)                         :: dmax, ddmax
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_deviation_ab', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, j, k
       REAL(KIND=dp)                                      :: diff
 
@@ -826,7 +809,7 @@ CONTAINS
       ! integrals vab
       DO j = 1, SIZE(vab_shg, 2)
          DO i = 1, SIZE(vab_shg, 1)
-            diff = ABS(vab_shg(i, j)-vab_os(i, j))
+            diff = ABS(vab_shg(i, j) - vab_os(i, j))
             dmax = MAX(dmax, diff)
          ENDDO
       ENDDO
@@ -835,7 +818,7 @@ CONTAINS
       DO k = 1, 3
          DO j = 1, SIZE(dvab_shg, 2)
             DO i = 1, SIZE(dvab_shg, 1)
-               diff = ABS(dvab_shg(i, j, k)-dvab_os(i, j, k))
+               diff = ABS(dvab_shg(i, j, k) - dvab_os(i, j, k))
                ddmax = MAX(ddmax, diff)
             ENDDO
          ENDDO
@@ -858,9 +841,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :, :, :), INTENT(IN)   :: dvab_shg, dvab_os
       REAL(KIND=dp), INTENT(OUT)                         :: dmax, ddmax
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_deviation_abx', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, j, k, l
       REAL(KIND=dp)                                      :: diff
 
@@ -871,7 +851,7 @@ CONTAINS
       DO k = 1, SIZE(vab_shg, 3)
          DO j = 1, SIZE(vab_shg, 2)
             DO i = 1, SIZE(vab_shg, 1)
-               diff = ABS(vab_shg(i, j, k)-vab_os(i, j, k))
+               diff = ABS(vab_shg(i, j, k) - vab_os(i, j, k))
                dmax = MAX(dmax, diff)
             ENDDO
          ENDDO
@@ -882,7 +862,7 @@ CONTAINS
          DO k = 1, SIZE(dvab_shg, 3)
             DO j = 1, SIZE(dvab_shg, 2)
                DO i = 1, SIZE(dvab_shg, 1)
-                  diff = ABS(dvab_shg(i, j, k, l)-dvab_os(i, j, k, l))
+                  diff = ABS(dvab_shg(i, j, k, l) - dvab_os(i, j, k, l))
                   ddmax = MAX(ddmax, diff)
                ENDDO
             ENDDO

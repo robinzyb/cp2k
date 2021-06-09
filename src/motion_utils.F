@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -85,7 +87,7 @@ CONTAINS
       INTEGER, INTENT(OUT), OPTIONAL                     :: rot_dof
       REAL(KIND=dp), INTENT(OUT), OPTIONAL               :: inertia(3)
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'rot_ana', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'rot_ana'
 
       INTEGER                                            :: handle, i, iparticle, iseq, iw, j, k, &
                                                             lrot(3)
@@ -110,8 +112,8 @@ CONTAINS
             mass = 1.0_dp
             IF (mass_weighted) mass = particles(iparticle)%atomic_kind%mass
             CPASSERT(mass >= 0.0_dp)
-            masst = masst+mass
-            rcom = particles(iparticle)%r*mass+rcom
+            masst = masst + mass
+            rcom = particles(iparticle)%r*mass + rcom
          END DO
          CPASSERT(masst > 0.0_dp)
          rcom = rcom/masst
@@ -120,33 +122,40 @@ CONTAINS
          DO iparticle = 1, natoms
             mass = 1.0_dp
             IF (mass_weighted) mass = particles(iparticle)%atomic_kind%mass
-            rm = particles(iparticle)%r-rcom
-            Ip(1, 1) = Ip(1, 1)+mass*(rm(2)**2+rm(3)**2)
-            Ip(2, 2) = Ip(2, 2)+mass*(rm(1)**2+rm(3)**2)
-            Ip(3, 3) = Ip(3, 3)+mass*(rm(1)**2+rm(2)**2)
-            Ip(1, 2) = Ip(1, 2)-mass*(rm(1)*rm(2))
-            Ip(1, 3) = Ip(1, 3)-mass*(rm(1)*rm(3))
-            Ip(2, 3) = Ip(2, 3)-mass*(rm(2)*rm(3))
+            rm = particles(iparticle)%r - rcom
+            Ip(1, 1) = Ip(1, 1) + mass*(rm(2)**2 + rm(3)**2)
+            Ip(2, 2) = Ip(2, 2) + mass*(rm(1)**2 + rm(3)**2)
+            Ip(3, 3) = Ip(3, 3) + mass*(rm(1)**2 + rm(2)**2)
+            Ip(1, 2) = Ip(1, 2) - mass*(rm(1)*rm(2))
+            Ip(1, 3) = Ip(1, 3) - mass*(rm(1)*rm(3))
+            Ip(2, 3) = Ip(2, 3) - mass*(rm(2)*rm(3))
          END DO
          ! Diagonalize the Inertia Tensor
          CALL diamat_all(Ip, Ip_eigval)
          IF (PRESENT(inertia)) inertia = Ip_eigval
          iw = cp_print_key_unit_nr(logger, print_section, "ROTATIONAL_INFO", extension=".vibLog")
          IF (iw > 0) THEN
-            WRITE (iw, '(T2,A,3F12.6)') "ROT| Rotational Analysis Info "
-            WRITE (iw, '(T2,A)') "ROT| Principal axes and moments of inertia in atomic units:"
-            WRITE (iw, '(T2,A,T27,3(3X,I9,6X))') "ROT|", 1, 2, 3
-            WRITE (iw, '(T2,A,T27,3(3X,E15.9))') "ROT| EIGENVALUES", Ip_eigval
-            WRITE (iw, '(T2,A,T27,3(3X,F15.9))') "ROT|      X", Ip(1, 1), Ip(1, 2), Ip(1, 3)
-            WRITE (iw, '(T2,A,T27,3(3X,F15.9))') "ROT|      Y", Ip(2, 1), Ip(2, 2), Ip(2, 3)
-            WRITE (iw, '(T2,A,T27,3(3X,F15.9))') "ROT|      Z", Ip(3, 1), Ip(3, 2), Ip(3, 3)
+            WRITE (UNIT=iw, FMT='(/,T2,A)') &
+               'ROT| Rotational analysis information'
+            WRITE (UNIT=iw, FMT='(T2,A)') &
+               'ROT| Principal axes and moments of inertia [a.u.]'
+            WRITE (UNIT=iw, FMT='(T2,A,T14,3(1X,I19))') &
+               'ROT|', 1, 2, 3
+            WRITE (UNIT=iw, FMT='(T2,A,T21,3(1X,ES19.11))') &
+               'ROT| Eigenvalues', Ip_eigval(1:3)
+            WRITE (UNIT=iw, FMT='(T2,A,T21,3(1X,F19.12))') &
+               'ROT|      x', Ip(1, 1:3)
+            WRITE (UNIT=iw, FMT='(T2,A,T21,3(1X,F19.12))') &
+               'ROT|      y', Ip(2, 1:3)
+            WRITE (UNIT=iw, FMT='(T2,A,T21,3(1X,F19.12))') &
+               'ROT|      z', Ip(3, 1:3)
          END IF
          CALL cp_print_key_finished_output(iw, logger, print_section, "ROTATIONAL_INFO")
          iw = cp_print_key_unit_nr(logger, print_section, "ROTATIONAL_INFO/COORDINATES", extension=".vibLog")
          IF (iw > 0) THEN
-            WRITE (iw, '(/,T2,A)') "ROT| Standard Molecule Orientation - ANGSTROM "
+            WRITE (UNIT=iw, FMT='(/,T2,A)') 'ROT| Standard molecule orientation in Angstrom'
             DO iparticle = 1, natoms
-               WRITE (iw, '(T2,"ROT|",T20,A,T27,3(3X,F15.9))') &
+               WRITE (UNIT=iw, FMT='(T2,"ROT|",T20,A,T27,3(3X,F15.9))') &
                   TRIM(particles(iparticle)%atomic_kind%name), &
                   MATMUL(particles(iparticle)%r, Ip)*angstrom
             END DO
@@ -162,7 +171,7 @@ CONTAINS
             mass = 1.0_dp
             IF (mass_weighted) mass = SQRT(particles(iparticle)%atomic_kind%mass)
             DO j = 1, 3
-               iseq = iseq+1
+               iseq = iseq + 1
                IF (j == k) Tr(iseq, k) = mass
             END DO
          END DO
@@ -180,22 +189,22 @@ CONTAINS
          DO iparticle = 1, natoms
             mass = 1.0_dp
             IF (mass_weighted) mass = SQRT(particles(iparticle)%atomic_kind%mass)
-            rm = particles(iparticle)%r-rcom
-            cp(1) = rm(1)*Ip(1, 1)+rm(2)*Ip(2, 1)+rm(3)*Ip(3, 1)
-            cp(2) = rm(1)*Ip(1, 2)+rm(2)*Ip(2, 2)+rm(3)*Ip(3, 2)
-            cp(3) = rm(1)*Ip(1, 3)+rm(2)*Ip(2, 3)+rm(3)*Ip(3, 3)
+            rm = particles(iparticle)%r - rcom
+            cp(1) = rm(1)*Ip(1, 1) + rm(2)*Ip(2, 1) + rm(3)*Ip(3, 1)
+            cp(2) = rm(1)*Ip(1, 2) + rm(2)*Ip(2, 2) + rm(3)*Ip(3, 2)
+            cp(3) = rm(1)*Ip(1, 3) + rm(2)*Ip(2, 3) + rm(3)*Ip(3, 3)
             ! X Rot
-            Rot((iparticle-1)*3+1, 1) = (cp(2)*Ip(1, 3)-Ip(1, 2)*cp(3))*mass
-            Rot((iparticle-1)*3+2, 1) = (cp(2)*Ip(2, 3)-Ip(2, 2)*cp(3))*mass
-            Rot((iparticle-1)*3+3, 1) = (cp(2)*Ip(3, 3)-Ip(3, 2)*cp(3))*mass
+            Rot((iparticle - 1)*3 + 1, 1) = (cp(2)*Ip(1, 3) - Ip(1, 2)*cp(3))*mass
+            Rot((iparticle - 1)*3 + 2, 1) = (cp(2)*Ip(2, 3) - Ip(2, 2)*cp(3))*mass
+            Rot((iparticle - 1)*3 + 3, 1) = (cp(2)*Ip(3, 3) - Ip(3, 2)*cp(3))*mass
             ! Y Rot
-            Rot((iparticle-1)*3+1, 2) = (cp(3)*Ip(1, 1)-Ip(1, 3)*cp(1))*mass
-            Rot((iparticle-1)*3+2, 2) = (cp(3)*Ip(2, 1)-Ip(2, 3)*cp(1))*mass
-            Rot((iparticle-1)*3+3, 2) = (cp(3)*Ip(3, 1)-Ip(3, 3)*cp(1))*mass
+            Rot((iparticle - 1)*3 + 1, 2) = (cp(3)*Ip(1, 1) - Ip(1, 3)*cp(1))*mass
+            Rot((iparticle - 1)*3 + 2, 2) = (cp(3)*Ip(2, 1) - Ip(2, 3)*cp(1))*mass
+            Rot((iparticle - 1)*3 + 3, 2) = (cp(3)*Ip(3, 1) - Ip(3, 3)*cp(1))*mass
             ! Z Rot
-            Rot((iparticle-1)*3+1, 3) = (cp(1)*Ip(1, 2)-Ip(1, 1)*cp(2))*mass
-            Rot((iparticle-1)*3+2, 3) = (cp(1)*Ip(2, 2)-Ip(2, 1)*cp(2))*mass
-            Rot((iparticle-1)*3+3, 3) = (cp(1)*Ip(3, 2)-Ip(3, 1)*cp(2))*mass
+            Rot((iparticle - 1)*3 + 1, 3) = (cp(1)*Ip(1, 2) - Ip(1, 1)*cp(2))*mass
+            Rot((iparticle - 1)*3 + 2, 3) = (cp(1)*Ip(2, 2) - Ip(2, 1)*cp(2))*mass
+            Rot((iparticle - 1)*3 + 3, 3) = (cp(1)*Ip(3, 2) - Ip(3, 1)*cp(2))*mass
          END DO
 
          ! Normalize Rotations and count the number of degree of freedom
@@ -210,18 +219,24 @@ CONTAINS
             ! Clean Rotational modes for spurious/numerical contamination
             IF (i < 3) THEN
                DO j = 1, i
-                  Rot(:, i+1) = Rot(:, i+1)-DOT_PRODUCT(Rot(:, i+1), Rot(:, j))*Rot(:, j)
+                  Rot(:, i + 1) = Rot(:, i + 1) - DOT_PRODUCT(Rot(:, i + 1), Rot(:, j))*Rot(:, j)
                END DO
             END IF
          END DO
       END IF
       IF (PRESENT(rot_dof)) rot_dof = COUNT(lrot == 1)
-      dof = dof+COUNT(lrot == 1)
+      dof = dof + COUNT(lrot == 1)
       iw = cp_print_key_unit_nr(logger, print_section, "ROTATIONAL_INFO", extension=".vibLog")
       IF (iw > 0) THEN
-         WRITE (iw, '(T2,A,I6)') "ROT| Number of Rotovibrational vectors:", dof
-         IF (dof == 5) WRITE (iw, '(T2,A)') "ROT| Linear Molecule detected.."
-         IF (dof == 3 .AND. (.NOT. keep_rotations)) WRITE (iw, '(T2,A)') "ROT| Single Atom detected.."
+         WRITE (iw, '(T2,A,T71,I10)') 'ROT| Number of rotovibrational vectors', dof
+         IF (dof == 5) THEN
+            WRITE (iw, '(T2,A)') &
+               'ROT| Linear molecule detected'
+         END IF
+         IF ((dof == 3) .AND. (.NOT. keep_rotations)) THEN
+            WRITE (iw, '(T2,A)') &
+               'ROT| Single atom detected'
+         END IF
       END IF
       CALL cp_print_key_finished_output(iw, logger, print_section, "ROTATIONAL_INFO")
       IF (present_mat) THEN
@@ -231,14 +246,15 @@ CONTAINS
          DO i = 1, 3
             mat(:, i) = Tr(:, i)
             IF (lrot(i) == 1) THEN
-               iseq = iseq+1
-               mat(:, 3+iseq) = Rot(:, i)
+               iseq = iseq + 1
+               mat(:, 3 + iseq) = Rot(:, i)
             END IF
          END DO
       END IF
       DEALLOCATE (Tr)
       DEALLOCATE (Rot)
       CALL timestop(handle)
+
    END SUBROUTINE rot_ana
 
 ! **************************************************************************************************
@@ -271,8 +287,7 @@ CONTAINS
       TYPE(particle_list_type), OPTIONAL, POINTER        :: particles
       LOGICAL, INTENT(IN), OPTIONAL                      :: extended_xmol_title
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_trajectory', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'write_trajectory'
 
       CHARACTER(LEN=4)                                   :: id_dcd
       CHARACTER(LEN=default_string_length)               :: id_label, id_wpc, my_act, my_ext, &
@@ -310,7 +325,7 @@ CONTAINS
       IF (PRESENT(act)) my_act = act
       IF (PRESENT(pk_name)) my_pk_name = pk_name
 
-      SELECT CASE (TRIM (my_pk_name))
+      SELECT CASE (TRIM(my_pk_name))
       CASE ("TRAJECTORY", "SHELL_TRAJECTORY", "CORE_TRAJECTORY")
          id_dcd = "CORD"
          id_wpc = "POS"
@@ -432,7 +447,7 @@ CONTAINS
                   DO i = 1, SIZE(force_mixing_indices)
                      ii = force_mixing_indices(i)
                      CPASSERT(ii <= SIZE(particle_set))
-                     fml_array((ii-1)*3+1:(ii-1)*3+3) = force_mixing_labels(i)
+                     fml_array((ii - 1)*3 + 1:(ii - 1)*3 + 3) = force_mixing_labels(i)
                   END DO
                ENDIF
             ENDIF
@@ -467,9 +482,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: section
       CHARACTER(LEN=*), INTENT(IN), OPTIONAL             :: path
       CHARACTER(LEN=*), INTENT(OUT)                      :: my_form, my_ext
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_output_format', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: output_format
 
@@ -516,9 +528,6 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: time
       CHARACTER(LEN=default_string_length), INTENT(IN), &
          OPTIONAL                                        :: pos, act
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_stress_tensor', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_string_length)               :: my_act, my_pos
       INTEGER                                            :: output_unit
@@ -590,9 +599,6 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: time
       CHARACTER(LEN=default_string_length), INTENT(IN), &
          OPTIONAL                                        :: pos, act
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_simulation_cell', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_string_length)               :: my_act, my_pos
       INTEGER                                            :: output_unit

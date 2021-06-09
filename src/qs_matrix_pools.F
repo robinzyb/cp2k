@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -55,11 +57,11 @@ MODULE qs_matrix_pools
 !> \param mosub_mosub_fm_pools pools with (mosub x mosub) full matrixes, where mosub
 !>        are a subset of the mos
 !>
-!> \param maxao_maxao_fm_pools pool of matrixes big enough to accomodate any
+!> \param maxao_maxao_fm_pools pool of matrixes big enough to accommodate any
 !>        aoxao matrix (useful for temp matrixes)
-!> \param maxao_maxmo_fm_pools pool of matrixes big enough to accomodate any
+!> \param maxao_maxmo_fm_pools pool of matrixes big enough to accommodate any
 !>        aoxmo matrix (useful for temp matrixes)
-!> \param maxmo_maxmo_fm_pools pool of matrixes big enough to accomodate any
+!> \param maxmo_maxmo_fm_pools pool of matrixes big enough to accommodate any
 !>        moxmo matrix (useful for temp matrixes)
 !> \par History
 !>      04.2003 created [fawzi]
@@ -85,11 +87,9 @@ CONTAINS
    SUBROUTINE mpools_retain(mpools)
       TYPE(qs_matrix_pools_type), POINTER                :: mpools
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mpools_retain', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(mpools))
       CPASSERT(mpools%ref_count > 0)
-      mpools%ref_count = mpools%ref_count+1
+      mpools%ref_count = mpools%ref_count + 1
    END SUBROUTINE mpools_retain
 
 ! **************************************************************************************************
@@ -102,11 +102,9 @@ CONTAINS
    SUBROUTINE mpools_release(mpools)
       TYPE(qs_matrix_pools_type), POINTER                :: mpools
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mpools_release', routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(mpools)) THEN
          CPASSERT(mpools%ref_count > 0)
-         mpools%ref_count = mpools%ref_count-1
+         mpools%ref_count = mpools%ref_count - 1
          IF (mpools%ref_count == 0) THEN
             CALL fm_pools_dealloc(mpools%ao_mo_fm_pools)
             CALL fm_pools_dealloc(mpools%ao_ao_fm_pools)
@@ -151,8 +149,6 @@ CONTAINS
                                                             maxao_maxao_fm_pool, &
                                                             maxmo_maxmo_fm_pool
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mpools_get', routineP = moduleN//':'//routineN
-
       IF (PRESENT(ao_mo_fm_pools)) ao_mo_fm_pools => mpools%ao_mo_fm_pools
       IF (PRESENT(maxao_maxmo_fm_pool)) THEN
          IF (ASSOCIATED(mpools%ao_mo_fm_pools)) THEN
@@ -191,14 +187,12 @@ CONTAINS
    SUBROUTINE mpools_create(mpools)
       TYPE(qs_matrix_pools_type), POINTER                :: mpools
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mpools_create', routineP = moduleN//':'//routineN
-
       ALLOCATE (mpools)
       NULLIFY (mpools%ao_ao_fm_pools, mpools%ao_mo_fm_pools, &
                mpools%mo_mo_fm_pools, mpools%ao_mosub_fm_pools, &
                mpools%mosub_mosub_fm_pools)
       mpools%ref_count = 1
-      last_mpools_id = last_mpools_id+1
+      last_mpools_id = last_mpools_id + 1
       mpools%id_nr = last_mpools_id
    END SUBROUTINE mpools_create
 
@@ -224,8 +218,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       INTEGER, DIMENSION(2), INTENT(IN), OPTIONAL        :: nmosub
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mpools_rebuild_fm_pools', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'mpools_rebuild_fm_pools'
 
       INTEGER                                            :: handle, ispin, max_nmo, min_nmo, nao, &
                                                             ncg, ncol_block, nmo, nrg, nrow_block, &

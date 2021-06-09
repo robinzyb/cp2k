@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -25,10 +27,10 @@ MODULE se_fock_matrix
    USE cp_para_types,                   ONLY: cp_para_env_type
    USE dbcsr_api,                       ONLY: dbcsr_add,&
                                               dbcsr_copy,&
+                                              dbcsr_dot,&
                                               dbcsr_get_info,&
                                               dbcsr_multiply,&
                                               dbcsr_p_type,&
-                                              dbcsr_trace,&
                                               dbcsr_type
    USE input_constants,                 ONLY: &
         do_method_am1, do_method_mndo, do_method_mndod, do_method_pdg, do_method_pm3, &
@@ -79,8 +81,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       LOGICAL, INTENT(in)                                :: calculate_forces, just_energy
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'build_se_fock_matrix', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'build_se_fock_matrix'
 
       INTEGER                                            :: handle, ispin, natom, ncol_global, &
                                                             nspins, output_unit
@@ -191,8 +192,8 @@ CONTAINS
          ! Compute the Hartree energy
          ! NOTE: If we are performing SCP-NDDO, ks_matrix contains coulomb piece from SCP.
          DO ispin = 1, nspins
-            CALL dbcsr_trace(ks_matrix(ispin)%matrix, matrix_p(ispin)%matrix, trace=ecoul)
-            energy%hartree = energy%hartree+ecoul
+            CALL dbcsr_dot(ks_matrix(ispin)%matrix, matrix_p(ispin)%matrix, ecoul)
+            energy%hartree = energy%hartree + ecoul
          END DO
 !      WRITE ( *, * ) 'AFTER Hartree',  ecoul, energy%hartree
 
@@ -204,9 +205,9 @@ CONTAINS
                CALL dbcsr_add(ks_matrix(ispin)%matrix, qs_env%ks_qmmm_env%matrix_h(1)%matrix, &
                               1.0_dp, 1.0_dp)
                ! Compute QM/MM Energy
-               CALL dbcsr_trace(qs_env%ks_qmmm_env%matrix_h(1)%matrix, &
-                                matrix_p(ispin)%matrix, trace=qmmm_el)
-               energy%qmmm_el = energy%qmmm_el+qmmm_el
+               CALL dbcsr_dot(qs_env%ks_qmmm_env%matrix_h(1)%matrix, &
+                              matrix_p(ispin)%matrix, qmmm_el)
+               energy%qmmm_el = energy%qmmm_el + qmmm_el
             END DO
          END IF
 
@@ -214,11 +215,11 @@ CONTAINS
          ! Collect all the energy terms
          energy%mulliken = 0.0_dp
          energy%exc = 0.0_dp
-         energy%total = energy%total+energy%core+ &
-                        energy%core_overlap+ &
-                        0.5_dp*energy%hartree+ &
-                        energy%qmmm_el+ &
-                        energy%dispersion+ &
+         energy%total = energy%total + energy%core + &
+                        energy%core_overlap + &
+                        0.5_dp*energy%hartree + &
+                        energy%qmmm_el + &
+                        energy%dispersion + &
                         energy%mulliken
 !      WRITE ( *, * ) ' AFTER TOTAL', energy%total
 

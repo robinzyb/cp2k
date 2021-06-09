@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -76,8 +78,7 @@ CONTAINS
       INTEGER, INTENT(in)                                :: blacs_grid_layout
       LOGICAL, INTENT(in)                                :: blacs_repeatable
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'negf_sub_env_create', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'negf_sub_env_create'
 
       INTEGER                                            :: handle
       LOGICAL                                            :: is_split
@@ -95,7 +96,7 @@ CONTAINS
       is_split = negf_control%nprocs > 0 .AND. negf_control%nprocs*2 <= para_env_global%num_pe
 
       IF (is_split) THEN
-         ALLOCATE (sub_env%group_distribution(0:para_env_global%num_pe-1))
+         ALLOCATE (sub_env%group_distribution(0:para_env_global%num_pe - 1))
 
          CALL mp_comm_split(comm=para_env_global%group, sub_comm=sub_env%mpi_comm, ngroups=sub_env%ngroups, &
                             group_distribution=sub_env%group_distribution, subgroup_min_size=negf_control%nprocs)
@@ -111,7 +112,7 @@ CONTAINS
          sub_env%mpi_comm = para_env_global%group
          sub_env%ngroups = 1
 
-         ALLOCATE (sub_env%group_distribution(0:para_env_global%num_pe-1))
+         ALLOCATE (sub_env%group_distribution(0:para_env_global%num_pe - 1))
          sub_env%group_distribution(:) = 0
 
          sub_env%blacs_env => blacs_env_global
@@ -133,8 +134,7 @@ CONTAINS
    SUBROUTINE negf_sub_env_release(sub_env)
       TYPE(negf_subgroup_env_type), INTENT(inout)        :: sub_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'negf_sub_env_release', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'negf_sub_env_release'
 
       INTEGER                                            :: handle
 

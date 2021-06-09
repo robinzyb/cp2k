@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -75,8 +77,7 @@ CONTAINS
       LOGICAL                                            :: lprint
       TYPE(opmat_type), OPTIONAL, POINTER                :: xcmat
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_atom_zmp', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_atom_zmp'
 
       INTEGER                                            :: extunit, handle, ir, nr, z
       REAL(KIND=dp)                                      :: int1, int2
@@ -98,14 +99,14 @@ CONTAINS
 
       !Vxc2
       rho_dum = rho(:, 1)*int1/z
-      deltarho = rho_dum-ext_density
+      deltarho = rho_dum - ext_density
       int2 = integrate_grid(deltarho, atom%basis%grid)
       CALL coulomb_potential_numeric(vxc2, deltarho, atom%basis%grid)
 
       vxc2 = vxc2*atom%lambda
 
       !Vxc
-      vxc = vxc1+vxc2
+      vxc = vxc1 + vxc2
 
       atom%energy%exc = fourpi*integrate_grid(vxc, rho(:, 1), atom%basis%grid)
       atom%rho_diff_integral = fourpi*int2
@@ -146,8 +147,7 @@ CONTAINS
       LOGICAL, INTENT(in)                                :: lprint
       TYPE(opmat_type), INTENT(inout), OPTIONAL, POINTER :: xcmat
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_atom_ext_vxc', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_atom_ext_vxc'
 
       INTEGER                                            :: extunit, handle, ir, nr
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: rho
@@ -197,8 +197,7 @@ CONTAINS
       TYPE(atom_type), INTENT(INOUT)                     :: atom
       TYPE(section_vals_type), POINTER                   :: xc_section
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_atom_vxc_lda', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_atom_vxc_lda'
 
       INTEGER                                            :: deriv_order, handle, i, l, myfun, n1, &
                                                             n2, n3, nr, nspins, unit_nr
@@ -343,7 +342,7 @@ CONTAINS
                n1 = SIZE(xcmat%op, 1)
                n2 = SIZE(xcmat%op, 2)
                n3 = SIZE(xcmat%op, 3)
-               ALLOCATE (taumat(n1, n2, 0:n3-1))
+               ALLOCATE (taumat(n1, n2, 0:n3 - 1))
                taumat = 0._dp
 
                xcpot(:, 1, 1) = 0.5_dp*xcpot(:, 1, 1)
@@ -351,7 +350,7 @@ CONTAINS
                xcpot(:, 1, 1) = xcpot(:, 1, 1)/atom%basis%grid%rad2(:)
                CALL numpot_matrix(taumat, xcpot(:, 1, 1), atom%basis, 0)
                DO l = 0, 3
-                  xcmat%op(:, :, l) = xcmat%op(:, :, l)+REAL(l*(l+1), dp)*taumat(:, :, l)
+                  xcmat%op(:, :, l) = xcmat%op(:, :, l) + REAL(l*(l + 1), dp)*taumat(:, :, l)
                END DO
 
                DEALLOCATE (tau)
@@ -406,8 +405,7 @@ CONTAINS
       TYPE(atom_type), INTENT(INOUT)                     :: atom
       TYPE(section_vals_type), POINTER                   :: xc_section
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_atom_vxc_lsd', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_atom_vxc_lsd'
 
       INTEGER                                            :: deriv_order, handle, l, myfun, n1, n2, &
                                                             n3, nr, nspins
@@ -483,8 +481,8 @@ CONTAINS
                IF (nlcc) THEN
                   xfun = 0.0_dp
                   CALL atom_core_density(xfun(:), atom%potential, typ="RHO", rr=atom%basis%grid%rad)
-                  rho(:, 1) = rho(:, 1)+0.5_dp*xfun(:)
-                  rho(:, 2) = rho(:, 2)+0.5_dp*xfun(:)
+                  rho(:, 1) = rho(:, 1) + 0.5_dp*xfun(:)
+                  rho(:, 2) = rho(:, 2) + 0.5_dp*xfun(:)
                END IF
             END IF
             IF (needs%norm_drho_spin) THEN
@@ -494,8 +492,8 @@ CONTAINS
                IF (nlcc) THEN
                   xfun = 0.0_dp
                   CALL atom_core_density(xfun(:), atom%potential, typ="DER", rr=atom%basis%grid%rad)
-                  drho(:, 1) = drho(:, 1)+0.5_dp*xfun(:)
-                  drho(:, 2) = drho(:, 2)+0.5_dp*xfun(:)
+                  drho(:, 1) = drho(:, 1) + 0.5_dp*xfun(:)
+                  drho(:, 2) = drho(:, 2) + 0.5_dp*xfun(:)
                END IF
             END IF
             IF (needs%tau_spin) THEN
@@ -514,8 +512,8 @@ CONTAINS
                IF (nlcc) THEN
                   xfun = 0.0_dp
                   CALL atom_core_density(xfun(:), atom%potential, typ="LAP", rr=atom%basis%grid%rad)
-                  lap(:, 1) = lap(:, 1)+0.5_dp*xfun(:)
-                  lap(:, 2) = lap(:, 2)+0.5_dp*xfun(:)
+                  lap(:, 1) = lap(:, 1) + 0.5_dp*xfun(:)
+                  lap(:, 2) = lap(:, 2) + 0.5_dp*xfun(:)
                END IF
             END IF
 
@@ -566,7 +564,7 @@ CONTAINS
                n1 = SIZE(xcmata%op, 1)
                n2 = SIZE(xcmata%op, 2)
                n3 = SIZE(xcmata%op, 3)
-               ALLOCATE (taumat(n1, n2, 0:n3-1))
+               ALLOCATE (taumat(n1, n2, 0:n3 - 1))
 
                deriv => xc_dset_get_derivative(deriv_set, "(tau_a)", allocate_deriv=.FALSE.)
                CALL xc_derivative_get(deriv, deriv_data=xcpot)
@@ -576,7 +574,7 @@ CONTAINS
                xcpot(:, 1, 1) = xcpot(:, 1, 1)/atom%basis%grid%rad2(:)
                CALL numpot_matrix(taumat, xcpot(:, 1, 1), atom%basis, 0)
                DO l = 0, 3
-                  xcmata%op(:, :, l) = xcmata%op(:, :, l)+REAL(l*(l+1), dp)*taumat(:, :, l)
+                  xcmata%op(:, :, l) = xcmata%op(:, :, l) + REAL(l*(l + 1), dp)*taumat(:, :, l)
                END DO
 
                deriv => xc_dset_get_derivative(deriv_set, "(tau_b)", allocate_deriv=.FALSE.)
@@ -587,7 +585,7 @@ CONTAINS
                xcpot(:, 1, 1) = xcpot(:, 1, 1)/atom%basis%grid%rad2(:)
                CALL numpot_matrix(taumat, xcpot(:, 1, 1), atom%basis, 0)
                DO l = 0, 3
-                  xcmatb%op(:, :, l) = xcmatb%op(:, :, l)+REAL(l*(l+1), dp)*taumat(:, :, l)
+                  xcmatb%op(:, :, l) = xcmatb%op(:, :, l) + REAL(l*(l + 1), dp)*taumat(:, :, l)
                END DO
 
                DEALLOCATE (tau)
@@ -619,8 +617,8 @@ CONTAINS
          IF (nlcc) THEN
             xfun(:) = 0.0_dp
             CALL atom_core_density(xfun(:), atom%potential, typ="RHO", rr=atom%basis%grid%rad)
-            rho(:, 1) = rho(:, 1)+0.5_dp*xfun(:)
-            rho(:, 2) = rho(:, 2)+0.5_dp*xfun(:)
+            rho(:, 1) = rho(:, 1) + 0.5_dp*xfun(:)
+            rho(:, 2) = rho(:, 2) + 0.5_dp*xfun(:)
          END IF
          CALL lsd_pade(rho(:, 1), rho(:, 2), exc, vxca, vxcb)
 
@@ -657,7 +655,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(OUT)                         :: fexc
       REAL(KIND=dp), DIMENSION(:, :, :), INTENT(INOUT)   :: xcmat
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'atom_vxc_lda', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'atom_vxc_lda'
 
       INTEGER                                            :: deriv_order, handle, l, myfun, n1, n2, &
                                                             n3, nr, nspins
@@ -759,7 +757,7 @@ CONTAINS
             n1 = SIZE(xcmat, 1)
             n2 = SIZE(xcmat, 2)
             n3 = SIZE(xcmat, 3)
-            ALLOCATE (taumat(n1, n2, 0:n3-1))
+            ALLOCATE (taumat(n1, n2, 0:n3 - 1))
             taumat = 0._dp
 
             xcpot(:, 1, 1) = 0.5_dp*xcpot(:, 1, 1)
@@ -767,7 +765,7 @@ CONTAINS
             xcpot(:, 1, 1) = xcpot(:, 1, 1)/basis%grid%rad2(:)
             CALL numpot_matrix(taumat, xcpot(:, 1, 1), basis, 0)
             DO l = 0, 3
-               xcmat(:, :, l) = xcmat(:, :, l)+REAL(l*(l+1), dp)*taumat(:, :, l)
+               xcmat(:, :, l) = xcmat(:, :, l) + REAL(l*(l + 1), dp)*taumat(:, :, l)
             END DO
 
             DEALLOCATE (tau)
@@ -811,7 +809,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(OUT)                         :: fexc
       REAL(KIND=dp), DIMENSION(:, :, :), INTENT(INOUT)   :: xcmata, xcmatb
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'atom_vxc_lsd', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'atom_vxc_lsd'
 
       INTEGER                                            :: deriv_order, handle, l, myfun, n1, n2, &
                                                             n3, nr, nspins
@@ -933,7 +931,7 @@ CONTAINS
             n1 = SIZE(xcmata, 1)
             n2 = SIZE(xcmata, 2)
             n3 = SIZE(xcmata, 3)
-            ALLOCATE (taumat(n1, n2, 0:n3-1))
+            ALLOCATE (taumat(n1, n2, 0:n3 - 1))
 
             deriv => xc_dset_get_derivative(deriv_set, "(tau_a)", allocate_deriv=.FALSE.)
             CALL xc_derivative_get(deriv, deriv_data=xcpot)
@@ -943,7 +941,7 @@ CONTAINS
             xcpot(:, 1, 1) = xcpot(:, 1, 1)/basis%grid%rad2(:)
             CALL numpot_matrix(taumat, xcpot(:, 1, 1), basis, 0)
             DO l = 0, 3
-               xcmata(:, :, l) = xcmata(:, :, l)+REAL(l*(l+1), dp)*taumat(:, :, l)
+               xcmata(:, :, l) = xcmata(:, :, l) + REAL(l*(l + 1), dp)*taumat(:, :, l)
             END DO
 
             deriv => xc_dset_get_derivative(deriv_set, "(tau_b)", allocate_deriv=.FALSE.)
@@ -954,7 +952,7 @@ CONTAINS
             xcpot(:, 1, 1) = xcpot(:, 1, 1)/basis%grid%rad2(:)
             CALL numpot_matrix(taumat, xcpot(:, 1, 1), basis, 0)
             DO l = 0, 3
-               xcmatb(:, :, l) = xcmatb(:, :, l)+REAL(l*(l+1), dp)*taumat(:, :, l)
+               xcmatb(:, :, l) = xcmatb(:, :, l) + REAL(l*(l + 1), dp)*taumat(:, :, l)
             END DO
 
             DEALLOCATE (tau)
@@ -995,7 +993,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(OUT)                         :: dfexc
       REAL(KIND=dp), DIMENSION(:), INTENT(IN), OPTIONAL  :: linxpar
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'atom_dpot_lda', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'atom_dpot_lda'
       REAL(KIND=dp), PARAMETER :: alx = 0.20_dp, blx = -0.06_dp, &
          fs = -0.75_dp*(3._dp/pi)**(1._dp/3._dp)
 
@@ -1019,9 +1017,9 @@ CONTAINS
       !
       ALLOCATE (delta(nr))
       fx = 4.0_dp/3.0_dp
-      delta(1:nr) = fs*(rho0(1:nr)**fx-rho1(1:nr)**fx)
+      delta(1:nr) = fs*(rho0(1:nr)**fx - rho1(1:nr)**fx)
 
-      SELECT CASE (TRIM (functional))
+      SELECT CASE (TRIM(functional))
       CASE ("LINX")
          IF (PRESENT(linxpar)) THEN
             a = linxpar(1)
@@ -1038,7 +1036,7 @@ CONTAINS
                pot0(ir) = 0._dp
             END IF
          END DO
-         pot1(1:nr) = 1._dp+(a*pot0(1:nr)**2)/(1._dp+b*pot0(1:nr)**2)
+         pot1(1:nr) = 1._dp + (a*pot0(1:nr)**2)/(1._dp + b*pot0(1:nr)**2)
          pot1(1:nr) = pot1(1:nr)*delta(1:nr)
          dfexc = fourpi*integrate_grid(pot1(1:nr), basis0%grid)
          DEALLOCATE (pot0, pot1)
@@ -1075,7 +1073,6 @@ CONTAINS
       REAL(dp), DIMENSION(:, :), POINTER                 :: rho, drho, tau, lap
       INTEGER, INTENT(IN)                                :: na
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'fill_rho_set', routineP = moduleN//':'//routineN
       REAL(KIND=dp), PARAMETER                           :: f13 = (1.0_dp/3.0_dp)
 
       INTEGER                                            :: ia
@@ -1120,7 +1117,7 @@ CONTAINS
          ! Give the total density
          IF (needs%rho) THEN
             DO ia = 1, na
-               rho_set%rho(ia, 1, 1) = rho(ia, 1)+rho(ia, 2)
+               rho_set%rho(ia, 1, 1) = rho(ia, 1) + rho(ia, 2)
             END DO
             rho_set%owns%rho = .TRUE.
             rho_set%has%rho = .TRUE.
@@ -1128,7 +1125,7 @@ CONTAINS
          ! Give the norm of the total gradient of the density
          IF (needs%norm_drho) THEN
             DO ia = 1, na
-               rho_set%norm_drho(ia, 1, 1) = drho(ia, 1)+drho(ia, 2)
+               rho_set%norm_drho(ia, 1, 1) = drho(ia, 1) + drho(ia, 2)
             END DO
             rho_set%owns%norm_drho = .TRUE.
             rho_set%has%norm_drho = .TRUE.
@@ -1167,7 +1164,7 @@ CONTAINS
       IF (needs%tau) THEN
          IF (nspins == 2) THEN
             DO ia = 1, na
-               rho_set%tau(ia, 1, 1) = tau(ia, 1)+tau(ia, 2)
+               rho_set%tau(ia, 1, 1) = tau(ia, 1) + tau(ia, 2)
             END DO
             rho_set%owns%tau = .TRUE.
             rho_set%has%tau = .TRUE.
@@ -1193,7 +1190,7 @@ CONTAINS
       IF (needs%laplace_rho) THEN
          IF (nspins == 2) THEN
             DO ia = 1, na
-               rho_set%laplace_rho(ia, 1, 1) = lap(ia, 1)+lap(ia, 2)
+               rho_set%laplace_rho(ia, 1, 1) = lap(ia, 1) + lap(ia, 2)
             END DO
             rho_set%owns%laplace_rho = .TRUE.
             rho_set%has%laplace_rho = .TRUE.
@@ -1226,11 +1223,11 @@ CONTAINS
 !> \par History
 !>    * 12.2008 created [Juerg Hutter]
 ! **************************************************************************************************
-   SUBROUTINE lda_pade(rho, exc, vxc)
+   PURE SUBROUTINE lda_pade(rho, exc, vxc)
 
-      REAL(dp), DIMENSION(:)                             :: rho, exc, vxc
+      REAL(dp), DIMENSION(:), INTENT(IN)                 :: rho
+      REAL(dp), DIMENSION(:), INTENT(OUT)                :: exc, vxc
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'lda_pade', routineP = moduleN//':'//routineN
       REAL(KIND=dp), PARAMETER :: a0 = 0.4581652932831429E+0_dp, a1 = 0.2217058676663745E+1_dp, &
          a2 = 0.7405551735357053E+0_dp, a3 = 0.1968227878617998E-1_dp, &
          b1 = 1.0000000000000000E+0_dp, b2 = 0.4504130959426697E+1_dp, &
@@ -1247,16 +1244,16 @@ CONTAINS
       DO i = 1, n
          IF (rho(i) > 1.e-20_dp) THEN
             rs = rsfac*rho(i)**(-f13)
-            p = a0+(a1+(a2+a3*rs)*rs)*rs
-            q = (b1+(b2+(b3+b4*rs)*rs)*rs)*rs
+            p = a0 + (a1 + (a2 + a3*rs)*rs)*rs
+            q = (b1 + (b2 + (b3 + b4*rs)*rs)*rs)*rs
             epade = -p/q
 
-            dpv = a1+(2.0_dp*a2+3.0_dp*a3*rs)*rs
-            dq = b1+(2.0_dp*b2+(3.0_dp*b3+4.0_dp*b4*rs)*rs)*rs
-            depade = f13*rs*(dpv*q-p*dq)/(q*q)
+            dpv = a1 + (2.0_dp*a2 + 3.0_dp*a3*rs)*rs
+            dq = b1 + (2.0_dp*b2 + (3.0_dp*b3 + 4.0_dp*b4*rs)*rs)*rs
+            depade = f13*rs*(dpv*q - p*dq)/(q*q)
 
             exc(i) = epade*rho(i)
-            vxc(i) = epade+depade
+            vxc(i) = epade + depade
          END IF
       END DO
 
@@ -1273,11 +1270,11 @@ CONTAINS
 !> \par History
 !>    * 02.2010 created [Juerg Hutter]
 ! **************************************************************************************************
-   SUBROUTINE lsd_pade(rhoa, rhob, exc, vxca, vxcb)
+   PURE SUBROUTINE lsd_pade(rhoa, rhob, exc, vxca, vxcb)
 
-      REAL(dp), DIMENSION(:)                             :: rhoa, rhob, exc, vxca, vxcb
+      REAL(dp), DIMENSION(:), INTENT(IN)                 :: rhoa, rhob
+      REAL(dp), DIMENSION(:), INTENT(OUT)                :: exc, vxca, vxcb
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'lsd_pade', routineP = moduleN//':'//routineN
       REAL(KIND=dp), PARAMETER :: a0 = 0.4581652932831429E+0_dp, a1 = 0.2217058676663745E+1_dp, &
          a2 = 0.7405551735357053E+0_dp, a3 = 0.1968227878617998E-1_dp, &
          b1 = 1.0000000000000000E+0_dp, b2 = 0.4504130959426697E+1_dp, &
@@ -1303,11 +1300,11 @@ CONTAINS
       vxcb(1:n) = 0._dp
 
       DO i = 1, n
-         rhoab = rhoa(i)+rhob(i)
+         rhoab = rhoa(i) + rhob(i)
          IF (rhoab > 1.e-20_dp) THEN
             rs = rsfac*rhoab**(-f13)
 
-            x = (rhoa(i)-rhob(i))/rhoab
+            x = (rhoa(i) - rhob(i))/rhoab
             IF (x < -1.0_dp) THEN
                fx1 = 1.0_dp
                fx2 = -f43*fxfac*2.0_dp**f13
@@ -1315,34 +1312,34 @@ CONTAINS
                fx1 = 1.0_dp
                fx2 = f43*fxfac*2.0_dp**f13
             ELSE
-               fx1 = ((1.0_dp+x)**f43+(1.0_dp-x)**f43-2.0_dp)*fxfac
-               fx2 = ((1.0_dp+x)**f13-(1.0_dp-x)**f13)*fxfac*f43
+               fx1 = ((1.0_dp + x)**f43 + (1.0_dp - x)**f43 - 2.0_dp)*fxfac
+               fx2 = ((1.0_dp + x)**f13 - (1.0_dp - x)**f13)*fxfac*f43
             END IF
 
-            fa0 = a0+fx1*da0
-            fa1 = a1+fx1*da1
-            fa2 = a2+fx1*da2
-            fa3 = a3+fx1*da3
-            fb1 = b1+fx1*db1
-            fb2 = b2+fx1*db2
-            fb3 = b3+fx1*db3
-            fb4 = b4+fx1*db4
+            fa0 = a0 + fx1*da0
+            fa1 = a1 + fx1*da1
+            fa2 = a2 + fx1*da2
+            fa3 = a3 + fx1*da3
+            fb1 = b1 + fx1*db1
+            fb2 = b2 + fx1*db2
+            fb3 = b3 + fx1*db3
+            fb4 = b4 + fx1*db4
 
-            p = fa0+(fa1+(fa2+fa3*rs)*rs)*rs
-            q = (fb1+(fb2+(fb3+fb4*rs)*rs)*rs)*rs
-            dpv = fa1+(2.0_dp*fa2+3.0_dp*fa3*rs)*rs
-            dq = fb1+(2.0_dp*fb2+(3.0_dp*fb3+ &
-                                  4.0_dp*fb4*rs)*rs)*rs
-            xp = da0+(da1+(da2+da3*rs)*rs)*rs
-            xq = (db1+(db2+(db3+db4*rs)*rs)*rs)*rs
+            p = fa0 + (fa1 + (fa2 + fa3*rs)*rs)*rs
+            q = (fb1 + (fb2 + (fb3 + fb4*rs)*rs)*rs)*rs
+            dpv = fa1 + (2.0_dp*fa2 + 3.0_dp*fa3*rs)*rs
+            dq = fb1 + (2.0_dp*fb2 + (3.0_dp*fb3 + &
+                                      4.0_dp*fb4*rs)*rs)*rs
+            xp = da0 + (da1 + (da2 + da3*rs)*rs)*rs
+            xq = (db1 + (db2 + (db3 + db4*rs)*rs)*rs)*rs
 
-            dr = (dpv*q-p*dq)/(q*q)
-            dx = 2.0_dp*(xp*q-p*xq)/(q*q)*fx2/rhoab
-            dc = f13*rs*dr-p/q
+            dr = (dpv*q - p*dq)/(q*q)
+            dx = 2.0_dp*(xp*q - p*xq)/(q*q)*fx2/rhoab
+            dc = f13*rs*dr - p/q
 
             exc(i) = -p/q*rhoab
-            vxca(i) = dc-dx*rhob(i)
-            vxcb(i) = dc+dx*rhoa(i)
+            vxca(i) = dc - dx*rhob(i)
+            vxcb(i) = dc + dx*rhoa(i)
          END IF
       END DO
 

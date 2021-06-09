@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -43,8 +45,7 @@ MODULE md_energies
                                               npt_i_ensemble,&
                                               reftraj_ensemble
    USE input_cp2k_md,                   ONLY: create_md_section
-   USE input_enumeration_types,         ONLY: enum_i2c,&
-                                              enumeration_type
+   USE input_enumeration_types,         ONLY: enumeration_type
    USE input_keyword_types,             ONLY: keyword_get,&
                                               keyword_type
    USE input_section_types,             ONLY: section_get_keyword,&
@@ -109,9 +110,6 @@ CONTAINS
       TYPE(force_env_type), POINTER                      :: force_env
       TYPE(simpar_type), POINTER                         :: simpar
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'initialize_md_ener', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: nkind
       LOGICAL                                            :: shell_adiabatic
       TYPE(atomic_kind_list_type), POINTER               :: atomic_kinds
@@ -173,8 +171,6 @@ CONTAINS
       TYPE(md_environment_type), POINTER                 :: md_env
       TYPE(md_ener_type), POINTER                        :: md_ener
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'md_energy', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: natom
       LOGICAL                                            :: shell_adiabatic, tkind, tshell
       TYPE(atomic_kind_list_type), POINTER               :: atomic_kinds
@@ -220,9 +216,6 @@ CONTAINS
       TYPE(md_environment_type), POINTER                 :: md_env
       TYPE(md_ener_type), POINTER                        :: md_ener
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'md_ener_reftraj', &
-         routineP = moduleN//':'//routineN
-
       TYPE(force_env_type), POINTER                      :: force_env
       TYPE(reftraj_type), POINTER                        :: reftraj
 
@@ -233,7 +226,7 @@ CONTAINS
          CALL force_env_get(force_env, potential_energy=md_ener%epot)
       ELSE
          md_ener%epot = reftraj%epot
-         md_ener%delta_epot = (reftraj%epot-reftraj%epot0)/REAL(reftraj%natom, kind=dp)*kelvin
+         md_ener%delta_epot = (reftraj%epot - reftraj%epot0)/REAL(reftraj%natom, kind=dp)*kelvin
       END IF
 
    END SUBROUTINE md_ener_reftraj
@@ -252,8 +245,7 @@ CONTAINS
 
       TYPE(md_environment_type), POINTER                 :: md_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'md_write_output', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'md_write_output'
 
       CHARACTER(LEN=default_string_length)               :: fmd, my_act, my_pos
       INTEGER                                            :: ene, ener_mix, handle, i, nat, nkind, &
@@ -320,7 +312,7 @@ CONTAINS
       IF (virial%pv_availability) THEN
          pv_scalar = 0._dp
          DO i = 1, 3
-            pv_scalar = pv_scalar+virial%pv_total(i, i)
+            pv_scalar = pv_scalar + virial%pv_total(i, i)
          END DO
          pv_scalar = pv_scalar/3._dp/cell%deth
          pv_scalar = cp_unit_from_cp2k(pv_scalar, "bar")
@@ -357,17 +349,17 @@ CONTAINS
          ! Computing the Hugoniot for NPH calculations
          IF (simpar%ensemble == nph_uniaxial_ensemble .OR. &
              simpar%ensemble == nph_uniaxial_damped_ensemble) THEN
-            IF (simpar%e0 == 0._dp) simpar%e0 = md_ener%epot+md_ener%ekin
-            hugoniot = md_ener%epot+md_ener%ekin-simpar%e0-0.5_dp*(pv_xx_nc+simpar%p0)* &
-                       (simpar%v0-cell%deth)
+            IF (simpar%e0 == 0._dp) simpar%e0 = md_ener%epot + md_ener%ekin
+            hugoniot = md_ener%epot + md_ener%ekin - simpar%e0 - 0.5_dp*(pv_xx_nc + simpar%p0)* &
+                       (simpar%v0 - cell%deth)
          ENDIF
 
          IF (simpar%ensemble == reftraj_ensemble) reftraj%init = init
       ELSE
          ! Performing protocol for anything beyond the first step of MD
          IF (simpar%ensemble == nph_uniaxial_ensemble .OR. simpar%ensemble == nph_uniaxial_damped_ensemble) THEN
-            hugoniot = md_ener%epot+md_ener%ekin-simpar%e0-0.5_dp*(pv_xx_nc+simpar%p0)* &
-                       (simpar%v0-cell%deth)
+            hugoniot = md_ener%epot + md_ener%ekin - simpar%e0 - 0.5_dp*(pv_xx_nc + simpar%p0)* &
+                       (simpar%v0 - cell%deth)
          END IF
 
          IF (simpar%ensemble == reftraj_ensemble) THEN
@@ -389,14 +381,14 @@ CONTAINS
                              cell_angle, itimes, dt, time, used_time, averages, econs, pv_scalar, pv_xx, &
                              hugoniot, nat, init, logger, motion_section, my_pos, my_act)
 
-      ! Real Ouput driven by the PRINT sections
+      ! Real Output driven by the PRINT sections
       IF ((.NOT. init) .OR. (itimes == 0) .OR. simpar%ensemble == reftraj_ensemble) THEN
          ! Print Energy
          ene = cp_print_key_unit_nr(logger, motion_section, "MD%PRINT%ENERGY", &
                                     extension=".ener", file_position=my_pos, file_action=my_act, is_new_file=new_file)
          IF (ene > 0) THEN
             IF (new_file) THEN
-               ! Please change also the corresponding format explaination below
+               ! Please change also the corresponding format explanation below
                ! keep the constant of motion the true constant of motion !
                WRITE (ene, '("#",5X,A,10X,A,8X,A,10X,A,12X,A,2(8X,A))') "Step Nr.", "Time[fs]", "Kin.[a.u.]", "Temp[K]", &
                   "Pot.[a.u.]", "Cons Qty[a.u.]", "UsedTime[s]"
@@ -618,9 +610,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: motion_section
       CHARACTER(LEN=default_string_length), INTENT(IN)   :: my_pos, my_act
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'md_write_info_low', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iw
       TYPE(enumeration_type), POINTER                    :: enum
       TYPE(keyword_type), POINTER                        :: keyword
@@ -636,145 +625,151 @@ CONTAINS
          CALL create_md_section(section)
          keyword => section_get_keyword(section, "ENSEMBLE")
          CALL keyword_get(keyword, enum=enum)
-
          IF (init) THEN
             ! Write initial values of quantities of interest
-            WRITE (iw, *)
-            WRITE (iw, '( A )') ' MD_ENERGIES| Initialization proceeding'
-            WRITE (iw, *)
-            WRITE (iw, '( )')
-            WRITE (iw, '( A,A )') ' ******************************** ', &
-               'GO CP2K GO! **********************************'
-            WRITE (iw, '( A,A,T40,A,T60,1(1X,E20.12) )') ' INITIAL POTENTIAL ENERGY', &
-               '[hartree]', '= ', md_ener%epot
+            WRITE (iw, '(/,T2,A)') 'MD_INI| MD initialization'
+            WRITE (iw, '(T2,A,T61,E20.12)') &
+               'MD_INI| Potential energy [hartree]', md_ener%epot
             IF (simpar%ensemble /= reftraj_ensemble) THEN
                IF (.NOT. qmmm) THEN
                   ! NO QM/MM info
-                  WRITE (iw, '( A,A,T40,A,T60,1(1X,E20.12) )') ' INITIAL KINETIC ENERGY', &
-                     '[hartree]', '= ', md_ener%ekin
-                  WRITE (iw, '( A,A,T40,A,T60,1(1X,F20.3) )') ' INITIAL TEMPERATURE', &
-                     '[K]', '= ', md_ener%temp_part
+                  WRITE (iw, '(T2,A,T61,E20.12)') &
+                     'MD_INI| Kinetic energy [hartree]', md_ener%ekin
+                  WRITE (iw, '(T2,A,T61,F20.6)') &
+                     'MD_INI| Temperature [K]', md_ener%temp_part
                ELSE
-                  WRITE (iw, '( A,A,T40,A,T60,1(1X,E20.12) )') ' TOTAL INITIAL KINETIC ENERGY', &
-                     '[hartree]', '= ', md_ener%ekin
-                  WRITE (iw, '( A,A,T40,A,T60,1(1X,E20.12) )') ' QM INITIAL KINETIC ENERGY', &
-                     '[hartree]', '= ', md_ener%ekin_qm
-                  WRITE (iw, '( A,A,T40,A,T60,1(1X,F20.3) )') ' TOTAL INITIAL TEMPERATURE', &
-                     '[K]', '= ', md_ener%temp_part
-                  WRITE (iw, '( A,A,T40,A,T60,1(1X,F20.3) )') ' QM INITIAL TEMPERATURE', &
-                     '[K]', '= ', md_ener%temp_qm
+                  WRITE (iw, '(T2,A,T61,E20.12)') &
+                     'MD_INI| Total kinetic energy [hartree]', md_ener%ekin, &
+                     'MD_INI| QM kinetic energy [hartree]', md_ener%ekin_qm
+                  WRITE (iw, '(T2,A,T61,F20.6)') &
+                     'MD_INI| Total temperature [K]', md_ener%temp_part, &
+                     'MD_INI| QM temperature [K]', md_ener%temp_qm
                END IF
             END IF
-            IF (simpar%ensemble == nph_uniaxial_ensemble .OR. &
-                simpar%ensemble == nph_uniaxial_damped_ensemble .OR. &
-                simpar%ensemble == npt_i_ensemble .OR. &
-                simpar%ensemble == npt_f_ensemble .OR. &
-                simpar%ensemble == npe_i_ensemble .OR. &
-                simpar%ensemble == npe_f_ensemble) &
-               WRITE (iw, '( A,A,T40,A,T60,1(1X,E20.12) )') ' INITIAL BAROSTAT TEMP', &
-               '[K]', '= ', md_ener%temp_baro
-            IF (virial%pv_availability) &
-               WRITE (iw, '( A,A,T40,A,T60,1(1X,E20.12) )') ' INITIAL PRESSURE', &
-               '[bar]', '= ', pv_scalar
-            IF (simpar%ensemble == nph_uniaxial_ensemble .OR. &
-                simpar%ensemble == nph_uniaxial_damped_ensemble) &
-               WRITE (iw, '( A,A,T40,A,T60,1(1X,E20.12) )') ' INITIAL HUGONIOT CONSTRAINT', &
-               '[K]', '= ', hugoniot
-            IF (simpar%ensemble == nph_uniaxial_ensemble .OR. &
-                simpar%ensemble == nph_uniaxial_damped_ensemble) &
-               WRITE (iw, '( A,A,T40,A,T60,1(1X,E20.12) )') ' INITIAL E0', &
-               '[hartree]', '= ', simpar%e0
-            WRITE (iw, '( A,A,T40,A,T60,1(1X,E20.12) )') ' INITIAL VOLUME', &
-               '[bohr^3]', '= ', cell%deth
-            WRITE (iw, '( A,A,T29,A,T33,3(1X,E15.7) )') ' INITIAL CELL LNTHS', &
-               '[bohr]', '= ', abc(1), abc(2), abc(3)
-            WRITE (iw, '( A,A,T29,A,T33,3(1X,E15.7) )') ' INITIAL CELL ANGLS', &
-               '[deg]', '= ', cell_angle(3), cell_angle(2), cell_angle(1)
-            WRITE (iw, '( A,A )') ' ******************************** ', &
-               'GO CP2K GO! **********************************'
+            IF ((simpar%ensemble == nph_uniaxial_ensemble) .OR. &
+                (simpar%ensemble == nph_uniaxial_damped_ensemble) .OR. &
+                (simpar%ensemble == npt_i_ensemble) .OR. &
+                (simpar%ensemble == npt_f_ensemble) .OR. &
+                (simpar%ensemble == npe_i_ensemble) .OR. &
+                (simpar%ensemble == npe_f_ensemble)) THEN
+               WRITE (iw, '(T2,A,T61,F20.6)') &
+                  'MD_INI| Barostat temperature [K]', md_ener%temp_baro
+            END IF
+            IF (virial%pv_availability) THEN
+               WRITE (iw, '(T2,A,T61,ES20.12)') &
+                  'MD_INI| Pressure [bar]', pv_scalar
+            END IF
+            IF ((simpar%ensemble == nph_uniaxial_ensemble) .OR. &
+                (simpar%ensemble == nph_uniaxial_damped_ensemble)) THEN
+               WRITE (iw, '(T2,A,T61,ES20.12)') &
+                  'MD_INI| Hugoniot constraint [K]', hugoniot
+            END IF
+            IF ((simpar%ensemble == nph_uniaxial_ensemble) .OR. &
+                (simpar%ensemble == nph_uniaxial_damped_ensemble)) THEN
+               WRITE (iw, '(T2,A,T61,E20.12)') &
+                  'MD_INI| Total energy [hartree]', simpar%e0
+            END IF
+            WRITE (iw, '(T2,A,T61,ES20.12)') &
+               'MD_INI| Cell volume [bohr^3]', cell%deth
+            WRITE (iw, '(T2,A,T61,ES20.12)') &
+               'MD_INI| Cell volume [ang^3]', cell%deth*angstrom**3
+            WRITE (iw, '(T2,A,T33,3(1X,ES15.8))') &
+               'MD_INI| Cell lengths [bohr]', abc(1:3)
+            WRITE (iw, '(T2,A,T33,3(1X,ES15.8))') &
+               'MD_INI| Cell lengths [ang]', abc(1:3)*angstrom
+            WRITE (iw, '(T2,A,T33,3(1X,ES15.8))') &
+               'MD_INI| Cell angles [deg]', cell_angle(3), cell_angle(2), cell_angle(1)
          ELSE
             ! Write seuquential values of quantities of interest
-            WRITE (iw, '(/,T2,A)') REPEAT('*', 79)
-            WRITE (iw, '(T2,A,T61,A20)') &
-               'ENSEMBLE TYPE                = ', ADJUSTR(TRIM(enum_i2c(enum, simpar%ensemble)))
+            WRITE (iw, '(/,T2,A)') 'MD| '//REPEAT('*', 75)
+!MK         WRITE (iw, '(T2,A,T61,A20)') &
+!MK            'MD| Ensemble type', ADJUSTR(TRIM(enum_i2c(enum, simpar%ensemble)))
             WRITE (iw, '(T2,A,T71,I10)') &
-               'STEP NUMBER                  = ', itimes
+               'MD| Step number', itimes
             IF (simpar%variable_dt) THEN
-               WRITE (iw, '(T2,A,T60,1X,F20.6)') &
-                  'TIME STEP [fs]               = ', dt*femtoseconds
+               WRITE (iw, '(T2,A,T61,F20.6)') &
+                  'MD| Time step [fs]', dt*femtoseconds
             END IF
-            WRITE (iw, '(T2,A,T60,1X,F20.6)') &
-               'TIME [fs]                    = ', time*femtoseconds
-            WRITE (iw, '(T2,A,T60,1X,E20.12)') &
-               'CONSERVED QUANTITY [hartree] = ', md_ener%constant
-            WRITE (iw, '(/,T47,A,T73,A)') 'INSTANTANEOUS', 'AVERAGES'
-            WRITE (iw, '(T2,A,T39,2(1X,F20.2))') &
-               'CPU TIME [s]                 = ', used_time, averages%avecpu
+            WRITE (iw, '(T2,A,T61,F20.6)') &
+               'MD| Time [fs]', time*femtoseconds
+            WRITE (iw, '(T2,A,T61,E20.12)') &
+               'MD| Conserved quantity [hartree]', md_ener%constant
+            WRITE (iw, '(T2,A)') 'MD| '//REPEAT('-', 75)
+            WRITE (iw, '(T2,A,T47,A,T73,A)') 'MD|', 'Instantaneous', 'Averages'
+            WRITE (iw, '(T2,A,T39,2(1X,F20.6))') &
+               'MD| CPU time per MD step [s]', used_time, averages%avecpu
             WRITE (iw, '(T2,A,T39,2(1X,E20.12))') &
-               'ENERGY DRIFT PER ATOM [K]    = ', econs, averages%econs
+               'MD| Energy drift per atom [K] ', econs, averages%econs
             WRITE (iw, '(T2,A,T39,2(1X,E20.12))') &
-               'POTENTIAL ENERGY[hartree]    = ', md_ener%epot, averages%avepot
+               'MD| Potential energy [hartree]', md_ener%epot, averages%avepot
             IF (simpar%ensemble /= reftraj_ensemble) THEN
                IF (.NOT. qmmm) THEN
                   ! No QM/MM info
                   WRITE (iw, '(T2,A,T39,2(1X,E20.12))') &
-                     'KINETIC ENERGY [hartree]     = ', md_ener%ekin, averages%avekin
-                  WRITE (iw, '(T2,A,T39,2(1X,F20.3))') &
-                     'TEMPERATURE [K]              = ', md_ener%temp_part, averages%avetemp
+                     'MD| Kinetic energy [hartree]', md_ener%ekin, averages%avekin
+                  WRITE (iw, '(T2,A,T39,2(1X,F20.6))') &
+                     'MD| Temperature [K]', md_ener%temp_part, averages%avetemp
                ELSE
-                  WRITE (iw, '( A,A,T31,A,T39,2(1X,E20.12) )') ' TOTAL KINETIC ENERGY', &
-                     '[hartree]', '= ', md_ener%ekin, averages%avekin
-                  WRITE (iw, '( A,A,T31,A,T39,2(1X,E20.12) )') ' QM KINETIC ENERGY', &
-                     '[hartree]', '= ', md_ener%ekin_qm, averages%avekin_qm
-                  WRITE (iw, '( A,A,T31,A,T39,2(1X,F20.3) )') ' TOTAL TEMPERATURE', &
-                     '[K]', '= ', md_ener%temp_part, averages%avetemp
-                  WRITE (iw, '( A,A,T31,A,T39,2(1X,F20.3) )') ' QM TEMPERATURE', &
-                     '[K]', '= ', md_ener%temp_qm, averages%avetemp_qm
+                  WRITE (iw, '(T2,A,T39,2(1X,E20.12))') &
+                     'MD| Total kinetic energy [hartree]', md_ener%ekin, averages%avekin
+                  WRITE (iw, '(T2,A,T39,2(1X,E20.12))') &
+                     'MD| QM kinetic energy [hartree]', md_ener%ekin_qm, averages%avekin_qm
+                  WRITE (iw, '(T2,A,T39,2(1X,F20.6))') &
+                     'MD| Total temperature [K]', md_ener%temp_part, averages%avetemp
+                  WRITE (iw, '(T2,A,T39,2(1X,F20.6))') &
+                     'MD| QM temperature [K]', md_ener%temp_qm, averages%avetemp_qm
                END IF
             END IF
             IF (virial%pv_availability) THEN
-               WRITE (iw, '(T2,A,T39,2(1X,E20.12))') &
-                  'PRESSURE [bar]               = ', pv_scalar, averages%avepress
+               WRITE (iw, '(T2,A,T39,2(1X,ES20.12))') &
+                  'MD| Pressure [bar]', pv_scalar, averages%avepress
             END IF
-            IF (simpar%ensemble == nph_uniaxial_ensemble .OR. &
-                simpar%ensemble == nph_uniaxial_damped_ensemble) THEN
-               WRITE (iw, '( A,A,T31,A,T39,2(1X,E20.12) )') ' P_XX', &
-                  '[bar]', '= ', pv_xx, averages%avepxx
-               WRITE (iw, '( A,A,T31,A,T39,2(1X,E20.12) )') ' HUGONIOT', &
-                  '[K]', '= ', hugoniot/3._dp/nat*kelvin, &
-                  averages%avehugoniot/3._dp/nat*kelvin
+            IF ((simpar%ensemble == nph_uniaxial_ensemble) .OR. &
+                (simpar%ensemble == nph_uniaxial_damped_ensemble)) THEN
+               WRITE (iw, '(T2,A,T39,2(1X,ES20.12))') &
+                  'MD| P(xx) [bar]', pv_xx, averages%avepxx
+               WRITE (iw, '(T2,A,T39,2(1X,ES20.12))') &
+                  'MD| Hugoniot [K]', hugoniot/3.0_dp/nat*kelvin, averages%avehugoniot/3.0_dp/nat*kelvin
             END IF
-            IF (simpar%ensemble == nph_uniaxial_ensemble .OR. &
-                simpar%ensemble == nph_uniaxial_damped_ensemble .OR. &
-                simpar%ensemble == npt_i_ensemble .OR. &
-                simpar%ensemble == npt_f_ensemble .OR. &
-                simpar%ensemble == npe_i_ensemble .OR. &
-                simpar%ensemble == npe_f_ensemble) THEN
-               WRITE (iw, '( A,A,T31,A,T39,2(1X,E20.12) )') ' BAROSTAT TEMP', &
-                  '[K]', '= ', md_ener%temp_baro, averages%avetemp_baro
-               WRITE (iw, '( A,A,T31,A,T39,2(1X,E20.12) )') ' VOLUME', &
-                  '[bohr^3]', '= ', cell%deth, averages%avevol
-               WRITE (iw, '( A,A,T31,A,T33,3(1X,E15.7) )') ' CELL LNTHS', &
-                  '[bohr]', '= ', abc(1), abc(2), abc(3)
-               WRITE (iw, '( A,A,T31,A,T33,3(1X,E15.7) )') ' AVE. CELL LNTHS', &
-                  '[bohr]', '= ', averages%aveca, averages%avecb, &
-                  averages%avecc
+            IF ((simpar%ensemble == nph_uniaxial_ensemble) .OR. &
+                (simpar%ensemble == nph_uniaxial_damped_ensemble) .OR. &
+                (simpar%ensemble == npt_i_ensemble) .OR. &
+                (simpar%ensemble == npt_f_ensemble) .OR. &
+                (simpar%ensemble == npe_i_ensemble) .OR. &
+                (simpar%ensemble == npe_f_ensemble)) THEN
+               WRITE (iw, '(T2,A,T39,2(1X,ES20.12))') &
+                  'MD| Barostat temperature [K]', md_ener%temp_baro, averages%avetemp_baro
+               WRITE (iw, '(T2,A,T39,2(1X,ES20.12))') &
+                  'MD| Cell volume [bohr^3]', cell%deth, averages%avevol
+               WRITE (iw, '(T2,A,T39,2(1X,ES20.12))') &
+                  'MD| Cell volume [ang^3]', cell%deth*angstrom**3, averages%avevol*angstrom**3
+               WRITE (iw, '(T2,A)') 'MD| '//REPEAT('-', 75)
+               WRITE (iw, '(T2,A,T33,3(1X,ES15.8))') &
+                  'MD| Cell lengths [bohr]', abc(1:3)
+               WRITE (iw, '(T2,A,T33,3(1X,ES15.8))') &
+                  'MD| Cell lengths [ang]', abc(1:3)*angstrom
+               WRITE (iw, '(T2,A,T33,3(1X,ES15.8))') &
+                  'MD| Average cell lengths [bohr]', averages%aveca, averages%avecb, averages%avecc
+               WRITE (iw, '(T2,A,T33,3(1X,ES15.8))') &
+                  'MD| Average cell lengths [ang]', averages%aveca*angstrom, averages%avecb*angstrom, &
+                  averages%avecc*angstrom
             END IF
-            IF (simpar%ensemble == npt_f_ensemble .OR. &
-                simpar%ensemble == npe_f_ensemble) THEN
-               WRITE (iw, '( A,A,T31,A,T33,3(1X,E15.7) )') ' CELL ANGLS', &
-                  '[deg]', '= ', cell_angle(3), cell_angle(2), cell_angle(1)
-               WRITE (iw, '( A,A,T31,A,T33,3(1X,E15.7) )') ' AVE. CELL ANGLS', &
-                  '[deg]', '= ', averages%aveal, averages%avebe, averages%avega
+            IF ((simpar%ensemble == npt_f_ensemble) .OR. &
+                (simpar%ensemble == npe_f_ensemble)) THEN
+               WRITE (iw, '(T2,A,T33,3(1X,ES15.8))') &
+                  'MD| Cell angles [deg]', cell_angle(3), cell_angle(2), cell_angle(1)
+               WRITE (iw, '(T2,A,T33,3(1X,ES15.8))') &
+                  'MD| Average cell angles [deg]', averages%aveal, averages%avebe, averages%avega
             END IF
             IF (simpar%ensemble == reftraj_ensemble) THEN
                IF (reftraj%info%msd) THEN
-                  IF (reftraj%msd%msd_kind) &
-                     WRITE (iw, '(/,A,T50,3f10.5)') ' COM displacement (dx,dy,dz) [angstrom]:  ', &
-                     reftraj%msd%drcom(1:3)*angstrom
+                  IF (reftraj%msd%msd_kind) THEN
+                     WRITE (iw, '(/,T2,A,T51,3F10.5)') &
+                        'MD| COM displacement (dx,dy,dz) [bohr]', reftraj%msd%drcom(1:3)
+                  END IF
                END IF
             END IF
-            WRITE (iw, '(T2,A,/)') REPEAT('*', 79)
+            WRITE (iw, '(T2,A)') 'MD| '//REPEAT('*', 75)
          END IF
       END IF
       CALL section_release(section)

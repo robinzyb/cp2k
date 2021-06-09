@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2018  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -27,8 +29,8 @@ MODULE pair_potential
                                               default_string_length,&
                                               dp
    USE pair_potential_types,            ONLY: &
-        b4_type, bm_type, compare_pot, ea_type, ft_type, ftd_type, gp_type, gw_type, ip_type, &
-        list_pot, lj_charmm_type, lj_type, multi_type, nn_type, pair_potential_pp_type, &
+        b4_type, bm_type, compare_pot, ea_type, ft_type, ftd_type, gal_type, gp_type, gw_type, &
+        ip_type, list_pot, lj_charmm_type, lj_type, multi_type, nn_type, pair_potential_pp_type, &
         pair_potential_single_type, potential_single_allocation, quip_type, siepmann_type, &
         tersoff_type, wl_type, deepmd_type
    USE pair_potential_util,             ONLY: ener_pot,&
@@ -60,7 +62,8 @@ MODULE pair_potential
    INTEGER, PARAMETER, PRIVATE          :: MAX_POINTS = 2000000
 
    PUBLIC :: spline_nonbond_control, &
-             get_nonbond_storage
+             get_nonbond_storage, &
+             init_genpot
 
 CONTAINS
 
@@ -75,7 +78,7 @@ CONTAINS
       TYPE(pair_potential_pp_type), POINTER              :: potparm
       INTEGER, INTENT(IN)                                :: ntype
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_genpot', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'init_genpot'
 
       INTEGER                                            :: handle, i, j, k, ngp
       TYPE(pair_potential_single_type), POINTER          :: pot
@@ -88,7 +91,7 @@ CONTAINS
       DO i = 1, ntype ! i:  first  atom type
          DO j = 1, i ! j:  second atom type
             pot => potparm%pot(i, j)%pot
-            ngp = ngp+COUNT(pot%type == gp_type)
+            ngp = ngp + COUNT(pot%type == gp_type)
          END DO
       END DO
       CALL initf(ngp)
@@ -98,7 +101,7 @@ CONTAINS
             pot => potparm%pot(i, j)%pot
             DO k = 1, SIZE(pot%type)
                IF (pot%type(k) == gp_type) THEN
-                  ngp = ngp+1
+                  ngp = ngp + 1
                   pot%set(k)%gp%myid = ngp
                   CALL parsef(ngp, TRIM(pot%set(k)%gp%potential), pot%set(k)%gp%parameters)
                END IF
@@ -141,8 +144,7 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: do_zbl, shift_cutoff
       CHARACTER(LEN=*), INTENT(IN)                       :: nonbonded_type
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'spline_nonbond_control', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'spline_nonbond_control'
 
       INTEGER                                            :: handle, i, ip, j, k, n, ncount, &
                                                             npoints_spline, ntype
@@ -157,7 +159,7 @@ CONTAINS
       CALL timeset(routineN, handle)
       IF (iw3 > 0) THEN
          WRITE (iw3, "(/,T2,A,I0,A,I0,A)") &
-            "SPLINE_INFO| Generating ", (ntype*(ntype+1))/2, " splines for "// &
+            "SPLINE_INFO| Generating ", (ntype*(ntype + 1))/2, " splines for "// &
             TRIM(ADJUSTL(nonbonded_type))//" interactions "
          WRITE (iw3, "(T2,A,I0,A)") &
             "             Due to ", ntype, " different atomic kinds"
@@ -169,9 +171,9 @@ CONTAINS
          DO j = 1, i
             pot => potparm%pot(i, j)%pot
             IF (iw3 > 0 .AND. iw <= 0) THEN
-               IF (MOD(i*(i-1)/2+j, MAX(1, (ntype*(ntype+1))/(2*10))) == 0) THEN
-                  WRITE (UNIT=iw3, ADVANCE="NO", FMT='(2X,A3,I0)') '...', i*(i-1)/2+j
-                  ip = ip+1
+               IF (MOD(i*(i - 1)/2 + j, MAX(1, (ntype*(ntype + 1))/(2*10))) == 0) THEN
+                  WRITE (UNIT=iw3, ADVANCE="NO", FMT='(2X,A3,I0)') '...', i*(i - 1)/2 + j
+                  ip = ip + 1
                   IF (ip >= 11) THEN
                      WRITE (iw3, *)
                      ip = 0
@@ -182,13 +184,15 @@ CONTAINS
             pot%no_pp = .TRUE.
             pot%no_mb = .TRUE.
             DO k = 1, SIZE(pot%type)
-               SELECT CASE (pot%type (k))
+               SELECT CASE (pot%type(k))
                CASE (lj_type, lj_charmm_type, wl_type, gw_type, ft_type, ftd_type, ip_type, &
                      b4_type, bm_type, gp_type, ea_type, quip_type, deepmd_type)
                   pot%no_pp = .FALSE.
                CASE (tersoff_type)
                   pot%no_mb = .FALSE.
                CASE (siepmann_type)
+                  pot%no_mb = .FALSE.
+               CASE (gal_type)
                   pot%no_mb = .FALSE.
                CASE (nn_type)
                   ! Do nothing..
@@ -205,7 +209,7 @@ CONTAINS
 
             ! Starting SetUp of splines
             IF (.NOT. pot%undef) CYCLE
-            ncount = ncount+1
+            ncount = ncount + 1
             n = spline_env%spltab(i, j)
             locut = rlow_nb
             hicut0 = SQRT(pot%rcutsq)
@@ -240,7 +244,7 @@ CONTAINS
             END IF
             ! Correct Cutoff...
             IF (shift_cutoff) THEN
-               pot%spl_f%cutoff = pot%spl_f%cutoff*pot%spl_f%fscale(1)- &
+               pot%spl_f%cutoff = pot%spl_f%cutoff*pot%spl_f%fscale(1) - &
                                   ener_pot(pot, hicut0, 0.0_dp)
             END IF
          END DO
@@ -286,13 +290,10 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: do_zbl
       REAL(KIND=dp), INTENT(IN)                          :: energy_cutoff, emax_spline
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_spline_cutoff', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ilevel, jx
       REAL(KIND=dp)                                      :: dx2, e, locut_found, x
 
-      dx2 = (hicut-locut)
+      dx2 = (hicut - locut)
       x = hicut
       locut_found = locut
       found_locut = .FALSE.
@@ -301,16 +302,16 @@ CONTAINS
          DO jx = 1, 100
             e = ener_pot(pot, x, energy_cutoff)
             IF (do_zbl) THEN
-               e = e+ener_zbl(pot, x)
+               e = e + ener_zbl(pot, x)
             END IF
             IF (ABS(e) > emax_spline) THEN
                locut_found = x
                found_locut = .TRUE.
                EXIT
             END IF
-            x = x-dx2
+            x = x - dx2
          END DO
-         x = x+dx2
+         x = x + dx2
       ENDDO
       locut = locut_found
 
@@ -355,9 +356,6 @@ CONTAINS
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
       CHARACTER(LEN=*), INTENT(IN)                       :: nonbonded_type
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'generate_spline_low', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=2*default_string_length)             :: message, tmp
       CHARACTER(LEN=default_path_length)                 :: file_name
       INTEGER                                            :: ix, jx, mfac, nppa, nx, unit_number
@@ -383,24 +381,24 @@ CONTAINS
       ENDIF
       spline_data => spl_p(1)%spline_data
       DO WHILE (.TRUE.)
-         CALL init_splinexy(spline_data, npoints+1)
-         dx2 = (1.0_dp/locut**2-1.0_dp/hicut**2)/REAL(npoints, KIND=dp)
+         CALL init_splinexy(spline_data, npoints + 1)
+         dx2 = (1.0_dp/locut**2 - 1.0_dp/hicut**2)/REAL(npoints, KIND=dp)
          x2 = 1.0_dp/hicut**2
          spline_data%x1 = x2
-         DO jx = 1, npoints+1
+         DO jx = 1, npoints + 1
             ! jx: loop over 1/distance**2
             x = SQRT(1.0_dp/x2)
             e = ener_pot(pot, x, energy_cutoff)
             IF (do_zbl) THEN
-               e = e+ener_zbl(pot, x)
+               e = e + ener_zbl(pot, x)
             END IF
             spline_data%y(jx) = e
-            x2 = x2+dx2
+            x2 = x2 + dx2
          END DO
          CALL init_spline(spline_data, dx=dx2)
          ! This is the check for required accuracy on spline setup
-         dx2 = (hicut-locut)/REAL(mfac*npoints+1, KIND=dp)
-         x2 = locut+dx2
+         dx2 = (hicut - locut)/REAL(mfac*npoints + 1, KIND=dp)
+         x2 = locut + dx2
          diffmax = -1.0_dp
          xsav = hicut
          ! if a fixed number of points is requested, no check on its error
@@ -409,14 +407,14 @@ CONTAINS
             x = x2
             e = ener_pot(pot, x, energy_cutoff)
             IF (do_zbl) THEN
-               e = e+ener_zbl(pot, x)
+               e = e + ener_zbl(pot, x)
             END IF
             IF (ABS(e) < max_energy) THEN
-               xdum1 = ABS(e-potential_s(spl_p, x*x, xdum, spl_f, logger))
+               xdum1 = ABS(e - potential_s(spl_p, x*x, xdum, spl_f, logger))
                diffmax = MAX(diffmax, xdum1)
                xsav = MIN(x, xsav)
             END IF
-            x2 = x2+dx2
+            x2 = x2 + dx2
             IF (x2 > hicut) EXIT
          END DO
          IF (npoints > MAX_POINTS) THEN
@@ -446,8 +444,8 @@ CONTAINS
             " SPLINE_INFO| Achieved accuracy [Hartree]:                 ", diffmax, &
             " SPLINE_INFO| Spline range [bohr]:                         ", locut, hicut, &
             " SPLINE_INFO| Spline range used to achieve accuracy [bohr]:", xsav, hicut
-         dx2 = (hicut-locut)/REAL(npoints+1, KIND=dp)
-         x = locut+dx2
+         dx2 = (hicut - locut)/REAL(npoints + 1, KIND=dp)
+         x = locut + dx2
          WRITE (UNIT=iw, FMT='(A,ES17.9)') &
             " SPLINE_INFO| Spline value at RMIN [Hartree]:             ", potential_s(spl_p, x*x, xdum, spl_f, logger), &
             " SPLINE_INFO| Spline value at RMAX [Hartree]:             ", potential_s(spl_p, hicut*hicut, xdum, spl_f, logger), &
@@ -491,12 +489,12 @@ CONTAINS
             IF (x > hicut) x = hicut
             IF (x > locut) THEN
                e = ener_pot(pot, x, energy_cutoff)
-               IF (do_zbl) e = e+ener_zbl(pot, x)
+               IF (do_zbl) e = e + ener_zbl(pot, x)
                e_spline = potential_s(spl_p, x*x, xdum, spl_f, logger)
                WRITE (UNIT=unit_number, FMT="(5ES25.12)") &
-                  x/bohr, e*evolt, e_spline*evolt, -bohr*x*xdum*evolt, ABS((e-e_spline)*evolt)
+                  x/bohr, e*evolt, e_spline*evolt, -bohr*x*xdum*evolt, ABS((e - e_spline)*evolt)
             END IF
-            x = x+dx
+            x = x + dx
          END DO
          CALL close_file(unit_number=unit_number)
          !MK Write table.xvf for GROMACS 4.5.5
@@ -523,7 +521,7 @@ CONTAINS
                e_spline = potential_s(spl_p, x*x, xdum, spl_f, logger)
                f = 1.0_dp/r
                df = -1.0_dp/r**2
-               g = -1.0_dp/r**6+1.0_dp/rcut**6
+               g = -1.0_dp/r**6 + 1.0_dp/rcut**6
                dg = 6.0_dp/r**7
                h = e_spline*kjmol
                dh = -10.0_dp*bohr*x*xdum*kjmol
@@ -532,7 +530,7 @@ CONTAINS
                   g, -dg, & !    g(r), -g'(r) => not used, if C = 0
                   h, -dh !    h(r), -h'(r) => used, if A = 1
             END IF
-            x = x+dx
+            x = x + dx
          END DO
          CALL close_file(unit_number=unit_number)
       END IF
@@ -558,8 +556,7 @@ CONTAINS
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
       LOGICAL, INTENT(IN)                                :: do_zbl, shift_cutoff
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_nonbond_storage', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'get_nonbond_storage'
 
       INTEGER                                            :: handle, i, idim, iend, istart, j, k, &
                                                             locij, n, ndim, nk, ntype, nunique, &
@@ -590,7 +587,7 @@ CONTAINS
                IF (potparm%pot(i, j)%pot%type(1) == pot_target) THEN
                   tmp_index(i, j) = 1
                   tmp_index(j, i) = 1
-                  ndim = ndim+1
+                  ndim = ndim + 1
                END IF
             END DO
          END DO
@@ -598,33 +595,35 @@ CONTAINS
          nvar = 0
          SELECT CASE (pot_target)
          CASE (lj_type, lj_charmm_type)
-            nvar = 3+nvar
+            nvar = 3 + nvar
          CASE (wl_type)
-            nvar = 3+nvar
+            nvar = 3 + nvar
          CASE (gw_type)
-            nvar = 5+nvar
+            nvar = 5 + nvar
          CASE (ea_type)
-            nvar = 4+nvar
+            nvar = 4 + nvar
          CASE (quip_type)
-            nvar = 1+nvar
+            nvar = 1 + nvar
          CASE (deepmd_type)
-            nvar = 2+nvar
+            nvar = 2 + nvar
          CASE (ft_type)
-            nvar = 4+nvar
+            nvar = 4 + nvar
          CASE (ftd_type)
-            nvar = 5+nvar
+            nvar = 5 + nvar
          CASE (ip_type)
-            nvar = 3+nvar
+            nvar = 3 + nvar
          CASE (b4_type)
-            nvar = 6+nvar
+            nvar = 6 + nvar
          CASE (bm_type)
-            nvar = 9+nvar
+            nvar = 9 + nvar
          CASE (gp_type)
-            nvar = 2+nvar
+            nvar = 2 + nvar
          CASE (tersoff_type)
-            nvar = 13+nvar
+            nvar = 13 + nvar
          CASE (siepmann_type)
-            nvar = 5+nvar
+            nvar = 5 + nvar
+         CASE (gal_type)
+            nvar = 12 + nvar
          CASE (nn_type)
             nvar = nvar
          CASE DEFAULT
@@ -636,10 +635,10 @@ CONTAINS
          nk = 0
          DO i = 1, ntype
             DO j = 1, i
-               n = n+1
+               n = n + 1
                IF (SIZE(potparm%pot(i, j)%pot%type) /= 1) CYCLE
                IF (potparm%pot(i, j)%pot%type(1) == pot_target) THEN
-                  nk = nk+1
+                  nk = nk + 1
                   my_index(nk) = n
                END IF
             END DO
@@ -650,10 +649,10 @@ CONTAINS
             nk = 0
             DO i = 1, ntype
                DO j = 1, i
-                  n = n+1
+                  n = n + 1
                   IF (SIZE(potparm%pot(i, j)%pot%type) /= 1) CYCLE
                   IF (potparm%pot(i, j)%pot%type(1) == pot_target) THEN
-                     nk = nk+1
+                     nk = nk + 1
                      my_index(nk) = n
                      SELECT CASE (pot_target)
                      CASE (lj_type, lj_charmm_type)
@@ -739,6 +738,19 @@ CONTAINS
                         pot_par(nk, 3) = potparm%pot(i, j)%pot%set(1)%siepmann%E
                         pot_par(nk, 4) = potparm%pot(i, j)%pot%set(1)%siepmann%F
                         pot_par(nk, 5) = potparm%pot(i, j)%pot%set(1)%siepmann%beta
+                     CASE (gal_type)
+                        pot_par(nk, 1) = potparm%pot(i, j)%pot%set(1)%gal%epsilon
+                        pot_par(nk, 2) = potparm%pot(i, j)%pot%set(1)%gal%bxy
+                        pot_par(nk, 3) = potparm%pot(i, j)%pot%set(1)%gal%bz
+                        pot_par(nk, 4) = potparm%pot(i, j)%pot%set(1)%gal%r1
+                        pot_par(nk, 5) = potparm%pot(i, j)%pot%set(1)%gal%r2
+                        pot_par(nk, 6) = potparm%pot(i, j)%pot%set(1)%gal%a1
+                        pot_par(nk, 7) = potparm%pot(i, j)%pot%set(1)%gal%a2
+                        pot_par(nk, 8) = potparm%pot(i, j)%pot%set(1)%gal%a3
+                        pot_par(nk, 9) = potparm%pot(i, j)%pot%set(1)%gal%a4
+                        pot_par(nk, 10) = potparm%pot(i, j)%pot%set(1)%gal%a
+                        pot_par(nk, 11) = potparm%pot(i, j)%pot%set(1)%gal%b
+                        pot_par(nk, 12) = potparm%pot(i, j)%pot%set(1)%gal%c
                      CASE (nn_type)
                         ! no checks
                      CASE DEFAULT
@@ -769,32 +781,32 @@ CONTAINS
             END DO
             ! Iterative sorting
             DO k = 2, nvar
-               wtmp(1:k-1) = pot_par(1, 1:k-1)
+               wtmp(1:k - 1) = pot_par(1, 1:k - 1)
                istart = 1
                at_least_one = .FALSE.
                DO j = 1, ndim
                   Rwork(j) = pot_par(j, k)
-                  IF (ALL(pot_par(j, 1:k-1) == wtmp(1:k-1))) CYCLE
-                  iend = j-1
-                  wtmp(1:k-1) = pot_par(j, 1:k-1)
+                  IF (ALL(pot_par(j, 1:k - 1) == wtmp(1:k - 1))) CYCLE
+                  iend = j - 1
+                  wtmp(1:k - 1) = pot_par(j, 1:k - 1)
                   ! If the ordered array has no two same consecutive elements
                   ! does not make any sense to proceed ordering the others
                   ! related parameters..
-                  idim = iend-istart+1
+                  idim = iend - istart + 1
                   CALL sort(Rwork(istart:iend), idim, Iwork1(istart:iend))
-                  Iwork1(istart:iend) = Iwork1(istart:iend)-1+istart
+                  Iwork1(istart:iend) = Iwork1(istart:iend) - 1 + istart
                   IF (idim /= 1) at_least_one = .TRUE.
                   istart = j
                END DO
                iend = ndim
-               idim = iend-istart+1
+               idim = iend - istart + 1
                CALL sort(Rwork(istart:iend), idim, Iwork1(istart:iend))
-               Iwork1(istart:iend) = Iwork1(istart:iend)-1+istart
+               Iwork1(istart:iend) = Iwork1(istart:iend) - 1 + istart
                IF (idim /= 1) at_least_one = .TRUE.
                pot_par(:, k) = Rwork
                IF (.NOT. at_least_one) EXIT
                ! Sort other components
-               DO j = k+1, nvar
+               DO j = k + 1, nvar
                   Rwork(:) = pot_par(:, j)
                   DO i = 1, ndim
                      pot_par(i, j) = Rwork(Iwork1(i))
@@ -851,8 +863,8 @@ CONTAINS
                END SELECT
                IF (ALL(Cwork == pot_par(j, :)) .AND. check) CYCLE
                Cwork(:) = pot_par(j, :)
-               nunique = nunique+1
-               iend = j-1
+               nunique = nunique + 1
+               iend = j - 1
                CALL set_potparm_index(potparm, my_index(istart:iend), pot_target, &
                                       ntype, tmpij, atomic_kind_set, shift_cutoff, do_zbl)
                !
@@ -866,7 +878,7 @@ CONTAINS
                locij = my_index(j)
                CALL get_indexes(locij, ntype, tmpij0)
             END DO
-            nunique = nunique+1
+            nunique = nunique + 1
             iend = ndim
             CALL set_potparm_index(potparm, my_index(istart:iend), pot_target, &
                                    ntype, tmpij, atomic_kind_set, shift_cutoff, do_zbl)
@@ -879,7 +891,7 @@ CONTAINS
             DEALLOCATE (Cwork)
             DEALLOCATE (pot_par)
          ELSE
-            nunique = nunique+1
+            nunique = nunique + 1
             CALL set_potparm_index(potparm, my_index, pot_target, ntype, tmpij, &
                                    atomic_kind_set, shift_cutoff, do_zbl)
          END IF
@@ -889,9 +901,9 @@ CONTAINS
       n = 0
       DO i = 1, ntype
          DO j = 1, i
-            n = n+1
+            n = n + 1
             IF (SIZE(potparm%pot(i, j)%pot%type) == 1) CYCLE
-            nunique = nunique+1
+            nunique = nunique + 1
             tmp_index(i, j) = nunique
             tmp_index(j, i) = nunique
             !
@@ -928,8 +940,7 @@ CONTAINS
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
       LOGICAL, INTENT(IN)                                :: shift_cutoff, do_zbl
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_potparm_index', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'set_potparm_index'
 
       INTEGER                                            :: handle, i, min_val, nvalues, tmpij(2), &
                                                             value, zi, zj
@@ -1056,7 +1067,7 @@ CONTAINS
             pot => potparm%pot(tmpij(1), tmpij(2))%pot
             IF (value == min_val) CYCLE
             ! Cutoff NonBonded
-            pot%spl_f%cutoff = pot_ref%spl_f%cutoff*pot%spl_f%fscale(1)-pot%spl_f%cutoff
+            pot%spl_f%cutoff = pot_ref%spl_f%cutoff*pot%spl_f%fscale(1) - pot%spl_f%cutoff
          END DO
       END IF
       CALL finalizef()
@@ -1081,10 +1092,10 @@ CONTAINS
       tmp = 0
       ij = HUGE(0)
       DO i = 1, ndim
-         tmp = tmp+i
+         tmp = tmp + i
          IF (tmp >= Inind) THEN
             ij(1) = i
-            ij(2) = Inind-tmp+i
+            ij(2) = Inind - tmp + i
             EXIT
          END IF
       END DO

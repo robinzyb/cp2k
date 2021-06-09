@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 ! **************************************************************************************************
 MODULE topology_cp2k
@@ -64,8 +66,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(section_vals_type), POINTER                   :: subsys_section
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_coordinate_cp2k', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_coordinate_cp2k'
 
       CHARACTER(LEN=default_string_length)               :: string
       CHARACTER(LEN=max_line_length)                     :: error_message
@@ -139,7 +140,7 @@ CONTAINS
       DO
          CALL parser_get_object(parser, object=string, newline=.TRUE., at_end=eof)
          IF (eof) EXIT
-         natom = natom+1
+         natom = natom + 1
          IF (natom > SIZE(atom_info%id_atmname)) THEN
             newsize = INT(pfactor*natom)
             CALL reallocate(atom_info%id_molname, 1, newsize)

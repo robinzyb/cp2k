@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -75,9 +77,6 @@ CONTAINS
       TYPE(cp_subsys_type), OPTIONAL, POINTER            :: cp_subsys
       TYPE(cell_type), OPTIONAL, POINTER                 :: cell, cell_ref
       LOGICAL, INTENT(IN), OPTIONAL                      :: elkind
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_subsys_create', &
-         routineP = moduleN//':'//routineN
 
       LOGICAL                                            :: use_ref_cell
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
@@ -161,9 +160,6 @@ CONTAINS
       TYPE(molecule_kind_type), DIMENSION(:), POINTER    :: molecule_kind_set
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'num_ao_el_per_molecule', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: arbitrary_spin, iatom, ikind, imol, &
                                                             n_ao, natom, nmol_kind, nsgf, nspins, &
                                                             z_molecule
@@ -225,7 +221,7 @@ CONTAINS
                ! For now, only the total number of electrons can be obtained
                ! from init_atom_electronic_state
                n_occ_alpha_and_beta(ARBITRARY_SPIN) = &
-                  n_occ_alpha_and_beta(ARBITRARY_SPIN)+SUM(ne_explicit)+ &
+                  n_occ_alpha_and_beta(ARBITRARY_SPIN) + SUM(ne_explicit) + &
                   SUM(NINT(2*edelta(:, :, ARBITRARY_SPIN)))
                ! We need a way to specify the number of alpha and beta electrons
                ! on each molecule (i.e. multiplicity is not enough)
@@ -244,7 +240,7 @@ CONTAINS
                   zeff = 0.0_dp
                   zeff_correction = 0.0_dp
                END IF
-               z_molecule = z_molecule+NINT(zeff-zeff_correction)
+               z_molecule = z_molecule + NINT(zeff - zeff_correction)
 
                ! this one does not work because nelem is not adjusted in the symmetry breaking code
                !CALL get_atomic_kind(atomic_kind,z=z)
@@ -255,13 +251,13 @@ CONTAINS
                ELSE
                   nsgf = 0
                ENDIF
-               n_ao = n_ao+nsgf
+               n_ao = n_ao + nsgf
 
             END DO ! iatom
 
             ! At this point we have the number of electrons (alpha+beta) on the molecule
             !  as they are seen by the ATOMIC GUESS routines
-            charge_molecule = REAL(z_molecule-n_occ_alpha_and_beta(ARBITRARY_SPIN), dp)
+            charge_molecule = REAL(z_molecule - n_occ_alpha_and_beta(ARBITRARY_SPIN), dp)
             CALL set_molecule_kind(molecule_kind=molecule_kind, &
                                    nelectron=n_occ_alpha_and_beta(ARBITRARY_SPIN), &
                                    charge=charge_molecule, &

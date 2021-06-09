@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -55,8 +57,8 @@ MODULE qs_ks_types
    USE qs_energy_types,                 ONLY: qs_energy_type
    USE qs_force_types,                  ONLY: qs_force_type
    USE qs_kind_types,                   ONLY: qs_kind_type
-   USE qs_neighbor_list_types,          ONLY: deallocate_neighbor_list_set,&
-                                              neighbor_list_set_p_type
+   USE qs_neighbor_list_types,          ONLY: neighbor_list_set_p_type,&
+                                              release_neighbor_list_sets
    USE qs_rho_types,                    ONLY: qs_rho_create,&
                                               qs_rho_release,&
                                               qs_rho_type
@@ -114,6 +116,7 @@ MODULE qs_ks_types
 !>        Ewald terms (DFTB)
 !> \param sab_core neighbor lists for the calculation of the core interactions
 !> \param sab_xb neighbor lists for the calculation of the XB interactions in xTB
+!> \param sab_xtb_nonbond neighbor lists for the calculation of the nonbonded interactions in xTB
 !> \param sab_all neighbor lists for the calculation of the  matrix element of
 !>        non-symmetric operators
 !> \param sab_vdw: neighbor lists for the calculation of dispersion interactions
@@ -192,6 +195,7 @@ MODULE qs_ks_types
                                                                sab_tbe => Null(), &
                                                                sab_core => Null(), &
                                                                sab_xb => Null(), &
+                                                               sab_xtb_nonbond => Null(), &
                                                                sab_all => Null(), &
                                                                sab_aux_fit => Null(), &
                                                                sab_aux_fit_vs_orb => Null(), &
@@ -235,9 +239,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE qs_ks_env_create(ks_env)
       TYPE(qs_ks_env_type), POINTER                      :: ks_env
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_ks_env_create', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(ks_env)) CPABORT("ks_env already associated")
       ALLOCATE (ks_env)
@@ -305,6 +306,7 @@ CONTAINS
 !> \param sab_tbe ...
 !> \param sab_core ...
 !> \param sab_xb ...
+!> \param sab_xtb_nonbond ...
 !> \param sab_vdw ...
 !> \param sab_scp ...
 !> \param sab_almo ...
@@ -358,7 +360,7 @@ CONTAINS
                          neighbor_list_id, &
                          sab_orb, sab_aux_fit, sab_aux_fit_asymm, &
                          sab_aux_fit_vs_orb, sab_all, sac_ae, sac_ppl, sac_lri, sap_ppnl, sap_oce, sab_lrc, &
-                         sab_se, sab_tbe, sab_core, sab_xb, sab_vdw, sab_scp, sab_almo, sab_kp, &
+                         sab_se, sab_tbe, sab_core, sab_xb, sab_xtb_nonbond, sab_vdw, sab_scp, sab_almo, sab_kp, &
                          task_list, task_list_aux_fit, task_list_soft, &
                          kpoints, do_kpoints, &
                          atomic_kind_set, qs_kind_set, cell, cell_ref, use_ref_cell, &
@@ -367,7 +369,7 @@ CONTAINS
                          nkind, natom, dft_control, dbcsr_dist, distribution_2d, pw_env, &
                          para_env, blacs_env, nelectron_total, nelectron_spin, admm_dm)
 
-      TYPE(qs_ks_env_type), POINTER                      :: ks_env
+      TYPE(qs_ks_env_type), INTENT(IN)                   :: ks_env
       TYPE(pw_type), OPTIONAL, POINTER                   :: v_hartree_rspace
       LOGICAL, OPTIONAL                                  :: s_mstruct_changed, rho_changed, &
                                                             potential_changed, forces_up_to_date
@@ -386,7 +388,8 @@ CONTAINS
       INTEGER, OPTIONAL                                  :: neighbor_list_id
       TYPE(neighbor_list_set_p_type), DIMENSION(:), OPTIONAL, POINTER :: sab_orb, sab_aux_fit, &
          sab_aux_fit_asymm, sab_aux_fit_vs_orb, sab_all, sac_ae, sac_ppl, sac_lri, sap_ppnl, &
-         sap_oce, sab_lrc, sab_se, sab_tbe, sab_core, sab_xb, sab_vdw, sab_scp, sab_almo, sab_kp
+         sap_oce, sab_lrc, sab_se, sab_tbe, sab_core, sab_xb, sab_xtb_nonbond, sab_vdw, sab_scp, &
+         sab_almo, sab_kp
       TYPE(task_list_type), OPTIONAL, POINTER            :: task_list, task_list_aux_fit, &
                                                             task_list_soft
       TYPE(kpoint_type), OPTIONAL, POINTER               :: kpoints
@@ -423,7 +426,6 @@ CONTAINS
       INTEGER, DIMENSION(2), OPTIONAL                    :: nelectron_spin
       TYPE(admm_dm_type), OPTIONAL, POINTER              :: admm_dm
 
-      IF (.NOT. ASSOCIATED(ks_env)) CPABORT("get_ks_env: not associated")
       IF (ks_env%ref_count < 1) CPABORT("get_ks_env: ks_env%ref_count<1")
       IF (.NOT. ASSOCIATED(ks_env%subsys)) CPABORT("get_ks_env: subsys not associated")
 
@@ -487,6 +489,7 @@ CONTAINS
       IF (PRESENT(sab_tbe)) sab_tbe => ks_env%sab_tbe
       IF (PRESENT(sab_core)) sab_core => ks_env%sab_core
       IF (PRESENT(sab_xb)) sab_xb => ks_env%sab_xb
+      IF (PRESENT(sab_xtb_nonbond)) sab_xtb_nonbond => ks_env%sab_xtb_nonbond
       IF (PRESENT(sab_almo)) sab_almo => ks_env%sab_almo
       IF (PRESENT(sab_kp)) sab_kp => ks_env%sab_kp
       IF (PRESENT(dft_control)) dft_control => ks_env%dft_control
@@ -584,6 +587,7 @@ CONTAINS
 !> \param sab_tbe ...
 !> \param sab_core ...
 !> \param sab_xb ...
+!> \param sab_xtb_nonbond ...
 !> \param sab_vdw ...
 !> \param sab_scp ...
 !> \param sab_almo ...
@@ -613,12 +617,12 @@ CONTAINS
                          kpoints, &
                          sab_orb, sab_aux_fit, sab_aux_fit_asymm, &
                          sab_aux_fit_vs_orb, sab_all, sac_ae, sac_ppl, sac_lri, sap_ppnl, sap_oce, sab_lrc, &
-                         sab_se, sab_tbe, sab_core, sab_xb, sab_vdw, sab_scp, sab_almo, sab_kp, &
+                         sab_se, sab_tbe, sab_core, sab_xb, sab_xtb_nonbond, sab_vdw, sab_scp, sab_almo, sab_kp, &
                          task_list, task_list_aux_fit, task_list_soft, &
                          subsys, dft_control, dbcsr_dist, distribution_2d, pw_env, &
                          para_env, blacs_env, admm_dm)
 
-      TYPE(qs_ks_env_type), POINTER                      :: ks_env
+      TYPE(qs_ks_env_type), INTENT(INOUT)                :: ks_env
       TYPE(pw_type), OPTIONAL, POINTER                   :: v_hartree_rspace
       LOGICAL, OPTIONAL                                  :: s_mstruct_changed, rho_changed, &
                                                             potential_changed, forces_up_to_date
@@ -636,7 +640,8 @@ CONTAINS
       TYPE(kpoint_type), OPTIONAL, POINTER               :: kpoints
       TYPE(neighbor_list_set_p_type), DIMENSION(:), OPTIONAL, POINTER :: sab_orb, sab_aux_fit, &
          sab_aux_fit_asymm, sab_aux_fit_vs_orb, sab_all, sac_ae, sac_ppl, sac_lri, sap_ppnl, &
-         sap_oce, sab_lrc, sab_se, sab_tbe, sab_core, sab_xb, sab_vdw, sab_scp, sab_almo, sab_kp
+         sap_oce, sab_lrc, sab_se, sab_tbe, sab_core, sab_xb, sab_xtb_nonbond, sab_vdw, sab_scp, &
+         sab_almo, sab_kp
       TYPE(task_list_type), OPTIONAL, POINTER            :: task_list, task_list_aux_fit, &
                                                             task_list_soft
       TYPE(qs_subsys_type), OPTIONAL, POINTER            :: subsys
@@ -648,7 +653,6 @@ CONTAINS
       TYPE(cp_blacs_env_type), OPTIONAL, POINTER         :: blacs_env
       TYPE(admm_dm_type), OPTIONAL, POINTER              :: admm_dm
 
-      IF (.NOT. ASSOCIATED(ks_env)) CPABORT("set_ks_env: not associated")
       IF (ks_env%ref_count < 1) CPABORT("set_ks_env: ks_env%ref_count<1")
 
       IF (PRESENT(s_mstruct_changed)) ks_env%s_mstruct_changed = s_mstruct_changed
@@ -714,6 +718,7 @@ CONTAINS
       IF (PRESENT(sab_tbe)) ks_env%sab_tbe => sab_tbe
       IF (PRESENT(sab_core)) ks_env%sab_core => sab_core
       IF (PRESENT(sab_xb)) ks_env%sab_xb => sab_xb
+      IF (PRESENT(sab_xtb_nonbond)) ks_env%sab_xtb_nonbond => sab_xtb_nonbond
       IF (PRESENT(sab_almo)) ks_env%sab_almo => sab_almo
       IF (PRESENT(sab_kp)) ks_env%sab_kp => sab_kp
       IF (PRESENT(admm_dm)) ks_env%admm_dm => admm_dm
@@ -771,11 +776,9 @@ CONTAINS
    SUBROUTINE qs_ks_release(ks_env)
       TYPE(qs_ks_env_type), POINTER                      :: ks_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_ks_release', routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(ks_env)) THEN
          CPASSERT(ks_env%ref_count > 0)
-         ks_env%ref_count = ks_env%ref_count-1
+         ks_env%ref_count = ks_env%ref_count - 1
 
          IF (ks_env%ref_count < 1) THEN
             IF (ASSOCIATED(ks_env%v_hartree_rspace)) &
@@ -851,25 +854,26 @@ CONTAINS
                DEALLOCATE (ks_env%dbcsr_dist)
             ENDIF
 
-            CALL release_sab(ks_env%sab_orb)
-            CALL release_sab(ks_env%sac_ae)
-            CALL release_sab(ks_env%sac_ppl)
-            CALL release_sab(ks_env%sac_lri)
-            CALL release_sab(ks_env%sap_ppnl)
-            CALL release_sab(ks_env%sap_oce)
-            CALL release_sab(ks_env%sab_se)
-            CALL release_sab(ks_env%sab_vdw)
-            CALL release_sab(ks_env%sab_scp)
-            CALL release_sab(ks_env%sab_tbe)
-            CALL release_sab(ks_env%sab_core)
-            CALL release_sab(ks_env%sab_xb)
-            CALL release_sab(ks_env%sab_all)
-            CALL release_sab(ks_env%sab_aux_fit)
-            CALL release_sab(ks_env%sab_aux_fit_vs_orb)
-            CALL release_sab(ks_env%sab_aux_fit_asymm)
-            CALL release_sab(ks_env%sab_lrc)
-            CALL release_sab(ks_env%sab_almo)
-            CALL release_sab(ks_env%sab_kp)
+            CALL release_neighbor_list_sets(ks_env%sab_orb)
+            CALL release_neighbor_list_sets(ks_env%sac_ae)
+            CALL release_neighbor_list_sets(ks_env%sac_ppl)
+            CALL release_neighbor_list_sets(ks_env%sac_lri)
+            CALL release_neighbor_list_sets(ks_env%sap_ppnl)
+            CALL release_neighbor_list_sets(ks_env%sap_oce)
+            CALL release_neighbor_list_sets(ks_env%sab_se)
+            CALL release_neighbor_list_sets(ks_env%sab_vdw)
+            CALL release_neighbor_list_sets(ks_env%sab_scp)
+            CALL release_neighbor_list_sets(ks_env%sab_tbe)
+            CALL release_neighbor_list_sets(ks_env%sab_core)
+            CALL release_neighbor_list_sets(ks_env%sab_xb)
+            CALL release_neighbor_list_sets(ks_env%sab_xtb_nonbond)
+            CALL release_neighbor_list_sets(ks_env%sab_all)
+            CALL release_neighbor_list_sets(ks_env%sab_aux_fit)
+            CALL release_neighbor_list_sets(ks_env%sab_aux_fit_vs_orb)
+            CALL release_neighbor_list_sets(ks_env%sab_aux_fit_asymm)
+            CALL release_neighbor_list_sets(ks_env%sab_lrc)
+            CALL release_neighbor_list_sets(ks_env%sab_almo)
+            CALL release_neighbor_list_sets(ks_env%sab_kp)
             CALL dft_control_release(ks_env%dft_control)
             CALL kpoint_release(ks_env%kpoints)
             CALL qs_subsys_release(ks_env%subsys)
@@ -885,25 +889,6 @@ CONTAINS
    END SUBROUTINE qs_ks_release
 
 ! **************************************************************************************************
-!> \brief releases an array of neighbor_list_sets
-!> \param sab ...
-!> \author Ole Schuett
-! **************************************************************************************************
-   SUBROUTINE release_sab(sab)
-      TYPE(neighbor_list_set_p_type), DIMENSION(:), &
-         POINTER                                         :: sab
-
-      INTEGER                                            :: i
-
-      IF (ASSOCIATED(sab)) THEN
-         DO i = 1, SIZE(sab)
-            CALL deallocate_neighbor_list_set(sab(i)%neighbor_list_set)
-         END DO
-         DEALLOCATE (sab)
-      END IF
-   END SUBROUTINE release_sab
-
-! **************************************************************************************************
 !> \brief retains the given ks_environment
 !> \param ks_env the KohnSham environment to retain
 !> \par History
@@ -913,11 +898,9 @@ CONTAINS
    SUBROUTINE qs_ks_retain(ks_env)
       TYPE(qs_ks_env_type), POINTER                      :: ks_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_ks_retain', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(ks_env))
       CPASSERT(ks_env%ref_count > 0)
-      ks_env%ref_count = ks_env%ref_count+1
+      ks_env%ref_count = ks_env%ref_count + 1
    END SUBROUTINE qs_ks_retain
 
 ! **************************************************************************************************
@@ -938,20 +921,17 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE qs_ks_did_change(ks_env, s_mstruct_changed, rho_changed, &
                                potential_changed, full_reset)
-      TYPE(qs_ks_env_type), POINTER                      :: ks_env
+      TYPE(qs_ks_env_type), INTENT(INOUT)                :: ks_env
       LOGICAL, INTENT(in), OPTIONAL                      :: s_mstruct_changed, rho_changed, &
                                                             potential_changed, full_reset
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_ks_did_change', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'qs_ks_did_change'
 
       INTEGER                                            :: handle
       LOGICAL                                            :: my_mstruct_chg
 
       CALL timeset(routineN, handle)
       my_mstruct_chg = .FALSE.
-
-      CPASSERT(ASSOCIATED(ks_env))
 
       IF (PRESENT(rho_changed)) THEN
          IF (rho_changed) ks_env%rho_changed = .TRUE.

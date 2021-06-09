@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2018  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -129,8 +131,7 @@ CONTAINS
       TYPE(molecule_type), DIMENSION(:), POINTER         :: molecule_set
       TYPE(force_field_type), INTENT(INOUT)              :: ff_type
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_unique_bond', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_unique_bond'
 
       CHARACTER(LEN=default_string_length)               :: name_atm_a, name_atm_a2, name_atm_b, &
                                                             name_atm_b2
@@ -165,21 +166,21 @@ CONTAINS
             ELSE
                DO j = 1, nbond
                   atm_a = bond_list(j)%a
-                  atomic_kind => particle_set(atm_a+first-1)%atomic_kind
+                  atomic_kind => particle_set(atm_a + first - 1)%atomic_kind
                   CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                        name=name_atm_a)
                   atm_b = bond_list(j)%b
-                  atomic_kind => particle_set(atm_b+first-1)%atomic_kind
+                  atomic_kind => particle_set(atm_b + first - 1)%atomic_kind
                   CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                        name=name_atm_b)
                   found = .FALSE.
-                  DO k = 1, j-1
+                  DO k = 1, j - 1
                      atm_a = bond_list(k)%a
-                     atomic_kind => particle_set(atm_a+first-1)%atomic_kind
+                     atomic_kind => particle_set(atm_a + first - 1)%atomic_kind
                      CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                           name=name_atm_a2)
                      atm_b = bond_list(k)%b
-                     atomic_kind => particle_set(atm_b+first-1)%atomic_kind
+                     atomic_kind => particle_set(atm_b + first - 1)%atomic_kind
                      CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                           name=name_atm_b2)
                      IF ((((name_atm_a) == (name_atm_a2)) .AND. &
@@ -192,7 +193,7 @@ CONTAINS
                      END IF
                   END DO
                   IF (.NOT. found) THEN
-                     counter = counter+1
+                     counter = counter + 1
                      map_bond_kind(j) = counter
                   END IF
                END DO
@@ -226,8 +227,7 @@ CONTAINS
       TYPE(molecule_type), DIMENSION(:), POINTER         :: molecule_set
       TYPE(force_field_type), INTENT(INOUT)              :: ff_type
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_unique_bend', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_unique_bend'
 
       CHARACTER(LEN=default_string_length)               :: name_atm_a, name_atm_a2, name_atm_b, &
                                                             name_atm_b2, name_atm_c, name_atm_c2
@@ -262,29 +262,29 @@ CONTAINS
             ELSE
                DO j = 1, nbend
                   atm_a = bend_list(j)%a
-                  atomic_kind => particle_set(atm_a+first-1)%atomic_kind
+                  atomic_kind => particle_set(atm_a + first - 1)%atomic_kind
                   CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                        name=name_atm_a)
                   atm_b = bend_list(j)%b
-                  atomic_kind => particle_set(atm_b+first-1)%atomic_kind
+                  atomic_kind => particle_set(atm_b + first - 1)%atomic_kind
                   CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                        name=name_atm_b)
                   atm_c = bend_list(j)%c
-                  atomic_kind => particle_set(atm_c+first-1)%atomic_kind
+                  atomic_kind => particle_set(atm_c + first - 1)%atomic_kind
                   CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                        name=name_atm_c)
                   found = .FALSE.
-                  DO k = 1, j-1
+                  DO k = 1, j - 1
                      atm_a = bend_list(k)%a
-                     atomic_kind => particle_set(atm_a+first-1)%atomic_kind
+                     atomic_kind => particle_set(atm_a + first - 1)%atomic_kind
                      CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                           name=name_atm_a2)
                      atm_b = bend_list(k)%b
-                     atomic_kind => particle_set(atm_b+first-1)%atomic_kind
+                     atomic_kind => particle_set(atm_b + first - 1)%atomic_kind
                      CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                           name=name_atm_b2)
                      atm_c = bend_list(k)%c
-                     atomic_kind => particle_set(atm_c+first-1)%atomic_kind
+                     atomic_kind => particle_set(atm_c + first - 1)%atomic_kind
                      CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                           name=name_atm_c2)
                      IF ((((name_atm_a) == (name_atm_a2)) .AND. &
@@ -299,7 +299,7 @@ CONTAINS
                      END IF
                   END DO
                   IF (.NOT. found) THEN
-                     counter = counter+1
+                     counter = counter + 1
                      map_bend_kind(j) = counter
                   END IF
                END DO
@@ -331,8 +331,7 @@ CONTAINS
       TYPE(molecule_kind_type), DIMENSION(:), POINTER    :: molecule_kind_set
       TYPE(molecule_type), DIMENSION(:), POINTER         :: molecule_set
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_unique_ub', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_unique_ub'
 
       CHARACTER(LEN=default_string_length)               :: name_atm_a, name_atm_a2, name_atm_b, &
                                                             name_atm_b2, name_atm_c, name_atm_c2
@@ -361,29 +360,29 @@ CONTAINS
             counter = 0
             DO j = 1, nub
                atm_a = ub_list(j)%a
-               atomic_kind => particle_set(atm_a+first-1)%atomic_kind
+               atomic_kind => particle_set(atm_a + first - 1)%atomic_kind
                CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                     name=name_atm_a)
                atm_b = ub_list(j)%b
-               atomic_kind => particle_set(atm_b+first-1)%atomic_kind
+               atomic_kind => particle_set(atm_b + first - 1)%atomic_kind
                CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                     name=name_atm_b)
                atm_c = ub_list(j)%c
-               atomic_kind => particle_set(atm_c+first-1)%atomic_kind
+               atomic_kind => particle_set(atm_c + first - 1)%atomic_kind
                CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                     name=name_atm_c)
                found = .FALSE.
-               DO k = 1, j-1
+               DO k = 1, j - 1
                   atm_a = ub_list(k)%a
-                  atomic_kind => particle_set(atm_a+first-1)%atomic_kind
+                  atomic_kind => particle_set(atm_a + first - 1)%atomic_kind
                   CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                        name=name_atm_a2)
                   atm_b = ub_list(k)%b
-                  atomic_kind => particle_set(atm_b+first-1)%atomic_kind
+                  atomic_kind => particle_set(atm_b + first - 1)%atomic_kind
                   CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                        name=name_atm_b2)
                   atm_c = ub_list(k)%c
-                  atomic_kind => particle_set(atm_c+first-1)%atomic_kind
+                  atomic_kind => particle_set(atm_c + first - 1)%atomic_kind
                   CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                        name=name_atm_c2)
                   IF ((((name_atm_a) == (name_atm_a2)) .AND. &
@@ -398,7 +397,7 @@ CONTAINS
                   END IF
                END DO
                IF (.NOT. found) THEN
-                  counter = counter+1
+                  counter = counter + 1
                   map_ub_kind(j) = counter
                END IF
             END DO
@@ -430,8 +429,7 @@ CONTAINS
       TYPE(molecule_type), DIMENSION(:), POINTER         :: molecule_set
       TYPE(force_field_type), INTENT(INOUT)              :: ff_type
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_unique_tors', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_unique_tors'
 
       CHARACTER(LEN=default_string_length)               :: name_atm_a, name_atm_a2, name_atm_b, &
                                                             name_atm_b2, name_atm_c, name_atm_c2, &
@@ -441,7 +439,7 @@ CONTAINS
                                                             ntorsion
       INTEGER, DIMENSION(:), POINTER                     :: molecule_list
       INTEGER, POINTER                                   :: map_torsion_kind(:)
-      LOGICAL                                            :: found
+      LOGICAL                                            :: chk_reverse, found
       TYPE(atomic_kind_type), POINTER                    :: atomic_kind
       TYPE(molecule_kind_type), POINTER                  :: molecule_kind
       TYPE(molecule_type), POINTER                       :: molecule
@@ -449,6 +447,11 @@ CONTAINS
       TYPE(torsion_type), DIMENSION(:), POINTER          :: torsion_list
 
       CALL timeset(routineN, handle2)
+
+      ! Now decide whether we need to check D-C-B-A type combination in addtion to usual A-B-C-D
+      ! We don't need it for Amber FF
+      chk_reverse = (ff_type%ff_type /= do_ff_amber)
+
       DO i = 1, SIZE(molecule_kind_set)
          molecule_kind => molecule_kind_set(i)
          CALL get_molecule_kind(molecule_kind=molecule_kind, &
@@ -468,44 +471,45 @@ CONTAINS
             ELSE
                DO j = 1, ntorsion
                   atm_a = torsion_list(j)%a
-                  atomic_kind => particle_set(atm_a+first-1)%atomic_kind
+                  atomic_kind => particle_set(atm_a + first - 1)%atomic_kind
                   CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                        name=name_atm_a)
                   atm_b = torsion_list(j)%b
-                  atomic_kind => particle_set(atm_b+first-1)%atomic_kind
+                  atomic_kind => particle_set(atm_b + first - 1)%atomic_kind
                   CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                        name=name_atm_b)
                   atm_c = torsion_list(j)%c
-                  atomic_kind => particle_set(atm_c+first-1)%atomic_kind
+                  atomic_kind => particle_set(atm_c + first - 1)%atomic_kind
                   CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                        name=name_atm_c)
                   atm_d = torsion_list(j)%d
-                  atomic_kind => particle_set(atm_d+first-1)%atomic_kind
+                  atomic_kind => particle_set(atm_d + first - 1)%atomic_kind
                   CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                        name=name_atm_d)
                   found = .FALSE.
-                  DO k = 1, j-1
+                  DO k = 1, j - 1
                      atm_a = torsion_list(k)%a
-                     atomic_kind => particle_set(atm_a+first-1)%atomic_kind
+                     atomic_kind => particle_set(atm_a + first - 1)%atomic_kind
                      CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                           name=name_atm_a2)
                      atm_b = torsion_list(k)%b
-                     atomic_kind => particle_set(atm_b+first-1)%atomic_kind
+                     atomic_kind => particle_set(atm_b + first - 1)%atomic_kind
                      CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                           name=name_atm_b2)
                      atm_c = torsion_list(k)%c
-                     atomic_kind => particle_set(atm_c+first-1)%atomic_kind
+                     atomic_kind => particle_set(atm_c + first - 1)%atomic_kind
                      CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                           name=name_atm_c2)
                      atm_d = torsion_list(k)%d
-                     atomic_kind => particle_set(atm_d+first-1)%atomic_kind
+                     atomic_kind => particle_set(atm_d + first - 1)%atomic_kind
                      CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                           name=name_atm_d2)
                      IF ((((name_atm_a) == (name_atm_a2)) .AND. &
                           ((name_atm_b) == (name_atm_b2)) .AND. &
                           ((name_atm_c) == (name_atm_c2)) .AND. &
                           ((name_atm_d) == (name_atm_d2))) .OR. &
-                         (((name_atm_a) == (name_atm_d2)) .AND. &
+                         (chk_reverse .AND. &
+                          ((name_atm_a) == (name_atm_d2)) .AND. &
                           ((name_atm_b) == (name_atm_c2)) .AND. &
                           ((name_atm_c) == (name_atm_b2)) .AND. &
                           ((name_atm_d) == (name_atm_a2)))) THEN
@@ -515,7 +519,7 @@ CONTAINS
                      END IF
                   END DO
                   IF (.NOT. found) THEN
-                     counter = counter+1
+                     counter = counter + 1
                      map_torsion_kind(j) = counter
                   END IF
                END DO
@@ -549,8 +553,7 @@ CONTAINS
       TYPE(molecule_type), DIMENSION(:), POINTER         :: molecule_set
       TYPE(force_field_type), INTENT(INOUT)              :: ff_type
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_unique_impr', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_unique_impr'
 
       CHARACTER(LEN=default_string_length)               :: name_atm_a, name_atm_a2, name_atm_b, &
                                                             name_atm_b2, name_atm_c, name_atm_c2, &
@@ -587,37 +590,37 @@ CONTAINS
             ELSE
                DO j = 1, nimpr
                   atm_a = impr_list(j)%a
-                  atomic_kind => particle_set(atm_a+first-1)%atomic_kind
+                  atomic_kind => particle_set(atm_a + first - 1)%atomic_kind
                   CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                        name=name_atm_a)
                   atm_b = impr_list(j)%b
-                  atomic_kind => particle_set(atm_b+first-1)%atomic_kind
+                  atomic_kind => particle_set(atm_b + first - 1)%atomic_kind
                   CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                        name=name_atm_b)
                   atm_c = impr_list(j)%c
-                  atomic_kind => particle_set(atm_c+first-1)%atomic_kind
+                  atomic_kind => particle_set(atm_c + first - 1)%atomic_kind
                   CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                        name=name_atm_c)
                   atm_d = impr_list(j)%d
-                  atomic_kind => particle_set(atm_d+first-1)%atomic_kind
+                  atomic_kind => particle_set(atm_d + first - 1)%atomic_kind
                   CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                        name=name_atm_d)
                   found = .FALSE.
-                  DO k = 1, j-1
+                  DO k = 1, j - 1
                      atm_a = impr_list(k)%a
-                     atomic_kind => particle_set(atm_a+first-1)%atomic_kind
+                     atomic_kind => particle_set(atm_a + first - 1)%atomic_kind
                      CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                           name=name_atm_a2)
                      atm_b = impr_list(k)%b
-                     atomic_kind => particle_set(atm_b+first-1)%atomic_kind
+                     atomic_kind => particle_set(atm_b + first - 1)%atomic_kind
                      CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                           name=name_atm_b2)
                      atm_c = impr_list(k)%c
-                     atomic_kind => particle_set(atm_c+first-1)%atomic_kind
+                     atomic_kind => particle_set(atm_c + first - 1)%atomic_kind
                      CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                           name=name_atm_c2)
                      atm_d = impr_list(k)%d
-                     atomic_kind => particle_set(atm_d+first-1)%atomic_kind
+                     atomic_kind => particle_set(atm_d + first - 1)%atomic_kind
                      CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                           name=name_atm_d2)
                      IF ((((name_atm_a) == (name_atm_a2)) .AND. &
@@ -634,7 +637,7 @@ CONTAINS
                      END IF
                   END DO
                   IF (.NOT. found) THEN
-                     counter = counter+1
+                     counter = counter + 1
                      map_impr_kind(j) = counter
                   END IF
                END DO
@@ -670,8 +673,7 @@ CONTAINS
       TYPE(molecule_type), DIMENSION(:), POINTER         :: molecule_set
       TYPE(force_field_type), INTENT(INOUT)              :: ff_type
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_unique_opbend', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_unique_opbend'
 
       CHARACTER(LEN=default_string_length)               :: name_atm_a, name_atm_a2, name_atm_b, &
                                                             name_atm_b2, name_atm_c, name_atm_c2, &
@@ -708,37 +710,37 @@ CONTAINS
             ELSE
                DO j = 1, nopbend
                   atm_a = opbend_list(j)%a
-                  atomic_kind => particle_set(atm_a+first-1)%atomic_kind
+                  atomic_kind => particle_set(atm_a + first - 1)%atomic_kind
                   CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                        name=name_atm_a)
                   atm_b = opbend_list(j)%b
-                  atomic_kind => particle_set(atm_b+first-1)%atomic_kind
+                  atomic_kind => particle_set(atm_b + first - 1)%atomic_kind
                   CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                        name=name_atm_b)
                   atm_c = opbend_list(j)%c
-                  atomic_kind => particle_set(atm_c+first-1)%atomic_kind
+                  atomic_kind => particle_set(atm_c + first - 1)%atomic_kind
                   CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                        name=name_atm_c)
                   atm_d = opbend_list(j)%d
-                  atomic_kind => particle_set(atm_d+first-1)%atomic_kind
+                  atomic_kind => particle_set(atm_d + first - 1)%atomic_kind
                   CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                        name=name_atm_d)
                   found = .FALSE.
-                  DO k = 1, j-1
+                  DO k = 1, j - 1
                      atm_a = opbend_list(k)%a
-                     atomic_kind => particle_set(atm_a+first-1)%atomic_kind
+                     atomic_kind => particle_set(atm_a + first - 1)%atomic_kind
                      CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                           name=name_atm_a2)
                      atm_b = opbend_list(k)%b
-                     atomic_kind => particle_set(atm_b+first-1)%atomic_kind
+                     atomic_kind => particle_set(atm_b + first - 1)%atomic_kind
                      CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                           name=name_atm_b2)
                      atm_c = opbend_list(k)%c
-                     atomic_kind => particle_set(atm_c+first-1)%atomic_kind
+                     atomic_kind => particle_set(atm_c + first - 1)%atomic_kind
                      CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                           name=name_atm_c2)
                      atm_d = opbend_list(k)%d
-                     atomic_kind => particle_set(atm_d+first-1)%atomic_kind
+                     atomic_kind => particle_set(atm_d + first - 1)%atomic_kind
                      CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                           name=name_atm_d2)
                      IF ((((name_atm_a) == (name_atm_a2)) .AND. &
@@ -755,7 +757,7 @@ CONTAINS
                      END IF
                   END DO
                   IF (.NOT. found) THEN
-                     counter = counter+1
+                     counter = counter + 1
                      map_opbend_kind(j) = counter
                   END IF
                END DO
@@ -800,8 +802,7 @@ CONTAINS
       TYPE(gromos_info_type), POINTER                    :: gro_info
       TYPE(amber_info_type), POINTER                     :: amb_info
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_bond', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_bond'
 
       CHARACTER(LEN=default_string_length)               :: name_atm_a, name_atm_b
       INTEGER                                            :: atm_a, atm_b, first, handle2, i, itype, &
@@ -825,11 +826,11 @@ CONTAINS
          CALL get_molecule(molecule=molecule, first_atom=first, last_atom=last)
          DO j = 1, nbond
             atm_a = bond_list(j)%a
-            atomic_kind => particle_set(atm_a+first-1)%atomic_kind
+            atomic_kind => particle_set(atm_a + first - 1)%atomic_kind
             CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                  name=name_atm_a)
             atm_b = bond_list(j)%b
-            atomic_kind => particle_set(atm_b+first-1)%atomic_kind
+            atomic_kind => particle_set(atm_b + first - 1)%atomic_kind
             CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                  name=name_atm_b)
             found = .FALSE.
@@ -845,7 +846,7 @@ CONTAINS
                   bond_list(j)%bond_kind%k(1) = gro_info%bond_k(itype)
                   bond_list(j)%bond_kind%r0 = gro_info%bond_r0(itype)
                ELSE
-                  itype = itype-k
+                  itype = itype - k
                   bond_list(j)%bond_kind%k(1) = gro_info%solvent_k(itype)
                   bond_list(j)%bond_kind%r0 = gro_info%solvent_r0(itype)
                END IF
@@ -950,8 +951,7 @@ CONTAINS
       TYPE(gromos_info_type), POINTER                    :: gro_info
       TYPE(amber_info_type), POINTER                     :: amb_info
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_bend', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_bend'
 
       CHARACTER(LEN=default_string_length)               :: name_atm_a, name_atm_b, name_atm_c
       INTEGER                                            :: atm_a, atm_b, atm_c, first, handle2, i, &
@@ -975,15 +975,15 @@ CONTAINS
          CALL get_molecule(molecule=molecule, first_atom=first, last_atom=last)
          DO j = 1, nbend
             atm_a = bend_list(j)%a
-            atomic_kind => particle_set(atm_a+first-1)%atomic_kind
+            atomic_kind => particle_set(atm_a + first - 1)%atomic_kind
             CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                  name=name_atm_a)
             atm_b = bend_list(j)%b
-            atomic_kind => particle_set(atm_b+first-1)%atomic_kind
+            atomic_kind => particle_set(atm_b + first - 1)%atomic_kind
             CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                  name=name_atm_b)
             atm_c = bend_list(j)%c
-            atomic_kind => particle_set(atm_c+first-1)%atomic_kind
+            atomic_kind => particle_set(atm_c + first - 1)%atomic_kind
             CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                  name=name_atm_c)
             found = .FALSE.
@@ -1125,8 +1125,7 @@ CONTAINS
       TYPE(input_info_type), POINTER                     :: inp_info
       INTEGER                                            :: iw
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_ub', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_ub'
 
       CHARACTER(LEN=default_string_length)               :: name_atm_a, name_atm_b, name_atm_c
       INTEGER                                            :: atm_a, atm_b, atm_c, first, handle2, i, &
@@ -1149,15 +1148,15 @@ CONTAINS
          CALL get_molecule(molecule=molecule, first_atom=first, last_atom=last)
          DO j = 1, nub
             atm_a = ub_list(j)%a
-            atomic_kind => particle_set(atm_a+first-1)%atomic_kind
+            atomic_kind => particle_set(atm_a + first - 1)%atomic_kind
             CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                  name=name_atm_a)
             atm_b = ub_list(j)%b
-            atomic_kind => particle_set(atm_b+first-1)%atomic_kind
+            atomic_kind => particle_set(atm_b + first - 1)%atomic_kind
             CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                  name=name_atm_b)
             atm_c = ub_list(j)%c
-            atomic_kind => particle_set(atm_c+first-1)%atomic_kind
+            atomic_kind => particle_set(atm_c + first - 1)%atomic_kind
             CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                  name=name_atm_c)
             found = .FALSE.
@@ -1265,14 +1264,15 @@ CONTAINS
       TYPE(amber_info_type), POINTER                     :: amb_info
       INTEGER, INTENT(IN)                                :: iw
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_tors', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_tors'
 
       CHARACTER(LEN=default_string_length)               :: ldum, name_atm_a, name_atm_b, &
                                                             name_atm_c, name_atm_d
       INTEGER                                            :: atm_a, atm_b, atm_c, atm_d, first, &
-                                                            handle2, i, imul, itype, j, k, last, &
-                                                            natom, ntorsion
+                                                            handle2, i, imul, itype, j, k, k_end, &
+                                                            k_start, last, natom, ntorsion, &
+                                                            raw_parm_id
+      INTEGER, DIMENSION(4)                              :: glob_atm_id
       INTEGER, DIMENSION(:), POINTER                     :: molecule_list
       LOGICAL                                            :: found, only_qm
       TYPE(atomic_kind_type), POINTER                    :: atomic_kind
@@ -1293,19 +1293,19 @@ CONTAINS
          DO j = 1, ntorsion
             IF (torsion_list(j)%torsion_kind%id_type == do_ff_undef) THEN
                atm_a = torsion_list(j)%a
-               atomic_kind => particle_set(atm_a+first-1)%atomic_kind
+               atomic_kind => particle_set(atm_a + first - 1)%atomic_kind
                CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                     name=name_atm_a)
                atm_b = torsion_list(j)%b
-               atomic_kind => particle_set(atm_b+first-1)%atomic_kind
+               atomic_kind => particle_set(atm_b + first - 1)%atomic_kind
                CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                     name=name_atm_b)
                atm_c = torsion_list(j)%c
-               atomic_kind => particle_set(atm_c+first-1)%atomic_kind
+               atomic_kind => particle_set(atm_c + first - 1)%atomic_kind
                CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                     name=name_atm_c)
                atm_d = torsion_list(j)%d
-               atomic_kind => particle_set(atm_d+first-1)%atomic_kind
+               atomic_kind => particle_set(atm_d + first - 1)%atomic_kind
                CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                     name=name_atm_d)
                found = .FALSE.
@@ -1353,7 +1353,7 @@ CONTAINS
                           ((chm_info%torsion_b(k)) == (name_atm_c)) .AND. &
                           ((chm_info%torsion_c(k)) == (name_atm_b)) .AND. &
                           ((chm_info%torsion_d(k)) == (name_atm_a)))) THEN
-                        imul = torsion_list(j)%torsion_kind%nmul+1
+                        imul = torsion_list(j)%torsion_kind%nmul + 1
                         CALL reallocate(torsion_list(j)%torsion_kind%k, 1, imul)
                         CALL reallocate(torsion_list(j)%torsion_kind%m, 1, imul)
                         CALL reallocate(torsion_list(j)%torsion_kind%phi0, 1, imul)
@@ -1376,7 +1376,7 @@ CONTAINS
                              ((chm_info%torsion_b(k)) == (name_atm_c)) .AND. &
                              ((chm_info%torsion_c(k)) == (name_atm_b)) .AND. &
                              ((chm_info%torsion_d(k)) == ("X")))) THEN
-                           imul = torsion_list(j)%torsion_kind%nmul+1
+                           imul = torsion_list(j)%torsion_kind%nmul + 1
                            CALL reallocate(torsion_list(j)%torsion_kind%k, 1, imul)
                            CALL reallocate(torsion_list(j)%torsion_kind%m, 1, imul)
                            CALL reallocate(torsion_list(j)%torsion_kind%phi0, 1, imul)
@@ -1392,52 +1392,43 @@ CONTAINS
                END IF
 
                ! loop over params from AMBER
+               ! Assign real parameters from Amber PRMTOP file using global atom indices
+               ! Type-based assignment is prone to errors
                IF (ASSOCIATED(amb_info%torsion_a)) THEN
-                  DO k = 1, SIZE(amb_info%torsion_a)
-                     IF ((((amb_info%torsion_a(k)) == (name_atm_a)) .AND. &
-                          ((amb_info%torsion_b(k)) == (name_atm_b)) .AND. &
-                          ((amb_info%torsion_c(k)) == (name_atm_c)) .AND. &
-                          ((amb_info%torsion_d(k)) == (name_atm_d))) .OR. &
-                         (((amb_info%torsion_a(k)) == (name_atm_d)) .AND. &
-                          ((amb_info%torsion_b(k)) == (name_atm_c)) .AND. &
-                          ((amb_info%torsion_c(k)) == (name_atm_b)) .AND. &
-                          ((amb_info%torsion_d(k)) == (name_atm_a)))) THEN
-                        imul = torsion_list(j)%torsion_kind%nmul+1
+                  ! Get global atom indices
+                  glob_atm_id(1) = atm_a + first - 1
+                  glob_atm_id(2) = atm_b + first - 1
+                  glob_atm_id(3) = atm_c + first - 1
+                  glob_atm_id(4) = atm_d + first - 1
+
+                  ! Search sorted array of raw torsion parameters
+                  ! The array can be too long for linear lookup
+                  ! Use binary search for first atom index
+                  k_start = bsearch_leftmost_2d(amb_info%raw_torsion_id, glob_atm_id(1))
+                  k_end = UBOUND(amb_info%raw_torsion_id, DIM=2)
+
+                  ! If not found, skip the loop
+                  IF (k_start /= 0) THEN
+
+                     DO k = k_start, k_end
+                        IF (glob_atm_id(1) < amb_info%raw_torsion_id(1, k)) EXIT
+                        IF (ANY((glob_atm_id - amb_info%raw_torsion_id(1:4, k)) /= 0)) CYCLE
+
+                        raw_parm_id = amb_info%raw_torsion_id(5, k)
+                        imul = torsion_list(j)%torsion_kind%nmul + 1
                         CALL reallocate(torsion_list(j)%torsion_kind%k, 1, imul)
                         CALL reallocate(torsion_list(j)%torsion_kind%m, 1, imul)
                         CALL reallocate(torsion_list(j)%torsion_kind%phi0, 1, imul)
                         torsion_list(j)%torsion_kind%id_type = do_ff_amber
-                        torsion_list(j)%torsion_kind%k(imul) = amb_info%torsion_k(k)
-                        torsion_list(j)%torsion_kind%m(imul) = amb_info%torsion_m(k)
-                        torsion_list(j)%torsion_kind%phi0(imul) = amb_info%torsion_phi0(k)
+                        torsion_list(j)%torsion_kind%k(imul) = amb_info%raw_torsion_k(raw_parm_id)
+                        torsion_list(j)%torsion_kind%m(imul) = NINT(amb_info%raw_torsion_m(raw_parm_id))
+                        torsion_list(j)%torsion_kind%phi0(imul) = amb_info%raw_torsion_phi0(raw_parm_id)
                         torsion_list(j)%torsion_kind%nmul = imul
                         found = .TRUE.
-                     END IF
-                  END DO
-
-                  IF (.NOT. found) THEN
-                     DO k = 1, SIZE(amb_info%torsion_a)
-                        IF ((((amb_info%torsion_a(k)) == ("X")) .AND. &
-                             ((amb_info%torsion_b(k)) == (name_atm_b)) .AND. &
-                             ((amb_info%torsion_c(k)) == (name_atm_c)) .AND. &
-                             ((amb_info%torsion_d(k)) == ("X"))) .OR. &
-                            (((amb_info%torsion_a(k)) == ("X")) .AND. &
-                             ((amb_info%torsion_b(k)) == (name_atm_c)) .AND. &
-                             ((amb_info%torsion_c(k)) == (name_atm_b)) .AND. &
-                             ((amb_info%torsion_d(k)) == ("X")))) THEN
-                           imul = torsion_list(j)%torsion_kind%nmul+1
-                           CALL reallocate(torsion_list(j)%torsion_kind%k, 1, imul)
-                           CALL reallocate(torsion_list(j)%torsion_kind%m, 1, imul)
-                           CALL reallocate(torsion_list(j)%torsion_kind%phi0, 1, imul)
-                           torsion_list(j)%torsion_kind%id_type = do_ff_amber
-                           torsion_list(j)%torsion_kind%k(imul) = amb_info%torsion_k(k)
-                           torsion_list(j)%torsion_kind%m(imul) = amb_info%torsion_m(k)
-                           torsion_list(j)%torsion_kind%phi0(imul) = amb_info%torsion_phi0(k)
-                           torsion_list(j)%torsion_kind%nmul = imul
-                           found = .TRUE.
-                        END IF
                      END DO
+
                   END IF
+
                END IF
 
                ! always have the input param last to overwrite all the other ones
@@ -1451,7 +1442,7 @@ CONTAINS
                           ((inp_info%torsion_b(k)) == (name_atm_c)) .AND. &
                           ((inp_info%torsion_c(k)) == (name_atm_b)) .AND. &
                           ((inp_info%torsion_d(k)) == (name_atm_a)))) THEN
-                        imul = torsion_list(j)%torsion_kind%nmul+1
+                        imul = torsion_list(j)%torsion_kind%nmul + 1
                         CALL reallocate(torsion_list(j)%torsion_kind%k, 1, imul)
                         CALL reallocate(torsion_list(j)%torsion_kind%m, 1, imul)
                         CALL reallocate(torsion_list(j)%torsion_kind%phi0, 1, imul)
@@ -1529,8 +1520,7 @@ CONTAINS
       TYPE(input_info_type), POINTER                     :: inp_info
       TYPE(gromos_info_type), POINTER                    :: gro_info
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_impr', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_impr'
 
       CHARACTER(LEN=default_string_length)               :: name_atm_a, name_atm_b, name_atm_c, &
                                                             name_atm_d
@@ -1556,19 +1546,19 @@ CONTAINS
          CALL get_molecule(molecule=molecule, first_atom=first, last_atom=last)
          DO j = 1, nimpr
             atm_a = impr_list(j)%a
-            atomic_kind => particle_set(atm_a+first-1)%atomic_kind
+            atomic_kind => particle_set(atm_a + first - 1)%atomic_kind
             CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                  name=name_atm_a)
             atm_b = impr_list(j)%b
-            atomic_kind => particle_set(atm_b+first-1)%atomic_kind
+            atomic_kind => particle_set(atm_b + first - 1)%atomic_kind
             CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                  name=name_atm_b)
             atm_c = impr_list(j)%c
-            atomic_kind => particle_set(atm_c+first-1)%atomic_kind
+            atomic_kind => particle_set(atm_c + first - 1)%atomic_kind
             CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                  name=name_atm_c)
             atm_d = impr_list(j)%d
-            atomic_kind => particle_set(atm_d+first-1)%atomic_kind
+            atomic_kind => particle_set(atm_d + first - 1)%atomic_kind
             CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                  name=name_atm_d)
             found = .FALSE.
@@ -1721,8 +1711,7 @@ CONTAINS
          DIMENSION(:), POINTER                           :: Ainfo
       TYPE(input_info_type), POINTER                     :: inp_info
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_opbend', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_opbend'
 
       CHARACTER(LEN=default_string_length)               :: name_atm_a, name_atm_b, name_atm_c, &
                                                             name_atm_d
@@ -1748,19 +1737,19 @@ CONTAINS
          CALL get_molecule(molecule=molecule, first_atom=first, last_atom=last)
          DO j = 1, nopbend
             atm_a = opbend_list(j)%a
-            atomic_kind => particle_set(atm_a+first-1)%atomic_kind
+            atomic_kind => particle_set(atm_a + first - 1)%atomic_kind
             CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                  name=name_atm_a)
             atm_b = opbend_list(j)%b
-            atomic_kind => particle_set(atm_b+first-1)%atomic_kind
+            atomic_kind => particle_set(atm_b + first - 1)%atomic_kind
             CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                  name=name_atm_b)
             atm_c = opbend_list(j)%c
-            atomic_kind => particle_set(atm_c+first-1)%atomic_kind
+            atomic_kind => particle_set(atm_c + first - 1)%atomic_kind
             CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                  name=name_atm_c)
             atm_d = opbend_list(j)%d
-            atomic_kind => particle_set(atm_d+first-1)%atomic_kind
+            atomic_kind => particle_set(atm_d + first - 1)%atomic_kind
             CALL get_atomic_kind(atomic_kind=atomic_kind, &
                                  name=name_atm_d)
             found = .FALSE.
@@ -1853,8 +1842,7 @@ CONTAINS
       TYPE(input_info_type), POINTER                     :: inp_info
       INTEGER                                            :: iw4
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_charges', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_charges'
 
       CHARACTER(LEN=default_string_length)               :: atmname
       INTEGER                                            :: handle, iatom, ilink, j, nval
@@ -1915,7 +1903,7 @@ CONTAINS
                DO j = 1, SIZE(inp_info%nonbonded%pot)
                   IF (atmname == inp_info%nonbonded%pot(j)%pot%at1 .OR. &
                       atmname == inp_info%nonbonded%pot(j)%pot%at2) THEN
-                     SELECT CASE (inp_info%nonbonded%pot (j)%pot%type (1))
+                     SELECT CASE (inp_info%nonbonded%pot(j)%pot%type(1))
                      CASE (ea_type, tersoff_type, siepmann_type)
                         ! Charge is zero for EAM, TERSOFF and SIEPMANN  type potential
                         ! Do nothing..
@@ -1984,8 +1972,7 @@ CONTAINS
       LOGICAL                                            :: my_qmmm
       TYPE(input_info_type), POINTER                     :: inp_info
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_charge', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_charge'
 
       CHARACTER(LEN=default_string_length)               :: atmname
       INTEGER                                            :: handle, i, ilink, j
@@ -2031,7 +2018,7 @@ CONTAINS
             DO j = 1, SIZE(inp_info%shell_list)
                IF ((inp_info%shell_list(j)%atm_name) == atmname) THEN
                   is_shell = .TRUE.
-                  cs_charge = inp_info%shell_list(j)%shell%charge_core+ &
+                  cs_charge = inp_info%shell_list(j)%shell%charge_core + &
                               inp_info%shell_list(j)%shell%charge_shell
                   charge = 0.0_dp
                   IF (found) THEN
@@ -2104,9 +2091,9 @@ CONTAINS
          ! Sum up total charges for IO
          IF (found) THEN
             IF (is_shell) THEN
-               charge_tot = charge_tot+atomic_kind%natom*cs_charge
+               charge_tot = charge_tot + atomic_kind%natom*cs_charge
             ELSE
-               charge_tot = charge_tot+atomic_kind%natom*charge
+               charge_tot = charge_tot + atomic_kind%natom*charge
             END IF
          END IF
       END DO
@@ -2130,8 +2117,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: iw
       TYPE(section_vals_type), POINTER                   :: subsys_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_radius', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_radius'
 
       CHARACTER(LEN=default_string_length)               :: inp_kind_name, kind_name
       INTEGER                                            :: handle, i, i_rep, n_rep
@@ -2189,8 +2175,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: iw
       TYPE(input_info_type), POINTER                     :: inp_info
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_pol', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_pol'
 
       CHARACTER(LEN=default_string_length)               :: kind_name
       INTEGER                                            :: handle, i, j
@@ -2253,8 +2238,7 @@ CONTAINS
       INTEGER                                            :: iw
       TYPE(input_info_type), POINTER                     :: inp_info
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_damp', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_damp'
 
       CHARACTER(len=default_string_length)               :: atm_name1, atm_name2, my_atm_name1, &
                                                             my_atm_name2
@@ -2296,7 +2280,7 @@ CONTAINS
                         CALL issue_duplications(found, "Damping", atm_name1)
                         found = .TRUE.
 
-                        SELECT CASE (TRIM (inp_info%damping_list (i)%dtype))
+                        SELECT CASE (TRIM(inp_info%damping_list(i)%dtype))
                         CASE ('TANG-TOENNIES')
                            damping%damp(k)%itype = tang_toennies
                         CASE DEFAULT
@@ -2354,8 +2338,7 @@ CONTAINS
       INTEGER                                            :: iw
       TYPE(input_info_type), POINTER                     :: inp_info
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_shell', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_shell'
 
       CHARACTER(LEN=default_string_length)               :: atmname
       INTEGER                                            :: counter, first, first_shell, handle2, i, &
@@ -2403,7 +2386,7 @@ CONTAINS
                   IF (.NOT. ASSOCIATED(shell)) THEN
                      CALL shell_create(shell)
                   END IF
-                  nshell_tot = nshell_tot+natom
+                  nshell_tot = nshell_tot + natom
                   shell%charge_core = inp_info%shell_list(j)%shell%charge_core
                   shell%charge_shell = inp_info%shell_list(j)%shell%charge_shell
                   shell%massfrac = inp_info%shell_list(j)%shell%massfrac
@@ -2413,7 +2396,7 @@ CONTAINS
                   shell%max_dist = inp_info%shell_list(j)%shell%max_dist
                   shell%shell_cutoff = inp_info%shell_list(j)%shell%shell_cutoff
                   shell%mass_shell = shell%massfrac*atmmass
-                  shell%mass_core = atmmass-shell%mass_shell
+                  shell%mass_core = atmmass - shell%mass_shell
                   CALL issue_duplications(found_shell, "Shell", atmname)
                   found_shell = .TRUE.
                   CALL set_atomic_kind(atomic_kind=atomic_kind, &
@@ -2444,7 +2427,7 @@ CONTAINS
             atomic_kind => particle_set(i)%atomic_kind
             CALL get_atomic_kind(atomic_kind=atomic_kind, shell_active=is_a_shell)
             IF (is_a_shell) THEN
-               counter = counter+1
+               counter = counter + 1
                particle_set(i)%shell_index = counter
                shell_particle_set(counter)%shell_index = counter
                shell_particle_set(counter)%atomic_kind => particle_set(i)%atomic_kind
@@ -2496,19 +2479,19 @@ CONTAINS
                atomic_kind => particle_set(j)%atomic_kind
                CALL get_atomic_kind(atomic_kind=atomic_kind, shell_active=is_a_shell)
                IF (is_a_shell) THEN
-                  counter = counter+1
-                  shell_list_tmp(counter) = j-first+1
+                  counter = counter + 1
+                  shell_list_tmp(counter) = j - first + 1
                   first_shell = MIN(first_shell, MAX(1, particle_set(j)%shell_index))
                END IF
             END DO ! j atom in molecule_kind i, molecule 1 of the molecule_list
             IF (counter /= 0) THEN
                ! Setup of fist_shell and last_shell for all molecules..
                DO j = 1, SIZE(molecule_list)
-                  last_shell = first_shell+counter-1
+                  last_shell = first_shell + counter - 1
                   molecule => molecule_set(molecule_list(j))
                   molecule%first_shell = first_shell
                   molecule%last_shell = last_shell
-                  first_shell = last_shell+1
+                  first_shell = last_shell + 1
                END DO
                ! Setup of shell_list
                CALL get_molecule_kind(molecule_kind=molecule_kind, shell_list=shell_list)
@@ -2518,7 +2501,7 @@ CONTAINS
                ALLOCATE (shell_list(counter))
                DO j = 1, counter
                   shell_list(j)%a = shell_list_tmp(j)
-                  atomic_kind => particle_set(shell_list_tmp(j)+first-1)%atomic_kind
+                  atomic_kind => particle_set(shell_list_tmp(j) + first - 1)%atomic_kind
                   CALL get_atomic_kind(atomic_kind=atomic_kind, name=atmname, shell=shell)
                   CALL uppercase(atmname)
                   shell_list(j)%name = atmname
@@ -2527,10 +2510,10 @@ CONTAINS
                CALL set_molecule_kind(molecule_kind=molecule_kind, nshell=counter, shell_list=shell_list)
             END IF
             DEALLOCATE (shell_list_tmp)
-            n = n+nmol*counter
+            n = n + nmol*counter
          END DO ! i molecule kind
       END IF
-      CPASSERT(first_shell-1 == nshell_tot)
+      CPASSERT(first_shell - 1 == nshell_tot)
       CPASSERT(n == nshell_tot)
       CALL timestop(handle2)
 
@@ -2566,8 +2549,7 @@ CONTAINS
       TYPE(pair_potential_pp_type), POINTER              :: potparm_nonbond14
       TYPE(ewald_environment_type), POINTER              :: ewald_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_nonbond14', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_nonbond14'
 
       CHARACTER(LEN=default_string_length)               :: name_atm_a, name_atm_a_local, &
                                                             name_atm_b, name_atm_b_local
@@ -2674,7 +2656,7 @@ CONTAINS
                END IF
             END IF
             IF (ii /= 0 .AND. jj /= 0) THEN
-               rmin = rmin2_a+rmin2_b
+               rmin = rmin2_a + rmin2_b
                ! ABS to allow for mixing the two different sign conventions for epsilon
                epsilon0 = SQRT(ABS(epsilon_a*epsilon_b))
                CALL pair_potential_lj_create(pot%set(1)%lj)
@@ -2712,7 +2694,7 @@ CONTAINS
                   END DO
                END IF
                IF (ii /= 0 .AND. jj /= 0) THEN
-                  rmin = rmin2_a+rmin2_b
+                  rmin = rmin2_a + rmin2_b
                   ! ABS to allow for mixing the two different sign conventions for epsilon
                   epsilon0 = SQRT(ABS(epsilon_a*epsilon_b))
                   CALL pair_potential_lj_create(pot%set(1)%lj)
@@ -2763,8 +2745,8 @@ CONTAINS
             ! nonbonded interactions
             IF (use_qmmm_ff) THEN
                match_names = 0
-               IF ((name_atm_a) == (name_atm_a_local)) match_names = match_names+1
-               IF ((name_atm_b) == (name_atm_b_local)) match_names = match_names+1
+               IF ((name_atm_a) == (name_atm_a_local)) match_names = match_names + 1
+               IF ((name_atm_b) == (name_atm_b_local)) match_names = match_names + 1
                IF (match_names == 1) THEN
                   IF (ASSOCIATED(qmmm_env%inp_info%nonbonded14)) THEN
                      DO k = 1, SIZE(qmmm_env%inp_info%nonbonded14%pot)
@@ -2857,8 +2839,7 @@ CONTAINS
       TYPE(pair_potential_pp_type), POINTER              :: potparm_nonbond
       TYPE(ewald_environment_type), POINTER              :: ewald_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_nonbond', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_nonbond'
 
       CHARACTER(LEN=default_string_length)               :: name_atm_a, name_atm_a_local, &
                                                             name_atm_b, name_atm_b_local
@@ -2937,7 +2918,7 @@ CONTAINS
                END DO
 
                IF (ii /= 0 .AND. jj /= 0) THEN
-                  rmin = chm_info%nonbond_rmin2(ii)+chm_info%nonbond_rmin2(jj)
+                  rmin = chm_info%nonbond_rmin2(ii) + chm_info%nonbond_rmin2(jj)
                   epsilon0 = SQRT(chm_info%nonbond_eps(ii)* &
                                   chm_info%nonbond_eps(jj))
                   CALL pair_potential_lj_create(pot%set(1)%lj)
@@ -2969,7 +2950,7 @@ CONTAINS
                END DO
 
                IF (ii /= 0 .AND. jj /= 0) THEN
-                  rmin = amb_info%nonbond_rmin2(ii)+amb_info%nonbond_rmin2(jj)
+                  rmin = amb_info%nonbond_rmin2(ii) + amb_info%nonbond_rmin2(jj)
                   epsilon0 = SQRT(amb_info%nonbond_eps(ii)*amb_info%nonbond_eps(jj))
                   CALL pair_potential_lj_create(pot%set(1)%lj)
                   pot%type = lj_charmm_type
@@ -3085,8 +3066,8 @@ CONTAINS
             ! nonbonded interactions
             IF (use_qmmm_ff) THEN
                match_names = 0
-               IF ((name_atm_a) == (name_atm_a_local)) match_names = match_names+1
-               IF ((name_atm_b) == (name_atm_b_local)) match_names = match_names+1
+               IF ((name_atm_a) == (name_atm_a_local)) match_names = match_names + 1
+               IF ((name_atm_b) == (name_atm_b_local)) match_names = match_names + 1
                IF (match_names == 1) THEN
                   IF (ASSOCIATED(qmmm_env%inp_info%nonbonded)) THEN
                      DO k = 1, SIZE(qmmm_env%inp_info%nonbonded%pot)
@@ -3169,15 +3150,14 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: do_zbl
       CHARACTER(LEN=*), INTENT(IN)                       :: nonbonded_type
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_splines', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_splines'
 
       INTEGER                                            :: handle2, ikind, jkind, n
       TYPE(spline_data_p_type), DIMENSION(:), POINTER    :: spl_p
       TYPE(spline_environment_type), POINTER             :: spline_env
 
       CALL timeset(routineN, handle2)
-      ! Figure out which nonbonded interactions happen to be indentical, and
+      ! Figure out which nonbonded interactions happen to be identical, and
       ! prepare storage for these, avoiding duplicates.
       NULLIFY (spline_env)
       CALL get_nonbond_storage(spline_env, potparm, atomic_kind_set, &
@@ -3221,8 +3201,7 @@ CONTAINS
       TYPE(pair_potential_pp_type), POINTER              :: potparm_nonbond
       TYPE(ewald_environment_type), POINTER              :: ewald_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_eicut', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'force_field_pack_eicut'
 
       INTEGER                                            :: ewald_type, handle, i1, i2, nkinds
       REAL(KIND=dp)                                      :: alpha, beta, mm_radius1, mm_radius2, &
@@ -3267,8 +3246,8 @@ CONTAINS
                   interaction_cutoffs(2, i1, i2) = potential_coulomb(rcut2, tmp, &
                                                                      1.0_dp, ewald_type, alpha, beta, 0.0_dp)
                   ! cutoff for shell-shell or ion-ion
-                  IF (mm_radius1+mm_radius2 > 0.0_dp) THEN
-                     beta = sqrthalf/SQRT(mm_radius1*mm_radius1+mm_radius2*mm_radius2)
+                  IF (mm_radius1 + mm_radius2 > 0.0_dp) THEN
+                     beta = sqrthalf/SQRT(mm_radius1*mm_radius1 + mm_radius2*mm_radius2)
                   ELSE
                      beta = 0.0_dp
                   END IF
@@ -3301,9 +3280,6 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: found
       CHARACTER(LEN=*), INTENT(IN)                       :: tag_label, name_atm_a
       CHARACTER(LEN=*), INTENT(IN), OPTIONAL             :: name_atm_b, name_atm_c, name_atm_d
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'issue_duplications', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_string_length)               :: item
 
@@ -3341,9 +3317,6 @@ CONTAINS
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: array
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'store_FF_missing_par', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=10)                                  :: sfmt
       CHARACTER(LEN=4)                                   :: my_atm1, my_atm2, my_atm3, my_atm4
       CHARACTER(LEN=default_path_length)                 :: my_format
@@ -3354,10 +3327,10 @@ CONTAINS
       fmt = 1
       my_format = '(T2,"FORCEFIELD| Missing ","'//TRIM(type_name)// &
                   '",T40,"(",A4,")")'
-      IF (PRESENT(atm2)) fmt = fmt+1
-      IF (PRESENT(atm3)) fmt = fmt+1
-      IF (PRESENT(atm4)) fmt = fmt+1
-      CALL integer_to_string(fmt-1, sfmt)
+      IF (PRESENT(atm2)) fmt = fmt + 1
+      IF (PRESENT(atm3)) fmt = fmt + 1
+      IF (PRESENT(atm4)) fmt = fmt + 1
+      CALL integer_to_string(fmt - 1, sfmt)
       IF (fmt > 1) &
          my_format = '(T2,"FORCEFIELD| Missing ","'//TRIM(type_name)// &
                      '",T40,"(",A4,'//TRIM(sfmt)//'(",",A4),")")'
@@ -3465,7 +3438,7 @@ CONTAINS
          END DO
       ENDIF
       IF (.NOT. found) THEN
-         nsize = nsize+1
+         nsize = nsize + 1
          CALL reallocate(array, 1, nsize)
          SELECT CASE (fmt)
          CASE (1)
@@ -3480,6 +3453,42 @@ CONTAINS
       END IF
 
    END SUBROUTINE store_FF_missing_par
+
+! **************************************************************************************************
+!> \brief Search sorted 2d array of integers for a first occurence of value `val` in row `row`
+!> \param array 2d array of integers
+!> \param val value to search
+!> \param row row to search, default = 1
+!> \return column index if `val` is found in the row `row` of `array`; zero otherwise
+! **************************************************************************************************
+   FUNCTION bsearch_leftmost_2d(array, val, row) RESULT(res)
+      INTEGER, INTENT(IN)                                :: array(:, :), val
+      INTEGER, INTENT(IN), OPTIONAL                      :: row
+      INTEGER                                            :: res
+
+      INTEGER                                            :: left, locRow, mid, right
+
+      locRow = 1
+      IF (PRESENT(row)) locRow = row
+
+      left = 1
+      right = UBOUND(array, dim=2)
+
+      DO WHILE (left < right)
+         mid = (left + right)/2
+         IF (array(locRow, mid) < val) THEN
+            left = mid + 1
+         ELSE
+            right = mid
+         END IF
+      END DO
+
+      res = left
+
+      ! Not found:
+      IF (array(locRow, res) /= val) res = 0
+
+   END FUNCTION bsearch_leftmost_2d
 
 END MODULE force_fields_all
 

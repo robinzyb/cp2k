@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -31,7 +33,6 @@ MODULE eri_mme_gaussian
    PUBLIC :: &
       create_gaussian_overlap_dist_to_hermite, &
       create_hermite_to_cartesian, &
-      exp_radius_fast, &
       get_minimax_coeff_v_gspace, &
       hermite_gauss_norm
 
@@ -54,12 +55,12 @@ CONTAINS
 
       INTEGER                                            :: k, l
 
-      ALLOCATE (h_to_c(-1:l_max+1, 0:l_max))
+      ALLOCATE (h_to_c(-1:l_max + 1, 0:l_max))
       h_to_c(:, :) = 0.0_dp
       h_to_c(0, 0) = 1.0_dp
-      DO l = 0, l_max-1
-         DO k = 0, l+1
-            h_to_c(k, l+1) = -(k+1)*h_to_c(k+1, l)+2.0_dp*zet*h_to_c(k-1, l)
+      DO l = 0, l_max - 1
+         DO k = 0, l + 1
+            h_to_c(k, l + 1) = -(k + 1)*h_to_c(k + 1, l) + 2.0_dp*zet*h_to_c(k - 1, l)
          ENDDO
       ENDDO
 
@@ -76,7 +77,7 @@ CONTAINS
       INTEGER, DIMENSION(3), INTENT(IN)                  :: l
       REAL(KIND=dp)                                      :: norm
 
-      norm = 1.0_dp/SQRT((2.0_dp*zet)**(SUM(l)-1.5_dp)*(gamma1(l(1))*gamma1(l(2))*gamma1(l(3))))
+      norm = 1.0_dp/SQRT((2.0_dp*zet)**(SUM(l) - 1.5_dp)*(gamma1(l(1))*gamma1(l(2))*gamma1(l(3))))
 
    END FUNCTION hermite_gauss_norm
 
@@ -101,9 +102,6 @@ CONTAINS
       INTEGER, INTENT(IN), OPTIONAL                      :: potential
       REAL(KIND=dp), INTENT(IN), OPTIONAL                :: pot_par
       REAL(KIND=dp), INTENT(OUT), OPTIONAL               :: err_minimax
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_minimax_coeff_v_gspace', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: potential_prv
       REAL(KIND=dp)                                      :: dG, G_max, minimax_Rc
@@ -136,14 +134,14 @@ CONTAINS
       IF (potential_prv == eri_mme_coulomb .OR. potential_prv == eri_mme_longrange) THEN
          minimax_Rc = (G_max/G_min)**2
       ELSEIF (potential_prv == eri_mme_yukawa) THEN
-         minimax_Rc = (G_max**2+pot_par**2)/(G_min**2+pot_par**2)
+         minimax_Rc = (G_max**2 + pot_par**2)/(G_min**2 + pot_par**2)
       ENDIF
 
       CALL get_exp_minimax_coeff(n_minimax, minimax_Rc, minimax_aw, err_minimax)
 
       ALLOCATE (a(n_minimax)); ALLOCATE (w(n_minimax))
       a(:) = minimax_aw(:n_minimax)
-      w(:) = minimax_aw(n_minimax+1:)
+      w(:) = minimax_aw(n_minimax + 1:)
       SELECT CASE (potential_prv)
          ! Scale minimax coefficients to incorporate different Fourier transforms
       CASE (eri_mme_coulomb)
@@ -152,15 +150,15 @@ CONTAINS
          w(:) = w/G_min**2
       CASE (eri_mme_yukawa)
          ! FT = 1/(G**2 + pot_par**2)
-         w(:) = w*EXP((-a*pot_par**2)/(G_min**2+pot_par**2))/(G_min**2+pot_par**2)
-         a(:) = a/(G_min**2+pot_par**2)
+         w(:) = w*EXP((-a*pot_par**2)/(G_min**2 + pot_par**2))/(G_min**2 + pot_par**2)
+         a(:) = a/(G_min**2 + pot_par**2)
       CASE (eri_mme_longrange)
          ! FT = exp(-(G/pot_par)**2)/G**2
          ! approximating 1/G**2 as for Coulomb:
          a(:) = a/G_min**2
          w(:) = w/G_min**2
          ! incorporate exponential factor:
-         a(:) = a+1.0_dp/pot_par**2
+         a(:) = a + 1.0_dp/pot_par**2
       END SELECT
       minimax_aw = [a(:), w(:)]
 
@@ -168,7 +166,7 @@ CONTAINS
          IF (potential_prv == eri_mme_coulomb) THEN
             err_minimax = err_minimax/G_min**2
          ELSEIF (potential_prv == eri_mme_yukawa) THEN
-            err_minimax = err_minimax/(G_min**2+pot_par**2)
+            err_minimax = err_minimax/(G_min**2 + pot_par**2)
          ELSEIF (potential_prv == eri_mme_longrange) THEN
             err_minimax = err_minimax/G_min**2 ! approx. of Coulomb
             err_minimax = err_minimax*EXP(-G_min**2/pot_par**2) ! exponential factor
@@ -203,25 +201,25 @@ CONTAINS
       REAL(KIND=dp)                                      :: c1, c2, c3
 
       E(:, :, :) = 0.0_dp
-      E(0, 0, 0) = EXP(-a*b/(a+b)*(R1-R2)**2) ! cost: exp_w flops
+      E(0, 0, 0) = EXP(-a*b/(a + b)*(R1 - R2)**2) ! cost: exp_w flops
 
-      c1 = 0.5_dp/(a+b)
-      c2 = (b/(a+b))*(R2-R1)
-      c3 = (a/(a+b))*(R1-R2)
+      c1 = 0.5_dp/(a + b)
+      c2 = (b/(a + b))*(R2 - R1)
+      c3 = (a/(a + b))*(R1 - R2)
 
       IF (H_or_C_product .EQ. 1) THEN ! Cartesian overlap dist
          DO mm = 0, m
             DO ll = 0, l
-               DO t = 0, ll+mm+1
+               DO t = 0, ll + mm + 1
                   IF (ll .LT. l) THEN
-                     E(t, ll+1, mm) = c1*E(t-1, ll, mm)+ & ! cost: 8 flops
-                                      c2*E(t, ll, mm)+ &
-                                      (t+1)*E(t+1, ll, mm)
+                     E(t, ll + 1, mm) = c1*E(t - 1, ll, mm) + & ! cost: 8 flops
+                                        c2*E(t, ll, mm) + &
+                                        (t + 1)*E(t + 1, ll, mm)
                   ENDIF
                   IF (mm .LT. m) THEN
-                     E(t, ll, mm+1) = c1*E(t-1, ll, mm)+ & ! cost: 8 flops
-                                      c3*E(t, ll, mm)+ &
-                                      (t+1)*E(t+1, ll, mm)
+                     E(t, ll, mm + 1) = c1*E(t - 1, ll, mm) + & ! cost: 8 flops
+                                        c3*E(t, ll, mm) + &
+                                        (t + 1)*E(t + 1, ll, mm)
                   ENDIF
                ENDDO
             ENDDO
@@ -229,18 +227,18 @@ CONTAINS
       ELSE ! Hermite overlap dist
          DO mm = 0, m
             DO ll = 0, l
-               DO t = 0, ll+mm+1
+               DO t = 0, ll + mm + 1
                   IF (ll .LT. l) THEN
-                     E(t, ll+1, mm) = a*(2*c1*E(t-1, ll, mm)+ & ! cost: 16 flops
-                                         2*c2*E(t, ll, mm)+ &
-                                         2*(t+1)*E(t+1, ll, mm)- &
-                                         2*ll*E(t, ll-1, mm))
+                     E(t, ll + 1, mm) = a*(2*c1*E(t - 1, ll, mm) + & ! cost: 16 flops
+                                           2*c2*E(t, ll, mm) + &
+                                           2*(t + 1)*E(t + 1, ll, mm) - &
+                                           2*ll*E(t, ll - 1, mm))
                   ENDIF
                   IF (mm .LT. m) THEN
-                     E(t, ll, mm+1) = b*(2*c1*E(t-1, ll, mm)+ & ! cost: 16 flops
-                                         2*c3*E(t, ll, mm)+ &
-                                         2*(t+1)*E(t+1, ll, mm)- &
-                                         2*mm*E(t, ll, mm-1))
+                     E(t, ll, mm + 1) = b*(2*c1*E(t - 1, ll, mm) + & ! cost: 16 flops
+                                           2*c3*E(t, ll, mm) + &
+                                           2*(t + 1)*E(t + 1, ll, mm) - &
+                                           2*mm*E(t, ll, mm - 1))
 
                   ENDIF
                ENDDO
@@ -249,46 +247,4 @@ CONTAINS
       ENDIF
 
    END SUBROUTINE create_gaussian_overlap_dist_to_hermite
-
-! **************************************************************************************************
-!> \brief ...
-!> \param l ...
-!> \param alpha ...
-!> \param threshold ...
-!> \param prefactor ...
-!> \param epsin ...
-!> \return ...
-! **************************************************************************************************
-   FUNCTION exp_radius_fast(l, alpha, threshold, prefactor, epsin) RESULT(radius)
-      INTEGER, INTENT(IN)                                :: l
-      REAL(KIND=dp), INTENT(IN)                          :: alpha, threshold, prefactor, epsin
-      REAL(KIND=dp)                                      :: radius
-
-      REAL(KIND=dp)                                      :: a, d, dr, exp_2drsq, exp_2rdr, exp_drsq, &
-                                                            exp_rsq, r, rpowl, t
-
-      t = ABS(threshold)
-
-      d = ABS(prefactor)
-      a = ABS(alpha)
-      r = SQRT(0.5_dp*REAL(l, dp)/a)
-      rpowl = r**l
-      exp_rsq = d*EXP(-a*r*r)
-      dr = ABS(epsin)
-      exp_drsq = EXP(-a*dr*dr)
-      exp_2drsq = exp_drsq*exp_drsq
-      exp_2rdr = EXP(-2*a*r*dr)
-
-      DO
-         IF (rpowl*exp_rsq .LT. t) THEN
-            radius = r
-            RETURN
-         ENDIF
-         r = r+dr
-         rpowl = r**l
-         exp_rsq = exp_rsq*exp_drsq*exp_2rdr
-         exp_2rdr = exp_2rdr*exp_2drsq
-      ENDDO
-   END FUNCTION
-
 END MODULE eri_mme_gaussian

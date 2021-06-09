@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -57,8 +59,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: n_subforce_eval
       LOGICAL, INTENT(IN)                                :: use_motion_section
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'embed_create_force_env', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'embed_create_force_env'
 
       CHARACTER(len=default_path_length)                 :: c_val, input_file_path, output_file_path
       INTEGER                                            :: group_size_wish, handle, i, lp, &
@@ -81,7 +82,7 @@ CONTAINS
       CALL section_vals_val_get(force_env_section, "EMBED%GROUP_PARTITION", n_rep_val=n_rep_val)
       IF (n_rep_val > 0) THEN
          CALL section_vals_val_get(force_env_section, "EMBED%GROUP_PARTITION", i_vals=i_vals)
-         ALLOCATE (group_partition(0:SIZE(i_vals)-1))
+         ALLOCATE (group_partition(0:SIZE(i_vals) - 1))
          group_partition(:) = i_vals
          ngroup_wish_set = .TRUE.
          ngroup_wish = SIZE(i_vals)
@@ -98,7 +99,7 @@ CONTAINS
       END IF
 
       ! Split the current communicator
-      ALLOCATE (embed_env%group_distribution(0:para_env%num_pe-1))
+      ALLOCATE (embed_env%group_distribution(0:para_env%num_pe - 1))
       IF (group_size_wish_set) THEN
          CALL mp_comm_split(para_env%group, embed_env%new_group, embed_env%ngroups, embed_env%group_distribution, &
                             subgroup_min_size=group_size_wish)
@@ -110,7 +111,7 @@ CONTAINS
       IF (output_unit > 0) THEN
          WRITE (output_unit, FMT="(T2,A,T71,I10)") "EMBED_ENV| Number of created MPI groups:", embed_env%ngroups
          WRITE (output_unit, FMT="(T2,A)", ADVANCE="NO") "EMBED_ENV| Task to group correspondence:"
-         DO i = 0, para_env%num_pe-1
+         DO i = 0, para_env%num_pe - 1
             IF (MODULO(i, 4) == 0) WRITE (output_unit, *)
             WRITE (output_unit, FMT='(A3,I4,A3,I4,A1)', ADVANCE="NO") &
                "  (", i, " : ", embed_env%group_distribution(i), ")"
@@ -127,19 +128,19 @@ CONTAINS
       !
       DO i = 1, embed_env%ngroups
          NULLIFY (embed_env%sub_para_env(i)%para_env, logger)
-         IF (MODULO(i-1, embed_env%ngroups) == embed_env%group_distribution(para_env%mepos)) THEN
+         IF (MODULO(i - 1, embed_env%ngroups) == embed_env%group_distribution(para_env%mepos)) THEN
             ! Create sub_para_env
             CALL cp_para_env_create(embed_env%sub_para_env(i)%para_env, &
                                     group=embed_env%new_group, &
                                     owns_group=.TRUE.)
             ! Create sub_logger
-            IF (embed_env%sub_para_env(i)%para_env%mepos == embed_env%sub_para_env(i)%para_env%source) THEN
+            IF (embed_env%sub_para_env(i)%para_env%ionode) THEN
                ! Redirecting output of subforce_eval to file..
                CALL section_vals_val_get(root_section, "GLOBAL%PROJECT_NAME", &
                                          c_val=input_file_path)
                lp = LEN_TRIM(input_file_path)
-               input_file_path(lp+1:LEN(input_file_path)) = "-r-"// &
-                                                            ADJUSTL(cp_to_string(i))
+               input_file_path(lp + 1:LEN(input_file_path)) = "-r-"// &
+                                                              ADJUSTL(cp_to_string(i))
                lp = LEN_TRIM(input_file_path)
                output_file_path = input_file_path(1:lp)//".out"
                CALL open_file(file_name=output_file_path, file_status="UNKNOWN", &

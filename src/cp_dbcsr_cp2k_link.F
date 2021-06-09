@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -16,6 +18,7 @@ MODULE cp_dbcsr_cp2k_link
    USE basis_set_types,                 ONLY: gto_basis_set_p_type,&
                                               gto_basis_set_type
    USE bibliography,                    ONLY: Borstnik2014,&
+                                              Heinecke2016,&
                                               Schuett2016,&
                                               cite_reference
    USE cp_control_types,                ONLY: dft_control_type
@@ -86,11 +89,9 @@ CONTAINS
    SUBROUTINE create_dbcsr_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_dbcsr_section', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: idefault
       LOGICAL                                            :: ldefault
+      REAL(KIND=dp)                                      :: rdefault
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: subsection
 
@@ -123,7 +124,8 @@ CONTAINS
                                         "Fortran MATMUL", &
                                         "Library optimised for Small Matrix Multiplies "// &
                                         "(requires the SMM library at link time)", &
-                                        "Intel's libxsmm"))
+                                        "LIBXSMM"), &
+                          citations=(/Heinecke2016/))
       CALL section_add_keyword(section, keyword)
       CALL keyword_release(keyword)
 
@@ -218,6 +220,33 @@ CONTAINS
                           default_i_val=idefault)
       CALL section_add_keyword(section, keyword)
       CALL keyword_release(keyword)
+
+      CALL dbcsr_get_default_config(use_mempools_cpu=ldefault)
+      CALL keyword_create(keyword, __LOCATION__, name="use_mempools_cpu", &
+                          description="Enable memory pools on the CPU.", &
+                          default_l_val=ldefault)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      NULLIFY (subsection)
+      CALL section_create(subsection, __LOCATION__, name="TENSOR", &
+                          description="Configuration options for Tensors.", &
+                          n_keywords=1, n_subsections=0, repeats=.FALSE.)
+
+      CALL dbcsr_get_default_config(tas_split_factor=rdefault)
+      CALL keyword_create(keyword, __LOCATION__, name="TAS_SPLIT_FACTOR", &
+                          description="Parameter for hybrid DBCSR-TAS matrix-matrix multiplication algorithm: "// &
+                          "a TAS matrix is split into s submatrices with s = N_max/(N_min*f) with f "// &
+                          "given by this parameter and N_max/N_min the max/min occupancies of the matrices "// &
+                          "involved in a multiplication. A large value makes the multiplication Cannon-based "// &
+                          "(s=1) and a small value (> 0) makes the multiplication based on TAS algorithm "// &
+                          "(s=number of MPI ranks)", &
+                          default_r_val=rdefault)
+      CALL section_add_keyword(subsection, keyword)
+      CALL keyword_release(keyword)
+
+      CALL section_add_subsection(section, subsection)
+      CALL section_release(subsection)
 
       !---------------------------------------------------------------------------
       NULLIFY (subsection)
@@ -326,6 +355,7 @@ CONTAINS
 
       INTEGER                                            :: handle, ival
       LOGICAL                                            :: lval
+      REAL(kind=real_8)                                  :: rval
       TYPE(section_vals_type), POINTER                   :: dbcsr_section
 
       CALL timeset(routineN, handle)
@@ -367,6 +397,12 @@ CONTAINS
       CALL section_vals_val_get(dbcsr_section, "multrec_limit", i_val=ival)
       CALL dbcsr_set_config(multrec_limit=ival)
 
+      CALL section_vals_val_get(dbcsr_section, "use_mempools_cpu", l_val=lval)
+      CALL dbcsr_set_config(use_mempools_cpu=lval)
+
+      CALL section_vals_val_get(dbcsr_section, "TENSOR%tas_split_factor", r_val=rval)
+      CALL dbcsr_set_config(tas_split_factor=rval)
+
       CALL section_vals_val_get(dbcsr_section, "ACC%priority_streams", i_val=ival)
       CALL dbcsr_set_config(accdrv_priority_streams=ival)
 
@@ -404,6 +440,9 @@ CONTAINS
       SELECT CASE (ival)
       CASE (mm_driver_auto)
          CALL dbcsr_set_config(mm_driver="AUTO")
+#if defined(__LIBXSMM)
+         CALL cite_reference(Heinecke2016)
+#endif
       CASE (mm_driver_blas)
          CALL dbcsr_set_config(mm_driver="BLAS")
       CASE (mm_driver_matmul)
@@ -412,6 +451,7 @@ CONTAINS
          CALL dbcsr_set_config(mm_driver="SMM")
       CASE (mm_driver_xsmm)
          CALL dbcsr_set_config(mm_driver="XSMM")
+         CALL cite_reference(Heinecke2016)
       CASE DEFAULT
          CPABORT("Unknown mm_driver")
       END SELECT
@@ -438,8 +478,7 @@ CONTAINS
          POINTER                                         :: sab_orb
       LOGICAL, INTENT(IN), OPTIONAL                      :: desymmetrize
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'cp_dbcsr_alloc_block_from_nbl', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'cp_dbcsr_alloc_block_from_nbl'
 
       CHARACTER(LEN=1)                                   :: symmetry
       INTEGER                                            :: blk_cnt, handle, iatom, icol, inode, &
@@ -480,29 +519,29 @@ CONTAINS
             new_atom_b = .FALSE.
             CYCLE
          END IF
-         IF (blk_cnt+nadd .GT. SIZE(rows)) THEN
-            ALLOCATE (tmp(blk_cnt+nadd))
+         IF (blk_cnt + nadd .GT. SIZE(rows)) THEN
+            ALLOCATE (tmp(blk_cnt + nadd))
             tmp(1:blk_cnt) = rows(1:blk_cnt)
             DEALLOCATE (rows)
-            ALLOCATE (rows((blk_cnt+nadd)*2))
+            ALLOCATE (rows((blk_cnt + nadd)*2))
             rows(1:blk_cnt) = tmp(1:blk_cnt)
             tmp(1:blk_cnt) = cols(1:blk_cnt)
             DEALLOCATE (cols)
-            ALLOCATE (cols((blk_cnt+nadd)*2))
+            ALLOCATE (cols((blk_cnt + nadd)*2))
             cols(1:blk_cnt) = tmp(1:blk_cnt)
             DEALLOCATE (tmp)
          ENDIF
          IF (alloc_full) THEN
-            blk_cnt = blk_cnt+1
+            blk_cnt = blk_cnt + 1
             rows(blk_cnt) = iatom
             cols(blk_cnt) = jatom
             IF (iatom /= jatom) THEN
-               blk_cnt = blk_cnt+1
+               blk_cnt = blk_cnt + 1
                rows(blk_cnt) = jatom
                cols(blk_cnt) = iatom
             END IF
          ELSE
-            blk_cnt = blk_cnt+1
+            blk_cnt = blk_cnt + 1
             IF (symmetry == dbcsr_type_no_symmetry) THEN
                rows(blk_cnt) = iatom
                cols(blk_cnt) = jatom
@@ -551,8 +590,7 @@ CONTAINS
       TYPE(qs_ks_env_type), POINTER                      :: ks_env
       TYPE(dbcsr_type), INTENT(INOUT)                    :: csr_sparsity
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_dbcsr_to_csr_screening', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_dbcsr_to_csr_screening'
 
       INTEGER :: atom_a, atom_b, handle, iatom, icol, ikind, ipgf, irow, iset, isgf, ishell, &
          jatom, jkind, jpgf, jset, jsgf, jshell, natom, nkind, nset_a, nset_b
@@ -654,7 +692,7 @@ CONTAINS
          CPASSERT(found)
 
          ! Distance between atoms a and b
-         dab = SQRT(rab(1)**2+rab(2)**2+rab(3)**2)
+         dab = SQRT(rab(1)**2 + rab(2)**2 + rab(3)**2)
 
          ! iterate over pairs of primitive GTOs i,j, get their radii r_i, r_j according
          ! to eps_pgf_orb. Define all matrix elements as non-zero to which a
@@ -668,7 +706,7 @@ CONTAINS
                   DO jshell = 1, nshell_b(jset)
                      gto_loop: DO ipgf = 1, npgf_a(iset)
                         DO jpgf = 1, npgf_b(jset)
-                           IF (rpgfa(ipgf, iset)+rpgfb(jpgf, jset) .GE. dab) THEN
+                           IF (rpgfa(ipgf, iset) + rpgfb(jpgf, jset) .GE. dab) THEN
                               ! more selective screening with radius calculated for each primitive GTO
                               r_a = exp_radius(l_a(ishell, iset), &
                                                zet_a(ipgf, iset), &
@@ -678,23 +716,23 @@ CONTAINS
                                                zet_b(jpgf, jset), &
                                                eps_pgf_orb, &
                                                gcc_b(jpgf, jshell, jset))
-                              IF (r_a+r_b .GE. dab) THEN
+                              IF (r_a + r_b .GE. dab) THEN
                                  IF (irow .EQ. iatom) THEN
-                                    screen_blk(isgf+1:isgf+nso(l_a(ishell, iset)), &
-                                               jsgf+1:jsgf+nso(l_b(jshell, jset))) = 1.0_dp
+                                    screen_blk(isgf + 1:isgf + nso(l_a(ishell, iset)), &
+                                               jsgf + 1:jsgf + nso(l_b(jshell, jset))) = 1.0_dp
                                  ELSE
-                                    screen_blk(jsgf+1:jsgf+nso(l_b(jshell, jset)), &
-                                               isgf+1:isgf+nso(l_a(ishell, iset))) = 1.0_dp
+                                    screen_blk(jsgf + 1:jsgf + nso(l_b(jshell, jset)), &
+                                               isgf + 1:isgf + nso(l_a(ishell, iset))) = 1.0_dp
                                  ENDIF
                                  EXIT gto_loop
                               ENDIF
                            ENDIF
                         ENDDO
                      ENDDO gto_loop
-                     jsgf = jsgf+nso(l_b(jshell, jset))
+                     jsgf = jsgf + nso(l_b(jshell, jset))
                   ENDDO
                ENDDO
-               isgf = isgf+nso(l_a(ishell, iset))
+               isgf = isgf + nso(l_a(ishell, iset))
             ENDDO
          ENDDO
       ENDDO

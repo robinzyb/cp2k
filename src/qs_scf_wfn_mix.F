@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -71,7 +73,7 @@ CONTAINS
       INTEGER                                            :: output_unit
       INTEGER, DIMENSION(:, :, :), OPTIONAL, POINTER     :: marked_states
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'wfn_mix', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'wfn_mix'
 
       INTEGER :: handle, i_rep, ispin, mark_ind, mark_number, n_rep, orig_mo_index, &
          orig_spin_index, result_mo_index, result_spin_index
@@ -137,21 +139,21 @@ CONTAINS
             ! first get a copy of the proper orig
             IF (.NOT. ORIG_IS_VIRTUAL) THEN
                CALL cp_fm_to_fm(mos(orig_spin_index)%mo_set%mo_coeff, matrix_x, 1, &
-                                mos(orig_spin_index)%mo_set%nmo-orig_mo_index+1, 1)
+                                mos(orig_spin_index)%mo_set%nmo - orig_mo_index + 1, 1)
             ELSE
                CALL cp_fm_to_fm(unoccupied_orbs(orig_spin_index)%matrix, matrix_x, 1, orig_mo_index, 1)
             ENDIF
 
             ! now get a copy of the target
             CALL cp_fm_to_fm(mos_new(result_spin_index)%mo_set%mo_coeff, matrix_y, &
-                             1, mos_new(result_spin_index)%mo_set%nmo-result_mo_index+1, 1)
+                             1, mos_new(result_spin_index)%mo_set%nmo - result_mo_index + 1, 1)
 
             ! properly mix
             CALL cp_fm_scale_and_add(result_scale, matrix_y, orig_scale, matrix_x)
 
             ! and copy back in the result mos
             CALL cp_fm_to_fm(matrix_y, mos_new(result_spin_index)%mo_set%mo_coeff, &
-                             1, 1, mos_new(result_spin_index)%mo_set%nmo-result_mo_index+1)
+                             1, 1, mos_new(result_spin_index)%mo_set%nmo - result_mo_index + 1)
 
          ENDDO
 

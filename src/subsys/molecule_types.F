@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -68,10 +70,10 @@ MODULE molecule_types
    END TYPE local_g4x6_constraint_type
 
 ! **************************************************************************************************
-   TYPE local_molecule_type
+   TYPE local_states_type
       INTEGER, DIMENSION(:), POINTER :: states ! indices of Kohn-Sham states for molecule
       INTEGER                        :: nstates ! Kohn-Sham states for molecule
-   END TYPE local_molecule_type
+   END TYPE local_states_type
 
 ! **************************************************************************************************
    TYPE local_constraint_type
@@ -100,7 +102,7 @@ MODULE molecule_types
 ! **************************************************************************************************
    TYPE molecule_type
       TYPE(molecule_kind_type), POINTER    :: molecule_kind ! pointer to molecule kind information
-      TYPE(local_molecule_type), POINTER   :: lmi ! local molecule information
+      TYPE(local_states_type), DIMENSION(:), POINTER   :: lmi ! local (spin)-states information
       TYPE(local_constraint_type), POINTER :: lci ! local molecule constraint info
       INTEGER                              :: first_atom ! global index of first atom in molecule
       INTEGER                              :: last_atom ! global index of last atom in molecule
@@ -114,7 +116,7 @@ MODULE molecule_types
              local_g3x3_constraint_type, &
              local_g4x6_constraint_type, &
              local_constraint_type, &
-             local_molecule_type, &
+             local_states_type, &
              global_constraint_type, &
              molecule_type
 
@@ -194,9 +196,6 @@ CONTAINS
       TYPE(molecule_type), DIMENSION(:), POINTER         :: molecule_set
       INTEGER, INTENT(IN)                                :: nmolecule
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_molecule_set', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: imolecule
 
       IF (ASSOCIATED(molecule_set)) CALL deallocate_molecule_set(molecule_set)
@@ -226,18 +225,17 @@ CONTAINS
    SUBROUTINE deallocate_molecule_set(molecule_set)
       TYPE(molecule_type), DIMENSION(:), POINTER         :: molecule_set
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_molecule_set', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: imolecule, j
 
       IF (ASSOCIATED(molecule_set)) THEN
 
          DO imolecule = 1, SIZE(molecule_set)
             IF (ASSOCIATED(molecule_set(imolecule)%lmi)) THEN
-               IF (ASSOCIATED(molecule_set(imolecule)%lmi%states)) THEN
-                  DEALLOCATE (molecule_set(imolecule)%lmi%states)
-               ENDIF
+               DO j = 1, SIZE(molecule_set(imolecule)%lmi)
+                  IF (ASSOCIATED(molecule_set(imolecule)%lmi(j)%states)) THEN
+                     DEALLOCATE (molecule_set(imolecule)%lmi(j)%states)
+                  ENDIF
+               END DO
                DEALLOCATE (molecule_set(imolecule)%lmi)
             ENDIF
             IF (ASSOCIATED(molecule_set(imolecule)%lci)) THEN
@@ -291,9 +289,10 @@ CONTAINS
    SUBROUTINE get_molecule(molecule, molecule_kind, lmi, lci, lg3x3, lg4x6, lcolv, &
                            first_atom, last_atom, first_shell, last_shell)
 
-      TYPE(molecule_type), POINTER                       :: molecule
+      TYPE(molecule_type), INTENT(IN)                    :: molecule
       TYPE(molecule_kind_type), OPTIONAL, POINTER        :: molecule_kind
-      TYPE(local_molecule_type), OPTIONAL, POINTER       :: lmi
+      TYPE(local_states_type), DIMENSION(:), OPTIONAL, &
+         POINTER                                         :: lmi
       TYPE(local_constraint_type), OPTIONAL, POINTER     :: lci
       TYPE(local_g3x3_constraint_type), OPTIONAL, &
          POINTER                                         :: lg3x3(:)
@@ -304,44 +303,34 @@ CONTAINS
       INTEGER, OPTIONAL                                  :: first_atom, last_atom, first_shell, &
                                                             last_shell
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_molecule', routineP = moduleN//':'//routineN
-
-      IF (ASSOCIATED(molecule)) THEN
-
-         IF (PRESENT(first_atom)) first_atom = molecule%first_atom
-         IF (PRESENT(last_atom)) last_atom = molecule%last_atom
-         IF (PRESENT(first_shell)) first_shell = molecule%first_shell
-         IF (PRESENT(last_shell)) last_shell = molecule%last_shell
-         IF (PRESENT(molecule_kind)) molecule_kind => molecule%molecule_kind
-         IF (PRESENT(lmi)) lmi => molecule%lmi
-         IF (PRESENT(lci)) lci => molecule%lci
-         IF (PRESENT(lcolv)) THEN
-            IF (ASSOCIATED(molecule%lci)) THEN
-               lcolv => molecule%lci%lcolv
-            ELSE
-               CPABORT("The pointer lci is not associated")
-            ENDIF
+      IF (PRESENT(first_atom)) first_atom = molecule%first_atom
+      IF (PRESENT(last_atom)) last_atom = molecule%last_atom
+      IF (PRESENT(first_shell)) first_shell = molecule%first_shell
+      IF (PRESENT(last_shell)) last_shell = molecule%last_shell
+      IF (PRESENT(molecule_kind)) molecule_kind => molecule%molecule_kind
+      IF (PRESENT(lmi)) lmi => molecule%lmi
+      IF (PRESENT(lci)) lci => molecule%lci
+      IF (PRESENT(lcolv)) THEN
+         IF (ASSOCIATED(molecule%lci)) THEN
+            lcolv => molecule%lci%lcolv
+         ELSE
+            CPABORT("The pointer lci is not associated")
          ENDIF
-         IF (PRESENT(lg3x3)) THEN
-            IF (ASSOCIATED(molecule%lci)) THEN
-               lg3x3 => molecule%lci%lg3x3
-            ELSE
-               CPABORT("The pointer lci is not associated")
-            ENDIF
+      ENDIF
+      IF (PRESENT(lg3x3)) THEN
+         IF (ASSOCIATED(molecule%lci)) THEN
+            lg3x3 => molecule%lci%lg3x3
+         ELSE
+            CPABORT("The pointer lci is not associated")
          ENDIF
-         IF (PRESENT(lg4x6)) THEN
-            IF (ASSOCIATED(molecule%lci)) THEN
-               lg4x6 => molecule%lci%lg4x6
-            ELSE
-               CPABORT("The pointer lci is not associated")
-            ENDIF
+      ENDIF
+      IF (PRESENT(lg4x6)) THEN
+         IF (ASSOCIATED(molecule%lci)) THEN
+            lg4x6 => molecule%lci%lg4x6
+         ELSE
+            CPABORT("The pointer lci is not associated")
          ENDIF
-
-      ELSE
-
-         CPABORT("The pointer lci is not associated")
-
-      END IF
+      ENDIF
 
    END SUBROUTINE get_molecule
 
@@ -359,9 +348,10 @@ CONTAINS
 !> \version 1.0
 ! **************************************************************************************************
    SUBROUTINE set_molecule(molecule, molecule_kind, lmi, lci, lcolv, lg3x3, lg4x6)
-      TYPE(molecule_type), POINTER                       :: molecule
+      TYPE(molecule_type), INTENT(INOUT)                 :: molecule
       TYPE(molecule_kind_type), OPTIONAL, POINTER        :: molecule_kind
-      TYPE(local_molecule_type), OPTIONAL, POINTER       :: lmi
+      TYPE(local_states_type), DIMENSION(:), OPTIONAL, &
+         POINTER                                         :: lmi
       TYPE(local_constraint_type), OPTIONAL, POINTER     :: lci
       TYPE(local_colvar_constraint_type), DIMENSION(:), &
          OPTIONAL, POINTER                               :: lcolv
@@ -370,39 +360,30 @@ CONTAINS
       TYPE(local_g4x6_constraint_type), OPTIONAL, &
          POINTER                                         :: lg4x6(:)
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_molecule', routineP = moduleN//':'//routineN
-
-      IF (ASSOCIATED(molecule)) THEN
-
-         IF (PRESENT(molecule_kind)) molecule%molecule_kind => molecule_kind
-         IF (PRESENT(lmi)) molecule%lmi => lmi
-         IF (PRESENT(lci)) molecule%lci => lci
-         IF (PRESENT(lcolv)) THEN
-            IF (ASSOCIATED(molecule%lci)) THEN
-               molecule%lci%lcolv => lcolv
-            ELSE
-               CPABORT("The pointer lci is not associated")
-            ENDIF
+      IF (PRESENT(molecule_kind)) molecule%molecule_kind => molecule_kind
+      IF (PRESENT(lmi)) molecule%lmi => lmi
+      IF (PRESENT(lci)) molecule%lci => lci
+      IF (PRESENT(lcolv)) THEN
+         IF (ASSOCIATED(molecule%lci)) THEN
+            molecule%lci%lcolv => lcolv
+         ELSE
+            CPABORT("The pointer lci is not associated")
          ENDIF
-         IF (PRESENT(lg3x3)) THEN
-            IF (ASSOCIATED(molecule%lci)) THEN
-               molecule%lci%lg3x3 => lg3x3
-            ELSE
-               CPABORT("The pointer lci is not associated")
-            ENDIF
+      ENDIF
+      IF (PRESENT(lg3x3)) THEN
+         IF (ASSOCIATED(molecule%lci)) THEN
+            molecule%lci%lg3x3 => lg3x3
+         ELSE
+            CPABORT("The pointer lci is not associated")
          ENDIF
-         IF (PRESENT(lg4x6)) THEN
-            IF (ASSOCIATED(molecule%lci)) THEN
-               molecule%lci%lg4x6 => lg4x6
-            ELSE
-               CPABORT("The pointer lci is not associated")
-            ENDIF
+      ENDIF
+      IF (PRESENT(lg4x6)) THEN
+         IF (ASSOCIATED(molecule%lci)) THEN
+            molecule%lci%lg4x6 => lg4x6
+         ELSE
+            CPABORT("The pointer lci is not associated")
          ENDIF
-      ELSE
-
-         CPABORT("The pointer molecule is not associated")
-
-      END IF
+      ENDIF
 
    END SUBROUTINE set_molecule
 
@@ -416,48 +397,33 @@ CONTAINS
 !> \version 1.0
 ! **************************************************************************************************
    SUBROUTINE set_molecule_set(molecule_set, first_atom, last_atom)
-      TYPE(molecule_type), DIMENSION(:), POINTER         :: molecule_set
+      TYPE(molecule_type), DIMENSION(:), INTENT(INOUT)   :: molecule_set
       INTEGER, DIMENSION(:), INTENT(IN), OPTIONAL        :: first_atom, last_atom
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_molecule_set', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: imolecule
 
-      IF (ASSOCIATED(molecule_set)) THEN
-
-         IF (PRESENT(first_atom)) THEN
-
-            IF (SIZE(first_atom) /= SIZE(molecule_set)) THEN
-               CALL cp_abort(__LOCATION__, &
-                             "The sizes of first_atom and molecule_set "// &
-                             "are different")
-            END IF
-
-            DO imolecule = 1, SIZE(molecule_set)
-               molecule_set(imolecule)%first_atom = first_atom(imolecule)
-            END DO
-
+      IF (PRESENT(first_atom)) THEN
+         IF (SIZE(first_atom) /= SIZE(molecule_set)) THEN
+            CALL cp_abort(__LOCATION__, &
+                          "The sizes of first_atom and molecule_set "// &
+                          "are different")
          END IF
 
-         IF (PRESENT(last_atom)) THEN
+         DO imolecule = 1, SIZE(molecule_set)
+            molecule_set(imolecule)%first_atom = first_atom(imolecule)
+         END DO
+      END IF
 
-            IF (SIZE(last_atom) /= SIZE(molecule_set)) THEN
-               CALL cp_abort(__LOCATION__, &
-                             "The sizes of last_atom and molecule_set "// &
-                             "are different")
-            END IF
-
-            DO imolecule = 1, SIZE(molecule_set)
-               molecule_set(imolecule)%last_atom = last_atom(imolecule)
-            END DO
-
+      IF (PRESENT(last_atom)) THEN
+         IF (SIZE(last_atom) /= SIZE(molecule_set)) THEN
+            CALL cp_abort(__LOCATION__, &
+                          "The sizes of last_atom and molecule_set "// &
+                          "are different")
          END IF
 
-      ELSE
-
-         CPABORT("The pointer molecule_set is not associated")
-
+         DO imolecule = 1, SIZE(molecule_set)
+            molecule_set(imolecule)%last_atom = last_atom(imolecule)
+         END DO
       END IF
 
    END SUBROUTINE set_molecule_set
@@ -468,18 +434,13 @@ CONTAINS
 !> \param atom_to_mol ...
 ! **************************************************************************************************
    SUBROUTINE molecule_of_atom(molecule_set, atom_to_mol)
-      TYPE(molecule_type), DIMENSION(:), POINTER         :: molecule_set
+      TYPE(molecule_type), DIMENSION(:), INTENT(IN)      :: molecule_set
       INTEGER, DIMENSION(:), INTENT(OUT)                 :: atom_to_mol
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'molecule_of_atom', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: first_atom, iatom, imol, last_atom
-      TYPE(molecule_type), POINTER                       :: molecule
 
       DO imol = 1, SIZE(molecule_set)
-         molecule => molecule_set(imol)
-         CALL get_molecule(molecule=molecule, first_atom=first_atom, last_atom=last_atom)
+         CALL get_molecule(molecule=molecule_set(imol), first_atom=first_atom, last_atom=last_atom)
          DO iatom = first_atom, last_atom
             atom_to_mol(iatom) = imol
          ENDDO ! iatom
@@ -505,23 +466,18 @@ CONTAINS
                                     mol_to_last_atom, mol_to_nelectrons, mol_to_nbasis, mol_to_charge, &
                                     mol_to_multiplicity)
 
-      TYPE(molecule_type), DIMENSION(:), POINTER         :: molecule_set
+      TYPE(molecule_type), DIMENSION(:), INTENT(IN)      :: molecule_set
       INTEGER, DIMENSION(:), INTENT(OUT), OPTIONAL :: atom_to_mol, mol_to_first_atom, &
          mol_to_last_atom, mol_to_nelectrons, mol_to_nbasis, mol_to_charge, mol_to_multiplicity
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_molecule_set_info', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: first_atom, iatom, imol, last_atom, &
                                                             nbasis, nelec
       REAL(KIND=dp)                                      :: charge
       TYPE(molecule_kind_type), POINTER                  :: imol_kind
-      TYPE(molecule_type), POINTER                       :: molecule
 
       DO imol = 1, SIZE(molecule_set)
 
-         molecule => molecule_set(imol)
-         CALL get_molecule(molecule=molecule, molecule_kind=imol_kind, &
+         CALL get_molecule(molecule=molecule_set(imol), molecule_kind=imol_kind, &
                            first_atom=first_atom, last_atom=last_atom)
 
          IF (PRESENT(mol_to_nelectrons)) THEN

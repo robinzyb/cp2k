@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -44,7 +46,7 @@ CONTAINS
       CALL get_qs_env(qs_env, qs_kind_set=qs_kind_set)
       CALL get_qs_kind(qs_kind_set(ikind), basis_set=basis_set)
       n = basis_set%nsgf
-      nterms = n+n*(n-1)/2
+      nterms = n + n*(n - 1)/2
 
    END SUBROUTINE linpot_full_count_terms
 
@@ -65,7 +67,7 @@ CONTAINS
       kterm = 0
       DO i = 1, N
       DO j = i, N
-         kterm = kterm+1
+         kterm = kterm + 1
          V_blocks(i, j, kterm) = 1.0_dp
          V_blocks(j, i, kterm) = 1.0_dp
       ENDDO

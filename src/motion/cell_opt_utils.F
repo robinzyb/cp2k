@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -70,9 +72,6 @@ CONTAINS
    SUBROUTINE get_ut_cell_matrix(cell)
       TYPE(cell_type), POINTER                           :: cell
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_ut_cell_matrix', &
-         routineP = moduleN//':'//routineN
-
       INTEGER, DIMENSION(3)                              :: periodic
       REAL(KIND=dp), DIMENSION(3)                        :: cell_angle, cell_length
 
@@ -103,9 +102,6 @@ CONTAINS
       CHARACTER(len=default_string_length), INTENT(OUT)  :: project_name
       INTEGER, INTENT(IN)                                :: id_run
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'gopt_new_logger_create', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(len=default_path_length)                 :: c_val, input_file_path, output_file_path
       CHARACTER(len=default_string_length)               :: label
       INTEGER                                            :: i, lp, unit_nr
@@ -128,14 +124,14 @@ CONTAINS
       input_file_path = TRIM(project_name)
       lp = LEN_TRIM(input_file_path)
       i = logger%iter_info%iteration(logger%iter_info%n_rlevel)
-      input_file_path(lp+1:LEN(input_file_path)) = "-"//TRIM(label)//"-"//ADJUSTL(cp_to_string(i))
+      input_file_path(lp + 1:LEN(input_file_path)) = "-"//TRIM(label)//"-"//ADJUSTL(cp_to_string(i))
       lp = LEN_TRIM(input_file_path)
       CALL section_vals_val_set(root_section, "GLOBAL%PROJECT_NAME", c_val=input_file_path(1:lp))
       CALL section_vals_val_set(root_section, "GLOBAL%RUN_TYPE", i_val=id_run)
 
       ! Redirecting output into a new file
       output_file_path = input_file_path(1:lp)//".out"
-      IF (para_env%mepos == para_env%source) THEN
+      IF (para_env%ionode) THEN
          CALL open_file(file_name=output_file_path, file_status="UNKNOWN", &
                         file_action="WRITE", file_position="APPEND", unit_number=unit_nr)
       ELSE
@@ -169,12 +165,9 @@ CONTAINS
       CHARACTER(len=default_string_length), INTENT(IN)   :: project_name
       INTEGER, INTENT(IN)                                :: id_run
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'gopt_new_logger_release', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: unit_nr
 
-      IF (para_env%mepos == para_env%source) THEN
+      IF (para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(new_logger)
          CALL close_file(unit_number=unit_nr)
       END IF
@@ -200,9 +193,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(3, 3), INTENT(OUT)        :: mtrx
       REAL(KIND=dp), DIMENSION(3, 3), INTENT(IN)         :: rot
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_external_press_tensor', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, ind, j
       LOGICAL                                            :: check
       REAL(KIND=dp), DIMENSION(3, 3)                     :: pres_ext_tens
@@ -221,7 +211,7 @@ CONTAINS
          ind = 0
          DO i = 1, 3
             DO j = 1, 3
-               ind = ind+1
+               ind = ind + 1
                pres_ext_tens(j, i) = pvals(ind)
             END DO
          END DO
@@ -229,11 +219,11 @@ CONTAINS
          ! of the simulation cell
          pres_ext_tens = MATMUL(TRANSPOSE(rot), pres_ext_tens)
          DO i = 1, 3
-            pres_ext = pres_ext+pres_ext_tens(i, i)
+            pres_ext = pres_ext + pres_ext_tens(i, i)
          ENDDO
          pres_ext = pres_ext/3.0_dp
          DO i = 1, 3
-            pres_ext_tens(i, i) = pres_ext_tens(i, i)-pres_ext
+            pres_ext_tens(i, i) = pres_ext_tens(i, i) - pres_ext
          ENDDO
       ELSE
          pres_ext = pvals(1)
@@ -255,11 +245,12 @@ CONTAINS
 !> \param keep_angles ...
 !> \param keep_symmetry ...
 !> \param pres_int ...
+!> \param pres_constr ...
 !> \param constraint_id ...
 !> \author Teodoro Laino [tlaino] - University of Zurich - 03.2008
 ! **************************************************************************************************
    SUBROUTINE get_dg_dh(gradient, av_ptens, pres_ext, cell, mtrx, keep_angles, &
-                        keep_symmetry, pres_int, constraint_id)
+                        keep_symmetry, pres_int, pres_constr, constraint_id)
 
       REAL(KIND=dp), DIMENSION(:), POINTER               :: gradient
       REAL(KIND=dp), DIMENSION(3, 3), INTENT(IN)         :: av_ptens
@@ -267,10 +258,8 @@ CONTAINS
       TYPE(cell_type), POINTER                           :: cell
       REAL(KIND=dp), DIMENSION(3, 3), INTENT(IN)         :: mtrx
       LOGICAL, INTENT(IN), OPTIONAL                      :: keep_angles, keep_symmetry
-      REAL(KIND=dp), INTENT(OUT)                         :: pres_int
+      REAL(KIND=dp), INTENT(OUT)                         :: pres_int, pres_constr
       INTEGER, INTENT(IN), OPTIONAL                      :: constraint_id
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_dg_dh', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, my_constraint_id
       LOGICAL                                            :: my_keep_angles, my_keep_symmetry
@@ -294,23 +283,41 @@ CONTAINS
       ! Evaluating the internal pressure
       pres_int = 0.0_dp
       DO i = 1, 3
-         pres_int = pres_int+ptens(i, i)
+         pres_int = pres_int + ptens(i, i)
       ENDDO
       pres_int = pres_int/3.0_dp
 
-      ptens(1, 1) = av_ptens(1, 1)-pres_ext
-      ptens(2, 2) = av_ptens(2, 2)-pres_ext
-      ptens(3, 3) = av_ptens(3, 3)-pres_ext
+      SELECT CASE (my_constraint_id)
+      CASE (fix_x)
+         pres_constr = ptens(2, 2) + ptens(3, 3)
+      CASE (fix_y)
+         pres_constr = ptens(1, 1) + ptens(3, 3)
+      CASE (fix_z)
+         pres_constr = ptens(1, 1) + ptens(2, 2)
+      CASE (fix_xy)
+         pres_constr = ptens(3, 3)
+      CASE (fix_xz)
+         pres_constr = ptens(2, 2)
+      CASE (fix_yz)
+         pres_constr = ptens(1, 1)
+      CASE (fix_none)
+         pres_constr = ptens(1, 1) + ptens(2, 2) + ptens(3, 3)
+      END SELECT
+      pres_constr = pres_constr/3.0_dp
+
+      ptens(1, 1) = av_ptens(1, 1) - pres_ext
+      ptens(2, 2) = av_ptens(2, 2) - pres_ext
+      ptens(3, 3) = av_ptens(3, 3) - pres_ext
 
       pten_hinv_old = cell%deth*MATMUL(cell%h_inv, ptens)
       correction = MATMUL(mtrx, cell%hmat)
 
-      gradient(1) = pten_hinv_old(1, 1)-correction(1, 1)
-      gradient(2) = pten_hinv_old(2, 1)-correction(2, 1)
-      gradient(3) = pten_hinv_old(2, 2)-correction(2, 2)
-      gradient(4) = pten_hinv_old(3, 1)-correction(3, 1)
-      gradient(5) = pten_hinv_old(3, 2)-correction(3, 2)
-      gradient(6) = pten_hinv_old(3, 3)-correction(3, 3)
+      gradient(1) = pten_hinv_old(1, 1) - correction(1, 1)
+      gradient(2) = pten_hinv_old(2, 1) - correction(2, 1)
+      gradient(3) = pten_hinv_old(2, 2) - correction(2, 2)
+      gradient(4) = pten_hinv_old(3, 1) - correction(3, 1)
+      gradient(5) = pten_hinv_old(3, 2) - correction(3, 2)
+      gradient(6) = pten_hinv_old(3, 3) - correction(3, 3)
 
       CALL apply_cell_constraints(gradient, cell, my_keep_angles, my_keep_symmetry, my_constraint_id)
 
@@ -333,9 +340,6 @@ CONTAINS
       TYPE(cell_type), POINTER                           :: cell
       LOGICAL, INTENT(IN)                                :: keep_angles, keep_symmetry
       INTEGER, INTENT(IN)                                :: constraint_id
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'apply_cell_constraints', &
-         routineP = moduleN//':'//routineN
 
       REAL(KIND=dp)                                      :: a, a_length, ab_length, b_length, cosa, &
                                                             cosah, cosgamma, deriv_gamma, g, &
@@ -369,7 +373,7 @@ CONTAINS
                cell_sym_orthorhombic)
             SELECT CASE (cell%symmetry_id)
             CASE (cell_sym_cubic)
-               g = (gradient(1)+gradient(3)+gradient(6))/3.0_dp
+               g = (gradient(1) + gradient(3) + gradient(6))/3.0_dp
                gradient(1) = g
                gradient(3) = g
                gradient(6) = g
@@ -378,15 +382,15 @@ CONTAINS
                   cell_sym_tetragonal_bc)
                SELECT CASE (cell%symmetry_id)
                CASE (cell_sym_tetragonal_ab)
-                  g = 0.5_dp*(gradient(1)+gradient(3))
+                  g = 0.5_dp*(gradient(1) + gradient(3))
                   gradient(1) = g
                   gradient(3) = g
                CASE (cell_sym_tetragonal_ac)
-                  g = 0.5_dp*(gradient(1)+gradient(6))
+                  g = 0.5_dp*(gradient(1) + gradient(6))
                   gradient(1) = g
                   gradient(6) = g
                CASE (cell_sym_tetragonal_bc)
-                  g = 0.5_dp*(gradient(3)+gradient(6))
+                  g = 0.5_dp*(gradient(3) + gradient(6))
                   gradient(3) = g
                   gradient(6) = g
                END SELECT
@@ -397,24 +401,24 @@ CONTAINS
             gradient(4) = 0.0_dp
             gradient(5) = 0.0_dp
          CASE (cell_sym_hexagonal)
-            g = 0.5_dp*(gradient(1)+0.5_dp*(gradient(2)+sqrt3*gradient(3)))
+            g = 0.5_dp*(gradient(1) + 0.5_dp*(gradient(2) + sqrt3*gradient(3)))
             gradient(1) = g
             gradient(2) = 0.5_dp*g
             gradient(3) = sqrt3*gradient(2)
             gradient(4) = 0.0_dp
             gradient(5) = 0.0_dp
          CASE (cell_sym_rhombohedral)
-            a = (angle(cell%hmat(:, 3), cell%hmat(:, 2))+ &
-                 angle(cell%hmat(:, 1), cell%hmat(:, 3))+ &
+            a = (angle(cell%hmat(:, 3), cell%hmat(:, 2)) + &
+                 angle(cell%hmat(:, 1), cell%hmat(:, 3)) + &
                  angle(cell%hmat(:, 1), cell%hmat(:, 2)))/3.0_dp
             cosa = COS(a)
             sina = SIN(a)
             cosah = COS(0.5_dp*a)
             sinah = SIN(0.5_dp*a)
             norm = cosa/cosah
-            norm_c = SQRT(1.0_dp-norm*norm)
-            g = (gradient(1)+gradient(2)*cosa+gradient(3)*sina+ &
-                 gradient(4)*cosah*norm+gradient(5)*sinah*norm+gradient(6)*norm_c)/3.0_dp
+            norm_c = SQRT(1.0_dp - norm*norm)
+            g = (gradient(1) + gradient(2)*cosa + gradient(3)*sina + &
+                 gradient(4)*cosah*norm + gradient(5)*sinah*norm + gradient(6)*norm_c)/3.0_dp
             gradient(1) = g
             gradient(2) = g*cosa
             gradient(3) = g*sina
@@ -426,22 +430,22 @@ CONTAINS
             gradient(5) = 0.0_dp
          CASE (cell_sym_monoclinic_gamma_ab)
             ! Cell symmetry with a=b, alpha=beta=90deg and gammma unequal 90deg
-            a_length = SQRT(cell%hmat(1, 1)*cell%hmat(1, 1)+ &
-                            cell%hmat(2, 1)*cell%hmat(2, 1)+ &
+            a_length = SQRT(cell%hmat(1, 1)*cell%hmat(1, 1) + &
+                            cell%hmat(2, 1)*cell%hmat(2, 1) + &
                             cell%hmat(3, 1)*cell%hmat(3, 1))
-            b_length = SQRT(cell%hmat(1, 2)*cell%hmat(1, 2)+ &
-                            cell%hmat(2, 2)*cell%hmat(2, 2)+ &
+            b_length = SQRT(cell%hmat(1, 2)*cell%hmat(1, 2) + &
+                            cell%hmat(2, 2)*cell%hmat(2, 2) + &
                             cell%hmat(3, 2)*cell%hmat(3, 2))
-            ab_length = 0.5_dp*(a_length+b_length)
+            ab_length = 0.5_dp*(a_length + b_length)
             gamma = angle(cell%hmat(:, 1), cell%hmat(:, 2))
             cosgamma = COS(gamma)
             singamma = SIN(gamma)
             ! Here, g is the average derivative of the cell vector length ab_length, and deriv_gamma is the derivative of the angle gamma
-            g = 0.5_dp*(gradient(1)+cosgamma*gradient(2)+singamma*gradient(3))
-            deriv_gamma = (gradient(3)*cosgamma-gradient(2)*singamma)/b_length
+            g = 0.5_dp*(gradient(1) + cosgamma*gradient(2) + singamma*gradient(3))
+            deriv_gamma = (gradient(3)*cosgamma - gradient(2)*singamma)/b_length
             gradient(1) = g
-            gradient(2) = g*cosgamma-ab_length*singamma*deriv_gamma
-            gradient(3) = g*singamma+ab_length*cosgamma*deriv_gamma
+            gradient(2) = g*cosgamma - ab_length*singamma*deriv_gamma
+            gradient(3) = g*singamma + ab_length*cosgamma*deriv_gamma
             gradient(4) = 0.0_dp
             gradient(5) = 0.0_dp
          CASE (cell_sym_triclinic)

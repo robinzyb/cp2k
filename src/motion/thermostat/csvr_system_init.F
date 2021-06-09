@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -21,8 +23,8 @@ MODULE csvr_system_init
    USE molecule_kind_types,             ONLY: molecule_kind_type
    USE molecule_types,                  ONLY: global_constraint_type,&
                                               molecule_type
-   USE parallel_rng_types,              ONLY: read_rng_stream,&
-                                              rng_record_length
+   USE parallel_rng_types,              ONLY: rng_record_length,&
+                                              rng_stream_type_from_record
    USE simpar_types,                    ONLY: simpar_type
    USE thermostat_types,                ONLY: thermostat_info_type
 #include "../../base/base_uses.f90"
@@ -50,9 +52,6 @@ CONTAINS
       TYPE(simpar_type), POINTER                         :: simpar
       TYPE(csvr_system_type), POINTER                    :: csvr
       TYPE(section_vals_type), POINTER                   :: csvr_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'initialize_csvr_baro', &
-         routineP = moduleN//':'//routineN
 
       CALL csvr_to_barostat_mapping(simpar, csvr)
       CALL restart_csvr(csvr, csvr_section)
@@ -85,9 +84,6 @@ CONTAINS
       TYPE(csvr_system_type), POINTER                    :: csvr
       TYPE(section_vals_type), POINTER                   :: csvr_section
       TYPE(global_constraint_type), POINTER              :: gci
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'initialize_csvr_part', &
-         routineP = moduleN//':'//routineN
 
       CALL csvr_to_particle_mapping(thermostat_info, simpar, local_molecules, &
                                     molecule, molecule_kind_set, csvr, para_env, gci)
@@ -122,9 +118,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: csvr_section
       TYPE(global_constraint_type), POINTER              :: gci
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'initialize_csvr_shell', &
-         routineP = moduleN//':'//routineN
-
       CALL csvr_to_shell_mapping(thermostat_info, simpar, local_molecules, &
                                  molecule, molecule_kind_set, csvr, para_env, gci)
       CALL restart_csvr(csvr, csvr_section)
@@ -140,8 +133,6 @@ CONTAINS
    SUBROUTINE restart_csvr(csvr, csvr_section)
       TYPE(csvr_system_type), POINTER                    :: csvr
       TYPE(section_vals_type), POINTER                   :: csvr_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'restart_csvr', routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=rng_record_length)                   :: rng_record
       INTEGER                                            :: i, my_index, n_rep
@@ -182,8 +173,7 @@ CONTAINS
                my_index = csvr%map_info%index(i)
                CALL section_vals_val_get(section_vals=work_section, keyword_name="_DEFAULT_KEYWORD_", &
                                          i_rep_val=my_index, c_val=rng_record)
-               CALL read_rng_stream(rng_stream=csvr%nvt(i)%gaussian_rng_stream, &
-                                    rng_record=rng_record)
+               csvr%nvt(i)%gaussian_rng_stream = rng_stream_type_from_record(rng_record)
             END DO
          ELSE
             CALL cp_abort(__LOCATION__, &

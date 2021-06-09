@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -19,14 +21,20 @@ MODULE atom_fit
                                               atom_write_pseudo_param
    USE atom_types,                      ONLY: &
         GTO_BASIS, STO_BASIS, atom_basis_type, atom_gthpot_type, atom_integrals, atom_p_type, &
-        atom_potential_type, atom_type, create_opgrid, lmat, opgrid_type, release_opgrid, set_atom
+        atom_potential_type, atom_type, create_opgrid, create_opmat, lmat, opgrid_type, &
+        opmat_type, release_opgrid, release_opmat, set_atom
    USE atom_utils,                      ONLY: &
-        atom_completeness, atom_condnumber, atom_consistent_method, atom_denmat, atom_density, &
-        atom_orbital_charge, atom_orbital_max, atom_orbital_nodes, atom_wfnr0, get_maxn_occ, &
-        integrate_grid
+        atom_completeness, atom_condnumber, atom_consistent_method, atom_core_density, &
+        atom_denmat, atom_density, atom_orbital_charge, atom_orbital_max, atom_orbital_nodes, &
+        atom_wfnr0, get_maxn_occ, integrate_grid
    USE cp_files,                        ONLY: close_file,&
                                               open_file
-   USE input_constants,                 ONLY: do_analytic
+   USE input_constants,                 ONLY: do_analytic,&
+                                              do_rhf_atom,&
+                                              do_rks_atom,&
+                                              do_rohf_atom,&
+                                              do_uhf_atom,&
+                                              do_uks_atom
    USE input_section_types,             ONLY: section_vals_type,&
                                               section_vals_val_get
    USE kinds,                           ONLY: dp
@@ -70,9 +78,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: num_gto, norder, iunit
       TYPE(section_vals_type), OPTIONAL, POINTER         :: powell_section
       REAL(KIND=dp), DIMENSION(:), OPTIONAL              :: results
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'atom_fit_density', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: n10
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:)           :: co
@@ -134,6 +139,7 @@ CONTAINS
 
       ostate%state = 8
       CALL powell_optimize(ostate%nvar, x, ostate)
+      CALL density_fit(density, atom, num_gto, x(1), x(2), co, ostate%f)
 
       CALL release_opgrid(density)
 
@@ -148,10 +154,10 @@ CONTAINS
       END IF
 
       IF (PRESENT(results)) THEN
-         CPASSERT(SIZE(results) >= num_gto+2)
+         CPASSERT(SIZE(results) >= num_gto + 2)
          results(1) = x(1)
          results(2) = x(2)
-         results(3:2+num_gto) = co(1:num_gto)
+         results(3:2 + num_gto) = co(1:num_gto)
       END IF
 
       DEALLOCATE (co)
@@ -171,8 +177,6 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: pptype
       INTEGER, INTENT(IN)                                :: iunit
       TYPE(section_vals_type), POINTER                   :: powell_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'atom_fit_basis', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, j, k, l, ll, m, n, n10, nl, nr, zval
       INTEGER, ALLOCATABLE, DIMENSION(:, :)              :: xtob
@@ -205,13 +209,13 @@ CONTAINS
                DO i = 1, basis%nprim(l)
                   mult = .FALSE.
                   DO k = 1, ll
-                     IF (ABS(basis%am(i, l)-x(k)) < 1.e-6_dp) THEN
+                     IF (ABS(basis%am(i, l) - x(k)) < 1.e-6_dp) THEN
                         mult = .TRUE.
                         xtob(i, l) = k
                      END IF
                   END DO
                   IF (.NOT. mult) THEN
-                     ll = ll+1
+                     ll = ll + 1
                      x(ll) = basis%am(i, l)
                      xtob(i, l) = ll
                   END IF
@@ -219,7 +223,7 @@ CONTAINS
             END DO
             ostate%nvar = ll
             DO i = 1, ostate%nvar
-               x(i) = SQRT(LOG(1._dp+x(i)))
+               x(i) = SQRT(LOG(1._dp + x(i)))
             END DO
             penalty = .TRUE.
          END IF
@@ -233,14 +237,14 @@ CONTAINS
          ll = 0
          DO l = 0, lmat
             DO i = 1, basis%nbas(l)
-               ll = ll+1
+               ll = ll + 1
                x(ll) = basis%as(i, l)
                xtob(i, l) = ll
             END DO
          END DO
          ostate%nvar = ll
          DO i = 1, ostate%nvar
-            x(i) = SQRT(LOG(1._dp+x(i)))
+            x(i) = SQRT(LOG(1._dp + x(i)))
          END DO
       END SELECT
 
@@ -298,7 +302,7 @@ CONTAINS
                   basis%am = 0._dp
                   DO l = 0, lmat
                      DO i = 1, basis%nbas(l)
-                        ll = i-1+basis%start(l)
+                        ll = i - 1 + basis%start(l)
                         basis%am(i, l) = x(1)*x(1)*(x(2)*x(2))**(ll)
                      END DO
                   END DO
@@ -308,7 +312,7 @@ CONTAINS
                   DO l = 0, lmat
                      DO i = 1, basis%nprim(l)
                         al = x(xtob(i, l))**2
-                        basis%am(i, l) = EXP(al)-1._dp
+                        basis%am(i, l) = EXP(al) - 1._dp
                      END DO
                   END DO
                END IF
@@ -323,9 +327,9 @@ CONTAINS
                         rk = basis%grid%rad(k)
                         ear = EXP(-al*basis%grid%rad(k)**2)
                         basis%bf(k, i, l) = rk**l*ear
-                        basis%dbf(k, i, l) = (REAL(l, dp)*rk**(l-1)-2._dp*al*rk**(l+1))*ear
-                        basis%ddbf(k, i, l) = (REAL(l*(l-1), dp)*rk**(l-2)- &
-                                               2._dp*al*REAL(2*l+1, dp)*rk**(l)+4._dp*al*rk**(l+2))*ear
+                        basis%dbf(k, i, l) = (REAL(l, dp)*rk**(l - 1) - 2._dp*al*rk**(l + 1))*ear
+                        basis%ddbf(k, i, l) = (REAL(l*(l - 1), dp)*rk**(l - 2) - &
+                                               2._dp*al*REAL(2*l + 1, dp)*rk**(l) + 4._dp*al*rk**(l + 2))*ear
                      END DO
                   END DO
                END DO
@@ -333,7 +337,7 @@ CONTAINS
                DO l = 0, lmat
                   DO i = 1, basis%nbas(l)
                      al = x(xtob(i, l))**2
-                     basis%as(i, l) = EXP(al)-1._dp
+                     basis%as(i, l) = EXP(al) - 1._dp
                   END DO
                END DO
                basis%bf = 0._dp
@@ -347,11 +351,11 @@ CONTAINS
                      pf = (2._dp*al)**nl*SQRT(2._dp*al/fac(2*nl))
                      DO k = 1, nr
                         rk = basis%grid%rad(k)
-                        ear = rk**(nl-1)*EXP(-al*rk)
+                        ear = rk**(nl - 1)*EXP(-al*rk)
                         basis%bf(k, i, l) = pf*ear
-                        basis%dbf(k, i, l) = pf*(REAL(nl-1, dp)/rk-al)*ear
-                        basis%ddbf(k, i, l) = pf*(REAL((nl-2)*(nl-1), dp)/rk/rk &
-                                                  -al*REAL(2*(nl-1), dp)/rk+al*al)*ear
+                        basis%dbf(k, i, l) = pf*(REAL(nl - 1, dp)/rk - al)*ear
+                        basis%ddbf(k, i, l) = pf*(REAL((nl - 2)*(nl - 1), dp)/rk/rk &
+                                                  - al*REAL(2*(nl - 1), dp)/rk + al*al)*ear
                      END DO
                   END DO
                END DO
@@ -365,7 +369,7 @@ CONTAINS
          CALL powell_optimize(ostate%nvar, x, ostate)
 
          IF (ostate%nf == 2 .AND. iunit > 0) THEN
-            WRITE (iunit, '(" POWELL| Inital value of function",T61,F20.10)') ostate%f
+            WRITE (iunit, '(" POWELL| Initial value of function",T61,F20.10)') ostate%f
          END IF
          IF (MOD(ostate%nf, n10) == 0 .AND. iunit > 0) THEN
             WRITE (iunit, '(" POWELL| Reached",i4,"% of maximal function calls",T61,F20.10)') &
@@ -389,7 +393,7 @@ CONTAINS
                basis%am = 0._dp
                DO l = 0, lmat
                   DO i = 1, basis%nbas(l)
-                     ll = i-1+basis%start(l)
+                     ll = i - 1 + basis%start(l)
                      basis%am(i, l) = x(1)*x(1)*(x(2)*x(2))**(ll)
                   END DO
                END DO
@@ -399,7 +403,7 @@ CONTAINS
                DO l = 0, lmat
                   DO i = 1, basis%nprim(l)
                      al = x(xtob(i, l))**2
-                     basis%am(i, l) = EXP(al)-1._dp
+                     basis%am(i, l) = EXP(al) - 1._dp
                   END DO
                END DO
             END IF
@@ -414,9 +418,9 @@ CONTAINS
                      rk = basis%grid%rad(k)
                      ear = EXP(-al*basis%grid%rad(k)**2)
                      basis%bf(k, i, l) = rk**l*ear
-                     basis%dbf(k, i, l) = (REAL(l, dp)*rk**(l-1)-2._dp*al*rk**(l+1))*ear
-                     basis%ddbf(k, i, l) = (REAL(l*(l-1), dp)*rk**(l-2)- &
-                                            2._dp*al*REAL(2*l+1, dp)*rk**(l)+4._dp*al*rk**(l+2))*ear
+                     basis%dbf(k, i, l) = (REAL(l, dp)*rk**(l - 1) - 2._dp*al*rk**(l + 1))*ear
+                     basis%ddbf(k, i, l) = (REAL(l*(l - 1), dp)*rk**(l - 2) - &
+                                            2._dp*al*REAL(2*l + 1, dp)*rk**(l) + 4._dp*al*rk**(l + 2))*ear
                   END DO
                END DO
             END DO
@@ -424,7 +428,7 @@ CONTAINS
             DO l = 0, lmat
                DO i = 1, basis%nprim(l)
                   al = x(xtob(i, l))**2
-                  basis%as(i, l) = EXP(al)-1._dp
+                  basis%as(i, l) = EXP(al) - 1._dp
                END DO
             END DO
             basis%bf = 0._dp
@@ -438,17 +442,17 @@ CONTAINS
                   pf = (2._dp*al)**nl*SQRT(2._dp*al/fac(2*nl))
                   DO k = 1, nr
                      rk = basis%grid%rad(k)
-                     ear = rk**(nl-1)*EXP(-al*rk)
+                     ear = rk**(nl - 1)*EXP(-al*rk)
                      basis%bf(k, i, l) = pf*ear
-                     basis%dbf(k, i, l) = pf*(REAL(nl-1, dp)/rk-al)*ear
-                     basis%ddbf(k, i, l) = pf*(REAL((nl-2)*(nl-1), dp)/rk/rk &
-                                               -al*REAL(2*(nl-1), dp)/rk+al*al)*ear
+                     basis%dbf(k, i, l) = pf*(REAL(nl - 1, dp)/rk - al)*ear
+                     basis%ddbf(k, i, l) = pf*(REAL((nl - 2)*(nl - 1), dp)/rk/rk &
+                                               - al*REAL(2*(nl - 1), dp)/rk + al*al)*ear
                   END DO
                END DO
             END DO
          END SELECT
          CALL atom_print_basis(basis, iunit, " Optimized Basis")
-         CALL atom_print_basis_file(basis)
+         CALL atom_print_basis_file(basis, atom_info(1, 1)%atom%orbitals%wfn)
       END IF
 
       DEALLOCATE (x)
@@ -486,8 +490,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: iunit
       TYPE(section_vals_type), POINTER                   :: powell_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'atom_fit_pseudo', &
-         routineP = moduleN//':'//routineN
       LOGICAL, PARAMETER                                 :: debug = .FALSE.
 
       CHARACTER(len=2)                                   :: pc1, pc2, pct
@@ -495,7 +497,7 @@ CONTAINS
                                                             n10, np, nre, nreinit, ntarget
       INTEGER, ALLOCATABLE, DIMENSION(:, :)              :: xtob
       INTEGER, DIMENSION(0:lmat)                         :: ncore
-      LOGICAL                                            :: explicit
+      LOGICAL                                            :: explicit, noopt_nlcc, preopt_nlcc
       REAL(KIND=dp) :: afun, charge, de, deig, drho, dx, eig, fopt, oc, pchg, peig, pv, rcm, rcov, &
          rmax, semicore_level, step_size_scaling, t_ener, t_psir0, t_semi, t_valence, t_virt, &
          w_ener, w_node, w_psir0, w_semi, w_valence, w_virt, wtot
@@ -531,6 +533,9 @@ CONTAINS
       CALL section_vals_val_get(powell_section, "TARGET_DELTA_ENERGY", r_val=t_ener)
 
       CALL section_vals_val_get(powell_section, "SEMICORE_LEVEL", r_val=semicore_level)
+
+      CALL section_vals_val_get(powell_section, "NOOPT_NLCC", l_val=noopt_nlcc)
+      CALL section_vals_val_get(powell_section, "PREOPT_NLCC", l_val=preopt_nlcc)
 
       n = SIZE(atom_info, 1)
       m = SIZE(atom_info, 2)
@@ -572,9 +577,16 @@ CONTAINS
          CALL open_file(file_name="POWELL_RESULT", file_status="UNKNOWN", file_action="WRITE", unit_number=iw)
       END IF
 
+      IF (ppot%gth_pot%nlcc) THEN
+         CALL opt_nlcc_param(atom_info, atom_refs, ppot%gth_pot, iunit, preopt_nlcc)
+      ELSE
+         noopt_nlcc = .TRUE.
+         preopt_nlcc = .FALSE.
+      END IF
+
       ALLOCATE (xi(200))
       !decide here what to optimize
-      CALL get_pseudo_param(xi, ostate%nvar, ppot%gth_pot)
+      CALL get_pseudo_param(xi, ostate%nvar, ppot%gth_pot, noopt_nlcc)
       ALLOCATE (x(ostate%nvar))
       x(1:ostate%nvar) = xi(1:ostate%nvar)
       DEALLOCATE (xi)
@@ -602,70 +614,70 @@ CONTAINS
                IF (atom%state%multiplicity == -1) THEN
                   ! no spin polarization
                   atom%weight = wem(i, j)
-                  ncore = get_maxn_occ(atom_info(i, j)%atom%state%core)
+                  ncore = get_maxn_occ(atom%state%core)
                   DO l = 0, lmat
                      np = atom%state%maxn_calc(l)
                      DO k = 1, np
-                        CALL atom_orbital_max(rmax, atom_refs(i, j)%atom%orbitals%wfn(:, ncore(l)+k, l), &
+                        CALL atom_orbital_max(rmax, atom_refs(i, j)%atom%orbitals%wfn(:, ncore(l) + k, l), &
                                               rcov, l, atom_refs(i, j)%atom%basis)
                         atom%orbitals%rcmax(k, l, 1) = MAX(rcov, rmax)
-                        CALL atom_orbital_charge(charge, atom_refs(i, j)%atom%orbitals%wfn(:, ncore(l)+k, l), &
+                        CALL atom_orbital_charge(charge, atom_refs(i, j)%atom%orbitals%wfn(:, ncore(l) + k, l), &
                                                  atom%orbitals%rcmax(k, l, 1), l, atom_refs(i, j)%atom%basis)
-                        atom%orbitals%refene(k, l, 1) = atom_refs(i, j)%atom%orbitals%ener(ncore(l)+k, l)
+                        atom%orbitals%refene(k, l, 1) = atom_refs(i, j)%atom%orbitals%ener(ncore(l) + k, l)
                         atom%orbitals%refchg(k, l, 1) = charge
                         IF (k > atom%state%maxn_occ(l)) THEN
-                           IF (k <= atom%state%maxn_occ(l)+1) THEN
+                           IF (k <= atom%state%maxn_occ(l) + 1) THEN
                               atom%orbitals%wrefene(k, l, 1) = w_virt
                               atom%orbitals%wrefchg(k, l, 1) = w_virt/100._dp
                               atom%orbitals%crefene(k, l, 1) = t_virt
                               atom%orbitals%reftype(k, l, 1) = "U1"
-                              ntarget = ntarget+2
-                              wtot = wtot+atom%weight*(w_virt+w_virt/100._dp)
+                              ntarget = ntarget + 2
+                              wtot = wtot + atom%weight*(w_virt + w_virt/100._dp)
                            ELSE
                               atom%orbitals%wrefene(k, l, 1) = w_virt/100._dp
                               atom%orbitals%wrefchg(k, l, 1) = 0._dp
                               atom%orbitals%crefene(k, l, 1) = t_virt*10._dp
                               atom%orbitals%reftype(k, l, 1) = "U2"
-                              ntarget = ntarget+1
-                              wtot = wtot+atom%weight*w_virt/100._dp
+                              ntarget = ntarget + 1
+                              wtot = wtot + atom%weight*w_virt/100._dp
                            END IF
                         ELSEIF (k < atom%state%maxn_occ(l)) THEN
                            atom%orbitals%wrefene(k, l, 1) = w_semi
                            atom%orbitals%wrefchg(k, l, 1) = w_semi/100._dp
                            atom%orbitals%crefene(k, l, 1) = t_semi
                            atom%orbitals%reftype(k, l, 1) = "SC"
-                           ntarget = ntarget+2
-                           wtot = wtot+atom%weight*(w_semi+w_semi/100._dp)
+                           ntarget = ntarget + 2
+                           wtot = wtot + atom%weight*(w_semi + w_semi/100._dp)
                         ELSE
-                           IF (ABS(atom%state%occupation(l, k)-REAL(4*l+2, KIND=dp)) < 0.01_dp .AND. &
+                           IF (ABS(atom%state%occupation(l, k) - REAL(4*l + 2, KIND=dp)) < 0.01_dp .AND. &
                                ABS(atom%orbitals%refene(k, l, 1)) > semicore_level) THEN
                               ! full shell semicore
                               atom%orbitals%wrefene(k, l, 1) = w_semi
                               atom%orbitals%wrefchg(k, l, 1) = w_semi/100._dp
                               atom%orbitals%crefene(k, l, 1) = t_semi
                               atom%orbitals%reftype(k, l, 1) = "SC"
-                              wtot = wtot+atom%weight*(w_semi+w_semi/100._dp)
+                              wtot = wtot + atom%weight*(w_semi + w_semi/100._dp)
                            ELSE
                               atom%orbitals%wrefene(k, l, 1) = w_valence
                               atom%orbitals%wrefchg(k, l, 1) = w_valence/100._dp
                               atom%orbitals%crefene(k, l, 1) = t_valence
                               atom%orbitals%reftype(k, l, 1) = "VA"
-                              wtot = wtot+atom%weight*(w_valence+w_valence/100._dp)
+                              wtot = wtot + atom%weight*(w_valence + w_valence/100._dp)
                            END IF
                            IF (l == 0) THEN
                               atom%orbitals%tpsir0(k, 1) = t_psir0
                               atom%orbitals%wpsir0(k, 1) = w_psir0
-                              wtot = wtot+atom%weight*w_psir0
+                              wtot = wtot + atom%weight*w_psir0
                            END IF
-                           ntarget = ntarget+2
+                           ntarget = ntarget + 2
                         END IF
                      END DO
                      DO k = 1, np
-                        atom%orbitals%refnod(k, l, 1) = REAL(k-1, KIND=dp)
+                        atom%orbitals%refnod(k, l, 1) = REAL(k - 1, KIND=dp)
                         ! we only enforce 0-nodes for the first state
                         IF (k == 1 .AND. atom%state%occupation(l, k) /= 0._dp) THEN
                            atom%orbitals%wrefnod(k, l, 1) = w_node
-                           wtot = wtot+atom%weight*w_node
+                           wtot = wtot + atom%weight*w_node
                         END IF
                      END DO
                   END DO
@@ -676,77 +688,77 @@ CONTAINS
                   DO l = 0, lmat
                      np = atom%state%maxn_calc(l)
                      DO k = 1, np
-                        CALL atom_orbital_max(rmax, atom_refs(i, j)%atom%orbitals%wfna(:, ncore(l)+k, l), &
+                        CALL atom_orbital_max(rmax, atom_refs(i, j)%atom%orbitals%wfna(:, ncore(l) + k, l), &
                                               rcov, l, atom_refs(i, j)%atom%basis)
                         atom%orbitals%rcmax(k, l, 1) = MAX(rcov, rmax)
-                        CALL atom_orbital_max(rmax, atom_refs(i, j)%atom%orbitals%wfnb(:, ncore(l)+k, l), &
+                        CALL atom_orbital_max(rmax, atom_refs(i, j)%atom%orbitals%wfnb(:, ncore(l) + k, l), &
                                               rcov, l, atom_refs(i, j)%atom%basis)
                         atom%orbitals%rcmax(k, l, 2) = MAX(rcov, rmax)
-                        CALL atom_orbital_charge(charge, atom_refs(i, j)%atom%orbitals%wfna(:, ncore(l)+k, l), &
+                        CALL atom_orbital_charge(charge, atom_refs(i, j)%atom%orbitals%wfna(:, ncore(l) + k, l), &
                                                  atom%orbitals%rcmax(k, l, 1), l, atom_refs(i, j)%atom%basis)
-                        atom%orbitals%refene(k, l, 1) = atom_refs(i, j)%atom%orbitals%enera(ncore(l)+k, l)
+                        atom%orbitals%refene(k, l, 1) = atom_refs(i, j)%atom%orbitals%enera(ncore(l) + k, l)
                         atom%orbitals%refchg(k, l, 1) = charge
-                        CALL atom_orbital_charge(charge, atom_refs(i, j)%atom%orbitals%wfnb(:, ncore(l)+k, l), &
+                        CALL atom_orbital_charge(charge, atom_refs(i, j)%atom%orbitals%wfnb(:, ncore(l) + k, l), &
                                                  atom%orbitals%rcmax(k, l, 1), l, atom_refs(i, j)%atom%basis)
-                        atom%orbitals%refene(k, l, 2) = atom_refs(i, j)%atom%orbitals%enerb(ncore(l)+k, l)
+                        atom%orbitals%refene(k, l, 2) = atom_refs(i, j)%atom%orbitals%enerb(ncore(l) + k, l)
                         atom%orbitals%refchg(k, l, 2) = charge
                         ! the following assignments could be further specialized
                         IF (k > atom%state%maxn_occ(l)) THEN
-                           IF (k <= atom%state%maxn_occ(l)+1) THEN
+                           IF (k <= atom%state%maxn_occ(l) + 1) THEN
                               atom%orbitals%wrefene(k, l, 1:2) = w_virt
                               atom%orbitals%wrefchg(k, l, 1:2) = w_virt/100._dp
                               atom%orbitals%crefene(k, l, 1:2) = t_virt
                               atom%orbitals%reftype(k, l, 1:2) = "U1"
-                              ntarget = ntarget+4
-                              wtot = wtot+atom%weight*2._dp*(w_virt+w_virt/100._dp)
+                              ntarget = ntarget + 4
+                              wtot = wtot + atom%weight*2._dp*(w_virt + w_virt/100._dp)
                            ELSE
                               atom%orbitals%wrefene(k, l, 1:2) = w_virt/100._dp
                               atom%orbitals%wrefchg(k, l, 1:2) = 0._dp
                               atom%orbitals%crefene(k, l, 1:2) = t_virt*10.0_dp
                               atom%orbitals%reftype(k, l, 1:2) = "U2"
-                              wtot = wtot+atom%weight*2._dp*w_virt/100._dp
-                              ntarget = ntarget+2
+                              wtot = wtot + atom%weight*2._dp*w_virt/100._dp
+                              ntarget = ntarget + 2
                            END IF
                         ELSEIF (k < atom%state%maxn_occ(l)) THEN
                            atom%orbitals%wrefene(k, l, 1:2) = w_semi
                            atom%orbitals%wrefchg(k, l, 1:2) = w_semi/100._dp
                            atom%orbitals%crefene(k, l, 1:2) = t_semi
                            atom%orbitals%reftype(k, l, 1:2) = "SC"
-                           ntarget = ntarget+4
-                           wtot = wtot+atom%weight*2._dp*(w_semi+w_semi/100._dp)
+                           ntarget = ntarget + 4
+                           wtot = wtot + atom%weight*2._dp*(w_semi + w_semi/100._dp)
                         ELSE
-                           IF (ABS(atom%state%occupation(l, k)-REAL(2*l+1, KIND=dp)) < 0.01_dp .AND. &
+                           IF (ABS(atom%state%occupation(l, k) - REAL(2*l + 1, KIND=dp)) < 0.01_dp .AND. &
                                ABS(atom%orbitals%refene(k, l, 1)) > semicore_level) THEN
                               atom%orbitals%wrefene(k, l, 1:2) = w_semi
                               atom%orbitals%wrefchg(k, l, 1:2) = w_semi/100._dp
                               atom%orbitals%crefene(k, l, 1:2) = t_semi
                               atom%orbitals%reftype(k, l, 1:2) = "SC"
-                              wtot = wtot+atom%weight*2._dp*(w_semi+w_semi/100._dp)
+                              wtot = wtot + atom%weight*2._dp*(w_semi + w_semi/100._dp)
                            ELSE
                               atom%orbitals%wrefene(k, l, 1:2) = w_valence
                               atom%orbitals%wrefchg(k, l, 1:2) = w_valence/100._dp
                               atom%orbitals%crefene(k, l, 1:2) = t_valence
                               atom%orbitals%reftype(k, l, 1:2) = "VA"
-                              wtot = wtot+atom%weight*2._dp*(w_valence+w_valence/100._dp)
+                              wtot = wtot + atom%weight*2._dp*(w_valence + w_valence/100._dp)
                            END IF
-                           ntarget = ntarget+4
+                           ntarget = ntarget + 4
                            IF (l == 0) THEN
                               atom%orbitals%tpsir0(k, 1:2) = t_psir0
                               atom%orbitals%wpsir0(k, 1:2) = w_psir0
-                              wtot = wtot+atom%weight*2._dp*w_psir0
+                              wtot = wtot + atom%weight*2._dp*w_psir0
                            END IF
                         END IF
                      END DO
                      DO k = 1, np
-                        atom%orbitals%refnod(k, l, 1:2) = REAL(k-1, KIND=dp)
+                        atom%orbitals%refnod(k, l, 1:2) = REAL(k - 1, KIND=dp)
                         ! we only enforce 0-nodes for the first state
                         IF (k == 1 .AND. atom%state%occa(l, k) /= 0._dp) THEN
                            atom%orbitals%wrefnod(k, l, 1) = w_node
-                           wtot = wtot+atom%weight*w_node
+                           wtot = wtot + atom%weight*w_node
                         END IF
                         IF (k == 1 .AND. atom%state%occb(l, k) /= 0._dp) THEN
                            atom%orbitals%wrefnod(k, l, 2) = w_node
-                           wtot = wtot+atom%weight*w_node
+                           wtot = wtot + atom%weight*w_node
                         END IF
                      END DO
                   END DO
@@ -761,8 +773,8 @@ CONTAINS
             DO i1 = 1, SIZE(atom_info, 1)
                DO i2 = 1, SIZE(atom_info, 1)
                   IF ((j1 > j2) .OR. (j1 == j2 .AND. i1 >= i2)) CYCLE
-                  dener(2, j1, j2, i1, i2) = dener(2, j1, j1, i1, i1)-dener(2, j2, j2, i2, i2)
-                  wtot = wtot+w_ener
+                  dener(2, j1, j2, i1, i2) = dener(2, j1, j1, i1, i1) - dener(2, j2, j2, i2, i2)
+                  wtot = wtot + w_ener
                END DO
             END DO
          END DO
@@ -773,7 +785,7 @@ CONTAINS
       ALLOCATE (xi(ostate%nvar))
       DO nre = 1, nreinit
          xi(:) = x(:)
-         CALL put_pseudo_param(x, ppot%gth_pot)
+         CALL put_pseudo_param(x, ppot%gth_pot, noopt_nlcc)
          CALL pseudo_fit(atom_info, wfn_guess, ppot, ostate%f, wtot, pval, dener, w_ener, t_ener, .TRUE.)
          IF (nre == 1) THEN
             WRITE (iunit, '(/," POWELL| Initial errors of target values")')
@@ -795,7 +807,7 @@ CONTAINS
                               DO k = 1, np
                                  oc = atom%state%occupation(l, k)
                                  eig = atom%orbitals%ener(k, l)
-                                 deig = eig-atom%orbitals%refene(k, l, 1)
+                                 deig = eig - atom%orbitals%refene(k, l, 1)
                                  peig = pval(1, k, l, j, i)/afun*100._dp
                                  IF (pval(5, k, l, j, i) > 0.5_dp) THEN
                                     pc1 = " X"
@@ -804,7 +816,7 @@ CONTAINS
                                  END IF
                                  CALL atom_orbital_charge(charge, atom%orbitals%wfn(:, k, l), &
                                                           atom%orbitals%rcmax(k, l, 1), l, atom%basis)
-                                 drho = charge-atom%orbitals%refchg(k, l, 1)
+                                 drho = charge - atom%orbitals%refchg(k, l, 1)
                                  pchg = pval(2, k, l, j, i)/afun*100._dp
                                  IF (pval(6, k, l, j, i) > 0.5_dp) THEN
                                     pc2 = " X"
@@ -826,7 +838,7 @@ CONTAINS
                               DO k = 1, np
                                  oc = atom%state%occa(l, k)
                                  eig = atom%orbitals%enera(k, l)
-                                 deig = eig-atom%orbitals%refene(k, l, 1)
+                                 deig = eig - atom%orbitals%refene(k, l, 1)
                                  peig = pval(1, k, l, j, i)/afun*100._dp
                                  IF (pval(5, k, l, j, i) > 0.5_dp) THEN
                                     pc1 = " X"
@@ -835,7 +847,7 @@ CONTAINS
                                  END IF
                                  CALL atom_orbital_charge( &
                                     charge, atom%orbitals%wfna(:, k, l), atom%orbitals%rcmax(k, l, 1), l, atom%basis)
-                                 drho = charge-atom%orbitals%refchg(k, l, 1)
+                                 drho = charge - atom%orbitals%refchg(k, l, 1)
                                  pchg = pval(2, k, l, j, i)/afun*100._dp
                                  IF (pval(6, k, l, j, i) > 0.5_dp) THEN
                                     pc2 = " X"
@@ -847,7 +859,7 @@ CONTAINS
                                     l, k, "alpha", oc, eig*evolt, pct, deig*evolt, pc1, drho, pc2
                                  oc = atom%state%occb(l, k)
                                  eig = atom%orbitals%enerb(k, l)
-                                 deig = eig-atom%orbitals%refene(k, l, 2)
+                                 deig = eig - atom%orbitals%refene(k, l, 2)
                                  peig = pval(3, k, l, j, i)/afun*100._dp
                                  IF (pval(7, k, l, j, i) > 0.5_dp) THEN
                                     pc1 = " X"
@@ -856,7 +868,7 @@ CONTAINS
                                  END IF
                                  CALL atom_orbital_charge( &
                                     charge, atom%orbitals%wfnb(:, k, l), atom%orbitals%rcmax(k, l, 2), l, atom%basis)
-                                 drho = charge-atom%orbitals%refchg(k, l, 2)
+                                 drho = charge - atom%orbitals%refchg(k, l, 2)
                                  pchg = pval(4, k, l, j, i)/afun*100._dp
                                  IF (pval(8, k, l, j, i) > 0.5_dp) THEN
                                     pc2 = " X"
@@ -886,7 +898,7 @@ CONTAINS
                            IF (ABS(dener(2, j1, j1, i1, i1)) < 0.000001_dp) CYCLE
                            IF (ABS(dener(1, j2, j2, i2, i2)) < 0.000001_dp) CYCLE
                            IF (ABS(dener(2, j2, j2, i2, i2)) < 0.000001_dp) CYCLE
-                           de = dener(2, j1, j2, i1, i2)-dener(1, j1, j2, i1, i2)
+                           de = dener(2, j1, j2, i1, i2) - dener(1, j1, j2, i1, i2)
                            WRITE (iunit, '(i6,i6,i10,i6,5X,F16.6,F19.6,F12.6)') &
                               j1, i1, j2, i2, dener(2, j1, j2, i1, i2), de, t_ener
                         END DO
@@ -910,7 +922,7 @@ CONTAINS
          DO
 
             IF (ostate%state == 2) THEN
-               CALL put_pseudo_param(x, ppot%gth_pot)
+               CALL put_pseudo_param(x, ppot%gth_pot, noopt_nlcc)
                CALL pseudo_fit(atom_info, wfn_guess, ppot, ostate%f, wtot, pval, dener, w_ener, t_ener, .FALSE.)
                fopt = MIN(fopt, ostate%f)
             END IF
@@ -920,12 +932,12 @@ CONTAINS
             CALL powell_optimize(ostate%nvar, x, ostate)
 
             IF (ostate%nf == 2 .AND. iunit > 0) THEN
-               WRITE (iunit, '(" POWELL| Inital value of function",T61,F20.10)') ostate%f
+               WRITE (iunit, '(" POWELL| Initial value of function",T61,F20.10)') ostate%f
             END IF
             IF (MOD(ostate%nf, n10) == 0 .AND. iunit > 0 .AND. ostate%nf > 2) THEN
                WRITE (iunit, '(" POWELL| Reached",i4,"% of maximal function calls",T61,F20.10)') &
                   INT(REAL(ostate%nf, dp)/REAL(ostate%maxfun, dp)*100._dp), fopt
-               CALL put_pseudo_param(ostate%xopt, ppot%gth_pot)
+               CALL put_pseudo_param(ostate%xopt, ppot%gth_pot, noopt_nlcc)
                CALL atom_write_pseudo_param(ppot%gth_pot)
             END IF
 
@@ -937,13 +949,13 @@ CONTAINS
 
          END DO
 
-         dx = SQRT(SUM((ostate%xopt(:)-xi(:))**2)/REAL(ostate%nvar, KIND=dp))
+         dx = SQRT(SUM((ostate%xopt(:) - xi(:))**2)/REAL(ostate%nvar, KIND=dp))
          IF (iunit > 0) THEN
             WRITE (iunit, '(" POWELL| RMS average of variables",T69,F12.10)') dx
          END IF
          ostate%state = 8
          CALL powell_optimize(ostate%nvar, x, ostate)
-         CALL put_pseudo_param(x, ppot%gth_pot)
+         CALL put_pseudo_param(x, ppot%gth_pot, noopt_nlcc)
          CALL atom_write_pseudo_param(ppot%gth_pot)
          ! dx < SQRT(ostate%rhoend)
          IF ((dx*dx) < ostate%rhoend) EXIT
@@ -955,7 +967,7 @@ CONTAINS
          WRITE (iunit, '(" POWELL| Number of function evaluations",T71,I10)') ostate%nf
          WRITE (iunit, '(" POWELL| Final value of function",T61,F20.10)') ostate%fopt
 
-         CALL put_pseudo_param(x, ppot%gth_pot)
+         CALL put_pseudo_param(x, ppot%gth_pot, noopt_nlcc)
          CALL pseudo_fit(atom_info, wfn_guess, ppot, ostate%f, wtot, pval, dener, w_ener, t_ener, .FALSE.)
          afun = wtot*ostate%f
 
@@ -974,7 +986,7 @@ CONTAINS
                            DO k = 1, np
                               oc = atom%state%occupation(l, k)
                               eig = atom%orbitals%ener(k, l)
-                              deig = eig-atom%orbitals%refene(k, l, 1)
+                              deig = eig - atom%orbitals%refene(k, l, 1)
                               peig = pval(1, k, l, j, i)/afun*100._dp
                               IF (pval(5, k, l, j, i) > 0.5_dp) THEN
                                  pc1 = " X"
@@ -983,7 +995,7 @@ CONTAINS
                               END IF
                               CALL atom_orbital_charge( &
                                  charge, atom%orbitals%wfn(:, k, l), atom%orbitals%rcmax(k, l, 1), l, atom%basis)
-                              drho = charge-atom%orbitals%refchg(k, l, 1)
+                              drho = charge - atom%orbitals%refchg(k, l, 1)
                               pchg = pval(2, k, l, j, i)/afun*100._dp
                               IF (pval(6, k, l, j, i) > 0.5_dp) THEN
                                  pc2 = " X"
@@ -1003,7 +1015,7 @@ CONTAINS
                            IF (ABS(pv) > ABS(atom%orbitals%tpsir0(k, 1))) THEN
                               pv = 0.0_dp
                            ELSE
-                              pv = 10._dp*(ABS(pv)-ABS(atom%orbitals%tpsir0(k, 1)))
+                              pv = 10._dp*(ABS(pv) - ABS(atom%orbitals%tpsir0(k, 1)))
                            END IF
                            pchg = atom%weight*atom%orbitals%wpsir0(k, 1)*pv*pv/afun
                         ELSE
@@ -1021,7 +1033,7 @@ CONTAINS
                            DO k = 1, np
                               oc = atom%state%occa(l, k)
                               eig = atom%orbitals%enera(k, l)
-                              deig = eig-atom%orbitals%refene(k, l, 1)
+                              deig = eig - atom%orbitals%refene(k, l, 1)
                               peig = pval(1, k, l, j, i)/afun*100._dp
                               IF (pval(5, k, l, j, i) > 0.5_dp) THEN
                                  pc1 = " X"
@@ -1030,7 +1042,7 @@ CONTAINS
                               END IF
                               CALL atom_orbital_charge( &
                                  charge, atom%orbitals%wfna(:, k, l), atom%orbitals%rcmax(k, l, 1), l, atom%basis)
-                              drho = charge-atom%orbitals%refchg(k, l, 1)
+                              drho = charge - atom%orbitals%refchg(k, l, 1)
                               pchg = pval(2, k, l, j, i)/afun*100._dp
                               IF (pval(6, k, l, j, i) > 0.5_dp) THEN
                                  pc2 = " X"
@@ -1042,7 +1054,7 @@ CONTAINS
                                  l, k, "  alpha", oc, eig*evolt, pct, deig*evolt, pc1, drho, pc2
                               oc = atom%state%occb(l, k)
                               eig = atom%orbitals%enerb(k, l)
-                              deig = eig-atom%orbitals%refene(k, l, 2)
+                              deig = eig - atom%orbitals%refene(k, l, 2)
                               peig = pval(3, k, l, j, i)/afun*100._dp
                               IF (pval(7, k, l, j, i) > 0.5_dp) THEN
                                  pc1 = " X"
@@ -1051,7 +1063,7 @@ CONTAINS
                               END IF
                               CALL atom_orbital_charge( &
                                  charge, atom%orbitals%wfnb(:, k, l), atom%orbitals%rcmax(k, l, 2), l, atom%basis)
-                              drho = charge-atom%orbitals%refchg(k, l, 2)
+                              drho = charge - atom%orbitals%refchg(k, l, 2)
                               pchg = pval(4, k, l, j, i)/afun*100._dp
                               IF (pval(8, k, l, j, i) > 0.5_dp) THEN
                                  pc2 = " X"
@@ -1071,7 +1083,7 @@ CONTAINS
                            IF (ABS(pv) > ABS(atom%orbitals%tpsir0(k, 1))) THEN
                               pv = 0.0_dp
                            ELSE
-                              pv = 10._dp*(ABS(pv)-ABS(atom%orbitals%tpsir0(k, 1)))
+                              pv = 10._dp*(ABS(pv) - ABS(atom%orbitals%tpsir0(k, 1)))
                            END IF
                            pchg = atom%weight*atom%orbitals%wpsir0(k, 1)*pv*pv/afun
                         ELSE
@@ -1085,7 +1097,7 @@ CONTAINS
                            IF (ABS(pv) > ABS(atom%orbitals%tpsir0(k, 2))) THEN
                               pv = 0.0_dp
                            ELSE
-                              pv = 10._dp*(ABS(pv)-ABS(atom%orbitals%tpsir0(k, 2)))
+                              pv = 10._dp*(ABS(pv) - ABS(atom%orbitals%tpsir0(k, 2)))
                            END IF
                            pchg = atom%weight*atom%orbitals%wpsir0(k, 2)*pv*pv/afun
                         ELSE
@@ -1111,7 +1123,7 @@ CONTAINS
                         IF (ABS(dener(2, j1, j1, i1, i1)) < 0.000001_dp) CYCLE
                         IF (ABS(dener(1, j2, j2, i2, i2)) < 0.000001_dp) CYCLE
                         IF (ABS(dener(2, j2, j2, i2, i2)) < 0.000001_dp) CYCLE
-                        de = dener(2, j1, j2, i1, i2)-dener(1, j1, j2, i1, i2)
+                        de = dener(2, j1, j2, i1, i2) - dener(1, j1, j2, i1, i2)
                         WRITE (iunit, '(i6,i6,i10,i6,5X,F16.6,F19.6,F12.6)') j1, i1, j2, i2, dener(2, j1, j2, i1, i2), de, t_ener
                      END DO
                   END DO
@@ -1144,6 +1156,133 @@ CONTAINS
       END IF
 
    END SUBROUTINE atom_fit_pseudo
+
+! **************************************************************************************************
+!> \brief Fit NLCC density on core densities
+!> \param atom_info ...
+!> \param atom_refs ...
+!> \param gthpot ...
+!> \param iunit ...
+!> \param preopt_nlcc ...
+! **************************************************************************************************
+   SUBROUTINE opt_nlcc_param(atom_info, atom_refs, gthpot, iunit, preopt_nlcc)
+      TYPE(atom_p_type), DIMENSION(:, :), POINTER        :: atom_info, atom_refs
+      TYPE(atom_gthpot_type), INTENT(inout)              :: gthpot
+      INTEGER, INTENT(in)                                :: iunit
+      LOGICAL, INTENT(in)                                :: preopt_nlcc
+
+      INTEGER                                            :: i, im, j, k, method
+      REAL(KIND=dp)                                      :: rcov, zcore, zrc, zrch
+      TYPE(atom_type), POINTER                           :: aref, atom
+      TYPE(opgrid_type), POINTER                         :: corden, den, den1, den2, density
+      TYPE(opmat_type), POINTER                          :: denmat, dma, dmb
+
+      CPASSERT(gthpot%nlcc)
+
+      IF (iunit > 0) THEN
+         WRITE (iunit, '(/," Core density information")')
+         WRITE (iunit, '(A,T37,A,T55,A,T75,A)') "     State       Density:", "Full", "Rcov/2", "Rcov/4"
+      END IF
+
+      rcov = ptable(atom_refs(1, 1)%atom%z)%covalent_radius*bohr
+      atom => atom_info(1, 1)%atom
+      NULLIFY (density)
+      CALL create_opgrid(density, atom%basis%grid)
+      density%op = 0.0_dp
+      im = 0
+      DO i = 1, SIZE(atom_info, 1)
+         DO j = 1, SIZE(atom_info, 2)
+            atom => atom_info(i, j)%atom
+            aref => atom_refs(i, j)%atom
+            IF (atom_consistent_method(atom%method_type, atom%state%multiplicity)) THEN
+               NULLIFY (den, denmat)
+               CALL create_opgrid(den, atom%basis%grid)
+               CALL create_opmat(denmat, atom%basis%nbas)
+
+               method = atom%method_type
+               SELECT CASE (method)
+               CASE (do_rks_atom, do_rhf_atom)
+                  CALL atom_denmat(denmat%op, aref%orbitals%wfn, &
+                                   atom%basis%nbas, atom%state%core, &
+                                   aref%state%maxl_occ, aref%state%maxn_occ)
+               CASE (do_uks_atom, do_uhf_atom)
+                  NULLIFY (dma, dmb)
+                  CALL create_opmat(dma, atom%basis%nbas)
+                  CALL create_opmat(dmb, atom%basis%nbas)
+                  CALL atom_denmat(dma%op, aref%orbitals%wfna, &
+                                   atom%basis%nbas, atom%state%core, &
+                                   aref%state%maxl_occ, aref%state%maxn_occ)
+                  CALL atom_denmat(dmb%op, aref%orbitals%wfnb, &
+                                   atom%basis%nbas, atom%state%core, &
+                                   aref%state%maxl_occ, aref%state%maxn_occ)
+                  denmat%op = 0.5_dp*(dma%op + dmb%op)
+                  CALL release_opmat(dma)
+                  CALL release_opmat(dmb)
+               CASE (do_rohf_atom)
+                  CPABORT("")
+               CASE DEFAULT
+                  CPABORT("")
+               END SELECT
+
+               im = im + 1
+               CALL atom_density(den%op, denmat%op, atom%basis, aref%state%maxl_occ, typ="RHO")
+               density%op = density%op + den%op
+               zcore = integrate_grid(den%op, atom%basis%grid)
+               zcore = fourpi*zcore
+               NULLIFY (den1, den2)
+               CALL create_opgrid(den1, atom%basis%grid)
+               CALL create_opgrid(den2, atom%basis%grid)
+               den1%op = 0.0_dp
+               den2%op = 0.0_dp
+               DO k = 1, atom%basis%grid%nr
+                  IF (atom%basis%grid%rad(k) < 0.50_dp*rcov) THEN
+                     den1%op(k) = den%op(k)
+                  END IF
+                  IF (atom%basis%grid%rad(k) < 0.25_dp*rcov) THEN
+                     den2%op(k) = den%op(k)
+                  END IF
+               END DO
+               zrc = integrate_grid(den1%op, atom%basis%grid)
+               zrc = fourpi*zrc
+               zrch = integrate_grid(den2%op, atom%basis%grid)
+               zrch = fourpi*zrch
+               CALL release_opgrid(den1)
+               CALL release_opgrid(den2)
+               CALL release_opgrid(den)
+               CALL release_opmat(denmat)
+               IF (iunit > 0) THEN
+                  WRITE (iunit, '(2I5,T31,F10.4,T51,F10.4,T71,F10.4)') i, j, zcore, zrc, zrch
+               END IF
+            END IF
+         END DO
+      END DO
+      density%op = density%op/REAL(im, KIND=dp)
+      !
+      IF (preopt_nlcc) THEN
+         gthpot%nexp_nlcc = 1
+         gthpot%nct_nlcc = 0
+         gthpot%cval_nlcc = 0._dp
+         gthpot%alpha_nlcc = 0._dp
+         gthpot%nct_nlcc(1) = 1
+         gthpot%cval_nlcc(1, 1) = 1.0_dp
+         gthpot%alpha_nlcc(1) = gthpot%rc
+         NULLIFY (corden)
+         CALL create_opgrid(corden, atom%basis%grid)
+         CALL atom_core_density(corden%op, atom%potential, typ="RHO", rr=atom%basis%grid%rad)
+         DO k = 1, atom%basis%grid%nr
+            IF (atom%basis%grid%rad(k) > 0.25_dp*rcov) THEN
+               corden%op(k) = 0.0_dp
+            END IF
+         END DO
+         zrc = integrate_grid(corden%op, atom%basis%grid)
+         zrc = fourpi*zrc
+         gthpot%cval_nlcc(1, 1) = zrch/zrc
+         CALL release_opgrid(corden)
+      END IF
+      CALL release_opgrid(density)
+
+   END SUBROUTINE opt_nlcc_param
+
 ! **************************************************************************************************
 !> \brief Low level routine to fit an atomic electron density.
 !> \param density  electron density on an atomic radial grid 'atom%basis%grid'
@@ -1162,8 +1301,6 @@ CONTAINS
       REAL(dp), INTENT(IN)                               :: aval, cval
       REAL(dp), DIMENSION(:), INTENT(INOUT)              :: co
       REAL(dp), INTENT(OUT)                              :: aerr
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'density_fit', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, info, ip, iq, k, nr
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: ipiv
@@ -1189,24 +1326,24 @@ CONTAINS
       zval = integrate_grid(density%op, atom%basis%grid)
 
       ! allocate vectors and matrices for overlaps
-      ALLOCATE (tval(n+1, 1), uval(n), smat(n+1, n+1))
+      ALLOCATE (tval(n + 1, 1), uval(n), smat(n + 1, n + 1))
       DO i = 1, n
          uval(i) = (pi/pe(i))**1.5_dp
          tval(i, 1) = integrate_grid(density%op, bf(:, i), atom%basis%grid)
       END DO
-      tval(n+1, 1) = zval
+      tval(n + 1, 1) = zval
 
       DO iq = 1, n
          DO ip = 1, n
-            smat(ip, iq) = (pi/(pe(ip)+pe(iq)))**1.5_dp
+            smat(ip, iq) = (pi/(pe(ip) + pe(iq)))**1.5_dp
          END DO
       END DO
-      smat(1:n, n+1) = uval(1:n)
-      smat(n+1, 1:n) = uval(1:n)
-      smat(n+1, n+1) = 0._dp
+      smat(1:n, n + 1) = uval(1:n)
+      smat(n + 1, 1:n) = uval(1:n)
+      smat(n + 1, n + 1) = 0._dp
 
-      ALLOCATE (ipiv(n+1))
-      CALL lapack_sgesv(n+1, 1, smat, n+1, ipiv, tval, n+1, info)
+      ALLOCATE (ipiv(n + 1))
+      CALL lapack_sgesv(n + 1, 1, smat, n + 1, ipiv, tval, n + 1, info)
       DEALLOCATE (ipiv)
       CPASSERT(info == 0)
       co(1:n) = tval(1:n, 1)
@@ -1214,10 +1351,10 @@ CONTAINS
       ! calculate density
       den(:) = 0._dp
       DO i = 1, n
-         den(:) = den(:)+co(i)*bf(:, i)
+         den(:) = den(:) + co(i)*bf(:, i)
       END DO
       den(:) = den(:)*fourpi
-      den(:) = (den(:)-density%op(:))**2
+      den(:) = (den(:) - density%op(:))**2
       aerr = SQRT(integrate_grid(den, atom%basis%grid))
 
       DEALLOCATE (pe, bf, den)
@@ -1241,8 +1378,6 @@ CONTAINS
       REAL(dp), INTENT(OUT)                              :: afun
       INTEGER, INTENT(IN)                                :: iw
       LOGICAL, INTENT(IN)                                :: penalty
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'basis_fit', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: do_eric, do_erie, i, im, in, l, nm, nn, &
                                                             reltyp, zval
@@ -1299,7 +1434,7 @@ CONTAINS
                   CALL set_atom(atom, basis=basis)
                   CALL set_atom(atom, integrals=atint)
                   CALL calculate_atom(atom, iw)
-                  afun = afun+atom%energy%etot*atom%weight
+                  afun = afun + atom%energy%etot*atom%weight
                END IF
             END IF
          END DO
@@ -1308,10 +1443,10 @@ CONTAINS
       ! penalty
       IF (penalty) THEN
          DO l = 0, lmat
-            DO i = 1, basis%nbas(l)-1
-               amin = MINVAL(ABS(basis%am(i, l)-basis%am(i+1:basis%nbas(l), l)))
+            DO i = 1, basis%nbas(l) - 1
+               amin = MINVAL(ABS(basis%am(i, l) - basis%am(i + 1:basis%nbas(l), l)))
                amin = amin/basis%am(i, l)
-               afun = afun+10._dp*EXP(-(20._dp*amin)**4)
+               afun = afun + 10._dp*EXP(-(20._dp*amin)**4)
             END DO
          END DO
       END IF
@@ -1347,8 +1482,6 @@ CONTAINS
       REAL(dp), INTENT(IN)                               :: wen, ten
       LOGICAL, INTENT(IN)                                :: init
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pseudo_fit', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, i1, i2, j, j1, j2, k, l, n, node
       LOGICAL                                            :: converged, noguess, shift
       REAL(KIND=dp)                                      :: charge, de, fde, pv, rcov, rcov1, rcov2, &
@@ -1378,7 +1511,7 @@ CONTAINS
                IF (.NOT. converged) THEN
                   CALL calculate_atom(atom, 0, noguess=.FALSE., converged=shift)
                   IF (.NOT. shift) THEN
-                     atom%orbitals%ener(:, :) = 1.5_dp*atom%orbitals%ener(:, :)+0.5_dp
+                     atom%orbitals%ener(:, :) = 1.5_dp*atom%orbitals%ener(:, :) + 0.5_dp
                   END IF
                END IF
                dener(1, j, j, i, i) = atom%energy%etot
@@ -1389,25 +1522,25 @@ CONTAINS
                         !no spin polarization
                         rcov = atom%orbitals%rcmax(k, l, 1)
                         tv = atom%orbitals%crefene(k, l, 1)
-                        de = ABS(atom%orbitals%ener(k, l)-atom%orbitals%refene(k, l, 1))
+                        de = ABS(atom%orbitals%ener(k, l) - atom%orbitals%refene(k, l, 1))
                         fde = get_error_value(de, tv)
                         IF (fde < 1.e-8) pval(5, k, l, j, i) = 1._dp
                         pv = atom%weight*atom%orbitals%wrefene(k, l, 1)*fde
-                        afun = afun+pv
+                        afun = afun + pv
                         pval(1, k, l, j, i) = pv
                         IF (atom%orbitals%wrefchg(k, l, 1) > 0._dp) THEN
                            CALL atom_orbital_charge(charge, atom%orbitals%wfn(:, k, l), rcov, l, atom%basis)
-                           de = ABS(charge-atom%orbitals%refchg(k, l, 1))
+                           de = ABS(charge - atom%orbitals%refchg(k, l, 1))
                            fde = get_error_value(de, 25._dp*tv)
                            IF (fde < 1.e-8) pval(6, k, l, j, i) = 1._dp
                            pv = atom%weight*atom%orbitals%wrefchg(k, l, 1)*fde
-                           afun = afun+pv
+                           afun = afun + pv
                            pval(2, k, l, j, i) = pv
                         END IF
                         IF (atom%orbitals%wrefnod(k, l, 1) > 0._dp) THEN
                            CALL atom_orbital_nodes(node, atom%orbitals%wfn(:, k, l), 2._dp*rcov, l, atom%basis)
-                           afun = afun+atom%weight*atom%orbitals%wrefnod(k, l, 1)* &
-                                  ABS(REAL(node, dp)-atom%orbitals%refnod(k, l, 1))
+                           afun = afun + atom%weight*atom%orbitals%wrefnod(k, l, 1)* &
+                                  ABS(REAL(node, dp) - atom%orbitals%refnod(k, l, 1))
                         END IF
                         IF (l == 0) THEN
                            IF (atom%orbitals%wpsir0(k, 1) > 0._dp) THEN
@@ -1416,13 +1549,13 @@ CONTAINS
                                  IF (ABS(pv) > ABS(atom%orbitals%tpsir0(k, 1))) THEN
                                     pv = 0.0_dp
                                  ELSE
-                                    pv = 10._dp*(ABS(pv)-ABS(atom%orbitals%tpsir0(k, 1)))
+                                    pv = 10._dp*(ABS(pv) - ABS(atom%orbitals%tpsir0(k, 1)))
                                  END IF
                                  pv = atom%weight*atom%orbitals%wpsir0(k, 1)*pv*pv
                               ELSE
                                  pv = atom%weight*atom%orbitals%wpsir0(k, 1)*pv*pv*100._dp
                               END IF
-                              afun = afun+pv
+                              afun = afun + pv
                            END IF
                         END IF
                      ELSE
@@ -1430,46 +1563,46 @@ CONTAINS
                         rcov1 = atom%orbitals%rcmax(k, l, 1)
                         rcov2 = atom%orbitals%rcmax(k, l, 2)
                         tv = atom%orbitals%crefene(k, l, 1)
-                        de = ABS(atom%orbitals%enera(k, l)-atom%orbitals%refene(k, l, 1))
+                        de = ABS(atom%orbitals%enera(k, l) - atom%orbitals%refene(k, l, 1))
                         fde = get_error_value(de, tv)
                         IF (fde < 1.e-8) pval(5, k, l, j, i) = 1._dp
                         pv = atom%weight*atom%orbitals%wrefene(k, l, 1)*fde
-                        afun = afun+pv
+                        afun = afun + pv
                         pval(1, k, l, j, i) = pv
                         tv = atom%orbitals%crefene(k, l, 2)
-                        de = ABS(atom%orbitals%enerb(k, l)-atom%orbitals%refene(k, l, 2))
+                        de = ABS(atom%orbitals%enerb(k, l) - atom%orbitals%refene(k, l, 2))
                         fde = get_error_value(de, tv)
                         IF (fde < 1.e-8) pval(7, k, l, j, i) = 1._dp
                         pv = atom%weight*atom%orbitals%wrefene(k, l, 2)*fde
-                        afun = afun+pv
+                        afun = afun + pv
                         pval(3, k, l, j, i) = pv
                         IF (atom%orbitals%wrefchg(k, l, 1) > 0._dp) THEN
                            CALL atom_orbital_charge(charge, atom%orbitals%wfna(:, k, l), rcov1, l, atom%basis)
-                           de = ABS(charge-atom%orbitals%refchg(k, l, 1))
+                           de = ABS(charge - atom%orbitals%refchg(k, l, 1))
                            fde = get_error_value(de, 25._dp*tv)
                            IF (fde < 1.e-8) pval(6, k, l, j, i) = 1._dp
                            pv = atom%weight*atom%orbitals%wrefchg(k, l, 1)*fde
-                           afun = afun+pv
+                           afun = afun + pv
                            pval(2, k, l, j, i) = pv
                         END IF
                         IF (atom%orbitals%wrefchg(k, l, 2) > 0._dp) THEN
                            CALL atom_orbital_charge(charge, atom%orbitals%wfnb(:, k, l), rcov2, l, atom%basis)
-                           de = ABS(charge-atom%orbitals%refchg(k, l, 2))
+                           de = ABS(charge - atom%orbitals%refchg(k, l, 2))
                            fde = get_error_value(de, 25._dp*tv)
                            IF (fde < 1.e-8) pval(8, k, l, j, i) = 1._dp
                            pv = atom%weight*atom%orbitals%wrefchg(k, l, 2)*fde
-                           afun = afun+pv
+                           afun = afun + pv
                            pval(4, k, l, j, i) = pv
                         END IF
                         IF (atom%orbitals%wrefnod(k, l, 1) > 0._dp) THEN
                            CALL atom_orbital_nodes(node, atom%orbitals%wfna(:, k, l), 2._dp*rcov1, l, atom%basis)
-                           afun = afun+atom%weight*atom%orbitals%wrefnod(k, l, 1)* &
-                                  ABS(REAL(node, dp)-atom%orbitals%refnod(k, l, 1))
+                           afun = afun + atom%weight*atom%orbitals%wrefnod(k, l, 1)* &
+                                  ABS(REAL(node, dp) - atom%orbitals%refnod(k, l, 1))
                         END IF
                         IF (atom%orbitals%wrefnod(k, l, 2) > 0._dp) THEN
                            CALL atom_orbital_nodes(node, atom%orbitals%wfnb(:, k, l), 2._dp*rcov2, l, atom%basis)
-                           afun = afun+atom%weight*atom%orbitals%wrefnod(k, l, 2)* &
-                                  ABS(REAL(node, dp)-atom%orbitals%refnod(k, l, 2))
+                           afun = afun + atom%weight*atom%orbitals%wrefnod(k, l, 2)* &
+                                  ABS(REAL(node, dp) - atom%orbitals%refnod(k, l, 2))
                         END IF
                         IF (l == 0) THEN
                            IF (atom%orbitals%wpsir0(k, 1) > 0._dp) THEN
@@ -1478,13 +1611,13 @@ CONTAINS
                                  IF (ABS(pv) > ABS(atom%orbitals%tpsir0(k, 1))) THEN
                                     pv = 0.0_dp
                                  ELSE
-                                    pv = 10._dp*(ABS(pv)-ABS(atom%orbitals%tpsir0(k, 1)))
+                                    pv = 10._dp*(ABS(pv) - ABS(atom%orbitals%tpsir0(k, 1)))
                                  END IF
                                  pv = atom%weight*atom%orbitals%wpsir0(k, 1)*pv*pv
                               ELSE
                                  pv = atom%weight*atom%orbitals%wpsir0(k, 1)*pv*pv*100._dp
                               END IF
-                              afun = afun+pv
+                              afun = afun + pv
                            END IF
                            IF (atom%orbitals%wpsir0(k, 2) > 0._dp) THEN
                               CALL atom_wfnr0(pv, atom%orbitals%wfnb(:, k, l), atom%basis)
@@ -1492,13 +1625,13 @@ CONTAINS
                                  IF (ABS(pv) > ABS(atom%orbitals%tpsir0(k, 2))) THEN
                                     pv = 0.0_dp
                                  ELSE
-                                    pv = 10._dp*(ABS(pv)-ABS(atom%orbitals%tpsir0(k, 2)))
+                                    pv = 10._dp*(ABS(pv) - ABS(atom%orbitals%tpsir0(k, 2)))
                                  END IF
                                  pv = atom%weight*atom%orbitals%wpsir0(k, 2)*pv*pv
                               ELSE
                                  pv = atom%weight*atom%orbitals%wpsir0(k, 2)*pv*pv*100._dp
                               END IF
-                              afun = afun+pv
+                              afun = afun + pv
                            END IF
                         END IF
                      ENDIF
@@ -1512,12 +1645,12 @@ CONTAINS
       DO j1 = 1, SIZE(atom_info, 2)
          DO j2 = 1, SIZE(atom_info, 2)
             DO i1 = 1, SIZE(atom_info, 1)
-               DO i2 = i1+1, SIZE(atom_info, 1)
+               DO i2 = i1 + 1, SIZE(atom_info, 1)
                   IF ((j1 > j2) .OR. (j1 == j2 .AND. i1 >= i2)) CYCLE
-                  dener(1, j1, j2, i1, i2) = dener(1, j1, j1, i1, i1)-dener(1, j2, j2, i2, i2)
-                  de = ABS(dener(2, j1, j2, i1, i2)-dener(1, j1, j2, i1, i2))
+                  dener(1, j1, j2, i1, i2) = dener(1, j1, j1, i1, i1) - dener(1, j2, j2, i2, i2)
+                  de = ABS(dener(2, j1, j2, i1, i2) - dener(1, j1, j2, i1, i2))
                   fde = get_error_value(de, ten)
-                  afun = afun+wen*fde
+                  afun = afun + wen*fde
                END DO
             END DO
          END DO
@@ -1542,7 +1675,7 @@ CONTAINS
       IF (fval <= ftarget) THEN
          errval = 0.0_dp
       ELSE
-         errval = (fval-ftarget)/MAX(ftarget, 1.e-10_dp)
+         errval = (fval - ftarget)/MAX(ftarget, 1.e-10_dp)
          errval = errval*errval
       END IF
 
@@ -1552,14 +1685,13 @@ CONTAINS
 !> \param pvec ...
 !> \param nval ...
 !> \param gthpot ...
+!> \param noopt_nlcc ...
 ! **************************************************************************************************
-   SUBROUTINE get_pseudo_param(pvec, nval, gthpot)
+   SUBROUTINE get_pseudo_param(pvec, nval, gthpot, noopt_nlcc)
       REAL(KIND=dp), DIMENSION(:), INTENT(out)           :: pvec
       INTEGER, INTENT(out)                               :: nval
       TYPE(atom_gthpot_type), INTENT(in)                 :: gthpot
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_pseudo_param', &
-         routineP = moduleN//':'//routineN
+      LOGICAL, INTENT(in)                                :: noopt_nlcc
 
       INTEGER                                            :: i, ival, j, l, n
 
@@ -1567,10 +1699,10 @@ CONTAINS
          pvec = 0
          ival = 0
          DO j = 1, gthpot%nexp_lsd
-            ival = ival+1
+            ival = ival + 1
             pvec(ival) = rcpro(-1, gthpot%alpha_lsd(j))
             DO i = 1, gthpot%nct_lsd(j)
-               ival = ival+1
+               ival = ival + 1
                pvec(ival) = gthpot%cval_lsd(i, j)
             END DO
          END DO
@@ -1579,32 +1711,32 @@ CONTAINS
          ival = 1
          pvec(ival) = rcpro(-1, gthpot%rc)
          DO i = 1, gthpot%ncl
-            ival = ival+1
+            ival = ival + 1
             pvec(ival) = gthpot%cl(i)
          END DO
          IF (gthpot%lpotextended) THEN
             DO j = 1, gthpot%nexp_lpot
-               ival = ival+1
+               ival = ival + 1
                pvec(ival) = rcpro(-1, gthpot%alpha_lpot(j))
                DO i = 1, gthpot%nct_lpot(j)
-                  ival = ival+1
+                  ival = ival + 1
                   pvec(ival) = gthpot%cval_lpot(i, j)
                END DO
             END DO
          END IF
-         IF (gthpot%nlcc) THEN
+         IF (gthpot%nlcc .AND. (.NOT. noopt_nlcc)) THEN
             DO j = 1, gthpot%nexp_nlcc
-               ival = ival+1
+               ival = ival + 1
                pvec(ival) = rcpro(-1, gthpot%alpha_nlcc(j))
                DO i = 1, gthpot%nct_nlcc(j)
-                  ival = ival+1
+                  ival = ival + 1
                   pvec(ival) = gthpot%cval_nlcc(i, j)
                END DO
             END DO
          END IF
          DO l = 0, lmat
             IF (gthpot%nl(l) > 0) THEN
-               ival = ival+1
+               ival = ival + 1
                pvec(ival) = rcpro(-1, gthpot%rcnl(l))
             END IF
          END DO
@@ -1613,7 +1745,7 @@ CONTAINS
                n = gthpot%nl(l)
                DO i = 1, n
                   DO j = i, n
-                     ival = ival+1
+                     ival = ival + 1
                      pvec(ival) = gthpot%hnl(i, j, l)
                   END DO
                END DO
@@ -1628,23 +1760,22 @@ CONTAINS
 !> \brief ...
 !> \param pvec ...
 !> \param gthpot ...
+!> \param noopt_nlcc ...
 ! **************************************************************************************************
-   SUBROUTINE put_pseudo_param(pvec, gthpot)
+   SUBROUTINE put_pseudo_param(pvec, gthpot, noopt_nlcc)
       REAL(KIND=dp), DIMENSION(:), INTENT(in)            :: pvec
       TYPE(atom_gthpot_type), INTENT(inout)              :: gthpot
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'put_pseudo_param', &
-         routineP = moduleN//':'//routineN
+      LOGICAL, INTENT(in)                                :: noopt_nlcc
 
       INTEGER                                            :: i, ival, j, l, n
 
       IF (gthpot%lsdpot) THEN
          ival = 0
          DO j = 1, gthpot%nexp_lsd
-            ival = ival+1
+            ival = ival + 1
             gthpot%alpha_lsd(j) = rcpro(1, pvec(ival))
             DO i = 1, gthpot%nct_lsd(j)
-               ival = ival+1
+               ival = ival + 1
                gthpot%cval_lsd(i, j) = pvec(ival)
             END DO
          END DO
@@ -1652,32 +1783,32 @@ CONTAINS
          ival = 1
          gthpot%rc = rcpro(1, pvec(ival))
          DO i = 1, gthpot%ncl
-            ival = ival+1
+            ival = ival + 1
             gthpot%cl(i) = pvec(ival)
          END DO
          IF (gthpot%lpotextended) THEN
             DO j = 1, gthpot%nexp_lpot
-               ival = ival+1
+               ival = ival + 1
                gthpot%alpha_lpot(j) = rcpro(1, pvec(ival))
                DO i = 1, gthpot%nct_lpot(j)
-                  ival = ival+1
+                  ival = ival + 1
                   gthpot%cval_lpot(i, j) = pvec(ival)
                END DO
             END DO
          END IF
-         IF (gthpot%nlcc) THEN
+         IF (gthpot%nlcc .AND. (.NOT. noopt_nlcc)) THEN
             DO j = 1, gthpot%nexp_nlcc
-               ival = ival+1
+               ival = ival + 1
                gthpot%alpha_nlcc(j) = rcpro(1, pvec(ival))
                DO i = 1, gthpot%nct_nlcc(j)
-                  ival = ival+1
+                  ival = ival + 1
                   gthpot%cval_nlcc(i, j) = pvec(ival)
                END DO
             END DO
          END IF
          DO l = 0, lmat
             IF (gthpot%nl(l) > 0) THEN
-               ival = ival+1
+               ival = ival + 1
                gthpot%rcnl(l) = rcpro(1, pvec(ival))
             END IF
          END DO
@@ -1686,7 +1817,7 @@ CONTAINS
                n = gthpot%nl(l)
                DO i = 1, n
                   DO j = i, n
-                     ival = ival+1
+                     ival = ival + 1
                      gthpot%hnl(i, j, l) = pvec(ival)
                   END DO
                END DO
@@ -1709,8 +1840,6 @@ CONTAINS
       REAL(dp), INTENT(IN)                               :: xval
       REAL(dp)                                           :: yval
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'rcpro', routineP = moduleN//':'//routineN
-
       REAL(dp)                                           :: x1, x2
 
       IF (id == 1) THEN
@@ -1718,7 +1847,7 @@ CONTAINS
       ELSE IF (id == -1) THEN
          x1 = SQRT(xval/2.0_dp)
          CPASSERT(x1 <= 1._dp)
-         x2 = 0.5_dp*LOG((1._dp+x1)/(1._dp-x1))
+         x2 = 0.5_dp*LOG((1._dp + x1)/(1._dp - x1))
          yval = x2/0.1_dp
       ELSE
          CPABORT("wrong id")
@@ -1740,7 +1869,6 @@ CONTAINS
       TYPE(section_vals_type), OPTIONAL, POINTER         :: powell_section
       REAL(KIND=dp), DIMENSION(:), OPTIONAL              :: results
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'atom_fit_kgpot', routineP = moduleN//':'//routineN
       REAL(KIND=dp), PARAMETER                           :: t23 = 2._dp/3._dp
 
       INTEGER                                            :: i, ig, ip, iw, j, n10
@@ -1753,7 +1881,7 @@ CONTAINS
 
       CPASSERT(num_pol*num_gau > 0)
 
-      ALLOCATE (co(num_pol+1, num_gau), x(num_pol*num_gau+num_gau))
+      ALLOCATE (co(num_pol + 1, num_gau), x(num_pol*num_gau + num_gau))
       co = 0._dp
 
       ! calculate density
@@ -1767,11 +1895,11 @@ CONTAINS
 
       ! initiallize parameter
       ostate%nf = 0
-      ostate%nvar = num_pol*num_gau+num_gau
+      ostate%nvar = num_pol*num_gau + num_gau
       DO i = 1, num_gau
-         co(1, i) = 0.5_dp+REAL(i-1, KIND=dp)
+         co(1, i) = 0.5_dp + REAL(i - 1, KIND=dp)
          co(2, i) = 1.0_dp
-         DO j = 3, num_pol+1
+         DO j = 3, num_pol + 1
             co(j, i) = 0.1_dp
          END DO
       END DO
@@ -1826,7 +1954,7 @@ CONTAINS
          WRITE (iunit, '(" Optimized local potential of approximated nonadditive kinetic energy functional")')
          DO ig = 1, num_gau
             WRITE (iunit, '(I2,T15,"Gaussian polynomial expansion",T66,"Rc=",F12.4)') ig, co(1, ig)
-            WRITE (iunit, '(T15,"Coefficients",T33,4F12.4)') (co(1+ip, ig), ip=1, num_pol)
+            WRITE (iunit, '(T15,"Coefficients",T33,4F12.4)') (co(1 + ip, ig), ip=1, num_pol)
          END DO
       END IF
 
@@ -1834,7 +1962,7 @@ CONTAINS
       WRITE (iw, *) ptable(atom%z)%symbol
       WRITE (iw, *) num_gau, num_pol
       DO ig = 1, num_gau
-         WRITE (iw, '(T10,F12.4,6X,4F12.4)') (co(ip, ig), ip=1, num_pol+1)
+         WRITE (iw, '(T10,F12.4,6X,4F12.4)') (co(ip, ig), ip=1, num_pol + 1)
       END DO
       CALL close_file(unit_number=iw)
 
@@ -1861,8 +1989,6 @@ CONTAINS
       REAL(dp), DIMENSION(:, :), INTENT(INOUT)           :: cval
       REAL(dp), INTENT(OUT)                              :: aerr
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'kgpot_fit', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, ig, ip, n
       REAL(KIND=dp)                                      :: pc, rc
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:)           :: pval
@@ -1875,12 +2001,12 @@ CONTAINS
             rc = kgpot%grid%rad(i)/cval(1, ig)
             pc = 0.0_dp
             DO ip = 1, np
-               pc = pc+cval(ip+1, ig)*rc**(2*ip-2)
+               pc = pc + cval(ip + 1, ig)*rc**(2*ip - 2)
             END DO
-            pval(i) = pval(i)+pc*EXP(-0.5_dp*rc*rc)
+            pval(i) = pval(i) + pc*EXP(-0.5_dp*rc*rc)
          END DO
       END DO
-      pval(1:n) = (pval(1:n)-kgpot%op(1:n))**2
+      pval(1:n) = (pval(1:n) - kgpot%op(1:n))**2
       aerr = fourpi*SUM(pval(1:n)*kgpot%grid%wr(1:n))
 
       DEALLOCATE (pval)
@@ -1894,20 +2020,20 @@ CONTAINS
 !> \param np ...
 !> \param ng ...
 ! **************************************************************************************************
-   SUBROUTINE getvar(xvar, cvar, np, ng)
+   PURE SUBROUTINE getvar(xvar, cvar, np, ng)
       REAL(KIND=dp), DIMENSION(:), INTENT(in)            :: xvar
       REAL(KIND=dp), DIMENSION(:, :), INTENT(inout)      :: cvar
-      INTEGER                                            :: np, ng
+      INTEGER, INTENT(IN)                                :: np, ng
 
       INTEGER                                            :: ig, ii, ip
 
       ii = 0
       DO ig = 1, ng
-         ii = ii+1
+         ii = ii + 1
          cvar(1, ig) = xvar(ii)
          DO ip = 1, np
-            ii = ii+1
-            cvar(ip+1, ig) = xvar(ii)**2
+            ii = ii + 1
+            cvar(ip + 1, ig) = xvar(ii)**2
          END DO
       END DO
 
@@ -1920,20 +2046,20 @@ CONTAINS
 !> \param np ...
 !> \param ng ...
 ! **************************************************************************************************
-   SUBROUTINE putvar(xvar, cvar, np, ng)
+   PURE SUBROUTINE putvar(xvar, cvar, np, ng)
       REAL(KIND=dp), DIMENSION(:), INTENT(inout)         :: xvar
       REAL(KIND=dp), DIMENSION(:, :), INTENT(in)         :: cvar
-      INTEGER                                            :: np, ng
+      INTEGER, INTENT(IN)                                :: np, ng
 
       INTEGER                                            :: ig, ii, ip
 
       ii = 0
       DO ig = 1, ng
-         ii = ii+1
+         ii = ii + 1
          xvar(ii) = cvar(1, ig)
          DO ip = 1, np
-            ii = ii+1
-            xvar(ii) = SQRT(ABS(cvar(ip+1, ig)))
+            ii = ii + 1
+            xvar(ii) = SQRT(ABS(cvar(ip + 1, ig)))
          END DO
       END DO
 

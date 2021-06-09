@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -21,71 +23,87 @@ MODULE xc_libxc_wrap
 #if defined (__LIBXC)
 #include <xc_version.h>
 ! check for LibXC version
-#if (XC_MAJOR_VERSION < 4)
-   This version of CP2K ONLY works with libxc versions 4.0.3 and above.
+#if (XC_MAJOR_VERSION < 5 || (XC_MAJOR_VERSION == 5 && XC_MINOR_VERSION < 1))
+   This version of CP2K ONLY works with libxc versions 5.1.0 and above.
    Furthermore, -I${LIBXC_DIR}/include needs to be added to FCFLAGS.
 #else
-
    ! Functionals which require parameters
    USE cp_log_handling, ONLY: cp_to_string
    USE kinds, ONLY: dp
    USE xc_f03_lib_m, ONLY: xc_f03_func_end, &
-      xc_f03_func_init, &
-      xc_f03_func_set_ext_params, &
-      xc_f03_functional_get_number, &
-      !
-      xc_f03_gga_exc, &
-      xc_f03_gga_exc_vxc, &
-      xc_f03_gga_fxc, &
-      xc_f03_gga_vxc, &
-      !
-      xc_f03_func_get_info, &
-      xc_f03_func_info_get_family, &
-      xc_f03_func_info_get_kind, &
-      xc_f03_func_info_get_name, &
-      xc_f03_func_info_get_references, &
-      xc_f03_func_info_get_flags, &
-      xc_f03_func_info_get_n_ext_params, &
-      xc_f03_func_info_get_ext_params_description, &
-      !
-      xc_f03_func_reference_get_ref, &
-      xc_f03_func_reference_get_doi, &
-      !
-      xc_f03_lda, &
-      xc_f03_lda_exc, &
-      xc_f03_lda_exc_vxc, &
-      xc_f03_lda_fxc, &
-      xc_f03_lda_kxc, &
-      xc_f03_lda_vxc, &
-      !
-      xc_f03_mgga, &
-      xc_f03_mgga_exc, &
-      xc_f03_mgga_exc_vxc, &
-      xc_f03_mgga_fxc, &
-      xc_f03_mgga_vxc, &
-      !
-      xc_f03_func_t, &
-      xc_f03_func_info_t, &
-      xc_f03_func_reference_t, &
-      !
-      XC_FAMILY_LDA, &
-      XC_FAMILY_GGA, &
-      XC_FAMILY_MGGA, &
-      XC_FAMILY_HYB_GGA, &
-      XC_FAMILY_HYB_MGGA, &
-      !
-      XC_UNPOLARIZED, &
-      XC_POLARIZED, &
-      !
-      XC_EXCHANGE, &
-      XC_CORRELATION, &
-      XC_EXCHANGE_CORRELATION, &
-      XC_KINETIC, &
-      !
-      XC_FLAGS_NEEDS_LAPLACIAN, &
-      XC_FLAGS_HAVE_EXC, &
-      XC_FLAGS_STABLE
+                           xc_f03_func_init, &
+                           xc_f03_functional_get_name, &
+                           xc_f03_func_set_ext_params, &
+                           xc_f03_functional_get_number, &
+                           xc_f03_available_functional_numbers, &
+                           xc_f03_available_functional_names, &
+                           xc_f03_maximum_name_length, &
+                           xc_f03_number_of_functionals, &
+                           !
+                           xc_f03_gga_exc, &
+                           xc_f03_gga_exc_vxc, &
+                           xc_f03_gga_exc_vxc_fxc, &
+                           xc_f03_gga_fxc, &
+                           xc_f03_gga_vxc, &
+                           xc_f03_gga_vxc_fxc, &
+                           !
+                           xc_f03_func_get_info, &
+                           xc_f03_func_info_get_family, &
+                           xc_f03_func_info_get_kind, &
+                           xc_f03_func_info_get_name, &
+                           xc_f03_func_info_get_references, &
+                           xc_f03_func_info_get_flags, &
+                           xc_f03_func_info_get_n_ext_params, &
+                           xc_f03_func_info_get_ext_params_name, &
+                           xc_f03_func_info_get_ext_params_default_value, &
+                           xc_f03_func_info_get_ext_params_description, &
+                           !
+                           xc_f03_func_reference_get_ref, &
+                           xc_f03_func_reference_get_doi, &
+                           !
+                           xc_f03_lda => xc_f03_lda_exc_vxc_fxc_kxc, &
+                           xc_f03_lda_exc, &
+                           xc_f03_lda_exc_vxc, &
+                           xc_f03_lda_exc_vxc_fxc, &
+                           xc_f03_lda_fxc, &
+                           xc_f03_lda_kxc, &
+                           xc_f03_lda_vxc, &
+                           !
+                           xc_f03_mgga => xc_f03_mgga_exc_vxc_fxc, &
+                           xc_f03_mgga_exc, &
+                           xc_f03_mgga_exc_vxc, &
+                           xc_f03_mgga_fxc, &
+                           xc_f03_mgga_vxc, &
+                           xc_f03_mgga_vxc_fxc, &
+                           !
+                           xc_f03_func_t, &
+                           xc_f03_func_info_t, &
+                           xc_f03_func_reference_t, &
+                           !
+                           XC_FAMILY_LDA, &
+                           XC_FAMILY_GGA, &
+                           XC_FAMILY_MGGA, &
+                           XC_FAMILY_HYB_LDA, &
+                           XC_FAMILY_HYB_GGA, &
+                           XC_FAMILY_HYB_MGGA, &
+                           !
+                           XC_UNPOLARIZED, &
+                           XC_POLARIZED, &
+                           !
+                           XC_EXCHANGE, &
+                           XC_CORRELATION, &
+                           XC_EXCHANGE_CORRELATION, &
+                           XC_KINETIC, &
+                           !
+                           XC_FLAGS_NEEDS_LAPLACIAN, &
+                           XC_FLAGS_HAVE_EXC, &
+                           XC_FLAGS_DEVELOPMENT
 
+   USE input_section_types, ONLY: section_add_keyword, &
+                                  section_add_subsection, &
+                                  section_create, &
+                                  section_release, &
+                                  section_type, section_vals_type, section_vals_val_get
 #include "../base/base_uses.f90"
 
    IMPLICIT NONE
@@ -97,18 +115,22 @@ MODULE xc_libxc_wrap
 
    PUBLIC :: xc_f03_func_t, xc_f03_func_info_t
    PUBLIC :: xc_f03_func_init, xc_f03_func_end
+   PUBLIC :: xc_f03_functional_get_name, xc_f03_available_functional_numbers, xc_f03_maximum_name_length, &
+             xc_f03_number_of_functionals, xc_f03_available_functional_names
    PUBLIC :: xc_f03_func_get_info, xc_f03_func_info_get_family, xc_f03_func_info_get_kind, &
-             xc_f03_func_info_get_name
-   PUBLIC :: xc_f03_gga_exc, xc_f03_gga_exc_vxc, xc_f03_gga_fxc, &
-             xc_f03_gga_vxc
+             xc_f03_func_info_get_name, xc_f03_func_info_get_ext_params_name, &
+             xc_f03_func_info_get_ext_params_description, xc_f03_func_info_get_ext_params_default_value, &
+             xc_f03_func_info_get_n_ext_params
+   PUBLIC :: xc_f03_gga_exc, xc_f03_gga_exc_vxc, xc_f03_gga_exc_vxc_fxc, xc_f03_gga_fxc, &
+             xc_f03_gga_vxc, xc_f03_gga_vxc_fxc
    PUBLIC :: xc_f03_lda, &
-             xc_f03_lda_exc, xc_f03_lda_exc_vxc, &
+             xc_f03_lda_exc, xc_f03_lda_exc_vxc, xc_f03_lda_exc_vxc_fxc, &
              xc_f03_lda_fxc, xc_f03_lda_kxc, xc_f03_lda_vxc
    PUBLIC :: xc_f03_mgga, xc_f03_mgga_exc, xc_f03_mgga_exc_vxc, xc_f03_mgga_fxc, &
-             xc_f03_mgga_vxc
+             xc_f03_mgga_vxc, xc_f03_mgga_vxc_fxc
 
    PUBLIC :: XC_FAMILY_LDA, XC_FAMILY_GGA, XC_FAMILY_MGGA, &
-             XC_FAMILY_HYB_GGA, XC_FAMILY_HYB_MGGA
+             XC_FAMILY_HYB_LDA, XC_FAMILY_HYB_GGA, XC_FAMILY_HYB_MGGA
 
    PUBLIC :: XC_UNPOLARIZED, XC_POLARIZED
 
@@ -120,9 +142,57 @@ MODULE xc_libxc_wrap
              xc_libxc_wrap_functional_get_number, &
              xc_libxc_wrap_needs_laplace, &
              xc_libxc_wrap_functional_set_params, &
-             xc_libxc_wrap_is_stable
+             xc_libxc_wrap_is_under_development, &
+             xc_libxc_get_reference_length, &
+             xc_libxc_check_functional
 
 CONTAINS
+
+! **************************************************************************************************
+!> \brief Provides the reference(s) for this functional.
+!> \param xc_info func_info object of the functional
+!> \return upper bound for the length of the reference string
+!> \author F. Stein
+! **************************************************************************************************
+   FUNCTION xc_libxc_get_reference_length(xc_info) RESULT(length)
+
+      TYPE(xc_f03_func_info_t), INTENT(IN)               :: xc_info
+      INTEGER                                            :: length
+
+      INTEGER, PARAMETER                                 :: maxlen = 67
+
+      CHARACTER(LEN=128)                                 :: descr_string
+      CHARACTER(LEN=1024)                                :: doi_string, ref_string
+      INTEGER                                            :: i, i_ref, idx, n_params
+      TYPE(xc_f03_func_reference_t)                      :: xc_ref
+
+      ! We are counting the number of necessary lines by carrying out a dry run of xc_libxc_wrap_info_refs
+      i_ref = 0
+      idx = 1
+      length = 0
+      DO WHILE (i_ref >= 0)
+         ! information about functional references
+         xc_ref = xc_f03_func_info_get_references(xc_info, i_ref)
+         ref_string = xc_f03_func_reference_get_ref(xc_ref)
+         doi_string = xc_f03_func_reference_get_doi(xc_ref)
+         length = length + LEN_TRIM(ref_string) + LEN_TRIM(doi_string) + 11
+         IF (MOD(length, maxlen) /= 0) length = length + maxlen - MOD(length, maxlen)
+         ! information about (optional) external parameters
+         n_params = xc_f03_func_info_get_n_ext_params(xc_info)
+         IF (n_params > 0) THEN
+            length = length + maxlen
+         END IF
+         DO i = 1, n_params
+            descr_string = xc_f03_func_info_get_ext_params_description(xc_info, i - 1)
+            length = length + LEN_TRIM(descr_string) + 3
+            IF (MOD(length, maxlen) /= 0) length = length + maxlen - MOD(length, maxlen)
+         END DO
+         idx = idx + 1
+      END DO
+      ! two additional lines for spin polarization, scaling factor and buffer
+      length = length + 2*maxlen
+
+   END FUNCTION xc_libxc_get_reference_length
 
 ! **************************************************************************************************
 !> \brief Provides the reference(s) for this functional.
@@ -139,12 +209,13 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: sc
       CHARACTER(LEN=*), INTENT(OUT)                      :: reference
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'xc_libxc_wrap_info_refs', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'xc_libxc_wrap_info_refs'
       INTEGER, PARAMETER                                 :: maxlen = 67
 
       CHARACTER(LEN=128)                                 :: descr_string
-      CHARACTER(LEN=400)                                 :: doi_string, ref_string, tmp_string
+      CHARACTER(LEN=1028)                                :: doi_string, ref_string
+      ! conservative estimate of the necessary length: 2*1028+11=2067
+      CHARACTER(LEN=2067)                                :: tmp_string
       INTEGER                                            :: empty, first, handle, i, i_ref, idx, &
                                                             last, n_params
       TYPE(xc_f03_func_reference_t)                      :: xc_ref
@@ -161,34 +232,35 @@ CONTAINS
          doi_string = xc_f03_func_reference_get_doi(xc_ref)
          WRITE (tmp_string, '(a1,i1,a2,a,a7,a)') '[', idx, '] ', &
             TRIM(ref_string), ', doi: ', TRIM(doi_string)
-         last = first+LEN_TRIM(tmp_string)-1
+         last = first + LEN_TRIM(tmp_string) - 1
          reference(first:last) = TRIM(tmp_string)
-         first = last+1
-         empty = last+(maxlen-1)-MOD(last-1, maxlen)
+         first = last + 1
+         empty = last + (maxlen - 1) - MOD(last - 1, maxlen)
          ! fill up line with 'spaces'
          IF (empty /= last) THEN
             reference(first:empty) = ' '
-            first = empty+1
+            first = empty + 1
          END IF
          ! information about (optional) external parameters
          n_params = xc_f03_func_info_get_n_ext_params(xc_info)
          IF (n_params > 0) THEN
-            reference(first:first+maxlen-1) = 'Optional external parameters:'//REPEAT(' ', maxlen-28)
-            first = first+maxlen
+            reference(first:first + maxlen - 1) = 'Optional external parameters:'//REPEAT(' ', maxlen - 28)
+            first = first + maxlen
          END IF
          DO i = 1, n_params
-            descr_string = xc_f03_func_info_get_ext_params_description(xc_info, i-1)
-            last = first+LEN_TRIM(descr_string)-1+3
+            descr_string = xc_f03_func_info_get_ext_params_description(xc_info, i - 1)
+            last = first + LEN_TRIM(descr_string) - 1 + 3
             reference(first:last) = ' * '//TRIM(descr_string)
-            first = last+1
-            empty = last+(maxlen-1)-MOD(last-1, maxlen)
+            first = last + 1
+            empty = last + (maxlen - 1) - MOD(last - 1, maxlen)
             ! fill up line with 'spaces'
+
             IF (empty /= last) THEN
                reference(first:empty) = ' '
-               first = empty+1
+               first = empty + 1
             END IF
          END DO
-         idx = idx+1
+         idx = idx + 1
       END DO
       SELECT CASE (polarized)
       CASE (XC_UNPOLARIZED)
@@ -198,11 +270,14 @@ CONTAINS
       CASE default
          CPABORT("Unsupported value for variable 'polarized'.")
       END SELECT
-      last = first+LEN_TRIM(tmp_string)-1
+      last = first + LEN_TRIM(tmp_string) - 1
       reference(first:last) = TRIM(tmp_string)
-      first = last+1
+      first = last + 1
       ! fill with 'spaces'
       reference(first:LEN(reference)) = ' '
+
+      IF (last > LEN(reference)) &
+         CPABORT("Faulty reference length.")
 
       CALL timestop(handle)
 
@@ -217,8 +292,7 @@ CONTAINS
    SUBROUTINE xc_libxc_wrap_version(version)
       CHARACTER(LEN=*), INTENT(OUT)                      :: version
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'xc_libxc_wrap_version', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'xc_libxc_wrap_version'
 
       INTEGER                                            :: handle
 
@@ -229,6 +303,40 @@ CONTAINS
       CALL timestop(handle)
 
    END SUBROUTINE xc_libxc_wrap_version
+
+! **************************************************************************************************
+!> \brief Checks existence of functional in LibXC
+!> \param func_string ...
+!> \return ...
+!> \author F. Stein
+!> \note Remove prefix to keep compatibility, functionals can be specified (in
+!>       LIBXC section) as:
+!>       GGA_X_...  or  XC_GGA_X_...
+!>       Starting from version 2.2.0 both name conventions are allowed, before
+!>       the 'XC_' prefix was necessary.
+!>
+! **************************************************************************************************
+   LOGICAL FUNCTION xc_libxc_check_functional(func_string) RESULT(exists)
+      CHARACTER(LEN=*), INTENT(IN)                       :: func_string
+
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'xc_libxc_check_functional'
+
+      INTEGER                                            :: func_id, handle
+
+      CALL timeset(routineN, handle)
+
+      IF (func_string(1:3) == "XC_") THEN
+         func_id = xc_f03_functional_get_number(func_string(4:LEN_TRIM(func_string)))
+      ELSE
+         func_id = xc_f03_functional_get_number(func_string(1:LEN_TRIM(func_string)))
+      END IF
+
+      exists = .TRUE.
+      IF (func_id == -1) exists = .FALSE.
+
+      CALL timestop(handle)
+
+   END FUNCTION xc_libxc_check_functional
 
 ! **************************************************************************************************
 !> \brief Provides the functional ID.
@@ -245,8 +353,7 @@ CONTAINS
    INTEGER FUNCTION xc_libxc_wrap_functional_get_number(func_string) RESULT(func_id)
       CHARACTER(LEN=*), INTENT(IN)                       :: func_string
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'xc_libxc_wrap_functional_get_number', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'xc_libxc_wrap_functional_get_number'
 
       INTEGER                                            :: handle
 
@@ -266,31 +373,22 @@ CONTAINS
    END FUNCTION xc_libxc_wrap_functional_get_number
 
 ! **************************************************************************************************
-!> \brief Wrapper to test wether functional is considered stable in Libxc
+!> \brief Wrapper to test wether functional is considered under development in Libxc
 !> \param xc_info ...
 !>
 !> \return ...
 !> \author F. Stein (fstein93)
 ! **************************************************************************************************
-   LOGICAL FUNCTION xc_libxc_wrap_is_stable(xc_info)
+   LOGICAL FUNCTION xc_libxc_wrap_is_under_development(xc_info)
       TYPE(xc_f03_func_info_t)                           :: xc_info
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'xc_libxc_wrap_is_stable', &
-         routineP = moduleN//':'//routineN
-
-      INTEGER                                            :: handle
-
-      CALL timeset(routineN, handle)
-
-      IF (IAND(xc_f03_func_info_get_flags(xc_info), XC_FLAGS_STABLE) == XC_FLAGS_STABLE) THEN
-         xc_libxc_wrap_is_stable = .TRUE.
+      IF (IAND(xc_f03_func_info_get_flags(xc_info), XC_FLAGS_DEVELOPMENT) == XC_FLAGS_DEVELOPMENT) THEN
+         xc_libxc_wrap_is_under_development = .TRUE.
       ELSE
-         xc_libxc_wrap_is_stable = .FALSE.
+         xc_libxc_wrap_is_under_development = .FALSE.
       END IF
 
-      CALL timestop(handle)
-
-   END FUNCTION xc_libxc_wrap_is_stable
+   END FUNCTION xc_libxc_wrap_is_under_development
 
 ! **************************************************************************************************
 !> \brief Wrapper for functionals that need the Laplacian, all others can use
@@ -304,8 +402,7 @@ CONTAINS
       ! Only some MGGA functionals needs the laplacian
       INTEGER, INTENT(IN)                                :: func_id
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'xc_libxc_wrap_needs_laplace', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'xc_libxc_wrap_needs_laplace'
 
       INTEGER                                            :: handle
       TYPE(xc_f03_func_info_t)                           :: xc_info
@@ -343,34 +440,54 @@ CONTAINS
 !> \brief Wrapper for functionals that need special parameters.
 !> \param xc_func ...
 !> \param xc_info ...
-!> \param params ...
+!> \param libxc_params ...
 !> \param no_exc ...
 !>
 !> \author A. Gloess (agloess)
 ! **************************************************************************************************
-   SUBROUTINE xc_libxc_wrap_functional_set_params(xc_func, xc_info, params, no_exc)
+   SUBROUTINE xc_libxc_wrap_functional_set_params(xc_func, xc_info, libxc_params, no_exc)
       TYPE(xc_f03_func_t), INTENT(INOUT)                 :: xc_func
       TYPE(xc_f03_func_info_t), INTENT(IN)               :: xc_info
-      REAL(KIND=dp), DIMENSION(:), INTENT(IN), POINTER   :: params
+      TYPE(section_vals_type), POINTER, INTENT(IN)       :: libxc_params
       LOGICAL, INTENT(INOUT)                             :: no_exc
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'xc_libxc_wrap_functional_set_params', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'xc_libxc_wrap_functional_set_params'
 
-      INTEGER                                            :: handle, i_params, n_params
+      INTEGER                                            :: handle, i, i_params, n_params
+      REAL(KIND=dp), DIMENSION(:), ALLOCATABLE           :: params
+      REAL(KIND=dp), DIMENSION(:), POINTER               :: params_pointer
+      CHARACTER(LEN=128)                                 :: param_name
 
       CALL timeset(routineN, handle)
 
       n_params = xc_f03_func_info_get_n_ext_params(xc_info)
-      i_params = SIZE(params)
+      IF (n_params > 0) THEN
+         IF (libxc_params%section%name == "LIBXC" .OR. libxc_params%section%name == "KE_LIBXC") THEN
+            NULLIFY (params_pointer)
+            CALL section_vals_val_get(libxc_params, "parameters", r_vals=params_pointer)
+            CPASSERT(ASSOCIATED(params_pointer))
 
-      IF ((n_params > 0) .AND. (i_params > 0) .AND. (params(1) < HUGE(0.0_dp))) THEN
-         IF (i_params == n_params) THEN
-            CALL xc_f03_func_set_ext_params(xc_func, params)
+            i_params = SIZE(params_pointer)
+
+            IF ((n_params > 0) .AND. (i_params > 0) .AND. (params_pointer(1) < HUGE(0.0_dp))) THEN
+               IF (i_params == n_params) THEN
+                  WRITE (*, *) "parameters ", params_pointer
+                  CALL xc_f03_func_set_ext_params(xc_func, params_pointer)
+               ELSE
+                  CALL cp_abort(__LOCATION__, &
+                     "LIBXC: Inconsistent number of optional external parameters. (required: "&
+                     &//cp_to_string(n_params)//", given: "//cp_to_string(i_params)//")")
+               END IF
+            END IF
          ELSE
-            CALL cp_abort(__LOCATION__, &
-               "LIBXC: Inconsistent number of optional external parameters. (required: "&
-               &//cp_to_string(n_params)//", given: "//cp_to_string(i_params)//")")
+            ALLOCATE (params(n_params))
+            DO i = 1, n_params
+               param_name = xc_f03_func_info_get_ext_params_name(xc_info, i - 1)
+
+               CALL section_vals_val_get(libxc_params, TRIM(param_name), r_val=params(i))
+            END DO
+
+            CALL xc_f03_func_set_ext_params(xc_func, params)
          END IF
       END IF
 

@@ -1,549 +1,670 @@
-#!/usr/bin/python3
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 # Generates the CP2K Dashboard html page
 # Inspired by Iain's cp2k_page_update.sh
 #
 # author: Ole Schuett
 
-import sys
-import os
-import smtplib
-from email.mime.text import MIMEText
-import re
-import gzip
+from configparser import ConfigParser
 from datetime import datetime, timedelta
-from subprocess import check_output
-import traceback
+from email.mime.text import MIMEText
 from os import path
-from pprint import pformat
-from glob import glob
-import itertools
-import configparser
-import pickle
 from pathlib import Path
-import requests
+from pprint import pformat
+from subprocess import check_output
+import argparse
+import dataclasses
+import gzip
 import hashlib
-from collections import OrderedDict
+import html
+import itertools
+import os
+import pickle
+import re
+import requests
+import smtplib
+import sys
+import traceback
+from typing import Any, List, Dict, cast, Optional, ValuesView, NewType
 
-import matplotlib as mpl
-mpl.use('Agg')  # change backend, to run without X11
-import matplotlib.pyplot as plt
-from matplotlib.ticker import AutoMinorLocator
+try:
+    from typing import Literal
+except:
+    from typing_extensions import Literal  # type: ignore
 
-#===============================================================================
-class GitLog(list):
-    def __init__(self):
-        cmd = ["git", "log", "--pretty=format:%H%n%ct%n%an%n%ae%n%s%n%b<--seperator-->"]
+import matplotlib as mpl  # type: ignore
+
+mpl.use("Agg")  # change backend, to run without X11
+import matplotlib.pyplot as plt  # type: ignore
+from matplotlib.ticker import AutoMinorLocator  # type: ignore
+
+# ======================================================================================
+GitSha = NewType("GitSha", str)
+ReportStatus = Literal["OK", "FAILED", "OUTDATED", "UNKNOWN"]
+
+# ======================================================================================
+class GitLog:
+    def __init__(self) -> None:
+        self.commits: List[Commit] = []
+        cmd = ["git", "log", "--pretty=format:%H%n%ct%n%an%n%ae%n%s%n%b<--separator-->"]
         outbytes = check_output(cmd)
-        output = outbytes.decode("utf-8", errors='replace')
-        for entry in output.split("<--seperator-->")[:-1]:
+        output = outbytes.decode("utf-8", errors="replace")
+        for entry in output.split("<--separator-->")[:-1]:
             lines = entry.strip().split("\n")
-            commit = dict()
-            commit['git-sha'] = lines[0]
-            commit['date'] = datetime.fromtimestamp(float(lines[1]))
-            commit['author-name'] = lines[2]
-            commit['author-email'] = lines[3]
-            commit['msg'] = lines[4]
-            self.append(commit)
+            commit = Commit(
+                sha=GitSha(lines[0]),
+                date=datetime.fromtimestamp(float(lines[1])),
+                author_name=lines[2],
+                author_email=lines[3],
+                message=lines[4],
+            )
+            self.commits.append(commit)
 
         # git-log outputs entries from new to old.
-        self.index = { c['git-sha']: i for i, c in enumerate(self) }
+        self.index_by_sha = {c.sha: i for i, c in enumerate(self.commits)}
 
-#===============================================================================
-def main():
-    if(len(sys.argv) < 4):
-        print("Usage update_dashboard.py <config-file> <status-file> <output-dir> [--send-emails]")
-        sys.exit(1)
 
-    config_fn, status_fn, outdir = sys.argv[1:4]
-    assert(outdir.endswith("/"))
-    assert(path.exists(config_fn))
+# ======================================================================================
+@dataclasses.dataclass
+class Commit:
+    sha: GitSha
+    author_name: str
+    author_email: str
+    date: datetime
+    message: str
 
-    global send_emails
-    if (len(sys.argv) == 5):
-        assert sys.argv[4] == "--send-emails"
-        send_emails = True
-    else:
-        send_emails = False
 
-    config = configparser.ConfigParser()
-    config.read(config_fn)
+# ======================================================================================
+@dataclasses.dataclass
+class PlotCurve:
+    label: str
+    x: List[float] = dataclasses.field(default_factory=list)
+    y: List[float] = dataclasses.field(default_factory=list)
+    yerr: List[float] = dataclasses.field(default_factory=list)
+
+
+# ======================================================================================
+class Plot:
+    def __init__(self, name: str, title: str, ylabel: str, **_: Any):
+        self.name = name
+        self.title = title
+        self.ylabel = ylabel
+
+
+# ======================================================================================
+class AggregatedPlot:
+    def __init__(self, plot: Plot):
+        self.name = plot.name
+        self.title = plot.title
+        self.ylabel = plot.ylabel
+        self.curves_by_name: Dict[str, PlotCurve] = {}
+
+    @property
+    def curves(self) -> ValuesView[PlotCurve]:
+        return self.curves_by_name.values()
+
+
+# ======================================================================================
+class PlotPoint:
+    def __init__(
+        self, plot: str, name: str, label: str, y: float, yerr: float, **_: Any
+    ):
+        self.plot_name = plot
+        self.curve_name = name
+        self.curve_label = label
+        self.y = y
+        self.yerr = yerr
+
+
+# ======================================================================================
+@dataclasses.dataclass
+class Report:
+    status: ReportStatus
+    summary: str
+    sha: Optional[GitSha] = None
+    plots: List[Plot] = dataclasses.field(default_factory=list)
+    plot_points: List[PlotPoint] = dataclasses.field(default_factory=list)
+    archive_path: Optional[str] = None
+
+
+# ======================================================================================
+@dataclasses.dataclass
+class Status:
+    notified: bool = False
+    last_ok: Optional[GitSha] = None
+
+
+# ======================================================================================
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Generates the CP2K Dashboard.")
+    parser.add_argument("config_file", type=Path)
+    parser.add_argument("status_file", type=Path)
+    parser.add_argument("output_dir", type=Path)
+    parser.add_argument("--send-emails", action="store_true")
+    args = parser.parse_args()
+
+    assert args.config_file.exists()
+    config = ConfigParser()
+    config.read(args.config_file)
     log = GitLog()  # Reads history from local git repo.
 
-    gen_frontpage(config, log, status_fn, outdir)
-    gen_archive(config, log, outdir)
-    gen_url_list(config, outdir)
+    gen_frontpage(config, log, args.status_file, args.output_dir, args.send_emails)
+    gen_archive(config, log, args.output_dir)
+    gen_url_list(config, args.output_dir)
 
-#===============================================================================
-def gen_frontpage(config, log, status_fn, outdir):
-    if(path.exists(status_fn)):
-        status = eval(open(status_fn).read())
-    else:
-        status = dict()
 
-    output  = html_header(title="CP2K Dashboard")
+# ======================================================================================
+def gen_frontpage(
+    config: ConfigParser, log: GitLog, status_fn: Path, outdir: Path, send_emails: bool
+) -> None:
+
+    status: Dict[str, Status] = {}
+    if path.exists(status_fn):
+        with open(status_fn, "rb") as f:
+            status = pickle.load(f)
+
+    output = html_header(title="CP2K Dashboard")
     output += '<div id="flex-container"><div>\n'
     output += html_gitbox(log)
     output += html_linkbox()
-    output += '</div>\n'
+    output += "</div>\n"
     output += '<table border="1" cellspacing="3" cellpadding="5">\n'
-    output += '<tr><th>Name</th><th>Host</th><th>Status</th>'
-    output += '<th>Commit</th><th>Summary</th><th>Last OK</th><th>Issues</th></tr>\n\n'
-
-    def get_sortkey(s):
-        return config.getint(s, "sortkey")
+    output += "<tr><th>Name</th><th>Host</th><th>Status</th>"
+    output += "<th>Commit</th><th>Summary</th><th>Last OK</th></tr>\n\n"
 
     now = datetime.utcnow().replace(microsecond=0)
-    issues = requests.get("https://api.github.com/repos/cp2k/cp2k/issues").json()
 
-    for s in sorted(config.sections(), key=get_sortkey):
-        print("Working on summary entry of: "+s)
-        name        = config.get(s,"name")
-        host        = config.get(s,"host")
-        report_url  = config.get(s,"report_url")
-        do_notify   = config.getboolean(s,"notify") if(config.has_option(s,"notify")) else True
-        timeout     = config.getint(s,"timeout") if(config.has_option(s,"timeout")) else 24
+    for s in sorted(config.sections(), key=lambda s: config.getint(s, "sortkey")):
+        print("Working on summary entry of: " + s)
+        name = config.get(s, "name")
+        host = config.get(s, "host")
+        report_url = config.get(s, "report_url")
+        do_notify = config.getboolean(s, "notify", fallback=True)
+        timeout = config.getint(s, "timeout", fallback=24)
 
         # find latest commit that should have been tested by now
-        freshness_threshold = now - timedelta(hours=timeout)
-        ages_beyond_threshold = [ i for i, c in enumerate(log) if c['date'] < freshness_threshold ]
-        threshold_age = ages_beyond_threshold[0]
+        threshold = now - timedelta(hours=timeout)
+        threshold_age = next(i for i, c in enumerate(log.commits) if c.date < threshold)
 
         # get and parse report
         report_txt = retrieve_report(report_url)
         report = parse_report(report_txt, log)
 
-        if(s not in status):
-            status[s] = {'last_ok': None, 'notified': False}
+        if s not in status:
+            status[s] = Status()
 
-        if(report['status'] == "OK"):
-            status[s]['last_ok'] = report['git-sha']
-            status[s]['notified'] = False
-        elif(do_notify and not status[s]['notified']):
-            send_notification(report, status[s]['last_ok'], log, name, s)
-            status[s]['notified'] = True
+        if report.status == "OK":
+            status[s].last_ok = report.sha
+            status[s].notified = False
+        elif do_notify and not status[s].notified:
+            send_notification(report, status[s].last_ok, log, name, s, send_emails)
+            status[s].notified = True
 
-        if(report['git-sha']):
-            age = log.index[report['git-sha']]
-            if(age > threshold_age):
-                report['status'] = "OUTDATED"
-            elif(report['status'] in ("OK", "FAILED")):
+        if report.sha:
+            age = log.index_by_sha[report.sha]
+            if age > threshold_age:
+                report.status = "OUTDATED"
+            elif report.status in ("OK", "FAILED"):
                 # store only useful and fresh reports, prevents overwriting archive
+                assert report_txt
                 store_report(report, report_txt, s, outdir)
 
-        uptodate = report['git-sha'] == log[0]['git-sha'] # report from latest commit?
+        up_to_date = report.sha == log.commits[0].sha  # report from latest commit?
         output += '<tr align="center">'
-        output += '<td align="left"><a href="archive/%s/index.html">%s</a></td>'%(s, name)
-        output += '<td align="left">%s</td>'%host
-        output += status_cell(report['status'], report_url, uptodate)
+        output += f'<td align="left"><a href="archive/{s}/index.html">{name}</a></td>'
+        output += f'<td align="left">{host}</td>'
+        output += status_cell(report.status, report_url, up_to_date)
 
-        #Commit
-        output += commit_cell(report['git-sha'], log)
+        # Commit
+        output += commit_cell(report.sha, log)
 
-        #Summary
-        output += '<td align="left">%s</td>'%report['summary']
+        # Summary
+        output += f'<td align="left">{report.summary}</td>'
 
-        #Last OK
-        if(report['status'] != "OK"):
-            output += commit_cell(status[s]['last_ok'], log)
+        # Last OK
+        if report.status != "OK":
+            output += commit_cell(status[s].last_ok, log)
         else:
-            output += '<td></td>'
+            output += "<td></td>"
 
-        #Issues
-        matching_issues = []
-        for issue in issues:
-            link_pattern = "dashboard.cp2k.org/archive/{}/".format(s)
-            matching_labels = [label for label in issue['labels'] if s in label['name']]
-            if link_pattern in issue['body'] or any(matching_labels):
-                issue_tmpl = '<a href="{}">#{}</a>'
-                matching_issues.append(issue_tmpl.format(issue['html_url'], issue['number']))
-        output += '<td>{}</td>'.format(', '.join(matching_issues))
+        output += "</tr>\n\n"
 
-        output += '</tr>\n\n'
-
-    output += '</table>\n'
-    output += '<div id="dummybox"></div></div>\n' # complete flex-container
+    output += "</table>\n"
+    output += '<div id="dummybox"></div></div>\n'  # complete flex-container
     output += html_footer()
-    write_file(outdir+"index.html", output)
-    write_file(status_fn, pformat(status))
+    write_file(outdir / "index.html", output)
+    with open(status_fn, "wb") as f:
+        pickle.dump(status, f)
 
-#===============================================================================
-def gen_archive(config, log, outdir):
+
+# ======================================================================================
+def gen_archive(config: ConfigParser, log: GitLog, outdir: Path) -> None:
 
     for s in config.sections():
-        print("Working on archive page of: "+s)
-        name          = config.get(s,"name")
-        info_url      = config.get(s,"info_url") if(config.has_option(s,"info_url")) else None
-        archive_files = glob(outdir+"archive/%s/rev_*.txt.gz"%s) + \
-                        glob(outdir+"archive/%s/commit_*.txt.gz"%s)
+        print(f"Working on archive page of: {s}")
+        name = config.get(s, "name")
+        info_url = config.get(s, "info_url", fallback=None)
+        archive_dir = outdir / f"archive/{s}"
+        archive_files = archive_dir.glob("commit_*.txt.gz")
 
         # read cache
-        cache_fn = outdir+"archive/%s/reports.cache"%s
-        if not path.exists(cache_fn):
-            reports_cache = dict()
-        else:
-            reports_cache = pickle.load(open(cache_fn, "rb"))
+        reports_cache: Dict[Path, Report] = {}
+        cache_fn = f"{archive_dir}/reports.cache"
+        if path.exists(cache_fn):
+            with open(cache_fn, "rb") as f:
+                reports_cache = pickle.load(f)
             cache_age = path.getmtime(cache_fn)
             # remove outdated cache entries
-            reports_cache = {k:v for k,v in reports_cache.items() if path.getmtime(k) < cache_age }
+            reports_cache = {
+                k: v for k, v in reports_cache.items() if path.getmtime(k) < cache_age
+            }
 
         # read all archived reports
-        archive_reports = dict()
+        archive_reports: Dict[GitSha, Report] = {}
         for fn in archive_files:
+            report: Report
             if fn in reports_cache:
                 report = reports_cache[fn]
             else:
-                report_txt = gzip.open(fn, 'rb').read().decode("utf-8", errors='replace')
-                report = parse_report(report_txt, log)
-                report['url'] = path.basename(fn)[:-3]
+                with open(fn, "rb") as f:
+                    content = gzip.decompress(f.read())
+                report = parse_report(content.decode("utf-8", errors="replace"), log)
+                report.archive_path = path.basename(fn)[:-3]
                 reports_cache[fn] = report
-            sha = report['git-sha']
-            assert sha not in archive_reports
-            archive_reports[sha] = report
+            assert report.sha and report.sha not in archive_reports
+            archive_reports[report.sha] = report
 
         # write cache
         if reports_cache:
-            pickle.dump(reports_cache, open(cache_fn, "wb"))
+            with open(cache_fn, "wb") as f:
+                pickle.dump(reports_cache, f)
 
         # loop over all relevant commits
         all_url_rows = []
         all_html_rows = []
-        max_age = 1 + max([-1] + [log.index[sha] for sha in archive_reports.keys()])
-        for commit in log[:max_age]:
-            sha = commit['git-sha']
-            html_row  = '<tr>'
+        max_age_full = max([-1] + [log.index_by_sha[sha] for sha in archive_reports])
+        for commit in log.commits[: max_age_full + 1]:
+            sha = commit.sha
+            html_row = "<tr>"
             html_row += commit_cell(sha, log)
-            if(sha in archive_reports):
+            if sha in archive_reports:
                 report = archive_reports[sha]
-                html_row += status_cell(report['status'], report['url'])
-                html_row += '<td align="left">%s</td>'%report['summary']
-                url_row = "https://dashboard.cp2k.org/archive/%s/%s.gz\n"%(s, report['url'])
+                assert report.archive_path
+                html_row += status_cell(report.status, report.archive_path)
+                html_row += f'<td align="left">{report.summary}</td>'
+                archive_base_url = "https://dashboard.cp2k.org/archive"
+                url_row = f"{archive_base_url}/{s}/{report.archive_path}.gz\n"
             else:
-                html_row += 2*'<td></td>'
+                html_row += 2 * "<td></td>"
                 url_row = ""
-            html_row += '<td align="left">%s</td>'%commit['author-name']
-            html_row += '<td align="left">%s</td>'%commit['msg']
-            html_row += '</tr>\n\n'
+            html_row += f'<td align="left">{html.escape(commit.author_name)}</td>'
+            html_row += f'<td align="left">{html.escape(commit.message)}</td>'
+            html_row += "</tr>\n\n"
             all_html_rows.append(html_row)
             all_url_rows.append(url_row)
 
         # generate html pages
         for full_archive in (False, True):
-            if(full_archive):
+            if full_archive:
                 html_out_postfix = "index_full.html"
                 urls_out_postfix = "list_full.txt"
-                other_index_link = '<p>View <a href="index.html">recent archive</a></p>'
-                max_age = None  # output all
+                toggle_link = '<p>View <a href="index.html">recent archive</a></p>'
+                max_age = max_age_full
             else:
                 html_out_postfix = "index.html"
                 urls_out_postfix = "list_recent.txt"
-                other_index_link = '<p>View <a href="index_full.html">full archive</a></p>'
+                toggle_link = '<p>View <a href="index_full.html">full archive</a></p>'
                 max_age = 100
 
             # generate archive index
             output = html_header(title=name)
             output += '<p>Go back to <a href="../../index.html">main page</a></p>\n'
-            if(info_url):
-                output += '<p>Get <a href="%s">more information</a></p>\n'%info_url
-            output += gen_plots(archive_reports, log, outdir+"archive/"+s+"/", full_archive)
-            output += other_index_link
+            if info_url:
+                output += f'<p>Get <a href="{info_url}">more information</a></p>\n'
+            output += gen_plots(archive_reports, log, archive_dir, full_archive)
+            output += toggle_link
             output += '<table border="1" cellspacing="3" cellpadding="5">\n'
-            output += '<tr><th>Commit</th><th>Status</th><th>Summary</th><th>Author</th><th>Commit Message</th></tr>\n\n'
-            output += "".join(all_html_rows[:max_age])
-            output += '</table>\n'
-            output += other_index_link
+            output += "<tr><th>Commit</th><th>Status</th><th>Summary</th>"
+            output += "<th>Author</th><th>Commit Message</th></tr>\n\n"
+            output += "".join(all_html_rows[: max_age + 1])
+            output += "</table>\n"
+            output += toggle_link
             output += html_footer()
-            html_out_fn = outdir+"archive/%s/%s"%(s,html_out_postfix)
-            write_file(html_out_fn, output)
+            write_file(archive_dir / html_out_postfix, output)
 
-            url_list = "".join(all_url_rows[:max_age])
-            urls_out_fn = outdir+"archive/%s/%s"%(s,urls_out_postfix)
-            write_file(urls_out_fn, url_list)
+            url_list = "".join(all_url_rows[: max_age + 1])
+            write_file(archive_dir / urls_out_postfix, url_list)
 
-#===============================================================================
-def gen_url_list(config, outdir):
+
+# ======================================================================================
+def gen_url_list(config: ConfigParser, outdir: Path) -> None:
     print("Working on url lists.")
     for postfix in ("list_full.txt", "list_recent.txt"):
         url_list = ""
         for s in config.sections():
-            fn = outdir+"archive/%s/%s"%(s, postfix)
-            if(not path.exists(fn)):
+            fn = outdir / f"archive/{s}/{postfix}"
+            if not path.exists(fn):
                 continue
-            url_list += open(fn).read()
-        write_file(outdir+"archive/" + postfix, url_list)
+            with open(fn, encoding="utf8") as f:
+                url_list += f.read()
+        write_file(outdir / f"archive/{postfix}", url_list)
 
-#===============================================================================
-def gen_plots(archive_reports, log, outdir, full_archive):
 
-    ordered_shas = [commit['git-sha'] for commit in log]
-    ordered_reports = [archive_reports[sha] for sha in ordered_shas if sha in archive_reports]
+# ======================================================================================
+def gen_plots(
+    archive_reports: Dict[GitSha, Report], log: GitLog, outdir: Path, full_archive: bool
+) -> str:
 
-    # collect plot data
-    plots = OrderedDict()
+    ordered_shas = [c.sha for c in log.commits]
+    ordered_reports = [archive_reports[s] for s in ordered_shas if s in archive_reports]
+
+    # aggregate plot data
+    aggregated_plots: Dict[str, AggregatedPlot] = {}
     for report in ordered_reports:
-        for p in report['plots']:
-            if(p['name'] not in plots.keys()):
-                plots[p['name']] = {'curves': OrderedDict(), 'title': p['title'], 'ylabel': p['ylabel']}
-        for pp in report['plotpoints']:
-            p = plots[pp['plot']]
-            if(pp['name'] not in p['curves'].keys()):
-                p['curves'][pp['name']] = {'x':[], 'y':[], 'yerr':[], 'label': pp['label']}
-            c = p['curves'][pp['name']]
-            age = log.index[report['git-sha']]
-            c['x'].append(-age)
-            c['y'].append(pp['y'])
-            c['yerr'].append(pp['yerr'])
+        for p in report.plots:
+            if p.name not in aggregated_plots:
+                aggregated_plots[p.name] = AggregatedPlot(p)
+        for pp in report.plot_points:
+            plot = aggregated_plots[pp.plot_name]
+            cname = pp.curve_name
+            if cname not in plot.curves_by_name:
+                plot.curves_by_name[cname] = PlotCurve(label=pp.curve_label)
+            assert report.sha
+            age = log.index_by_sha[report.sha]
+            plot.curves_by_name[cname].x.append(-age)
+            plot.curves_by_name[cname].y.append(pp.y)
+            plot.curves_by_name[cname].yerr.append(pp.yerr)
 
-    # write raw data
-    tags = sorted([(pname, cname) for pname, p in plots.items() for cname in p['curves'].keys()])
-    if(tags):
-        raw_output = "# %6s    %40s" % ("age", "commit")
-        for pname, cname in tags:
-            raw_output += "   %18s   %22s"%(pname+"/"+cname,pname+"/"+cname+"_err")
-        raw_output += "\n"
-        for report in reversed(ordered_reports):
-            age = log.index[report['git-sha']]
-            raw_output +=  "%8d    %40s"%(-age, report['git-sha'])
-            for pname, cname in tags:
-                pp = [pp for pp in report['plotpoints'] if(pp['plot']==pname and pp['name']==cname)]
-                assert(len(pp)<=1)
-                if(pp):
-                    raw_output += "   %18f   %22f"%(pp[0]['y'],pp[0]['yerr'])
-                else:
-                    raw_output += "   %18s   %22s"%("?","?")
-            raw_output += "\n"
-        write_file(outdir+"plot_data.txt", raw_output)
+    max_age_full = max([-1] + [log.index_by_sha[sha] for sha in archive_reports])
+    max_age = max_age_full if full_archive else 100
 
-    # create png images
-    if (full_archive):
-        fig_ext = "_full.png"
-        max_age = max([-1] + [log.index[sha] for sha in archive_reports.keys()])
-    else:
-        fig_ext = ".png"
-        max_age = 100
+    output = ""
+    for pname, plot in aggregated_plots.items():
+        print(f"Working on plot: {pname}")
+        fn = f"{pname}_full" if full_archive else pname
+        make_plot_data(outdir / Path(f"{fn}.txt"), plot, max_age, log)
+        make_plot_image(outdir / Path(f"{fn}.png"), plot, max_age, full_archive)
+        output += f'<a href="{fn}.txt"><img src="{fn}.png" alt="{plot.title}"></a>\n'
 
-    for pname, p in plots.items():
-        print("Working on plot: "+pname)
-        fig = plt.figure(figsize=(12,4))
-        fig.subplots_adjust(bottom=0.18, left=0.06, right=0.70)
-        fig.suptitle(p['title'], fontsize=14, fontweight='bold', x=0.4)
-        ax = fig.add_subplot(111)
-        ax.set_xlabel('Commit Age')
-        ax.set_ylabel(p['ylabel'])
-        markers = itertools.cycle('os>^*')
-        for cname in p['curves'].keys():
-            c = p['curves'][cname]
-            if(full_archive):
-                ax.plot(c['x'], c['y'], label=c['label'], linewidth=2) # less crowded
+    return output
+
+
+# ======================================================================================
+def make_plot_data(fn: Path, plot: AggregatedPlot, max_age: int, log: GitLog) -> None:
+    output = f"# {plot.title}\n"
+    headers = [f"{c.label:>6}" for c in plot.curves]
+    output += "# " + "\t".join(["age", "commit"] + headers) + "\n"
+    for age in range(max_age + 1):
+        values = []
+        for curve, header in zip(plot.curves, headers):
+            if -age in curve.x:
+                i = curve.x.index(-age)
+                value = "{:.1f}".format(curve.y[i])
             else:
-                ax.errorbar(c['x'], c['y'], yerr=c['yerr'], label=c['label'],
-                            marker=next(markers), linewidth=2, markersize=6)
-        ax.set_xlim(-max_age-1, 0)
-        ax.xaxis.set_minor_locator(AutoMinorLocator())
-        ax.legend(bbox_to_anchor=(1.01, 1), loc='upper left',
-                  numpoints=1, fancybox=True, shadow=True, borderaxespad=0.0)
-        visibles = [[y for x,y in zip(c['x'],c['y']) if x>=-max_age] for c in p['curves'].values()] # visible y-values
-        if not visibles:
-            print("Warning: Found no visible plot point.")
+                value = "?"
+            values.append(value.rjust(len(header)))
+        if any([v.strip() != "?" for v in values]):
+            index_colums = [f"{-age:5d}", log.commits[age].sha[:6]]
+            output += "\t".join(index_colums + values) + "\n"
+
+    write_file(fn, output)
+
+
+# ======================================================================================
+def make_plot_image(
+    fn: Path, plot: AggregatedPlot, max_age: int, full_archive: bool
+) -> None:
+
+    # Setup figure.
+    fig = plt.figure(figsize=(12, 4))
+    fig.subplots_adjust(bottom=0.18, left=0.06, right=0.70)
+    fig.suptitle(plot.title, fontsize=14, fontweight="bold", x=0.4)
+    ax = fig.add_subplot(111)
+    ax.set_xlabel("Commit Age")
+    ax.set_ylabel(plot.ylabel)
+    markers = itertools.cycle("os>^*")
+
+    # Draw curves.
+    for curve in plot.curves:
+        if full_archive:
+            ax.plot(curve.x, curve.y, label=curve.label, linewidth=2)  # less crowded
         else:
-            ymin = min([min(ys) for ys in visibles if ys]) # lowest point from lowest curve
-            ymax = max([max(ys) for ys in visibles if ys]) # highest point from highest curve
-            if(full_archive):
-                ax.set_ylim(0.98*ymin, 1.02*ymax)
-            else:
-                ymax2 = max([min(ys) for ys in visibles if ys]) # lowest point from highest curve
-                ax.set_ylim(0.98*ymin, min(1.02*ymax, 1.3*ymax2))  # protect against outlayers
-        fig.savefig(outdir+pname+fig_ext)
-        plt.close(fig)
+            style = dict(marker=next(markers), linewidth=2, markersize=6)
+            ax.errorbar(curve.x, curve.y, yerr=curve.yerr, label=curve.label, **style)
+    ax.set_xlim(-max_age - 1, 0)
+    ax.xaxis.set_minor_locator(AutoMinorLocator())
 
-    # write html output
-    html_output = ""
-    for pname in sorted(plots.keys()):
-        html_output += '<a href="plot_data.txt"><img src="%s" alt="%s"></a>\n'%(pname+fig_ext, plots[pname]['title'])
-    return(html_output)
+    # Draw legend.
+    legend_style = dict(numpoints=1, fancybox=True, shadow=True, borderaxespad=0.0)
+    ax.legend(bbox_to_anchor=(1.01, 1), loc="upper left", **legend_style)
 
-#===============================================================================
-def send_notification(report, last_ok, log, name, s):
-    idx_end = log.index[report['git-sha']] if(report['git-sha']) else 0
-    if not last_ok: return # we don't know when this started
-    idx_last_ok = log.index[last_ok]
-    if(idx_end == idx_last_ok): return # probably a flapping tester
-    emails = set([log[i]['author-email'] for i in range(idx_end, idx_last_ok)])
-    emails = [e for e in emails if "noreply" not in e]
-    if (not send_emails):
-        print("Email sending disabled, would otherwise send to: "+msg['To'])
+    # Determine y-range such that all curves are visible while ignoring outlayers.
+    visibles = []
+    for curve in plot.curves:
+        ys = [y for x, y in zip(curve.x, curve.y) if x >= -max_age]  # visible y-values
+        visibles += [ys] if ys else []  # ignore completely invisible curves
+    if not visibles:
+        print("Warning: Found no visible plot curve.")
+    else:
+        ymin = min([min(ys) for ys in visibles])  # lowest point from lowest curve
+        ymax = max([max(ys) for ys in visibles])  # highest point from highest curve
+        if full_archive:
+            ax.set_ylim(0.98 * ymin, 1.02 * ymax)
+        else:
+            ymax2 = max([min(ys) for ys in visibles])  # lowest point from highest curve
+            ax.set_ylim(0.98 * ymin, min(1.02 * ymax, 1.3 * ymax2))  # ignore outlayers
+
+    # Save figure to file.
+    fig.savefig(fn)
+    plt.close(fig)
+
+
+# ======================================================================================
+def send_notification(
+    report: Report,
+    last_ok: Optional[GitSha],
+    log: GitLog,
+    name: str,
+    s: str,
+    send_emails: bool,
+) -> None:
+
+    idx_end = log.index_by_sha[report.sha] if report.sha else 0
+    if not last_ok:
+        return  # we don't know when this started
+    idx_last_ok = log.index_by_sha[last_ok]
+    if idx_end == idx_last_ok:
+        return  # probably a flapping tester
+    emails_raw = set(c.author_email for c in log.commits[idx_end:idx_last_ok])
+    emails = [e for e in emails_raw if "noreply" not in e]
+    emails_str = ", ".join(emails)
+    if not emails:
+        return  # no author emails found
+    if len(emails) > 3:
+        print("Spam protection, found more than three authors: " + emails_str)
+        return
+    if not send_emails:
+        print("Email sending disabled, would otherwise send to: " + emails_str)
         return
 
-    print("Sending email to: "+", ".join(emails))
+    print("Sending email to: " + emails_str)
 
-    msg_txt  = "Dear CP2K developer,\n\n"
-    msg_txt += "the dashboard has detected a problem that one of your recent commits might have introduced.\n\n"
-    msg_txt += "   test name:      %s\n"%name
-    msg_txt += "   report state:   %s\n"%report['status']
-    msg_txt += "   report summary: %s\n"%report['summary']
-    msg_txt += "   last OK commit: %s\n\n"%last_ok[:7]
+    msg_txt = "Dear CP2K developer,\n\n"
+    msg_txt += "the dashboard has detected a problem"
+    msg_txt += " that one of your recent commits might have introduced.\n\n"
+    msg_txt += f"   test name:      {name}\n"
+    msg_txt += f"   report state:   {report.status}\n"
+    msg_txt += f"   report summary: {report.summary}\n"
+    msg_txt += f"   last OK commit: {last_ok[:7]}\n\n"
     msg_txt += "For more information visit:\n"
-    msg_txt += "   https://dashboard.cp2k.org/archive/%s/index.html \n\n"%s
+    msg_txt += f"   https://dashboard.cp2k.org/archive/{s}/index.html \n\n"
     msg_txt += "Sincerely,\n"
     msg_txt += "  your CP2K Dashboard ;-)\n"
 
     msg = MIMEText(msg_txt)
-    msg['Subject'] = "Problem with "+name
-    msg['From']    = "CP2K Dashboard <dashboard@cp2k.org>"
-    msg['To']      = ", ".join(emails)
+    msg["Subject"] = f"Problem with {name}"
+    msg["From"] = "CP2K Dashboard <dashboard@cp2k.org>"
+    msg["To"] = ", ".join(emails)
 
-    smtp_conn = smtplib.SMTP('localhost')
-    smtp_conn.sendmail(msg['From'], emails, msg.as_string())
+    smtp_conn = smtplib.SMTP("localhost")
+    smtp_conn.sendmail(msg["From"], emails, msg.as_string())
     smtp_conn.quit()
 
-#===============================================================================
-def html_header(title):
-    output  = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">\n'
-    output += '<html><head>\n'
+
+# ======================================================================================
+def html_header(title: str) -> str:
+    output = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">\n'
+    output += "<html><head>\n"
     output += '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n'
     output += '<meta http-equiv="refresh" content="200">\n'
     output += '<link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,AAABAAEAEBAQAAAAAAAoAQAAFgAAACgAAAAQAAAAIAAAAAEABAAAAAAAgAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAD/AAmRCQAAb/8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAiIgAAAAAAACIiAAAAAAAAIiIAAAAAAAAAAAAAAAAAADMzAAAAAAAAMzMAAAAAAAAzMwAAAAAAAAAAAAAAAAAAEREAAAAAAAAREQAAAAAAABERAAAAAAAAAAAAAAD+fwAA/n8AAPw/AAD4HwAA+B8AAPgfAAD4HwAA+B8AAPgfAAD4HwAA+B8AAPgfAAD4HwAA+B8AAPgfAAD4HwAA">\n'
     output += '<style type="text/css">\n'
-    output += '.ribbon {\n'
-    output += '  overflow: hidden;\n'
-    output += '  position: absolute;\n'
-    output += '  right:0px;\n'
-    output += '  top: 0px;\n'
-    output += '  width: 200px;\n'
-    output += '  height: 200px;\n'
-    output += '}\n'
-    output += '.ribbon a {\n'
-    output += '  position: relative;\n'
-    output += '  white-space: nowrap;\n'
-    output += '  background-color: #a00;\n'
-    output += '  border: 1px solid #faa;\n'
-    output += '  color: #fff;\n'
-    output += '  display: block;\n'
-    output += '  font: bold 11pt sans-serif;\n'
-    output += '  padding: 7px;\n'
-    output += '  top: 35px;\n'
-    output += '  right: 10px;\n'
-    output += '  width: 300px;\n'
-    output += '  text-align: center;\n'
-    output += '  text-decoration: none;\n'
-    output += '  transform: rotate(45deg);\n'
-    output += '  box-shadow: 0 0 10px #888;\n'
-    output += '}\n'
-    output += '#flex-container {\n'
-    output += '  display: -webkit-flex; /* Safari */\n'
-    output += '  display: flex;\n'
-    output += '  -webkit-flex-flow: row wrap-reverse; /* Safari */\n'
-    output += '  flex-flow:         row wrap-reverse;\n'
-    output += '  -webkit-justify-content: space-around; /* Safari */\n'
-    output += '  justify-content:         space-around;\n'
-    output += '  -webkit-align-items: flex-end; /* Safari */\n'
-    output += '  align-items:         flex-end;\n'
-    output += '}\n'
-    output += '.sidebox {\n'
-    output += '  width: 15em;\n'
-    output += '  border-radius: 1em;\n'
-    output += '  box-shadow: .2em .2em .7em 0 #777;\n'
-    output += '  background: #f7f7f0;\n'
-    output += '  padding: 1em;\n'
-    output += '  margin: 40px 20px;\n'
-    output += '}\n'
-    output += '.sidebox h2 {\n'
-    output += '  margin: 0 0 0.5em 0;\n'
-    output += '}\n'
-    output += '.sidebox p {\n'
-    output += '  margin: 0.5em;\n'
-    output += '}\n'
-    output += '#dummybox {\n'
-    output += '  width: 15em;\n'
-    output += '}\n'
-    output += '</style>\n'
-    output += '<title>%s</title>\n'%title
-    output += '</head><body>\n'
+    output += ".ribbon {\n"
+    output += "  overflow: hidden;\n"
+    output += "  position: absolute;\n"
+    output += "  right:0px;\n"
+    output += "  top: 0px;\n"
+    output += "  width: 200px;\n"
+    output += "  height: 200px;\n"
+    output += "}\n"
+    output += ".ribbon a {\n"
+    output += "  position: relative;\n"
+    output += "  white-space: nowrap;\n"
+    output += "  background-color: #a00;\n"
+    output += "  border: 1px solid #faa;\n"
+    output += "  color: #fff;\n"
+    output += "  display: block;\n"
+    output += "  font: bold 11pt sans-serif;\n"
+    output += "  padding: 7px;\n"
+    output += "  top: 35px;\n"
+    output += "  right: 10px;\n"
+    output += "  width: 300px;\n"
+    output += "  text-align: center;\n"
+    output += "  text-decoration: none;\n"
+    output += "  transform: rotate(45deg);\n"
+    output += "  box-shadow: 0 0 10px #888;\n"
+    output += "}\n"
+    output += "#flex-container {\n"
+    output += "  display: -webkit-flex; /* Safari */\n"
+    output += "  display: flex;\n"
+    output += "  -webkit-flex-flow: row wrap-reverse; /* Safari */\n"
+    output += "  flex-flow:         row wrap-reverse;\n"
+    output += "  -webkit-justify-content: space-around; /* Safari */\n"
+    output += "  justify-content:         space-around;\n"
+    output += "  -webkit-align-items: flex-end; /* Safari */\n"
+    output += "  align-items:         flex-end;\n"
+    output += "}\n"
+    output += ".sidebox {\n"
+    output += "  width: 15em;\n"
+    output += "  border-radius: 1em;\n"
+    output += "  box-shadow: .2em .2em .7em 0 #777;\n"
+    output += "  background: #f7f7f0;\n"
+    output += "  padding: 1em;\n"
+    output += "  margin: 40px 20px;\n"
+    output += "}\n"
+    output += ".sidebox h2 {\n"
+    output += "  margin: 0 0 0.5em 0;\n"
+    output += "}\n"
+    output += ".sidebox p {\n"
+    output += "  margin: 0.5em;\n"
+    output += "}\n"
+    output += "#dummybox {\n"
+    output += "  width: 15em;\n"
+    output += "}\n"
+    output += "</style>\n"
+    output += f"<title>{title}</title>\n"
+    output += "</head><body>\n"
     output += '<div class="ribbon"><a href="https://cp2k.org/dev:dashboard">Need Help?</a></div>\n'
-    output += '<center><h1>%s</h1></center>\n'%title.upper()
-    return(output)
+    output += f"<center><h1>{title.upper()}</h1></center>\n"
+    return output
 
-#===============================================================================
-def html_linkbox():
-    output  = '<div class="sidebox">\n'
-    output += '<h2>More...</h2>\n'
+
+# ======================================================================================
+def html_linkbox() -> str:
+    output = '<div class="sidebox">\n'
+    output += "<h2>More...</h2>\n"
     output += '<a href="regtest_survey.html">Regtest Survey</a><br>\n'
     output += '<a href="https://www.cp2k.org/static/coverage/">Test Coverage</a><br>\n'
     output += '<a href="discontinued_tests.html">Discontinued Tests</a><br>\n'
-    output += '</div>\n'
-    return(output)
+    output += "</div>\n"
+    return output
 
-#===============================================================================
-def html_gitbox(log):
+
+# ======================================================================================
+def html_gitbox(log: GitLog) -> str:
     now = datetime.utcnow()
-    output  = '<div class="sidebox">\n'
-    output += '<h2>Recent Commits</h2>\n'
-    for commit in log[0:10]:
-        url = "https://github.com/cp2k/cp2k/commit/" + commit['git-sha']
-        msg = commit['msg']
-        if(len(msg) > 27):
-            msg = msg[:26] + "..."
-        output += '<p><a title="%s" href="%s">%s</a><br>\n'%(commit['msg'], url, msg)
-        delta = now - commit['date']
-        age = delta.days*24.0 + delta.seconds/3600.0
-        output += '<small>git:' + commit['git-sha'][:7]
-        output += '<br>\n%s %.1fh ago.</small></p>\n'%(commit['author-name'], age)
-    output += '</div>\n'
-    return(output)
+    output = '<div class="sidebox">\n'
+    output += "<h2>Recent Commits</h2>\n"
+    for commit in log.commits[0:10]:
+        url = "https://github.com/cp2k/cp2k/commit/" + commit.sha
+        autor_name = html.escape(commit.author_name)
+        title = html.escape(commit.message)
+        cm = commit.message if len(commit.message) < 28 else commit.message[:26] + "..."
+        output += f'<p><a title="{title}" href="{url}">{html.escape(cm)}</a><br>\n'
+        delta = now - commit.date
+        age = delta.days * 24.0 + delta.seconds / 3600.0
+        output += "<small>git:" + commit.sha[:7]
+        output += f"<br>\n{autor_name} {age:.1f}h ago.</small></p>\n"
+    output += "</div>\n"
+    return output
 
-#===============================================================================
-def html_footer():
+
+# ======================================================================================
+def html_footer() -> str:
     now = datetime.utcnow().replace(microsecond=0)
-    output  = '<p><small>Page last updated: %s</small></p>\n'%now.isoformat()
-    output += '</body></html>'
-    return(output)
+    output = f"<p><small>Page last updated: {now.isoformat()}</small></p>\n"
+    output += "</body></html>"
+    return output
 
-#===============================================================================
-def write_file(fn, content, gz=False):
-    d = path.dirname(fn)
-    if(len(d) > 0 and not path.exists(d)):
+
+# ======================================================================================
+def write_file(fn: Path, content: str, gz: bool = False) -> None:
+    d = fn.parent
+    if not d.exists():
         os.makedirs(d)
-        print("Created dir: "+d)
-    if(path.exists(fn)):
-        old_bytes = gzip.open(fn, 'rb').read() if(gz) else open(fn, 'rb').read()
-        old_content = old_bytes.decode('utf-8', errors='replace')
-        if(old_content == content):
-            print("File did not change: "+fn)
+        print(f"Created dir: {d}")
+    if fn.exists():
+        with open(fn, "rb") as f:
+            old_bytes = gzip.decompress(f.read()) if gz else f.read()
+        old_content = old_bytes.decode("utf-8", errors="replace")
+        if old_content == content:
+            print(f"File did not change: {fn}")
             return
-    f = gzip.open(fn, 'wb') if(gz) else open(fn, "wb")
-    f.write(content.encode("utf-8"))
-    f.close()
-    print("Wrote: "+fn)
 
-#===============================================================================
-def status_cell(status, report_url, uptodate=True):
-    if(status == "OK"):
-        bgcolor = "#00FF00" if(uptodate) else "#8CE18C"
-    elif(status == "FAILED"):
-        bgcolor = "#FF0000" if(uptodate) else "#E18C8C"
+    encoded_content = content.encode("utf-8")
+    with open(fn, "wb") as f:
+        f.write(gzip.compress(encoded_content) if gz else encoded_content)
+    print(f"Wrote: {fn}")
+
+
+# ======================================================================================
+def status_cell(status: ReportStatus, report_url: str, up_to_date: bool = True) -> str:
+    if status == "OK":
+        bgcolor = "#00FF00" if (up_to_date) else "#8CE18C"
+    elif status == "FAILED":
+        bgcolor = "#FF0000" if (up_to_date) else "#E18C8C"
     else:
         bgcolor = "#d3d3d3"
-    return('<td bgcolor="%s"><a href="%s">%s</a></td>'%(bgcolor, report_url, status))
+    return f'<td bgcolor="{bgcolor}"><a href="{report_url}">{status}</a></td>'
 
-#===============================================================================
-def commit_cell(git_sha, log):
-    if(git_sha is None):
-        return('<td>N/A</td>')
-    idx = log.index[git_sha]
-    commit = log[idx]
-    git_url = "https://github.com/cp2k/cp2k/commit/" + git_sha
-    output = '<td align="left"><a href="%s">%s</a>'%(git_url, git_sha[:7])
-    output += ' (%d)</td>'%(-idx)
-    return(output)
 
-#===============================================================================
-def retrieve_report(url):
+# ======================================================================================
+def commit_cell(sha: Optional[GitSha], log: GitLog) -> str:
+    if sha is None:
+        return "<td>N/A</td>"
+    idx = log.index_by_sha[sha]
+    commit = log.commits[idx]
+    github_url = "https://github.com/cp2k/cp2k/commit/" + sha
+    return f'<td align="left"><a href="{github_url}">{sha[:7]}</a> ({-idx})</td>'
+
+
+# ======================================================================================
+def retrieve_report(url: str) -> Optional[str]:
     try:
         # see if we have a cached entry
         h = hashlib.md5(url.encode("utf8")).hexdigest()
-        etag_file = Path("/tmp/dashboard_retrieval_cache_" + h + '.etag')
-        data_file = Path("/tmp/dashboard_retrieval_cache_" + h + '.data')
+        etag_file = Path(f"/tmp/dashboard_retrieval_cache_{h}.etag")
+        data_file = Path(f"/tmp/dashboard_retrieval_cache_{h}.data")
         etag = etag_file.read_text() if etag_file.exists() else ""
 
         # make conditional http request
@@ -552,50 +673,57 @@ def retrieve_report(url):
         if r.status_code == 304:  # Not Modified - cache hit
             return data_file.read_text()
 
+        # check report size
+        report_size = int(r.headers["Content-Length"])
+        assert report_size < 3 * 1024 * 1024  # 3 MB
+
         # cache miss - store response
-        if 'ETag' in r.headers:
+        if "ETag" in r.headers:
             data_file.write_text(r.text)
-            etag_file.write_text(r.headers['ETag'])
+            etag_file.write_text(r.headers["ETag"])
         return r.text
 
     except:
-        print(traceback.print_exc())
+        traceback.print_exc()
         return None
 
-#===============================================================================
-def store_report(report, report_txt, section, outdir):
-    fn = outdir + "archive/%s/commit_%s.txt.gz"%(section, report['git-sha'])
+
+# ======================================================================================
+def store_report(report: Report, report_txt: str, section: str, outdir: Path) -> None:
+    fn = outdir / f"archive/{section}/commit_{report.sha}.txt.gz"
     write_file(fn, report_txt, gz=True)
 
-#===============================================================================
-def parse_report(report_txt, log):
-    if(report_txt is None):
-        return( {'status':'UNKNOWN', 'summary':'Error while retrieving report.', 'git-sha':None} )
+
+# ======================================================================================
+def parse_report(report_txt: Optional[str], log: GitLog) -> Report:
+    if report_txt is None:
+        return Report(status="UNKNOWN", summary="Error while retrieving report.")
     try:
-        report = dict()
-        report['git-sha'] = re.search("(^|\n)CommitSHA: (\w{40})\n", report_txt).group(2)
-        report['summary'] = re.findall("(^|\n)Summary: (.+)\n", report_txt)[-1][1]
-        report['status'] = re.findall("(^|\n)Status: (.+)\n", report_txt)[-1][1]
-        report['plots'] = [eval("dict(%s)"%m[1]) for m in re.findall("(^|\n)Plot: (.+)(?=\n)", report_txt)]
-        report['plotpoints'] = [eval("dict(%s)"%m[1]) for m in re.findall("(^|\n)PlotPoint: (.+)(?=\n)", report_txt)]
+        m = re.search("(^|\n)CommitSHA: (\w{40})\n", report_txt)
+        sha = GitSha(m.group(2)) if m else None
+        summary = re.findall("(^|[\n\r])Summary: (.+)\n", report_txt)[-1][1]
+        status = re.findall("(^|\n)Status: (.+)\n", report_txt)[-1][1]
+        plot_matches = re.findall("(^|\n)Plot: (.+)(?=\n)", report_txt)
+        plots = [cast(Plot, eval(f"Plot({m[1]})")) for m in plot_matches]
+        point_matches = re.findall("(^|\n)PlotPoint: (.+)(?=\n)", report_txt)
+        points = [cast(PlotPoint, eval(f"PlotPoint({m[1]})")) for m in point_matches]
 
         # Check that every plot has at least one PlotPoint
-        for plot in report['plots']:
-            points = [pp for pp in report['plotpoints'] if pp['plot'] == plot['name']]
-            if not points:
-                report['status'] = 'FAILED'
-                report['summary'] = 'Plot "%s" has no PlotPoints.'%plot['name']
+        for plot in plots:
+            if not any([p.plot_name == plot.name for p in points]):
+                return Report("FAILED", f"Plot {plot.name} has no PlotPoints.")
 
         # Check that CommitSHA belongs to the master branch.
-        if report['git-sha'] not in log.index:
-            report['git-sha'] = None
-            report['status'] = 'FAILED'
-            report['summary'] = 'Unknown CommitSHA.'
+        if sha not in log.index_by_sha:
+            return Report("FAILED", "Unknown CommitSHA.")
 
-        return(report)
+        return Report(status, summary, sha=sha, plots=plots, plot_points=points)
     except:
-        print(traceback.print_exc())
-        return( {'status':'UNKNOWN', 'summary':'Error while parsing report.', 'git-sha':None} )
+        traceback.print_exc()
+        return Report("UNKNOWN", "Error while parsing report.")
 
-#===============================================================================
+
+# ======================================================================================
 main()
+
+# EOF

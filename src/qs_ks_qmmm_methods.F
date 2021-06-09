@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -89,8 +91,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(qmmm_env_qm_type), POINTER                    :: qmmm_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_ks_qmmm_create', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'qs_ks_qmmm_create'
 
       INTEGER                                            :: handle, igrid
       TYPE(cube_info_type), DIMENSION(:), POINTER        :: cube_info
@@ -113,7 +114,7 @@ CONTAINS
       ks_qmmm_env%pc_ener = 0.0_dp
       ks_qmmm_env%n_evals = 0
       ks_qmmm_env%ref_count = 1
-      last_ks_qmmm_nr = last_ks_qmmm_nr+1
+      last_ks_qmmm_nr = last_ks_qmmm_nr + 1
       ks_qmmm_env%id_nr = last_ks_qmmm_nr
 
       CALL pw_pool_create_pw(auxbas_pw_pool, ks_qmmm_env%v_qmmm_rspace%pw, &
@@ -157,8 +158,7 @@ CONTAINS
       TYPE(pw_p_type), INTENT(IN)                        :: v_qmmm
       REAL(KIND=dp), INTENT(INOUT)                       :: qmmm_energy
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_calculate_energy', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_calculate_energy'
 
       INTEGER                                            :: handle, ispin, output_unit
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -182,13 +182,13 @@ CONTAINS
 
       qmmm_energy = 0.0_dp
       DO ispin = 1, dft_control%nspins
-         qmmm_energy = qmmm_energy+pw_integral_ab(rho(ispin)%pw, v_qmmm%pw)
+         qmmm_energy = qmmm_energy + pw_integral_ab(rho(ispin)%pw, v_qmmm%pw)
       END DO
       IF (dft_control%qs_control%gapw) THEN
          CALL get_qs_env(qs_env=qs_env, &
                          rho0_s_rs=rho0_s_rs)
          CPASSERT(ASSOCIATED(rho0_s_rs))
-         qmmm_energy = qmmm_energy+pw_integral_ab(rho0_s_rs%pw, v_qmmm%pw)
+         qmmm_energy = qmmm_energy + pw_integral_ab(rho0_s_rs%pw, v_qmmm%pw)
       END IF
 
       CALL cp_print_key_finished_output(output_unit, logger, input, &
@@ -211,8 +211,7 @@ CONTAINS
       TYPE(pw_p_type), INTENT(IN)                        :: v_qmmm
       REAL(KIND=dp), INTENT(IN)                          :: scale
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_modify_hartree_pot', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_modify_hartree_pot'
 
       INTEGER                                            :: handle
       REAL(KIND=dp)                                      :: fac

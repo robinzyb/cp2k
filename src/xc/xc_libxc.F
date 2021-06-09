@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -25,61 +27,85 @@
 ! **************************************************************************************************
 MODULE xc_libxc
    USE bibliography, ONLY: Lehtola2018, &
-      Marques2012, &
-      cite_reference
-
-   USE input_section_types, ONLY: section_vals_type, &
-      section_vals_val_get
+                           Marques2012, &
+                           cite_reference
+   USE input_section_types, ONLY: section_add_keyword, &
+                                  section_add_subsection, &
+                                  section_create, &
+                                  section_release, &
+                                  section_type, &
+                                  section_vals_type, &
+                                  section_vals_val_get
    USE kinds, ONLY: default_string_length, &
-      dp
+                    dp
    USE xc_derivative_set_types, ONLY: xc_derivative_set_type, &
-      xc_dset_get_derivative
+                                      xc_dset_get_derivative
    USE xc_derivative_types, ONLY: xc_derivative_get, &
-      xc_derivative_type
+                                  xc_derivative_type
    USE xc_rho_cflags_types, ONLY: xc_rho_cflags_type
    USE xc_rho_set_types, ONLY: xc_rho_set_get, &
-      xc_rho_set_type
+                               xc_rho_set_type
 #if defined (__LIBXC)
+   USE input_keyword_types, ONLY: keyword_create, &
+                                  keyword_release, &
+                                  keyword_type
+   USE iso_c_binding, ONLY: C_SIZE_T, C_INT, C_DOUBLE
    USE xc_libxc_wrap, ONLY: xc_f03_func_t, &
-      xc_f03_func_init, &
-      xc_f03_func_end, &
-      xc_f03_func_info_t, &
-      xc_f03_func_get_info, &
-      xc_f03_func_info_get_family, &
-      xc_f03_func_info_get_kind, &
-      xc_f03_func_info_get_name, &
-      xc_f03_gga_exc, &
-      xc_f03_gga_exc_vxc, &
-      xc_f03_gga_fxc, &
-      xc_f03_gga_vxc, &
-      xc_f03_lda, &
-      xc_f03_lda_exc, &
-      xc_f03_lda_exc_vxc, &
-      xc_f03_lda_fxc, &
-      xc_f03_lda_kxc, &
-      xc_f03_lda_vxc, &
-      xc_f03_mgga, &
-      xc_f03_mgga_exc, &
-      xc_f03_mgga_exc_vxc, &
-      xc_f03_mgga_fxc, &
-      xc_f03_mgga_vxc, &
-      XC_POLARIZED, &
-      XC_UNPOLARIZED, &
-      XC_FAMILY_LDA, &
-      XC_FAMILY_GGA, &
-      XC_FAMILY_MGGA, &
-      XC_FAMILY_HYB_GGA, &
-      XC_FAMILY_HYB_MGGA, &
-      XC_CORRELATION, &
-      XC_EXCHANGE, &
-      XC_EXCHANGE_CORRELATION, &
-      XC_KINETIC, &
-      xc_libxc_wrap_info_refs, &
-      xc_libxc_wrap_version, &
-      xc_libxc_wrap_functional_get_number, &
-      xc_libxc_wrap_needs_laplace, &
-      xc_libxc_wrap_functional_set_params, &
-      xc_libxc_wrap_is_stable
+                            xc_f03_func_init, &
+                            xc_f03_func_end, &
+                            xc_f03_func_info_t, &
+                            xc_f03_functional_get_name, &
+                            xc_f03_func_get_info, &
+                            xc_f03_func_info_get_family, &
+                            xc_f03_func_info_get_kind, &
+                            xc_f03_func_info_get_n_ext_params, &
+                            xc_f03_func_info_get_name, &
+                            xc_f03_available_functional_numbers, &
+                            xc_f03_available_functional_names, &
+                            xc_f03_maximum_name_length, &
+                            xc_f03_number_of_functionals, &
+                            xc_f03_func_info_get_ext_params_name, &
+                            xc_f03_func_info_get_ext_params_description, &
+                            xc_f03_func_info_get_ext_params_default_value, &
+                            xc_f03_gga_exc, &
+                            xc_f03_gga_exc_vxc, &
+                            xc_f03_gga_exc_vxc_fxc, &
+                            xc_f03_gga_fxc, &
+                            xc_f03_gga_vxc, &
+                            xc_f03_gga_vxc_fxc, &
+                            xc_f03_lda, &
+                            xc_f03_lda_exc, &
+                            xc_f03_lda_exc_vxc, &
+                            xc_f03_lda_exc_vxc_fxc, &
+                            xc_f03_lda_fxc, &
+                            xc_f03_lda_kxc, &
+                            xc_f03_lda_vxc, &
+                            xc_f03_mgga, &
+                            xc_f03_mgga_exc, &
+                            xc_f03_mgga_exc_vxc, &
+                            xc_f03_mgga_fxc, &
+                            xc_f03_mgga_vxc, &
+                            xc_f03_mgga_vxc_fxc, &
+                            XC_POLARIZED, &
+                            XC_UNPOLARIZED, &
+                            XC_FAMILY_LDA, &
+                            XC_FAMILY_GGA, &
+                            XC_FAMILY_MGGA, &
+                            XC_FAMILY_HYB_LDA, &
+                            XC_FAMILY_HYB_GGA, &
+                            XC_FAMILY_HYB_MGGA, &
+                            XC_CORRELATION, &
+                            XC_EXCHANGE, &
+                            XC_EXCHANGE_CORRELATION, &
+                            XC_KINETIC, &
+                            xc_libxc_wrap_info_refs, &
+                            xc_libxc_wrap_version, &
+                            xc_libxc_wrap_functional_get_number, &
+                            xc_libxc_wrap_needs_laplace, &
+                            xc_libxc_wrap_functional_set_params, &
+                            xc_libxc_wrap_is_under_development, &
+                            xc_libxc_get_reference_length, &
+                            xc_libxc_check_functional
 #endif
 
 #include "../base/base_uses.f90"
@@ -90,9 +116,176 @@ MODULE xc_libxc
    CHARACTER(len=*), PARAMETER, PRIVATE :: moduleN = 'xc_libxc'
 
    PUBLIC :: libxc_lda_info, libxc_lda_eval, libxc_lsd_info, libxc_lsd_eval, &
-             libxc_version_info
+             libxc_version_info, libxc_get_reference_length, libxc_add_sections, &
+             libxc_check_existence_in_libxc
+
+#if defined (__LIBXC)
+   INTEGER(C_SIZE_T), PARAMETER, PRIVATE :: one = 1
+#endif
 
 CONTAINS
+
+! **************************************************************************************************
+!> \brief This function checks whether a functional name belongs to LibXC
+!> \param libxc_params (possible) LibXC input section
+!> \return exists whether the functional exists in LibXC
+! **************************************************************************************************
+   FUNCTION libxc_check_existence_in_libxc(libxc_params) RESULT(exists)
+
+      TYPE(section_vals_type), POINTER, INTENT(IN)         :: libxc_params
+      LOGICAL                                  :: exists
+
+#if defined (__LIBXC)
+
+      exists = xc_libxc_check_functional(libxc_params%section%name)
+#else
+      MARK_USED(libxc_params)
+      exists = .FALSE.
+#endif
+
+   END FUNCTION libxc_check_existence_in_libxc
+
+! **************************************************************************************************
+!> \brief This function returns the maximum length of the reference string for a given LibXC functional
+!> \param libxc_params LibXC input section
+!> \param lsd spin polarized calculation
+!> \return maximum length of the string
+! **************************************************************************************************
+   FUNCTION libxc_get_reference_length(libxc_params, lsd) RESULT(length)
+
+      TYPE(section_vals_type), POINTER, INTENT(IN)         :: libxc_params
+      LOGICAL, INTENT(IN)                      :: lsd
+      INTEGER                                  :: length
+
+#if defined (__LIBXC)
+      CHARACTER(LEN=default_string_length)     :: func_name
+      INTEGER                                  :: func_id
+      TYPE(xc_f03_func_t)                      :: xc_func
+      TYPE(xc_f03_func_info_t)                 :: xc_info
+
+      func_name = libxc_params%section%name
+      IF (func_name == "LIBXC" .OR. func_name == "KE_LIBXC") THEN
+         CALL section_vals_val_get(libxc_params, "functional", c_val=func_name)
+      END IF
+
+      func_id = xc_libxc_wrap_functional_get_number(func_name)
+!$OMP CRITICAL(libxc_init)
+      IF (lsd) THEN
+         CALL xc_f03_func_init(xc_func, func_id, XC_POLARIZED)
+      ELSE
+         CALL xc_f03_func_init(xc_func, func_id, XC_UNPOLARIZED)
+      END IF
+      xc_info = xc_f03_func_get_info(xc_func)
+!$OMP END CRITICAL(libxc_init)
+!$OMP BARRIER
+
+      length = xc_libxc_get_reference_length(xc_info)
+
+      CALL xc_f03_func_end(xc_func)
+#else
+      MARK_USED(libxc_params)
+      MARK_USED(lsd)
+      length = 0
+      CPABORT("In order to use LibXC you have to download and install it!")
+#endif
+
+   END FUNCTION libxc_get_reference_length
+
+! **************************************************************************************************
+!> \brief ...
+!> \param section ...
+! **************************************************************************************************
+   SUBROUTINE libxc_add_sections(section)
+
+      TYPE(section_type), POINTER, INTENT(IN) :: section
+
+#if defined (__LIBXC)
+      CHARACTER(len=*), PARAMETER :: routineN = 'libxc_add_sections'
+
+      TYPE(section_type), POINTER :: subsection
+      TYPE(keyword_type), POINTER :: keyword
+      INTEGER :: handle, no_func, len_name, ii, func_id, n_param, iparam
+      REAL(KIND=C_DOUBLE) :: default_val
+      CHARACTER(LEN=128) :: func_name, param_name, param_descr, description
+      CHARACTER(LEN=2*default_string_length) :: warning
+      INTEGER(KIND=C_INT), DIMENSION(:), ALLOCATABLE :: func_ids
+      TYPE(xc_f03_func_t)                      :: xc_func
+      TYPE(xc_f03_func_info_t)                 :: xc_info
+
+      CALL timeset(routineN, handle)
+
+      CPASSERT(ASSOCIATED(section))
+      NULLIFY (subsection, keyword)
+
+      no_func = xc_f03_number_of_functionals()
+      len_name = xc_f03_maximum_name_length()
+
+      ALLOCATE (func_ids(no_func))
+
+      CALL xc_f03_available_functional_numbers(func_ids)
+
+      DO ii = 1, no_func
+
+         func_id = func_ids(ii)
+!$OMP CRITICAL(libxc_init)
+         CALL xc_f03_func_init(xc_func, func_id, XC_UNPOLARIZED)
+         xc_info = xc_f03_func_get_info(xc_func)
+!$OMP END CRITICAL(libxc_init)
+!$OMP BARRIER
+
+         func_name = xc_f03_functional_get_name(func_id)
+         description = xc_f03_func_info_get_name(xc_info)
+         n_param = xc_f03_func_info_get_n_ext_params(xc_info)
+
+         NULLIFY (subsection)
+         CALL section_create(subsection, __LOCATION__, name=TRIM(func_name), description=TRIM(description), &
+                             n_keywords=2 + n_param, n_subsections=0, repeats=.FALSE.)
+
+         IF (description(1:1) == "_") THEN
+            warning = " This parameter is an internal parameter of the functional. Changing this "// &
+                      "parameter effectively changes the functional."
+         ELSE
+            warning = " "
+         END IF
+
+         NULLIFY (keyword)
+         CALL keyword_create(keyword, __LOCATION__, name="_SECTION_PARAMETERS_", &
+                             description="Activates the functional."//TRIM(warning), &
+                             lone_keyword_l_val=.TRUE., default_l_val=.FALSE.)
+         CALL section_add_keyword(subsection, keyword)
+         CALL keyword_release(keyword)
+
+         CALL keyword_create(keyword, __LOCATION__, name="SCALE", description="Scales this functional", &
+                             default_r_val=1.0_dp)
+         CALL section_add_keyword(subsection, keyword)
+         CALL keyword_release(keyword)
+
+         DO iparam = 1, n_param
+            param_name = xc_f03_func_info_get_ext_params_name(xc_info, iparam - 1)
+            param_descr = xc_f03_func_info_get_ext_params_description(xc_info, iparam - 1)
+            default_val = xc_f03_func_info_get_ext_params_default_value(xc_info, iparam - 1)
+
+            NULLIFY (keyword)
+            CALL keyword_create(keyword, __LOCATION__, name=TRIM(param_name), &
+                                description=TRIM(param_descr), default_r_val=default_val)
+            CALL section_add_keyword(subsection, keyword)
+            CALL keyword_release(keyword)
+         END DO
+
+         CALL section_add_subsection(section, subsection)
+         CALL section_release(subsection)
+
+         CALL xc_f03_func_end(xc_func)
+
+      END DO
+
+      CALL timestop(handle)
+#else
+      MARK_USED(section)
+
+#endif
+
+   END SUBROUTINE libxc_add_sections
 
 ! **************************************************************************************************
 !> \brief info about the functional from libxc
@@ -102,18 +295,17 @@ CONTAINS
 !> \param needs the components needed by this functional are set to
 !>        true (does not set the unneeded components to false)
 !> \param max_deriv maximum implemented derivative of the xc functional
+!> \param print_warn whether to print warning about development status of a functional
 !> \author F. Tran
 ! **************************************************************************************************
-   SUBROUTINE libxc_lda_info(libxc_params, reference, shortform, needs, max_deriv)
+   SUBROUTINE libxc_lda_info(libxc_params, reference, shortform, needs, max_deriv, print_warn)
 
       TYPE(section_vals_type), POINTER         :: libxc_params
       CHARACTER(LEN=*), INTENT(OUT), OPTIONAL  :: reference, shortform
       TYPE(xc_rho_cflags_type), &
          INTENT(inout), OPTIONAL               :: needs
       INTEGER, INTENT(out), OPTIONAL           :: max_deriv
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'libxc_lda_info', &
-                                     routineP = moduleN//':'//routineN
+      LOGICAL, INTENT(IN), OPTIONAL            :: print_warn
 
 #if defined (__LIBXC)
       CHARACTER(LEN=128)                       :: s1, s2
@@ -123,13 +315,16 @@ CONTAINS
       TYPE(xc_f03_func_t)                      :: xc_func
       TYPE(xc_f03_func_info_t)                 :: xc_info
 
-      CALL section_vals_val_get(libxc_params, "functional", c_val=func_name)
+      func_name = libxc_params%section%name
+      IF (func_name == "LIBXC" .OR. func_name == "KE_LIBXC") THEN
+         CALL section_vals_val_get(libxc_params, "functional", c_val=func_name)
+      END IF
       CALL section_vals_val_get(libxc_params, "scale", r_val=func_scale)
 
       CALL cite_reference(Marques2012)
       CALL cite_reference(Lehtola2018)
 
-      IF (ABS(func_scale-1.0_dp) < 1.0e-10_dp) func_scale = 1.0_dp
+      IF (ABS(func_scale - 1.0_dp) < 1.0e-10_dp) func_scale = 1.0_dp
 
       func_id = xc_libxc_wrap_functional_get_number(func_name)
 !$OMP CRITICAL(libxc_init)
@@ -139,7 +334,7 @@ CONTAINS
 !$OMP BARRIER
 
       s1 = xc_f03_func_info_get_name(xc_info)
-      SELECT CASE (xc_f03_func_info_get_kind (xc_info))
+      SELECT CASE (xc_f03_func_info_get_kind(xc_info))
       CASE (XC_EXCHANGE); WRITE (s2, '(a)') "exchange"
       CASE (XC_CORRELATION); WRITE (s2, '(a)') "correlation"
       CASE (XC_EXCHANGE_CORRELATION); WRITE (s2, '(a)') "exchange-correlation"
@@ -154,8 +349,8 @@ CONTAINS
          CALL xc_libxc_wrap_info_refs(xc_info, XC_UNPOLARIZED, func_scale, reference)
       END IF
       IF (PRESENT(needs)) THEN
-         SELECT CASE (xc_f03_func_info_get_family (xc_info))
-         CASE (XC_FAMILY_LDA)
+         SELECT CASE (xc_f03_func_info_get_family(xc_info))
+         CASE (XC_FAMILY_LDA, XC_FAMILY_HYB_LDA)
             needs%rho = .TRUE.
          CASE (XC_FAMILY_GGA, XC_FAMILY_HYB_GGA)
             needs%rho = .TRUE.
@@ -170,8 +365,8 @@ CONTAINS
          END SELECT
       END IF
       IF (PRESENT(max_deriv)) THEN
-         SELECT CASE (xc_f03_func_info_get_family (xc_info))
-         CASE (XC_FAMILY_LDA)
+         SELECT CASE (xc_f03_func_info_get_family(xc_info))
+         CASE (XC_FAMILY_LDA, XC_FAMILY_HYB_LDA)
             max_deriv = 3
          CASE (XC_FAMILY_GGA, XC_FAMILY_HYB_GGA)
             max_deriv = 2
@@ -181,8 +376,10 @@ CONTAINS
             CPABORT(TRIM(func_name)//": this XC_FAMILY is currently not supported.")
          END SELECT
       END IF
-      IF (.NOT. (xc_libxc_wrap_is_stable(xc_info))) THEN
-         CPWARN(TRIM(func_name)//" is not considered stable. Use with caution.")
+      IF (PRESENT(print_warn)) THEN
+         IF (print_warn .AND. xc_libxc_wrap_is_under_development(xc_info)) THEN
+            CPWARN(TRIM(func_name)//" is under development. Use with caution.")
+         END IF
       END IF
 
       CALL xc_f03_func_end(xc_func)
@@ -192,7 +389,11 @@ CONTAINS
       MARK_USED(shortform)
       MARK_USED(needs)
       MARK_USED(max_deriv)
-      CPABORT("In order to use libxc you need to download and install it")
+      MARK_USED(print_warn)
+
+      CALL cp_abort(__LOCATION__, "Unknown functional! If you are asking "// &
+                    "for a functional of the LibXC library, "// &
+                    "you have to download and install the library!")
 #endif
 
    END SUBROUTINE libxc_lda_info
@@ -205,18 +406,17 @@ CONTAINS
 !> \param needs the components needed by this functional are set to
 !>        true (does not set the unneeded components to false)
 !> \param max_deriv maximum implemented derivative of the xc functional
+!> \param print_warn whether to print warning about development status of a functional
 !> \author F. Tran
 ! **************************************************************************************************
-   SUBROUTINE libxc_lsd_info(libxc_params, reference, shortform, needs, max_deriv)
+   SUBROUTINE libxc_lsd_info(libxc_params, reference, shortform, needs, max_deriv, print_warn)
 
       TYPE(section_vals_type), POINTER         :: libxc_params
       CHARACTER(LEN=*), INTENT(OUT), OPTIONAL  :: reference, shortform
       TYPE(xc_rho_cflags_type), &
          INTENT(inout), OPTIONAL               :: needs
       INTEGER, INTENT(out), OPTIONAL           :: max_deriv
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'libxc_lsd_info', &
-                                     routineP = moduleN//':'//routineN
+      LOGICAL, INTENT(IN), OPTIONAL            :: print_warn
 
 #if defined (__LIBXC)
       CHARACTER(LEN=128)                       :: s1, s2
@@ -226,13 +426,16 @@ CONTAINS
       TYPE(xc_f03_func_t)                      :: xc_func
       TYPE(xc_f03_func_info_t)                 :: xc_info
 
-      CALL section_vals_val_get(libxc_params, "functional", c_val=func_name)
+      func_name = libxc_params%section%name
+      IF (func_name == "LIBXC" .OR. func_name == "KE_LIBXC") THEN
+         CALL section_vals_val_get(libxc_params, "functional", c_val=func_name)
+      END IF
       CALL section_vals_val_get(libxc_params, "scale", r_val=func_scale)
 
       CALL cite_reference(Marques2012)
       CALL cite_reference(Lehtola2018)
 
-      IF (ABS(func_scale-1.0_dp) < 1.0e-10_dp) func_scale = 1.0_dp
+      IF (ABS(func_scale - 1.0_dp) < 1.0e-10_dp) func_scale = 1.0_dp
 
       func_id = xc_libxc_wrap_functional_get_number(func_name)
 !$OMP CRITICAL(libxc_init)
@@ -242,7 +445,7 @@ CONTAINS
 !$OMP BARRIER
 
       s1 = xc_f03_func_info_get_name(xc_info)
-      SELECT CASE (xc_f03_func_info_get_kind (xc_info))
+      SELECT CASE (xc_f03_func_info_get_kind(xc_info))
       CASE (XC_EXCHANGE); WRITE (s2, '(a)') "exchange"
       CASE (XC_CORRELATION); WRITE (s2, '(a)') "correlation"
       CASE (XC_EXCHANGE_CORRELATION); WRITE (s2, '(a)') "exchange-correlation"
@@ -257,8 +460,8 @@ CONTAINS
          CALL xc_libxc_wrap_info_refs(xc_info, XC_POLARIZED, func_scale, reference)
       END IF
       IF (PRESENT(needs)) THEN
-         SELECT CASE (xc_f03_func_info_get_family (xc_info))
-         CASE (XC_FAMILY_LDA)
+         SELECT CASE (xc_f03_func_info_get_family(xc_info))
+         CASE (XC_FAMILY_LDA, XC_FAMILY_HYB_LDA)
             needs%rho_spin = .TRUE.
          CASE (XC_FAMILY_GGA, XC_FAMILY_HYB_GGA)
             needs%rho_spin = .TRUE.
@@ -275,8 +478,8 @@ CONTAINS
          END SELECT
       END IF
       IF (PRESENT(max_deriv)) THEN
-         SELECT CASE (xc_f03_func_info_get_family (xc_info))
-         CASE (XC_FAMILY_LDA)
+         SELECT CASE (xc_f03_func_info_get_family(xc_info))
+         CASE (XC_FAMILY_LDA, XC_FAMILY_HYB_LDA)
             max_deriv = 3
          CASE (XC_FAMILY_GGA, XC_FAMILY_HYB_GGA)
             max_deriv = 2
@@ -286,8 +489,10 @@ CONTAINS
             CPABORT(TRIM(func_name)//": this XC_FAMILY is currently not supported.")
          END SELECT
       END IF
-      IF (.NOT. (xc_libxc_wrap_is_stable(xc_info))) THEN
-         CPWARN(TRIM(func_name)//" is not considered stable. Use with caution.")
+      IF (PRESENT(print_warn)) THEN
+         IF (print_warn .AND. xc_libxc_wrap_is_under_development(xc_info)) THEN
+            CPWARN(TRIM(func_name)//" is under development. Use with caution.")
+         END IF
       END IF
 
       CALL xc_f03_func_end(xc_func)
@@ -297,7 +502,11 @@ CONTAINS
       MARK_USED(shortform)
       MARK_USED(needs)
       MARK_USED(max_deriv)
-      CPABORT("In order to use libxc you need to download and install it")
+      MARK_USED(print_warn)
+
+      CALL cp_abort(__LOCATION__, "Unknown functional! If you are "// &
+                    "asking for a functional of the LibXC library, "// &
+                    "you have to download and install the library!")
 #endif
 
    END SUBROUTINE libxc_lsd_info
@@ -309,9 +518,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE libxc_version_info(version)
       CHARACTER(LEN=*), INTENT(OUT)      :: version ! the string that is output
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'libxc_version_info', &
-                                     routineP = moduleN//':'//routineN
 
 #if defined (__LIBXC)
       CALL xc_libxc_wrap_version(version)
@@ -340,16 +546,14 @@ CONTAINS
       INTEGER, INTENT(in)                      :: grad_deriv
       TYPE(section_vals_type), POINTER         :: libxc_params
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'libxc_lda_eval', &
-                                     routineP = moduleN//':'//routineN
-
 #if defined (__LIBXC)
+      CHARACTER(len=*), PARAMETER :: routineN = 'libxc_lda_eval'
+
       CHARACTER(LEN=default_string_length)     :: func_name
       INTEGER                                  :: func_id, handle, npoints
       INTEGER, DIMENSION(:, :), POINTER        :: bo
-      LOGICAL                                  :: has_laplace
+      LOGICAL                                  :: has_laplace, no_exc
       REAL(KIND=dp)                            :: epsilon_rho, epsilon_tau, func_scale
-      REAL(KIND=dp), DIMENSION(:), POINTER     :: params
       REAL(KIND=dp), DIMENSION(:, :, :), POINTER :: dummy, e_0, e_laplace_rho, &
                                                     e_laplace_rho_laplace_rho, e_laplace_rho_tau, e_ndrho, &
                                                     e_ndrho_laplace_rho, e_ndrho_ndrho, e_ndrho_rho, e_ndrho_tau, e_rho, &
@@ -370,25 +574,25 @@ CONTAINS
       CPASSERT(ASSOCIATED(deriv_set))
       CPASSERT(deriv_set%ref_count > 0)
 
-      CALL section_vals_val_get(libxc_params, "functional", c_val=func_name)
+      func_name = libxc_params%section%name
+      IF (func_name == "LIBXC" .OR. func_name == "KE_LIBXC") THEN
+         CALL section_vals_val_get(libxc_params, "functional", c_val=func_name)
+      END IF
       CALL section_vals_val_get(libxc_params, "scale", r_val=func_scale)
-      CALL section_vals_val_get(libxc_params, "parameters", r_vals=params)
 
-      IF (ABS(func_scale-1.0_dp) < 1.0e-10_dp) func_scale = 1.0_dp
+      IF (ABS(func_scale - 1.0_dp) < 1.0e-10_dp) func_scale = 1.0_dp
 
       func_id = xc_libxc_wrap_functional_get_number(func_name)
-!$OMP CRITICAL(libxc_init)
       CALL xc_f03_func_init(xc_func, func_id, XC_UNPOLARIZED)
       xc_info = xc_f03_func_get_info(xc_func)
-!$OMP END CRITICAL(libxc_init)
-!$OMP BARRIER
+      CALL xc_libxc_wrap_functional_set_params(xc_func, xc_info, libxc_params, no_exc)
 
       CALL xc_rho_set_get(rho_set, can_return_null=.TRUE., &
                           rho=rho, norm_drho=norm_drho, laplace_rho=laplace_rho, &
                           rho_cutoff=epsilon_rho, tau_cutoff=epsilon_tau, &
                           tau=tau, local_bounds=bo)
 
-      npoints = (bo(2, 1)-bo(1, 1)+1)*(bo(2, 2)-bo(1, 2)+1)*(bo(2, 3)-bo(1, 3)+1)
+      npoints = (bo(2, 1) - bo(1, 1) + 1)*(bo(2, 2) - bo(1, 2) + 1)*(bo(2, 3) - bo(1, 3) + 1)
 
       dummy => rho
 
@@ -424,8 +628,8 @@ CONTAINS
          CALL xc_derivative_get(deriv, deriv_data=e_0)
       END IF
       IF (grad_deriv >= 1 .OR. grad_deriv == -1) THEN
-         SELECT CASE (xc_f03_func_info_get_family (xc_info))
-         CASE (XC_FAMILY_LDA)
+         SELECT CASE (xc_f03_func_info_get_family(xc_info))
+         CASE (XC_FAMILY_LDA, XC_FAMILY_HYB_LDA)
             deriv => xc_dset_get_derivative(deriv_set, "(rho)", &
                                             allocate_deriv=.TRUE.)
             CALL xc_derivative_get(deriv, deriv_data=e_rho)
@@ -456,8 +660,8 @@ CONTAINS
          END SELECT
       END IF
       IF (grad_deriv >= 2 .OR. grad_deriv == -2) THEN
-         SELECT CASE (xc_f03_func_info_get_family (xc_info))
-         CASE (XC_FAMILY_LDA)
+         SELECT CASE (xc_f03_func_info_get_family(xc_info))
+         CASE (XC_FAMILY_LDA, XC_FAMILY_HYB_LDA)
             deriv => xc_dset_get_derivative(deriv_set, "(rho)(rho)", &
                                             allocate_deriv=.TRUE.)
             CALL xc_derivative_get(deriv, deriv_data=e_rho_rho)
@@ -512,8 +716,8 @@ CONTAINS
          END SELECT
       END IF
       IF (grad_deriv >= 3 .OR. grad_deriv == -3) THEN
-         SELECT CASE (xc_f03_func_info_get_family (xc_info))
-         CASE (XC_FAMILY_LDA)
+         SELECT CASE (xc_f03_func_info_get_family(xc_info))
+         CASE (XC_FAMILY_LDA, XC_FAMILY_HYB_LDA)
             deriv => xc_dset_get_derivative(deriv_set, "(rho)(rho)(rho)", &
                                             allocate_deriv=.TRUE.)
             CALL xc_derivative_get(deriv, deriv_data=e_rho_rho_rho)
@@ -534,7 +738,7 @@ CONTAINS
 !$OMP SHARED(e_laplace_rho_tau,e_tau_tau,e_rho_rho_rho),&
 !$OMP SHARED(grad_deriv,npoints),&
 !$OMP SHARED(epsilon_rho,epsilon_tau),&
-!$OMP SHARED(func_name,func_scale,params)
+!$OMP SHARED(func_name,func_scale,xc_func,xc_info,no_exc)
 
       CALL libxc_lda_calc(rho=rho, norm_drho=norm_drho, &
                           laplace_rho=laplace_rho, tau=tau, &
@@ -548,7 +752,7 @@ CONTAINS
                           grad_deriv=grad_deriv, npoints=npoints, &
                           epsilon_rho=epsilon_rho, &
                           epsilon_tau=epsilon_tau, func_name=func_name, &
-                          sc=func_scale, params=params)
+                          sc=func_scale, xc_func=xc_func, xc_info=xc_info, no_exc=no_exc)
 
 !$OMP END PARALLEL
 
@@ -562,7 +766,9 @@ CONTAINS
       MARK_USED(deriv_set)
       MARK_USED(grad_deriv)
       MARK_USED(libxc_params)
-      CPABORT("In order to use libxc you need to download and install it")
+      CALL cp_abort(__LOCATION__, "Unknown functional! If you are asking "// &
+                    "for a functional of the LibXC library, "// &
+                    "you have to download and install the library!")
 #endif
    END SUBROUTINE libxc_lda_eval
 
@@ -584,16 +790,14 @@ CONTAINS
       INTEGER, INTENT(in)                      :: grad_deriv
       TYPE(section_vals_type), POINTER         :: libxc_params
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'libxc_lsd_eval', &
-                                     routineP = moduleN//':'//routineN
-
 #if defined (__LIBXC)
+      CHARACTER(len=*), PARAMETER :: routineN = 'libxc_lsd_eval'
+
       CHARACTER(LEN=default_string_length)     :: func_name
       INTEGER                                  :: func_id, handle, npoints
       INTEGER, DIMENSION(:, :), POINTER        :: bo
-      LOGICAL                                  :: has_laplace
+      LOGICAL                                  :: has_laplace, no_exc
       REAL(KIND=dp)                            :: epsilon_rho, epsilon_tau, func_scale
-      REAL(KIND=dp), DIMENSION(:), POINTER     :: params
       REAL(KIND=dp), DIMENSION(:, :, :), POINTER :: dummy, e_0, e_laplace_rhoa, &
                                                     e_laplace_rhoa_laplace_rhoa, e_laplace_rhoa_laplace_rhob, &
                                                     e_laplace_rhoa_tau_a, e_laplace_rhoa_tau_b, e_laplace_rhob, &
@@ -629,18 +833,18 @@ CONTAINS
       CPASSERT(ASSOCIATED(deriv_set))
       CPASSERT(deriv_set%ref_count > 0)
 
-      CALL section_vals_val_get(libxc_params, "functional", c_val=func_name)
+      func_name = libxc_params%section%name
+      IF (func_name == "LIBXC" .OR. func_name == "KE_LIBXC") THEN
+         CALL section_vals_val_get(libxc_params, "functional", c_val=func_name)
+      END IF
       CALL section_vals_val_get(libxc_params, "scale", r_val=func_scale)
-      CALL section_vals_val_get(libxc_params, "parameters", r_vals=params)
 
-      IF (ABS(func_scale-1.0_dp) < 1.0e-10_dp) func_scale = 1.0_dp
+      IF (ABS(func_scale - 1.0_dp) < 1.0e-10_dp) func_scale = 1.0_dp
 
       func_id = xc_libxc_wrap_functional_get_number(func_name)
-!$OMP CRITICAL(libxc_init)
       CALL xc_f03_func_init(xc_func, func_id, XC_POLARIZED)
       xc_info = xc_f03_func_get_info(xc_func)
-!$OMP END CRITICAL(libxc_init)
-!$OMP BARRIER
+      CALL xc_libxc_wrap_functional_set_params(xc_func, xc_info, libxc_params, no_exc)
 
       CALL xc_rho_set_get(rho_set, can_return_null=.TRUE., &
                           rhoa=rhoa, rhob=rhob, norm_drho=norm_drho, &
@@ -649,7 +853,7 @@ CONTAINS
                           rho_cutoff=epsilon_rho, tau_cutoff=epsilon_tau, &
                           tau_a=tau_a, tau_b=tau_b, local_bounds=bo)
 
-      npoints = (bo(2, 1)-bo(1, 1)+1)*(bo(2, 2)-bo(1, 2)+1)*(bo(2, 3)-bo(1, 3)+1)
+      npoints = (bo(2, 1) - bo(1, 1) + 1)*(bo(2, 2) - bo(1, 2) + 1)*(bo(2, 3) - bo(1, 3) + 1)
 
       dummy => rhoa
 
@@ -732,8 +936,8 @@ CONTAINS
          CALL xc_derivative_get(deriv, deriv_data=e_0)
       END IF
       IF (grad_deriv >= 1 .OR. grad_deriv == -1) THEN
-         SELECT CASE (xc_f03_func_info_get_family (xc_info))
-         CASE (XC_FAMILY_LDA)
+         SELECT CASE (xc_f03_func_info_get_family(xc_info))
+         CASE (XC_FAMILY_LDA, XC_FAMILY_HYB_LDA)
             deriv => xc_dset_get_derivative(deriv_set, "(rhoa)", &
                                             allocate_deriv=.TRUE.)
             CALL xc_derivative_get(deriv, deriv_data=e_rhoa)
@@ -791,8 +995,8 @@ CONTAINS
          END SELECT
       END IF
       IF (grad_deriv >= 2 .OR. grad_deriv == -2) THEN
-         SELECT CASE (xc_f03_func_info_get_family (xc_info))
-         CASE (XC_FAMILY_LDA)
+         SELECT CASE (xc_f03_func_info_get_family(xc_info))
+         CASE (XC_FAMILY_LDA, XC_FAMILY_HYB_LDA)
             deriv => xc_dset_get_derivative(deriv_set, "(rhoa)(rhoa)", &
                                             allocate_deriv=.TRUE.)
             CALL xc_derivative_get(deriv, deriv_data=e_rhoa_rhoa)
@@ -994,8 +1198,8 @@ CONTAINS
          END SELECT
       END IF
       IF (grad_deriv >= 3 .OR. grad_deriv == -3) THEN
-         SELECT CASE (xc_f03_func_info_get_family (xc_info))
-         CASE (XC_FAMILY_LDA)
+         SELECT CASE (xc_f03_func_info_get_family(xc_info))
+         CASE (XC_FAMILY_LDA, XC_FAMILY_HYB_LDA)
             deriv => xc_dset_get_derivative(deriv_set, "(rhoa)(rhoa)(rhoa)", &
                                             allocate_deriv=.TRUE.)
             CALL xc_derivative_get(deriv, deriv_data=e_rhoa_rhoa_rhoa)
@@ -1040,7 +1244,7 @@ CONTAINS
 !$OMP SHARED(e_rhoa_rhoa_rhoa,e_rhoa_rhoa_rhob,e_rhoa_rhob_rhob,e_rhob_rhob_rhob),&
 !$OMP SHARED(grad_deriv,npoints),&
 !$OMP SHARED(epsilon_rho,epsilon_tau),&
-!$OMP SHARED(func_name,func_scale,params)
+!$OMP SHARED(func_name,func_scale,xc_func,xc_info, no_exc)
 
       CALL libxc_lsd_calc(rhoa=rhoa, rhob=rhob, norm_drho=norm_drho, &
                           norm_drhoa=norm_drhoa, norm_drhob=norm_drhob, laplace_rhoa=laplace_rhoa, &
@@ -1087,7 +1291,7 @@ CONTAINS
                           grad_deriv=grad_deriv, npoints=npoints, &
                           epsilon_rho=epsilon_rho, &
                           epsilon_tau=epsilon_tau, func_name=func_name, &
-                          sc=func_scale, params=params)
+                          sc=func_scale, xc_func=xc_func, xc_info=xc_info, no_exc=no_exc)
 
 !$OMP END PARALLEL
 
@@ -1101,7 +1305,10 @@ CONTAINS
       MARK_USED(deriv_set)
       MARK_USED(grad_deriv)
       MARK_USED(libxc_params)
-      CPABORT("In order to use libxc you need to download and install it")
+
+      CALL cp_abort(__LOCATION__, "Unknown functional! If you are asking "// &
+                    "for a functional of the LibXC library, "// &
+                    "you have to download and install the library!")
 #endif
    END SUBROUTINE libxc_lsd_eval
 
@@ -1134,8 +1341,10 @@ CONTAINS
 !> \param epsilon_rho ...
 !> \param epsilon_tau ...
 !> \param func_name name of the functional
-!> \param sc scaling factor
-!> \param params parameters of the functional
+!> \param sc scaling factor of the functional
+!> \param xc_func libxc functional object
+!> \param xc_info libxc functional info object
+!> \param no_exc whether the EXC function is not available for the given functional
 !> \author F. Tran
 ! **************************************************************************************************
 #if defined (__LIBXC)
@@ -1145,7 +1354,7 @@ CONTAINS
                              e_ndrho_tau, e_laplace_rho_laplace_rho, e_laplace_rho_tau, &
                              e_tau_tau, e_rho_rho_rho, &
                              grad_deriv, npoints, epsilon_rho, &
-                             epsilon_tau, func_name, sc, params)
+                             epsilon_tau, func_name, sc, xc_func, xc_info, no_exc)
 
       REAL(KIND=dp), DIMENSION(*), INTENT(IN)            :: rho, norm_drho, laplace_rho, tau
       REAL(KIND=dp), DIMENSION(*), INTENT(INOUT) :: e_0, e_rho, e_ndrho, e_laplace_rho, e_tau, &
@@ -1155,98 +1364,87 @@ CONTAINS
       REAL(KIND=dp), INTENT(in)                          :: epsilon_rho, epsilon_tau
       CHARACTER(LEN=default_string_length), INTENT(IN)   :: func_name
       REAL(KIND=dp), INTENT(in)                          :: sc
-      REAL(KIND=dp), DIMENSION(:), INTENT(IN), POINTER   :: params
+      TYPE(xc_f03_func_t), INTENT(IN)                    :: xc_func
+      TYPE(xc_f03_func_info_t), INTENT(IN)               :: xc_info
+      LOGICAL, INTENT(IN)                                :: no_exc
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'libxc_lda_calc', routineP = moduleN//':'//routineN
-
-      INTEGER                                            :: func_id, ii
-      LOGICAL                                            :: no_exc
+      INTEGER                                            :: ii
       REAL(KIND=dp), DIMENSION(1) :: exc, my_tau, sigma, v2lapl2, v2lapltau, v2rho2, v2rholapl, &
          v2rhosigma, v2rhotau, v2sigma2, v2sigmalapl, v2sigmatau, v2tau2, v3rho3, vlapl, vrho, &
          vsigma, vtau
-      TYPE(xc_f03_func_info_t)                           :: xc_info
-      TYPE(xc_f03_func_t)                                :: xc_func
 
       ! init vlapl (prevent libxc-4.0.x bug)
       vlapl = 0.0_dp
 
-      func_id = xc_libxc_wrap_functional_get_number(func_name)
-!$OMP CRITICAL(libxc_init)
-      CALL xc_f03_func_init(xc_func, func_id, XC_UNPOLARIZED)
-      xc_info = xc_f03_func_get_info(xc_func)
-      CALL xc_libxc_wrap_functional_set_params(xc_func, xc_info, params, no_exc)
-!$OMP END CRITICAL(libxc_init)
-!$OMP BARRIER
-      SELECT CASE (xc_f03_func_info_get_family (xc_info))
-      CASE (XC_FAMILY_LDA)
+      SELECT CASE (xc_f03_func_info_get_family(xc_info))
+      CASE (XC_FAMILY_LDA, XC_FAMILY_HYB_LDA)
          IF (grad_deriv == 0) THEN
 !$OMP           DO
             DO ii = 1, npoints
-               IF (rho(ii) > epsilon_rho) THEN
-                  CALL xc_f03_lda_exc(xc_func, 1, rho(ii), exc)
-                  e_0(ii) = e_0(ii)+sc*exc(1)*rho(ii)
-               END IF
+            IF (rho(ii) > epsilon_rho) THEN
+               CALL xc_f03_lda_exc(xc_func, one, rho(ii), exc)
+               e_0(ii) = e_0(ii) + sc*exc(1)*rho(ii)
+            END IF
             END DO
 !$OMP           END DO
          ELSE IF (grad_deriv == -1) THEN
 !$OMP           DO
             DO ii = 1, npoints
-               IF (rho(ii) > epsilon_rho) THEN
-                  CALL xc_f03_lda_vxc(xc_func, 1, rho(ii), vrho)
-                  e_rho(ii) = e_rho(ii)+sc*vrho(1)
-               END IF
+            IF (rho(ii) > epsilon_rho) THEN
+               CALL xc_f03_lda_vxc(xc_func, one, rho(ii), vrho)
+               e_rho(ii) = e_rho(ii) + sc*vrho(1)
+            END IF
             END DO
 !$OMP           END DO
          ELSE IF (grad_deriv == 1) THEN
 !$OMP           DO
             DO ii = 1, npoints
-               IF (rho(ii) > epsilon_rho) THEN
-                  CALL xc_f03_lda_exc_vxc(xc_func, 1, rho(ii), exc, vrho)
-                  e_0(ii) = e_0(ii)+sc*exc(1)*rho(ii)
-                  e_rho(ii) = e_rho(ii)+sc*vrho(1)
-               END IF
+            IF (rho(ii) > epsilon_rho) THEN
+               CALL xc_f03_lda_exc_vxc(xc_func, one, rho(ii), exc, vrho)
+               e_0(ii) = e_0(ii) + sc*exc(1)*rho(ii)
+               e_rho(ii) = e_rho(ii) + sc*vrho(1)
+            END IF
             END DO
 !$OMP           END DO
          ELSE IF (grad_deriv == -2) THEN
 !$OMP           DO
             DO ii = 1, npoints
-               IF (rho(ii) > epsilon_rho) THEN
-                  CALL xc_f03_lda_fxc(xc_func, 1, rho(ii), v2rho2)
-                  e_rho_rho(ii) = e_rho_rho(ii)+sc*v2rho2(1)
-               END IF
+            IF (rho(ii) > epsilon_rho) THEN
+               CALL xc_f03_lda_fxc(xc_func, one, rho(ii), v2rho2)
+               e_rho_rho(ii) = e_rho_rho(ii) + sc*v2rho2(1)
+            END IF
             END DO
 !$OMP           END DO
          ELSE IF (grad_deriv == 2) THEN
 !$OMP           DO
             DO ii = 1, npoints
-               IF (rho(ii) > epsilon_rho) THEN
-                  CALL xc_f03_lda_exc_vxc(xc_func, 1, rho(ii), exc, vrho)
-                  CALL xc_f03_lda_fxc(xc_func, 1, rho(ii), v2rho2)
-                  e_0(ii) = e_0(ii)+sc*exc(1)*rho(ii)
-                  e_rho(ii) = e_rho(ii)+sc*vrho(1)
-                  e_rho_rho(ii) = e_rho_rho(ii)+sc*v2rho2(1)
-               END IF
+            IF (rho(ii) > epsilon_rho) THEN
+               CALL xc_f03_lda_exc_vxc_fxc(xc_func, one, rho(ii), exc, vrho, v2rho2)
+               e_0(ii) = e_0(ii) + sc*exc(1)*rho(ii)
+               e_rho(ii) = e_rho(ii) + sc*vrho(1)
+               e_rho_rho(ii) = e_rho_rho(ii) + sc*v2rho2(1)
+            END IF
             END DO
 !$OMP           END DO
          ELSE IF (grad_deriv == -3) THEN
 !$OMP           DO
             DO ii = 1, npoints
-               IF (rho(ii) > epsilon_rho) THEN
-                  CALL xc_f03_lda_kxc(xc_func, 1, rho(ii), v3rho3)
-                  e_rho_rho_rho(ii) = e_rho_rho_rho(ii)+sc*v3rho3(1)
-               END IF
+            IF (rho(ii) > epsilon_rho) THEN
+               CALL xc_f03_lda_kxc(xc_func, one, rho(ii), v3rho3)
+               e_rho_rho_rho(ii) = e_rho_rho_rho(ii) + sc*v3rho3(1)
+            END IF
             END DO
 !$OMP           END DO
          ELSE IF (grad_deriv == 3) THEN
 !$OMP           DO
             DO ii = 1, npoints
-               IF (rho(ii) > epsilon_rho) THEN
-                  CALL xc_f03_lda(xc_func, 1, rho(ii), exc, vrho, v2rho2, v3rho3)
-                  e_0(ii) = e_0(ii)+sc*exc(1)*rho(ii)
-                  e_rho(ii) = e_rho(ii)+sc*vrho(1)
-                  e_rho_rho(ii) = e_rho_rho(ii)+sc*v2rho2(1)
-                  e_rho_rho_rho(ii) = e_rho_rho_rho(ii)+sc*v3rho3(1)
-               END IF
+            IF (rho(ii) > epsilon_rho) THEN
+               CALL xc_f03_lda(xc_func, one, rho(ii), exc, vrho, v2rho2, v3rho3)
+               e_0(ii) = e_0(ii) + sc*exc(1)*rho(ii)
+               e_rho(ii) = e_rho(ii) + sc*vrho(1)
+               e_rho_rho(ii) = e_rho_rho(ii) + sc*v2rho2(1)
+               e_rho_rho_rho(ii) = e_rho_rho_rho(ii) + sc*v3rho3(1)
+            END IF
             END DO
 !$OMP           END DO
          END IF
@@ -1254,88 +1452,84 @@ CONTAINS
          IF (grad_deriv == 0) THEN
 !$OMP           DO
             DO ii = 1, npoints
-               IF (rho(ii) > epsilon_rho) THEN
-                  sigma = norm_drho(ii)**2
-                  CALL xc_f03_gga_exc(xc_func, 1, rho(ii), sigma, exc)
-                  e_0(ii) = e_0(ii)+sc*exc(1)*rho(ii)
-               END IF
+            IF (rho(ii) > epsilon_rho) THEN
+               sigma = norm_drho(ii)**2
+               CALL xc_f03_gga_exc(xc_func, one, rho(ii), sigma, exc)
+               e_0(ii) = e_0(ii) + sc*exc(1)*rho(ii)
+            END IF
             END DO
 !$OMP           END DO
          ELSE IF (grad_deriv == -1) THEN
 !$OMP           DO
             DO ii = 1, npoints
-               IF (rho(ii) > epsilon_rho) THEN
-                  sigma = norm_drho(ii)**2
-                  CALL xc_f03_gga_vxc(xc_func, 1, rho(ii), sigma, vrho, vsigma)
-                  e_rho(ii) = e_rho(ii)+sc*vrho(1)
-                  e_ndrho(ii) = e_ndrho(ii)+sc*2.0_dp*vsigma(1)*norm_drho(ii)
-               END IF
+            IF (rho(ii) > epsilon_rho) THEN
+               sigma = norm_drho(ii)**2
+               CALL xc_f03_gga_vxc(xc_func, one, rho(ii), sigma, vrho, vsigma)
+               e_rho(ii) = e_rho(ii) + sc*vrho(1)
+               e_ndrho(ii) = e_ndrho(ii) + sc*2.0_dp*vsigma(1)*norm_drho(ii)
+            END IF
             END DO
 !$OMP           END DO
          ELSE IF (grad_deriv == 1) THEN
 !$OMP           DO
             DO ii = 1, npoints
-               IF (rho(ii) > epsilon_rho) THEN
-                  sigma = norm_drho(ii)**2
-                  IF (no_exc) THEN
-                     CALL xc_f03_gga_vxc(xc_func, 1, rho(ii), sigma, vrho, vsigma)
-                     exc = 0.0_dp
-                  ELSE
-                     CALL xc_f03_gga_exc_vxc(xc_func, 1, rho(ii), sigma, &
-                                             exc, vrho, vsigma)
-                  END IF
-                  e_0(ii) = e_0(ii)+sc*exc(1)*rho(ii)
-                  e_rho(ii) = e_rho(ii)+sc*vrho(1)
-                  e_ndrho(ii) = e_ndrho(ii)+sc*2.0_dp*vsigma(1)*norm_drho(ii)
+            IF (rho(ii) > epsilon_rho) THEN
+               sigma = norm_drho(ii)**2
+               IF (no_exc) THEN
+                  CALL xc_f03_gga_vxc(xc_func, one, rho(ii), sigma, vrho, vsigma)
+                  exc = 0.0_dp
+               ELSE
+                  CALL xc_f03_gga_exc_vxc(xc_func, one, rho(ii), sigma, &
+                                          exc, vrho, vsigma)
                END IF
+               e_0(ii) = e_0(ii) + sc*exc(1)*rho(ii)
+               e_rho(ii) = e_rho(ii) + sc*vrho(1)
+               e_ndrho(ii) = e_ndrho(ii) + sc*2.0_dp*vsigma(1)*norm_drho(ii)
+            END IF
             END DO
 !$OMP           END DO
          ELSE IF (grad_deriv == -2) THEN
 !$OMP           DO
             DO ii = 1, npoints
-               IF (rho(ii) > epsilon_rho) THEN
-                  sigma = norm_drho(ii)**2
-                  IF (no_exc) THEN
-                     CALL xc_f03_gga_vxc(xc_func, 1, rho(ii), sigma, vrho, vsigma)
-                     CALL xc_f03_gga_fxc(xc_func, 1, rho(ii), sigma, &
-                                         v2rho2, v2rhosigma, v2sigma2)
-                  ELSE
-                     CALL xc_f03_gga_exc_vxc(xc_func, 1, rho(ii), sigma, &
-                                             exc, vrho, vsigma)
-                     CALL xc_f03_gga_fxc(xc_func, 1, rho(ii), sigma, &
-                                         v2rho2, v2rhosigma, v2sigma2)
-                  END IF
-                  e_rho_rho(ii) = e_rho_rho(ii)+sc*v2rho2(1)
-                  e_ndrho_rho(ii) = e_ndrho_rho(ii)+sc*2.0_dp*v2rhosigma(1)*norm_drho(ii)
-                  e_ndrho_ndrho(ii) = e_ndrho_ndrho(ii)+ &
-                                      sc*2.0_dp*(2.0_dp*sigma(1)*v2sigma2(1)+vsigma(1))
+            IF (rho(ii) > epsilon_rho) THEN
+               sigma = norm_drho(ii)**2
+               IF (no_exc) THEN
+                  CALL xc_f03_gga_vxc_fxc(xc_func, one, rho(ii), sigma, vrho, vsigma, &
+                                          v2rho2, v2rhosigma, v2sigma2)
+               ELSE
+                  CALL xc_f03_gga_exc_vxc_fxc(xc_func, one, rho(ii), sigma, &
+                                              exc, vrho, vsigma, v2rho2, &
+                                              v2rhosigma, v2sigma2)
                END IF
+               e_rho_rho(ii) = e_rho_rho(ii) + sc*v2rho2(1)
+               e_ndrho_rho(ii) = e_ndrho_rho(ii) + sc*2.0_dp*v2rhosigma(1)*norm_drho(ii)
+               e_ndrho_ndrho(ii) = e_ndrho_ndrho(ii) + &
+                                   sc*2.0_dp*(2.0_dp*sigma(1)*v2sigma2(1) + vsigma(1))
+            END IF
             END DO
 !$OMP           END DO
          ELSE IF (grad_deriv == 2) THEN
 !$OMP           DO
             DO ii = 1, npoints
-               IF (rho(ii) > epsilon_rho) THEN
-                  sigma = norm_drho(ii)**2
-                  IF (no_exc) THEN
-                     CALL xc_f03_gga_vxc(xc_func, 1, rho(ii), sigma, vrho, vsigma)
-                     CALL xc_f03_gga_fxc(xc_func, 1, rho(ii), sigma, &
-                                         v2rho2, v2rhosigma, v2sigma2)
-                     exc = 0.0_dp
-                  ELSE
-                     CALL xc_f03_gga_exc_vxc(xc_func, 1, rho(ii), sigma, &
-                                             exc, vrho, vsigma)
-                     CALL xc_f03_gga_fxc(xc_func, 1, rho(ii), sigma, &
-                                         v2rho2, v2rhosigma, v2sigma2)
-                  END IF
-                  e_0(ii) = e_0(ii)+sc*exc(1)*rho(ii)
-                  e_rho(ii) = e_rho(ii)+sc*vrho(1)
-                  e_ndrho(ii) = e_ndrho(ii)+sc*2.0_dp*vsigma(1)*norm_drho(ii)
-                  e_rho_rho(ii) = e_rho_rho(ii)+sc*v2rho2(1)
-                  e_ndrho_rho(ii) = e_ndrho_rho(ii)+sc*2.0_dp*v2rhosigma(1)*norm_drho(ii)
-                  e_ndrho_ndrho(ii) = e_ndrho_ndrho(ii)+ &
-                                      sc*2.0_dp*(2.0_dp*sigma(1)*v2sigma2(1)+vsigma(1))
+            IF (rho(ii) > epsilon_rho) THEN
+               sigma = norm_drho(ii)**2
+               IF (no_exc) THEN
+                  CALL xc_f03_gga_vxc_fxc(xc_func, one, rho(ii), sigma, vrho, vsigma, &
+                                          v2rho2, v2rhosigma, v2sigma2)
+                  exc = 0.0_dp
+               ELSE
+                  CALL xc_f03_gga_exc_vxc_fxc(xc_func, one, rho(ii), sigma, &
+                                              exc, vrho, vsigma, &
+                                              v2rho2, v2rhosigma, v2sigma2)
                END IF
+               e_0(ii) = e_0(ii) + sc*exc(1)*rho(ii)
+               e_rho(ii) = e_rho(ii) + sc*vrho(1)
+               e_ndrho(ii) = e_ndrho(ii) + sc*2.0_dp*vsigma(1)*norm_drho(ii)
+               e_rho_rho(ii) = e_rho_rho(ii) + sc*v2rho2(1)
+               e_ndrho_rho(ii) = e_ndrho_rho(ii) + sc*2.0_dp*v2rhosigma(1)*norm_drho(ii)
+               e_ndrho_ndrho(ii) = e_ndrho_ndrho(ii) + &
+                                   sc*2.0_dp*(2.0_dp*sigma(1)*v2sigma2(1) + vsigma(1))
+            END IF
             END DO
 !$OMP           END DO
          END IF
@@ -1343,132 +1537,126 @@ CONTAINS
          IF (grad_deriv == 0) THEN
 !$OMP           DO
             DO ii = 1, npoints
-               IF ((rho(ii) > epsilon_rho) .AND. (tau(ii) > epsilon_tau)) THEN
-                  sigma = norm_drho(ii)**2
-                  my_tau(1) = MAX(tau(ii), sigma(1)/(8.0_dp*rho(ii)))
-                  CALL xc_f03_mgga_exc(xc_func, 1, rho(ii), sigma, &
-                                       laplace_rho(ii), my_tau, exc)
-                  e_0(ii) = e_0(ii)+sc*exc(1)*rho(ii)
-               END IF
+            IF ((rho(ii) > epsilon_rho) .AND. (tau(ii) > epsilon_tau)) THEN
+               sigma = norm_drho(ii)**2
+               my_tau(1) = MAX(tau(ii), sigma(1)/(8.0_dp*rho(ii)))
+               CALL xc_f03_mgga_exc(xc_func, one, rho(ii), sigma, &
+                                    laplace_rho(ii), my_tau, exc)
+               e_0(ii) = e_0(ii) + sc*exc(1)*rho(ii)
+            END IF
             END DO
 !$OMP           END DO
          ELSE IF (grad_deriv == -1) THEN
 !$OMP           DO
             DO ii = 1, npoints
-               IF ((rho(ii) > epsilon_rho) .AND. (tau(ii) > epsilon_tau)) THEN
-                  sigma = norm_drho(ii)**2
-                  my_tau(1) = MAX(tau(ii), sigma(1)/(8.0_dp*rho(ii)))
-                  CALL xc_f03_mgga_vxc(xc_func, 1, rho(ii), sigma, &
-                                       laplace_rho(ii), my_tau, vrho, vsigma, vlapl, vtau)
-                  e_rho(ii) = e_rho(ii)+sc*vrho(1)
-                  e_ndrho(ii) = e_ndrho(ii)+sc*2.0_dp*vsigma(1)*norm_drho(ii)
-                  e_laplace_rho(ii) = e_laplace_rho(ii)+sc*vlapl(1)
-                  e_tau(ii) = e_tau(ii)+sc*vtau(1)
-               END IF
+            IF ((rho(ii) > epsilon_rho) .AND. (tau(ii) > epsilon_tau)) THEN
+               sigma = norm_drho(ii)**2
+               my_tau(1) = MAX(tau(ii), sigma(1)/(8.0_dp*rho(ii)))
+               CALL xc_f03_mgga_vxc(xc_func, one, rho(ii), sigma, &
+                                    laplace_rho(ii), my_tau, vrho, vsigma, vlapl, vtau)
+               e_rho(ii) = e_rho(ii) + sc*vrho(1)
+               e_ndrho(ii) = e_ndrho(ii) + sc*2.0_dp*vsigma(1)*norm_drho(ii)
+               e_laplace_rho(ii) = e_laplace_rho(ii) + sc*vlapl(1)
+               e_tau(ii) = e_tau(ii) + sc*vtau(1)
+            END IF
             END DO
 !$OMP           END DO
          ELSE IF (grad_deriv == 1) THEN
 !$OMP           DO
             DO ii = 1, npoints
-               IF ((rho(ii) > epsilon_rho) .AND. (tau(ii) > epsilon_tau)) THEN
-                  sigma(1) = norm_drho(ii)**2
-                  my_tau(1) = MAX(tau(ii), sigma(1)/(8.0_dp*rho(ii)))
-                  IF (no_exc) THEN
-                     CALL xc_f03_mgga_vxc(xc_func, 1, rho(ii), sigma, &
-                                          laplace_rho(ii), my_tau, vrho, vsigma, vlapl, vtau)
-                     exc = 0.0_dp
-                  ELSE
-                     CALL xc_f03_mgga_exc_vxc(xc_func, 1, rho(ii), sigma, &
-                                              laplace_rho(ii), my_tau, exc, vrho, vsigma, vlapl, vtau)
-                  END IF
-                  e_0(ii) = e_0(ii)+sc*exc(1)*rho(ii)
-                  e_rho(ii) = e_rho(ii)+sc*vrho(1)
-                  e_ndrho(ii) = e_ndrho(ii)+sc*2.0_dp*vsigma(1)*norm_drho(ii)
-                  e_laplace_rho(ii) = e_laplace_rho(ii)+sc*vlapl(1)
-                  e_tau(ii) = e_tau(ii)+sc*vtau(1)
+            IF ((rho(ii) > epsilon_rho) .AND. (tau(ii) > epsilon_tau)) THEN
+               sigma(1) = norm_drho(ii)**2
+               my_tau(1) = MAX(tau(ii), sigma(1)/(8.0_dp*rho(ii)))
+               IF (no_exc) THEN
+                  CALL xc_f03_mgga_vxc(xc_func, one, rho(ii), sigma, &
+                                       laplace_rho(ii), my_tau, vrho, vsigma, vlapl, vtau)
+                  exc = 0.0_dp
+               ELSE
+                  CALL xc_f03_mgga_exc_vxc(xc_func, one, rho(ii), sigma, &
+                                           laplace_rho(ii), my_tau, exc, vrho, vsigma, vlapl, vtau)
                END IF
+               e_0(ii) = e_0(ii) + sc*exc(1)*rho(ii)
+               e_rho(ii) = e_rho(ii) + sc*vrho(1)
+               e_ndrho(ii) = e_ndrho(ii) + sc*2.0_dp*vsigma(1)*norm_drho(ii)
+               e_laplace_rho(ii) = e_laplace_rho(ii) + sc*vlapl(1)
+               e_tau(ii) = e_tau(ii) + sc*vtau(1)
+            END IF
             END DO
 !$OMP           END DO
          ELSE IF (grad_deriv == -2) THEN
 !$OMP           DO
             DO ii = 1, npoints
-               IF ((rho(ii) > epsilon_rho) .AND. (tau(ii) > epsilon_tau)) THEN
-                  sigma = norm_drho(ii)**2
-                  my_tau(1) = MAX(tau(ii), sigma(1)/(8.0_dp*rho(ii)))
-                  IF (no_exc) THEN
-                     CALL xc_f03_mgga_vxc(xc_func, 1, rho(ii), sigma, &
-                                          laplace_rho(ii), my_tau, vrho, vsigma, vlapl, vtau)
-                     CALL xc_f03_mgga_fxc(xc_func, 1, rho(ii), sigma, &
-                                          laplace_rho(ii), my_tau, &
-                                          v2rho2, v2sigma2, v2lapl2, v2tau2, v2rhosigma, v2rholapl, &
-                                          v2rhotau, v2sigmalapl, v2sigmatau, v2lapltau)
-                  ELSE
-                     CALL xc_f03_mgga(xc_func, 1, rho(ii), sigma, &
-                                      laplace_rho(ii), my_tau, exc, vrho, vsigma, vlapl, vtau, &
-                                      v2rho2, v2sigma2, v2lapl2, v2tau2, v2rhosigma, v2rholapl, &
-                                      v2rhotau, v2sigmalapl, v2sigmatau, v2lapltau)
-                  END IF
-                  e_rho_rho(ii) = e_rho_rho(ii)+sc*v2rho2(1)
-                  e_ndrho_rho(ii) = e_ndrho_rho(ii)+sc*2.0_dp*v2rhosigma(1)*norm_drho(ii)
-                  e_ndrho_ndrho(ii) = e_ndrho_ndrho(ii)+ &
-                                      sc*2.0_dp*(2.0_dp*sigma(1)*v2sigma2(1)+vsigma(1))
-                  e_rho_laplace_rho(ii) = e_rho_laplace_rho(ii)+sc*v2rholapl(1)
-                  e_rho_tau(ii) = e_rho_tau(ii)+sc*v2rhotau(1)
-                  e_ndrho_laplace_rho(ii) = e_ndrho_laplace_rho(ii)+ &
-                                            sc*2.0_dp*v2sigmalapl(1)*norm_drho(ii)
-                  e_ndrho_tau(ii) = e_ndrho_tau(ii)+sc*2.0_dp*v2sigmatau(1)*norm_drho(ii)
-                  e_laplace_rho_laplace_rho(ii) = e_laplace_rho_laplace_rho(ii)+sc*v2lapl2(1)
-                  e_laplace_rho_tau(ii) = e_laplace_rho_tau(ii)+sc*v2lapltau(1)
-                  e_tau_tau(ii) = e_tau_tau(ii)+sc*v2tau2(1)
+            IF ((rho(ii) > epsilon_rho) .AND. (tau(ii) > epsilon_tau)) THEN
+               sigma = norm_drho(ii)**2
+               my_tau(1) = MAX(tau(ii), sigma(1)/(8.0_dp*rho(ii)))
+               IF (no_exc) THEN
+                  CALL xc_f03_mgga_vxc_fxc(xc_func, one, rho(ii), sigma, &
+                                           laplace_rho(ii), my_tau, vrho, vsigma, vlapl, vtau, &
+                                           v2rho2, v2sigma2, v2lapl2, v2tau2, v2rhosigma, v2rholapl, &
+                                           v2rhotau, v2sigmalapl, v2sigmatau, v2lapltau)
+               ELSE
+                  CALL xc_f03_mgga(xc_func, one, rho(ii), sigma, &
+                                   laplace_rho(ii), my_tau, exc, vrho, vsigma, vlapl, vtau, &
+                                   v2rho2, v2sigma2, v2lapl2, v2tau2, v2rhosigma, v2rholapl, &
+                                   v2rhotau, v2sigmalapl, v2sigmatau, v2lapltau)
                END IF
+               e_rho_rho(ii) = e_rho_rho(ii) + sc*v2rho2(1)
+               e_ndrho_rho(ii) = e_ndrho_rho(ii) + sc*2.0_dp*v2rhosigma(1)*norm_drho(ii)
+               e_ndrho_ndrho(ii) = e_ndrho_ndrho(ii) + &
+                                   sc*2.0_dp*(2.0_dp*sigma(1)*v2sigma2(1) + vsigma(1))
+               e_rho_laplace_rho(ii) = e_rho_laplace_rho(ii) + sc*v2rholapl(1)
+               e_rho_tau(ii) = e_rho_tau(ii) + sc*v2rhotau(1)
+               e_ndrho_laplace_rho(ii) = e_ndrho_laplace_rho(ii) + &
+                                         sc*2.0_dp*v2sigmalapl(1)*norm_drho(ii)
+               e_ndrho_tau(ii) = e_ndrho_tau(ii) + sc*2.0_dp*v2sigmatau(1)*norm_drho(ii)
+               e_laplace_rho_laplace_rho(ii) = e_laplace_rho_laplace_rho(ii) + sc*v2lapl2(1)
+               e_laplace_rho_tau(ii) = e_laplace_rho_tau(ii) + sc*v2lapltau(1)
+               e_tau_tau(ii) = e_tau_tau(ii) + sc*v2tau2(1)
+            END IF
             END DO
 !$OMP           END DO
          ELSE IF (grad_deriv == 2) THEN
 !$OMP           DO
             DO ii = 1, npoints
-               IF ((rho(ii) > epsilon_rho) .AND. (tau(ii) > epsilon_tau)) THEN
-                  sigma = norm_drho(ii)**2
-                  my_tau(1) = MAX(tau(ii), sigma(1)/(8.0_dp*rho(ii)))
-                  IF (no_exc) THEN
-                     CALL xc_f03_mgga_vxc(xc_func, 1, rho(ii), sigma, &
-                                          laplace_rho(ii), my_tau, vrho, vsigma, vlapl, vtau)
-                     CALL xc_f03_mgga_fxc(xc_func, 1, rho(ii), sigma, &
-                                          laplace_rho(ii), my_tau, &
-                                          v2rho2, v2sigma2, v2lapl2, v2tau2, v2rhosigma, v2rholapl, &
-                                          v2rhotau, v2sigmalapl, v2sigmatau, v2lapltau)
-                     exc = 0.0_dp
-                  ELSE
-                     CALL xc_f03_mgga(xc_func, 1, rho(ii), sigma, &
-                                      laplace_rho(ii), my_tau, exc, vrho, vsigma, vlapl, vtau, &
-                                      v2rho2, v2sigma2, v2lapl2, v2tau2, v2rhosigma, v2rholapl, &
-                                      v2rhotau, v2sigmalapl, v2sigmatau, v2lapltau)
-                  END IF
-                  e_0(ii) = e_0(ii)+sc*exc(1)*rho(ii)
-                  e_rho(ii) = e_rho(ii)+sc*vrho(1)
-                  e_ndrho(ii) = e_ndrho(ii)+sc*2.0_dp*vsigma(1)*norm_drho(ii)
-                  e_laplace_rho(ii) = e_laplace_rho(ii)+sc*vlapl(1)
-                  e_tau(ii) = e_tau(ii)+sc*vtau(1)
-                  e_rho_rho(ii) = e_rho_rho(ii)+sc*v2rho2(1)
-                  e_ndrho_rho(ii) = e_ndrho_rho(ii)+sc*2.0_dp*v2rhosigma(1)*norm_drho(ii)
-                  e_ndrho_ndrho(ii) = e_ndrho_ndrho(ii)+ &
-                                      sc*2.0_dp*(2.0_dp*sigma(1)*v2sigma2(1)+vsigma(1))
-                  e_rho_laplace_rho(ii) = e_rho_laplace_rho(ii)+sc*v2rholapl(1)
-                  e_rho_tau(ii) = e_rho_tau(ii)+sc*v2rhotau(1)
-                  e_ndrho_laplace_rho(ii) = e_ndrho_laplace_rho(ii)+ &
-                                            sc*2.0_dp*v2sigmalapl(1)*norm_drho(ii)
-                  e_ndrho_tau(ii) = e_ndrho_tau(ii)+sc*2.0_dp*v2sigmatau(1)*norm_drho(ii)
-                  e_laplace_rho_laplace_rho(ii) = e_laplace_rho_laplace_rho(ii)+sc*v2lapl2(1)
-                  e_laplace_rho_tau(ii) = e_laplace_rho_tau(ii)+sc*v2lapltau(1)
-                  e_tau_tau(ii) = e_tau_tau(ii)+sc*v2tau2(1)
+            IF ((rho(ii) > epsilon_rho) .AND. (tau(ii) > epsilon_tau)) THEN
+               sigma = norm_drho(ii)**2
+               my_tau(1) = MAX(tau(ii), sigma(1)/(8.0_dp*rho(ii)))
+               IF (no_exc) THEN
+                  CALL xc_f03_mgga_vxc_fxc(xc_func, one, rho(ii), sigma, &
+                                           laplace_rho(ii), my_tau, vrho, vsigma, vlapl, vtau, &
+                                           v2rho2, v2sigma2, v2lapl2, v2tau2, v2rhosigma, v2rholapl, &
+                                           v2rhotau, v2sigmalapl, v2sigmatau, v2lapltau)
+                  exc = 0.0_dp
+               ELSE
+                  CALL xc_f03_mgga(xc_func, one, rho(ii), sigma, &
+                                   laplace_rho(ii), my_tau, exc, vrho, vsigma, vlapl, vtau, &
+                                   v2rho2, v2sigma2, v2lapl2, v2tau2, v2rhosigma, v2rholapl, &
+                                   v2rhotau, v2sigmalapl, v2sigmatau, v2lapltau)
                END IF
+               e_0(ii) = e_0(ii) + sc*exc(1)*rho(ii)
+               e_rho(ii) = e_rho(ii) + sc*vrho(1)
+               e_ndrho(ii) = e_ndrho(ii) + sc*2.0_dp*vsigma(1)*norm_drho(ii)
+               e_laplace_rho(ii) = e_laplace_rho(ii) + sc*vlapl(1)
+               e_tau(ii) = e_tau(ii) + sc*vtau(1)
+               e_rho_rho(ii) = e_rho_rho(ii) + sc*v2rho2(1)
+               e_ndrho_rho(ii) = e_ndrho_rho(ii) + sc*2.0_dp*v2rhosigma(1)*norm_drho(ii)
+               e_ndrho_ndrho(ii) = e_ndrho_ndrho(ii) + &
+                                   sc*2.0_dp*(2.0_dp*sigma(1)*v2sigma2(1) + vsigma(1))
+               e_rho_laplace_rho(ii) = e_rho_laplace_rho(ii) + sc*v2rholapl(1)
+               e_rho_tau(ii) = e_rho_tau(ii) + sc*v2rhotau(1)
+               e_ndrho_laplace_rho(ii) = e_ndrho_laplace_rho(ii) + &
+                                         sc*2.0_dp*v2sigmalapl(1)*norm_drho(ii)
+               e_ndrho_tau(ii) = e_ndrho_tau(ii) + sc*2.0_dp*v2sigmatau(1)*norm_drho(ii)
+               e_laplace_rho_laplace_rho(ii) = e_laplace_rho_laplace_rho(ii) + sc*v2lapl2(1)
+               e_laplace_rho_tau(ii) = e_laplace_rho_tau(ii) + sc*v2lapltau(1)
+               e_tau_tau(ii) = e_tau_tau(ii) + sc*v2tau2(1)
+            END IF
             END DO
 !$OMP           END DO
          END IF
       CASE default
          CPABORT(TRIM(func_name)//": this XC_FAMILY is currently not supported.")
       END SELECT
-
-      CALL xc_f03_func_end(xc_func)
 
    END SUBROUTINE libxc_lda_calc
 #endif
@@ -1550,8 +1738,10 @@ CONTAINS
 !> \param epsilon_rho ...
 !> \param epsilon_tau ...
 !> \param func_name name of the functional
-!> \param sc scaling factor
-!> \param params parameters of the functional
+!> \param sc scaling factor of the functional
+!> \param xc_func libxc functional object
+!> \param xc_info libxc functional info object
+!> \param no_exc whether the EXC function is not available for the given functional
 !> \author F. Tran
 ! **************************************************************************************************
 #if defined (__LIBXC)
@@ -1582,7 +1772,7 @@ CONTAINS
                              e_rhoa_rhoa_rhoa, e_rhoa_rhoa_rhob, &
                              e_rhoa_rhob_rhob, e_rhob_rhob_rhob, &
                              grad_deriv, npoints, epsilon_rho, &
-                             epsilon_tau, func_name, sc, params)
+                             epsilon_tau, func_name, sc, xc_func, xc_info, no_exc)
 
       REAL(KIND=dp), DIMENSION(*), INTENT(IN)            :: rhoa, rhob, norm_drho, norm_drhoa, &
                                                             norm_drhob, laplace_rhoa, &
@@ -1604,12 +1794,11 @@ CONTAINS
       REAL(KIND=dp), INTENT(in)                          :: epsilon_rho, epsilon_tau
       CHARACTER(LEN=default_string_length), INTENT(IN)   :: func_name
       REAL(KIND=dp), INTENT(in)                          :: sc
-      REAL(KIND=dp), DIMENSION(:), INTENT(IN), POINTER   :: params
+      TYPE(xc_f03_func_t), INTENT(IN)                    :: xc_func
+      TYPE(xc_f03_func_info_t), INTENT(IN)               :: xc_info
+      LOGICAL, INTENT(IN)                                :: no_exc
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'libxc_lsd_calc', routineP = moduleN//':'//routineN
-
-      INTEGER                                            :: func_id, ii
-      LOGICAL                                            :: no_exc
+      INTEGER                                            :: ii
       REAL(KIND=dp)                                      :: my_norm_drho, my_norm_drhoa, &
                                                             my_norm_drhob, my_rhoa, my_rhob, &
                                                             my_tau_a, my_tau_b
@@ -1620,31 +1809,22 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(4, 1)                     :: v2lapltau, v2rholapl, v2rhotau, v3rho3
       REAL(KIND=dp), DIMENSION(6, 1)                     :: v2rhosigma, v2sigma2, v2sigmalapl, &
                                                             v2sigmatau
-      TYPE(xc_f03_func_info_t)                           :: xc_info
-      TYPE(xc_f03_func_t)                                :: xc_func
 
-! these are just dummy variables, you need to use the correct size if working
+      vlapl(1, 1) = 0.0_dp
+      vlapl(2, 1) = 0.0_dp
 
-      func_id = xc_libxc_wrap_functional_get_number(func_name)
-!$OMP CRITICAL(libxc_init)
-      CALL xc_f03_func_init(xc_func, func_id, XC_POLARIZED)
-      xc_info = xc_f03_func_get_info(xc_func)
-      CALL xc_libxc_wrap_functional_set_params(xc_func, xc_info, params, no_exc)
-!$OMP END CRITICAL(libxc_init)
-!$OMP BARRIER
-
-      SELECT CASE (xc_f03_func_info_get_family (xc_info))
-      CASE (XC_FAMILY_LDA)
+      SELECT CASE (xc_f03_func_info_get_family(xc_info))
+      CASE (XC_FAMILY_LDA, XC_FAMILY_HYB_LDA)
          IF (grad_deriv == 0) THEN
 !$OMP           DO
             DO ii = 1, npoints
                my_rhoa = MAX(rhoa(ii), 0.0_dp)
                my_rhob = MAX(rhob(ii), 0.0_dp)
-               IF ((my_rhoa+my_rhob) > epsilon_rho) THEN
+               IF ((my_rhoa + my_rhob) > epsilon_rho) THEN
                   rhov(1, 1) = MAX(my_rhoa, EPSILON(0.0_dp)*1.e4_dp)
                   rhov(2, 1) = MAX(my_rhob, EPSILON(0.0_dp)*1.e4_dp)
-                  CALL xc_f03_lda_exc(xc_func, 1, rhov(1, 1), exc)
-                  e_0(ii) = e_0(ii)+sc*exc(1)*(rhov(1, 1)+rhov(2, 1))
+                  CALL xc_f03_lda_exc(xc_func, one, rhov(1, 1), exc)
+                  e_0(ii) = e_0(ii) + sc*exc(1)*(rhov(1, 1) + rhov(2, 1))
                END IF
             END DO
 !$OMP           END DO
@@ -1653,12 +1833,12 @@ CONTAINS
             DO ii = 1, npoints
                my_rhoa = MAX(rhoa(ii), 0.0_dp)
                my_rhob = MAX(rhob(ii), 0.0_dp)
-               IF ((my_rhoa+my_rhob) > epsilon_rho) THEN
+               IF ((my_rhoa + my_rhob) > epsilon_rho) THEN
                   rhov(1, 1) = MAX(my_rhoa, EPSILON(0.0_dp)*1.e4_dp)
                   rhov(2, 1) = MAX(my_rhob, EPSILON(0.0_dp)*1.e4_dp)
-                  CALL xc_f03_lda_vxc(xc_func, 1, rhov(1, 1), vrho(1, 1))
-                  e_rhoa(ii) = e_rhoa(ii)+sc*vrho(1, 1)
-                  e_rhob(ii) = e_rhob(ii)+sc*vrho(2, 1)
+                  CALL xc_f03_lda_vxc(xc_func, one, rhov(1, 1), vrho(1, 1))
+                  e_rhoa(ii) = e_rhoa(ii) + sc*vrho(1, 1)
+                  e_rhob(ii) = e_rhob(ii) + sc*vrho(2, 1)
                END IF
             END DO
 !$OMP           END DO
@@ -1667,13 +1847,13 @@ CONTAINS
             DO ii = 1, npoints
                my_rhoa = MAX(rhoa(ii), 0.0_dp)
                my_rhob = MAX(rhob(ii), 0.0_dp)
-               IF ((my_rhoa+my_rhob) > epsilon_rho) THEN
+               IF ((my_rhoa + my_rhob) > epsilon_rho) THEN
                   rhov(1, 1) = MAX(my_rhoa, EPSILON(0.0_dp)*1.e4_dp)
                   rhov(2, 1) = MAX(my_rhob, EPSILON(0.0_dp)*1.e4_dp)
-                  CALL xc_f03_lda_exc_vxc(xc_func, 1, rhov(1, 1), exc, vrho(1, 1))
-                  e_0(ii) = e_0(ii)+sc*exc(1)*(rhov(1, 1)+rhov(2, 1))
-                  e_rhoa(ii) = e_rhoa(ii)+sc*vrho(1, 1)
-                  e_rhob(ii) = e_rhob(ii)+sc*vrho(2, 1)
+                  CALL xc_f03_lda_exc_vxc(xc_func, one, rhov(1, 1), exc, vrho(1, 1))
+                  e_0(ii) = e_0(ii) + sc*exc(1)*(rhov(1, 1) + rhov(2, 1))
+                  e_rhoa(ii) = e_rhoa(ii) + sc*vrho(1, 1)
+                  e_rhob(ii) = e_rhob(ii) + sc*vrho(2, 1)
                END IF
             END DO
 !$OMP           END DO
@@ -1682,13 +1862,13 @@ CONTAINS
             DO ii = 1, npoints
                my_rhoa = MAX(rhoa(ii), 0.0_dp)
                my_rhob = MAX(rhob(ii), 0.0_dp)
-               IF ((my_rhoa+my_rhob) > epsilon_rho) THEN
+               IF ((my_rhoa + my_rhob) > epsilon_rho) THEN
                   rhov(1, 1) = MAX(my_rhoa, EPSILON(0.0_dp)*1.e4_dp)
                   rhov(2, 1) = MAX(my_rhob, EPSILON(0.0_dp)*1.e4_dp)
-                  CALL xc_f03_lda_fxc(xc_func, 1, rhov(1, 1), v2rho2(1, 1))
-                  e_rhoa_rhoa(ii) = e_rhoa_rhoa(ii)+sc*v2rho2(1, 1)
-                  e_rhoa_rhob(ii) = e_rhoa_rhob(ii)+sc*v2rho2(2, 1)
-                  e_rhob_rhob(ii) = e_rhob_rhob(ii)+sc*v2rho2(3, 1)
+                  CALL xc_f03_lda_fxc(xc_func, one, rhov(1, 1), v2rho2(1, 1))
+                  e_rhoa_rhoa(ii) = e_rhoa_rhoa(ii) + sc*v2rho2(1, 1)
+                  e_rhoa_rhob(ii) = e_rhoa_rhob(ii) + sc*v2rho2(2, 1)
+                  e_rhob_rhob(ii) = e_rhob_rhob(ii) + sc*v2rho2(3, 1)
                END IF
             END DO
 !$OMP           END DO
@@ -1697,17 +1877,16 @@ CONTAINS
             DO ii = 1, npoints
                my_rhoa = MAX(rhoa(ii), 0.0_dp)
                my_rhob = MAX(rhob(ii), 0.0_dp)
-               IF ((my_rhoa+my_rhob) > epsilon_rho) THEN
+               IF ((my_rhoa + my_rhob) > epsilon_rho) THEN
                   rhov(1, 1) = MAX(my_rhoa, EPSILON(0.0_dp)*1.e4_dp)
                   rhov(2, 1) = MAX(my_rhob, EPSILON(0.0_dp)*1.e4_dp)
-                  CALL xc_f03_lda_exc_vxc(xc_func, 1, rhov(1, 1), exc, vrho(1, 1))
-                  CALL xc_f03_lda_fxc(xc_func, 1, rhov(1, 1), v2rho2(1, 1))
-                  e_0(ii) = e_0(ii)+sc*exc(1)*(rhov(1, 1)+rhov(2, 1))
-                  e_rhoa(ii) = e_rhoa(ii)+sc*vrho(1, 1)
-                  e_rhob(ii) = e_rhob(ii)+sc*vrho(2, 1)
-                  e_rhoa_rhoa(ii) = e_rhoa_rhoa(ii)+sc*v2rho2(1, 1)
-                  e_rhoa_rhob(ii) = e_rhoa_rhob(ii)+sc*v2rho2(2, 1)
-                  e_rhob_rhob(ii) = e_rhob_rhob(ii)+sc*v2rho2(3, 1)
+                  CALL xc_f03_lda_exc_vxc_fxc(xc_func, one, rhov(1, 1), exc, vrho(1, 1), v2rho2(1, 1))
+                  e_0(ii) = e_0(ii) + sc*exc(1)*(rhov(1, 1) + rhov(2, 1))
+                  e_rhoa(ii) = e_rhoa(ii) + sc*vrho(1, 1)
+                  e_rhob(ii) = e_rhob(ii) + sc*vrho(2, 1)
+                  e_rhoa_rhoa(ii) = e_rhoa_rhoa(ii) + sc*v2rho2(1, 1)
+                  e_rhoa_rhob(ii) = e_rhoa_rhob(ii) + sc*v2rho2(2, 1)
+                  e_rhob_rhob(ii) = e_rhob_rhob(ii) + sc*v2rho2(3, 1)
                END IF
             END DO
 !$OMP           END DO
@@ -1716,14 +1895,14 @@ CONTAINS
             DO ii = 1, npoints
                my_rhoa = MAX(rhoa(ii), 0.0_dp)
                my_rhob = MAX(rhob(ii), 0.0_dp)
-               IF ((my_rhoa+my_rhob) > epsilon_rho) THEN
+               IF ((my_rhoa + my_rhob) > epsilon_rho) THEN
                   rhov(1, 1) = MAX(my_rhoa, EPSILON(0.0_dp)*1.e4_dp)
                   rhov(2, 1) = MAX(my_rhob, EPSILON(0.0_dp)*1.e4_dp)
-                  CALL xc_f03_lda_kxc(xc_func, 1, rhov(1, 1), v3rho3(1, 1))
-                  e_rhoa_rhoa_rhoa(ii) = e_rhoa_rhoa_rhoa(ii)+sc*v3rho3(1, 1)
-                  e_rhoa_rhoa_rhob(ii) = e_rhoa_rhoa_rhob(ii)+sc*v3rho3(2, 1)
-                  e_rhoa_rhob_rhob(ii) = e_rhoa_rhob_rhob(ii)+sc*v3rho3(3, 1)
-                  e_rhob_rhob_rhob(ii) = e_rhob_rhob_rhob(ii)+sc*v3rho3(4, 1)
+                  CALL xc_f03_lda_kxc(xc_func, one, rhov(1, 1), v3rho3(1, 1))
+                  e_rhoa_rhoa_rhoa(ii) = e_rhoa_rhoa_rhoa(ii) + sc*v3rho3(1, 1)
+                  e_rhoa_rhoa_rhob(ii) = e_rhoa_rhoa_rhob(ii) + sc*v3rho3(2, 1)
+                  e_rhoa_rhob_rhob(ii) = e_rhoa_rhob_rhob(ii) + sc*v3rho3(3, 1)
+                  e_rhob_rhob_rhob(ii) = e_rhob_rhob_rhob(ii) + sc*v3rho3(4, 1)
                END IF
             END DO
 !$OMP           END DO
@@ -1732,20 +1911,20 @@ CONTAINS
             DO ii = 1, npoints
                my_rhoa = MAX(rhoa(ii), 0.0_dp)
                my_rhob = MAX(rhob(ii), 0.0_dp)
-               IF ((my_rhoa+my_rhob) > epsilon_rho) THEN
+               IF ((my_rhoa + my_rhob) > epsilon_rho) THEN
                   rhov(1, 1) = MAX(my_rhoa, EPSILON(0.0_dp)*1.e4_dp)
                   rhov(2, 1) = MAX(my_rhob, EPSILON(0.0_dp)*1.e4_dp)
-                  CALL xc_f03_lda(xc_func, 1, rhov(1, 1), exc, vrho(1, 1), v2rho2(1, 1), v3rho3(1, 1))
-                  e_0(ii) = e_0(ii)+sc*exc(1)*(rhov(1, 1)+rhov(2, 1))
-                  e_rhoa(ii) = e_rhoa(ii)+sc*vrho(1, 1)
-                  e_rhob(ii) = e_rhob(ii)+sc*vrho(2, 1)
-                  e_rhoa_rhoa(ii) = e_rhoa_rhoa(ii)+sc*v2rho2(1, 1)
-                  e_rhoa_rhob(ii) = e_rhoa_rhob(ii)+sc*v2rho2(2, 1)
-                  e_rhob_rhob(ii) = e_rhob_rhob(ii)+sc*v2rho2(3, 1)
-                  e_rhoa_rhoa_rhoa(ii) = e_rhoa_rhoa_rhoa(ii)+sc*v3rho3(1, 1)
-                  e_rhoa_rhoa_rhob(ii) = e_rhoa_rhoa_rhob(ii)+sc*v3rho3(2, 1)
-                  e_rhoa_rhob_rhob(ii) = e_rhoa_rhob_rhob(ii)+sc*v3rho3(3, 1)
-                  e_rhob_rhob_rhob(ii) = e_rhob_rhob_rhob(ii)+sc*v3rho3(4, 1)
+                  CALL xc_f03_lda(xc_func, one, rhov(1, 1), exc, vrho(1, 1), v2rho2(1, 1), v3rho3(1, 1))
+                  e_0(ii) = e_0(ii) + sc*exc(1)*(rhov(1, 1) + rhov(2, 1))
+                  e_rhoa(ii) = e_rhoa(ii) + sc*vrho(1, 1)
+                  e_rhob(ii) = e_rhob(ii) + sc*vrho(2, 1)
+                  e_rhoa_rhoa(ii) = e_rhoa_rhoa(ii) + sc*v2rho2(1, 1)
+                  e_rhoa_rhob(ii) = e_rhoa_rhob(ii) + sc*v2rho2(2, 1)
+                  e_rhob_rhob(ii) = e_rhob_rhob(ii) + sc*v2rho2(3, 1)
+                  e_rhoa_rhoa_rhoa(ii) = e_rhoa_rhoa_rhoa(ii) + sc*v3rho3(1, 1)
+                  e_rhoa_rhoa_rhob(ii) = e_rhoa_rhoa_rhob(ii) + sc*v3rho3(2, 1)
+                  e_rhoa_rhob_rhob(ii) = e_rhoa_rhob_rhob(ii) + sc*v3rho3(3, 1)
+                  e_rhob_rhob_rhob(ii) = e_rhob_rhob_rhob(ii) + sc*v3rho3(4, 1)
                END IF
             END DO
 !$OMP           END DO
@@ -1756,7 +1935,7 @@ CONTAINS
             DO ii = 1, npoints
                my_rhoa = MAX(rhoa(ii), 0.0_dp)
                my_rhob = MAX(rhob(ii), 0.0_dp)
-               IF ((my_rhoa+my_rhob) > epsilon_rho) THEN
+               IF ((my_rhoa + my_rhob) > epsilon_rho) THEN
                   rhov(1, 1) = MAX(my_rhoa, EPSILON(0.0_dp)*1.e4_dp)
                   rhov(2, 1) = MAX(my_rhob, EPSILON(0.0_dp)*1.e4_dp)
                   my_norm_drhoa = MAX(norm_drhoa(ii), EPSILON(0.0_dp)*1.e4_dp)
@@ -1764,9 +1943,9 @@ CONTAINS
                   my_norm_drho = MAX(norm_drho(ii), EPSILON(0.0_dp)*1.e4_dp)
                   sigmav(1, 1) = my_norm_drhoa**2
                   sigmav(3, 1) = my_norm_drhob**2
-                  sigmav(2, 1) = 0.5_dp*(my_norm_drho**2-sigmav(1, 1)-sigmav(3, 1))
-                  CALL xc_f03_gga_exc(xc_func, 1, rhov(1, 1), sigmav(1, 1), exc)
-                  e_0(ii) = e_0(ii)+sc*exc(1)*(rhov(1, 1)+rhov(2, 1))
+                  sigmav(2, 1) = 0.5_dp*(my_norm_drho**2 - sigmav(1, 1) - sigmav(3, 1))
+                  CALL xc_f03_gga_exc(xc_func, one, rhov(1, 1), sigmav(1, 1), exc)
+                  e_0(ii) = e_0(ii) + sc*exc(1)*(rhov(1, 1) + rhov(2, 1))
                END IF
             END DO
 !$OMP           END DO
@@ -1775,7 +1954,7 @@ CONTAINS
             DO ii = 1, npoints
                my_rhoa = MAX(rhoa(ii), 0.0_dp)
                my_rhob = MAX(rhob(ii), 0.0_dp)
-               IF ((my_rhoa+my_rhob) > epsilon_rho) THEN
+               IF ((my_rhoa + my_rhob) > epsilon_rho) THEN
                   rhov(1, 1) = MAX(my_rhoa, EPSILON(0.0_dp)*1.e4_dp)
                   rhov(2, 1) = MAX(my_rhob, EPSILON(0.0_dp)*1.e4_dp)
                   my_norm_drhoa = MAX(norm_drhoa(ii), EPSILON(0.0_dp)*1.e4_dp)
@@ -1783,15 +1962,15 @@ CONTAINS
                   my_norm_drho = MAX(norm_drho(ii), EPSILON(0.0_dp)*1.e4_dp)
                   sigmav(1, 1) = my_norm_drhoa**2
                   sigmav(3, 1) = my_norm_drhob**2
-                  sigmav(2, 1) = 0.5_dp*(my_norm_drho**2-sigmav(1, 1)-sigmav(3, 1))
-                  CALL xc_f03_gga_vxc(xc_func, 1, rhov(1, 1), sigmav(1, 1), vrho(1, 1), vsigma(1, 1))
-                  e_rhoa(ii) = e_rhoa(ii)+sc*vrho(1, 1)
-                  e_rhob(ii) = e_rhob(ii)+sc*vrho(2, 1)
-                  e_ndrho(ii) = e_ndrho(ii)+sc*vsigma(2, 1)*my_norm_drho
-                  e_ndrhoa(ii) = e_ndrhoa(ii)+ &
-                                 sc*(2.0_dp*vsigma(1, 1)-vsigma(2, 1))*my_norm_drhoa
-                  e_ndrhob(ii) = e_ndrhob(ii)+ &
-                                 sc*(2.0_dp*vsigma(3, 1)-vsigma(2, 1))*my_norm_drhob
+                  sigmav(2, 1) = 0.5_dp*(my_norm_drho**2 - sigmav(1, 1) - sigmav(3, 1))
+                  CALL xc_f03_gga_vxc(xc_func, one, rhov(1, 1), sigmav(1, 1), vrho(1, 1), vsigma(1, 1))
+                  e_rhoa(ii) = e_rhoa(ii) + sc*vrho(1, 1)
+                  e_rhob(ii) = e_rhob(ii) + sc*vrho(2, 1)
+                  e_ndrho(ii) = e_ndrho(ii) + sc*vsigma(2, 1)*my_norm_drho
+                  e_ndrhoa(ii) = e_ndrhoa(ii) + &
+                                 sc*(2.0_dp*vsigma(1, 1) - vsigma(2, 1))*my_norm_drhoa
+                  e_ndrhob(ii) = e_ndrhob(ii) + &
+                                 sc*(2.0_dp*vsigma(3, 1) - vsigma(2, 1))*my_norm_drhob
                END IF
             END DO
 !$OMP           END DO
@@ -1800,7 +1979,7 @@ CONTAINS
             DO ii = 1, npoints
                my_rhoa = MAX(rhoa(ii), 0.0_dp)
                my_rhob = MAX(rhob(ii), 0.0_dp)
-               IF ((my_rhoa+my_rhob) > epsilon_rho) THEN
+               IF ((my_rhoa + my_rhob) > epsilon_rho) THEN
                   rhov(1, 1) = MAX(my_rhoa, EPSILON(0.0_dp)*1.e4_dp)
                   rhov(2, 1) = MAX(my_rhob, EPSILON(0.0_dp)*1.e4_dp)
                   my_norm_drhoa = MAX(norm_drhoa(ii), EPSILON(0.0_dp)*1.e4_dp)
@@ -1808,21 +1987,21 @@ CONTAINS
                   my_norm_drho = MAX(norm_drho(ii), EPSILON(0.0_dp)*1.e4_dp)
                   sigmav(1, 1) = my_norm_drhoa**2
                   sigmav(3, 1) = my_norm_drhob**2
-                  sigmav(2, 1) = 0.5_dp*(my_norm_drho**2-sigmav(1, 1)-sigmav(3, 1))
+                  sigmav(2, 1) = 0.5_dp*(my_norm_drho**2 - sigmav(1, 1) - sigmav(3, 1))
                   IF (no_exc) THEN
-                     CALL xc_f03_gga_vxc(xc_func, 1, rhov(1, 1), sigmav(1, 1), vrho(1, 1), vsigma(1, 1))
+                     CALL xc_f03_gga_vxc(xc_func, one, rhov(1, 1), sigmav(1, 1), vrho(1, 1), vsigma(1, 1))
                      exc = 0.0_dp
                   ELSE
-                     CALL xc_f03_gga_exc_vxc(xc_func, 1, rhov(1, 1), sigmav(1, 1), exc, vrho(1, 1), vsigma(1, 1))
+                     CALL xc_f03_gga_exc_vxc(xc_func, one, rhov(1, 1), sigmav(1, 1), exc, vrho(1, 1), vsigma(1, 1))
                   END IF
-                  e_0(ii) = e_0(ii)+sc*exc(1)*(rhov(1, 1)+rhov(2, 1))
-                  e_rhoa(ii) = e_rhoa(ii)+sc*vrho(1, 1)
-                  e_rhob(ii) = e_rhob(ii)+sc*vrho(2, 1)
-                  e_ndrho(ii) = e_ndrho(ii)+sc*vsigma(2, 1)*my_norm_drho
-                  e_ndrhoa(ii) = e_ndrhoa(ii)+ &
-                                 sc*(2.0_dp*vsigma(1, 1)-vsigma(2, 1))*my_norm_drhoa
-                  e_ndrhob(ii) = e_ndrhob(ii)+ &
-                                 sc*(2.0_dp*vsigma(3, 1)-vsigma(2, 1))*my_norm_drhob
+                  e_0(ii) = e_0(ii) + sc*exc(1)*(rhov(1, 1) + rhov(2, 1))
+                  e_rhoa(ii) = e_rhoa(ii) + sc*vrho(1, 1)
+                  e_rhob(ii) = e_rhob(ii) + sc*vrho(2, 1)
+                  e_ndrho(ii) = e_ndrho(ii) + sc*vsigma(2, 1)*my_norm_drho
+                  e_ndrhoa(ii) = e_ndrhoa(ii) + &
+                                 sc*(2.0_dp*vsigma(1, 1) - vsigma(2, 1))*my_norm_drhoa
+                  e_ndrhob(ii) = e_ndrhob(ii) + &
+                                 sc*(2.0_dp*vsigma(3, 1) - vsigma(2, 1))*my_norm_drhob
                END IF
             END DO
 !$OMP           END DO
@@ -1831,7 +2010,7 @@ CONTAINS
             DO ii = 1, npoints
                my_rhoa = MAX(rhoa(ii), 0.0_dp)
                my_rhob = MAX(rhob(ii), 0.0_dp)
-               IF ((my_rhoa+my_rhob) > epsilon_rho) THEN
+               IF ((my_rhoa + my_rhob) > epsilon_rho) THEN
                   rhov(1, 1) = MAX(my_rhoa, EPSILON(0.0_dp)*1.e4_dp)
                   rhov(2, 1) = MAX(my_rhob, EPSILON(0.0_dp)*1.e4_dp)
                   my_norm_drhoa = MAX(norm_drhoa(ii), EPSILON(0.0_dp)*1.e4_dp)
@@ -1839,44 +2018,42 @@ CONTAINS
                   my_norm_drho = MAX(norm_drho(ii), EPSILON(0.0_dp)*1.e4_dp)
                   sigmav(1, 1) = my_norm_drhoa**2
                   sigmav(3, 1) = my_norm_drhob**2
-                  sigmav(2, 1) = 0.5_dp*(my_norm_drho**2-sigmav(1, 1)-sigmav(3, 1))
+                  sigmav(2, 1) = 0.5_dp*(my_norm_drho**2 - sigmav(1, 1) - sigmav(3, 1))
                   IF (no_exc) THEN
-                     CALL xc_f03_gga_vxc(xc_func, 1, rhov(1, 1), sigmav(1, 1), vrho(1, 1), vsigma(1, 1))
-                     CALL xc_f03_gga_fxc(xc_func, 1, rhov(1, 1), sigmav(1, 1), &
-                                         v2rho2(1, 1), v2rhosigma(1, 1), v2sigma2(1, 1))
+                     CALL xc_f03_gga_vxc_fxc(xc_func, one, rhov(1, 1), sigmav(1, 1), vrho(1, 1), vsigma(1, 1), &
+                                             v2rho2(1, 1), v2rhosigma(1, 1), v2sigma2(1, 1))
                   ELSE
-                     CALL xc_f03_gga_exc_vxc(xc_func, 1, rhov(1, 1), sigmav(1, 1), exc, vrho(1, 1), vsigma(1, 1))
-                     CALL xc_f03_gga_fxc(xc_func, 1, rhov(1, 1), sigmav(1, 1), &
-                                         v2rho2(1, 1), v2rhosigma(1, 1), v2sigma2(1, 1))
+                     CALL xc_f03_gga_exc_vxc_fxc(xc_func, one, rhov(1, 1), sigmav(1, 1), exc, vrho(1, 1), vsigma(1, 1), &
+                                                 v2rho2(1, 1), v2rhosigma(1, 1), v2sigma2(1, 1))
                   END IF
-                  e_rhoa_rhoa(ii) = e_rhoa_rhoa(ii)+sc*v2rho2(1, 1)
-                  e_rhoa_rhob(ii) = e_rhoa_rhob(ii)+sc*v2rho2(2, 1)
-                  e_rhob_rhob(ii) = e_rhob_rhob(ii)+sc*v2rho2(3, 1)
-                  e_ndrho_rhoa(ii) = e_ndrho_rhoa(ii)+sc*v2rhosigma(2, 1)*my_norm_drho
-                  e_ndrho_rhob(ii) = e_ndrho_rhob(ii)+sc*v2rhosigma(5, 1)*my_norm_drho
-                  e_ndrhoa_rhoa(ii) = e_ndrhoa_rhoa(ii)+ &
-                                      sc*(2.0_dp*v2rhosigma(1, 1)-v2rhosigma(2, 1))*my_norm_drhoa
-                  e_ndrhoa_rhob(ii) = e_ndrhoa_rhob(ii)+ &
-                                      sc*(2.0_dp*v2rhosigma(4, 1)-v2rhosigma(5, 1))*my_norm_drhoa
-                  e_ndrhob_rhoa(ii) = e_ndrhob_rhoa(ii)+ &
-                                      sc*(2.0_dp*v2rhosigma(3, 1)-v2rhosigma(2, 1))*my_norm_drhob
-                  e_ndrhob_rhob(ii) = e_ndrhob_rhob(ii)+ &
-                                      sc*(2.0_dp*v2rhosigma(6, 1)-v2rhosigma(5, 1))*my_norm_drhob
-                  e_ndrho_ndrho(ii) = e_ndrho_ndrho(ii)+ &
-                                      sc*(vsigma(2, 1)+my_norm_drho**2*v2sigma2(4, 1))
-                  e_ndrho_ndrhoa(ii) = e_ndrho_ndrhoa(ii)+ &
-                                       sc*(2.0_dp*v2sigma2(2, 1)-v2sigma2(4, 1))*my_norm_drho*my_norm_drhoa
-                  e_ndrho_ndrhob(ii) = e_ndrho_ndrhob(ii)+ &
-                                       sc*(2.0_dp*v2sigma2(5, 1)-v2sigma2(4, 1))*my_norm_drho*my_norm_drhob
-                  e_ndrhoa_ndrhoa(ii) = e_ndrhoa_ndrhoa(ii)+ &
-                                        sc*(2.0_dp*vsigma(1, 1)-vsigma(2, 1)+my_norm_drhoa**2*( &
-                                            4.0_dp*v2sigma2(1, 1)-4.0_dp*v2sigma2(2, 1)+v2sigma2(4, 1)))
-                  e_ndrhoa_ndrhob(ii) = e_ndrhoa_ndrhob(ii)+ &
-                                        sc*(4.0_dp*v2sigma2(3, 1)-2.0_dp*v2sigma2(2, 1)- &
-                                            2.0_dp*v2sigma2(5, 1)+v2sigma2(4, 1))*my_norm_drhoa*my_norm_drhob
-                  e_ndrhob_ndrhob(ii) = e_ndrhob_ndrhob(ii)+ &
-                                        sc*(2.0_dp*vsigma(3, 1)-vsigma(2, 1)+my_norm_drhob**2*( &
-                                            4.0_dp*v2sigma2(6, 1)-4.0_dp*v2sigma2(5, 1)+v2sigma2(4, 1)))
+                  e_rhoa_rhoa(ii) = e_rhoa_rhoa(ii) + sc*v2rho2(1, 1)
+                  e_rhoa_rhob(ii) = e_rhoa_rhob(ii) + sc*v2rho2(2, 1)
+                  e_rhob_rhob(ii) = e_rhob_rhob(ii) + sc*v2rho2(3, 1)
+                  e_ndrho_rhoa(ii) = e_ndrho_rhoa(ii) + sc*v2rhosigma(2, 1)*my_norm_drho
+                  e_ndrho_rhob(ii) = e_ndrho_rhob(ii) + sc*v2rhosigma(5, 1)*my_norm_drho
+                  e_ndrhoa_rhoa(ii) = e_ndrhoa_rhoa(ii) + &
+                                      sc*(2.0_dp*v2rhosigma(1, 1) - v2rhosigma(2, 1))*my_norm_drhoa
+                  e_ndrhoa_rhob(ii) = e_ndrhoa_rhob(ii) + &
+                                      sc*(2.0_dp*v2rhosigma(4, 1) - v2rhosigma(5, 1))*my_norm_drhoa
+                  e_ndrhob_rhoa(ii) = e_ndrhob_rhoa(ii) + &
+                                      sc*(2.0_dp*v2rhosigma(3, 1) - v2rhosigma(2, 1))*my_norm_drhob
+                  e_ndrhob_rhob(ii) = e_ndrhob_rhob(ii) + &
+                                      sc*(2.0_dp*v2rhosigma(6, 1) - v2rhosigma(5, 1))*my_norm_drhob
+                  e_ndrho_ndrho(ii) = e_ndrho_ndrho(ii) + &
+                                      sc*(vsigma(2, 1) + my_norm_drho**2*v2sigma2(4, 1))
+                  e_ndrho_ndrhoa(ii) = e_ndrho_ndrhoa(ii) + &
+                                       sc*(2.0_dp*v2sigma2(2, 1) - v2sigma2(4, 1))*my_norm_drho*my_norm_drhoa
+                  e_ndrho_ndrhob(ii) = e_ndrho_ndrhob(ii) + &
+                                       sc*(2.0_dp*v2sigma2(5, 1) - v2sigma2(4, 1))*my_norm_drho*my_norm_drhob
+                  e_ndrhoa_ndrhoa(ii) = e_ndrhoa_ndrhoa(ii) + &
+                                        sc*(2.0_dp*vsigma(1, 1) - vsigma(2, 1) + my_norm_drhoa**2*( &
+                                            4.0_dp*v2sigma2(1, 1) - 4.0_dp*v2sigma2(2, 1) + v2sigma2(4, 1)))
+                  e_ndrhoa_ndrhob(ii) = e_ndrhoa_ndrhob(ii) + &
+                                        sc*(4.0_dp*v2sigma2(3, 1) - 2.0_dp*v2sigma2(2, 1) - &
+                                            2.0_dp*v2sigma2(5, 1) + v2sigma2(4, 1))*my_norm_drhoa*my_norm_drhob
+                  e_ndrhob_ndrhob(ii) = e_ndrhob_ndrhob(ii) + &
+                                        sc*(2.0_dp*vsigma(3, 1) - vsigma(2, 1) + my_norm_drhob**2*( &
+                                            4.0_dp*v2sigma2(6, 1) - 4.0_dp*v2sigma2(5, 1) + v2sigma2(4, 1)))
                END IF
             END DO
 !$OMP           END DO
@@ -1885,7 +2062,7 @@ CONTAINS
             DO ii = 1, npoints
                my_rhoa = MAX(rhoa(ii), 0.0_dp)
                my_rhob = MAX(rhob(ii), 0.0_dp)
-               IF ((my_rhoa+my_rhob) > epsilon_rho) THEN
+               IF ((my_rhoa + my_rhob) > epsilon_rho) THEN
                   rhov(1, 1) = MAX(my_rhoa, EPSILON(0.0_dp)*1.e4_dp)
                   rhov(2, 1) = MAX(my_rhob, EPSILON(0.0_dp)*1.e4_dp)
                   my_norm_drhoa = MAX(norm_drhoa(ii), EPSILON(0.0_dp)*1.e4_dp)
@@ -1893,53 +2070,51 @@ CONTAINS
                   my_norm_drho = MAX(norm_drho(ii), EPSILON(0.0_dp)*1.e4_dp)
                   sigmav(1, 1) = my_norm_drhoa**2
                   sigmav(3, 1) = my_norm_drhob**2
-                  sigmav(2, 1) = 0.5_dp*(my_norm_drho**2-sigmav(1, 1)-sigmav(3, 1))
+                  sigmav(2, 1) = 0.5_dp*(my_norm_drho**2 - sigmav(1, 1) - sigmav(3, 1))
                   IF (no_exc) THEN
-                     CALL xc_f03_gga_vxc(xc_func, 1, rhov(1, 1), sigmav(1, 1), vrho(1, 1), vsigma(1, 1))
-                     CALL xc_f03_gga_fxc(xc_func, 1, rhov(1, 1), sigmav(1, 1), &
-                                         v2rho2(1, 1), v2rhosigma(1, 1), v2sigma2(1, 1))
+                     CALL xc_f03_gga_vxc_fxc(xc_func, one, rhov(1, 1), sigmav(1, 1), vrho(1, 1), vsigma(1, 1), &
+                                             v2rho2(1, 1), v2rhosigma(1, 1), v2sigma2(1, 1))
                      exc = 0.0_dp
                   ELSE
-                     CALL xc_f03_gga_exc_vxc(xc_func, 1, rhov(1, 1), sigmav(1, 1), exc, vrho(1, 1), vsigma(1, 1))
-                     CALL xc_f03_gga_fxc(xc_func, 1, rhov(1, 1), sigmav(1, 1), &
-                                         v2rho2(1, 1), v2rhosigma(1, 1), v2sigma2(1, 1))
+                     CALL xc_f03_gga_exc_vxc_fxc(xc_func, one, rhov(1, 1), sigmav(1, 1), exc, vrho(1, 1), vsigma(1, 1), &
+                                                 v2rho2(1, 1), v2rhosigma(1, 1), v2sigma2(1, 1))
                   END IF
-                  e_0(ii) = e_0(ii)+sc*exc(1)*(rhov(1, 1)+rhov(2, 1))
-                  e_rhoa(ii) = e_rhoa(ii)+sc*vrho(1, 1)
-                  e_rhob(ii) = e_rhob(ii)+sc*vrho(2, 1)
-                  e_ndrho(ii) = e_ndrho(ii)+sc*vsigma(2, 1)*my_norm_drho
-                  e_ndrhoa(ii) = e_ndrhoa(ii)+ &
-                                 sc*(2.0_dp*vsigma(1, 1)-vsigma(2, 1))*my_norm_drhoa
-                  e_ndrhob(ii) = e_ndrhob(ii)+ &
-                                 sc*(2.0_dp*vsigma(3, 1)-vsigma(2, 1))*my_norm_drhob
-                  e_rhoa_rhoa(ii) = e_rhoa_rhoa(ii)+sc*v2rho2(1, 1)
-                  e_rhoa_rhob(ii) = e_rhoa_rhob(ii)+sc*v2rho2(2, 1)
-                  e_rhob_rhob(ii) = e_rhob_rhob(ii)+sc*v2rho2(3, 1)
-                  e_ndrho_rhoa(ii) = e_ndrho_rhoa(ii)+sc*v2rhosigma(2, 1)*my_norm_drho
-                  e_ndrho_rhob(ii) = e_ndrho_rhob(ii)+sc*v2rhosigma(5, 1)*my_norm_drho
-                  e_ndrhoa_rhoa(ii) = e_ndrhoa_rhoa(ii)+ &
-                                      sc*(2.0_dp*v2rhosigma(1, 1)-v2rhosigma(2, 1))*my_norm_drhoa
-                  e_ndrhoa_rhob(ii) = e_ndrhoa_rhob(ii)+ &
-                                      sc*(2.0_dp*v2rhosigma(4, 1)-v2rhosigma(5, 1))*my_norm_drhoa
-                  e_ndrhob_rhoa(ii) = e_ndrhob_rhoa(ii)+ &
-                                      sc*(2.0_dp*v2rhosigma(3, 1)-v2rhosigma(2, 1))*my_norm_drhob
-                  e_ndrhob_rhob(ii) = e_ndrhob_rhob(ii)+ &
-                                      sc*(2.0_dp*v2rhosigma(6, 1)-v2rhosigma(5, 1))*my_norm_drhob
-                  e_ndrho_ndrho(ii) = e_ndrho_ndrho(ii)+ &
-                                      sc*(vsigma(2, 1)+my_norm_drho**2*v2sigma2(4, 1))
-                  e_ndrho_ndrhoa(ii) = e_ndrho_ndrhoa(ii)+ &
-                                       sc*(2.0_dp*v2sigma2(2, 1)-v2sigma2(4, 1))*my_norm_drho*my_norm_drhoa
-                  e_ndrho_ndrhob(ii) = e_ndrho_ndrhob(ii)+ &
-                                       sc*(2.0_dp*v2sigma2(5, 1)-v2sigma2(4, 1))*my_norm_drho*my_norm_drhob
-                  e_ndrhoa_ndrhoa(ii) = e_ndrhoa_ndrhoa(ii)+ &
-                                        sc*(2.0_dp*vsigma(1, 1)-vsigma(2, 1)+my_norm_drhoa**2*( &
-                                            4.0_dp*v2sigma2(1, 1)-4.0_dp*v2sigma2(2, 1)+v2sigma2(4, 1)))
-                  e_ndrhoa_ndrhob(ii) = e_ndrhoa_ndrhob(ii)+ &
-                                        sc*(4.0_dp*v2sigma2(3, 1)-2.0_dp*v2sigma2(2, 1)- &
-                                            2.0_dp*v2sigma2(5, 1)+v2sigma2(4, 1))*my_norm_drhoa*my_norm_drhob
-                  e_ndrhob_ndrhob(ii) = e_ndrhob_ndrhob(ii)+ &
-                                        sc*(2.0_dp*vsigma(3, 1)-vsigma(2, 1)+my_norm_drhob**2*( &
-                                            4.0_dp*v2sigma2(6, 1)-4.0_dp*v2sigma2(5, 1)+v2sigma2(4, 1)))
+                  e_0(ii) = e_0(ii) + sc*exc(1)*(rhov(1, 1) + rhov(2, 1))
+                  e_rhoa(ii) = e_rhoa(ii) + sc*vrho(1, 1)
+                  e_rhob(ii) = e_rhob(ii) + sc*vrho(2, 1)
+                  e_ndrho(ii) = e_ndrho(ii) + sc*vsigma(2, 1)*my_norm_drho
+                  e_ndrhoa(ii) = e_ndrhoa(ii) + &
+                                 sc*(2.0_dp*vsigma(1, 1) - vsigma(2, 1))*my_norm_drhoa
+                  e_ndrhob(ii) = e_ndrhob(ii) + &
+                                 sc*(2.0_dp*vsigma(3, 1) - vsigma(2, 1))*my_norm_drhob
+                  e_rhoa_rhoa(ii) = e_rhoa_rhoa(ii) + sc*v2rho2(1, 1)
+                  e_rhoa_rhob(ii) = e_rhoa_rhob(ii) + sc*v2rho2(2, 1)
+                  e_rhob_rhob(ii) = e_rhob_rhob(ii) + sc*v2rho2(3, 1)
+                  e_ndrho_rhoa(ii) = e_ndrho_rhoa(ii) + sc*v2rhosigma(2, 1)*my_norm_drho
+                  e_ndrho_rhob(ii) = e_ndrho_rhob(ii) + sc*v2rhosigma(5, 1)*my_norm_drho
+                  e_ndrhoa_rhoa(ii) = e_ndrhoa_rhoa(ii) + &
+                                      sc*(2.0_dp*v2rhosigma(1, 1) - v2rhosigma(2, 1))*my_norm_drhoa
+                  e_ndrhoa_rhob(ii) = e_ndrhoa_rhob(ii) + &
+                                      sc*(2.0_dp*v2rhosigma(4, 1) - v2rhosigma(5, 1))*my_norm_drhoa
+                  e_ndrhob_rhoa(ii) = e_ndrhob_rhoa(ii) + &
+                                      sc*(2.0_dp*v2rhosigma(3, 1) - v2rhosigma(2, 1))*my_norm_drhob
+                  e_ndrhob_rhob(ii) = e_ndrhob_rhob(ii) + &
+                                      sc*(2.0_dp*v2rhosigma(6, 1) - v2rhosigma(5, 1))*my_norm_drhob
+                  e_ndrho_ndrho(ii) = e_ndrho_ndrho(ii) + &
+                                      sc*(vsigma(2, 1) + my_norm_drho**2*v2sigma2(4, 1))
+                  e_ndrho_ndrhoa(ii) = e_ndrho_ndrhoa(ii) + &
+                                       sc*(2.0_dp*v2sigma2(2, 1) - v2sigma2(4, 1))*my_norm_drho*my_norm_drhoa
+                  e_ndrho_ndrhob(ii) = e_ndrho_ndrhob(ii) + &
+                                       sc*(2.0_dp*v2sigma2(5, 1) - v2sigma2(4, 1))*my_norm_drho*my_norm_drhob
+                  e_ndrhoa_ndrhoa(ii) = e_ndrhoa_ndrhoa(ii) + &
+                                        sc*(2.0_dp*vsigma(1, 1) - vsigma(2, 1) + my_norm_drhoa**2*( &
+                                            4.0_dp*v2sigma2(1, 1) - 4.0_dp*v2sigma2(2, 1) + v2sigma2(4, 1)))
+                  e_ndrhoa_ndrhob(ii) = e_ndrhoa_ndrhob(ii) + &
+                                        sc*(4.0_dp*v2sigma2(3, 1) - 2.0_dp*v2sigma2(2, 1) - &
+                                            2.0_dp*v2sigma2(5, 1) + v2sigma2(4, 1))*my_norm_drhoa*my_norm_drhob
+                  e_ndrhob_ndrhob(ii) = e_ndrhob_ndrhob(ii) + &
+                                        sc*(2.0_dp*vsigma(3, 1) - vsigma(2, 1) + my_norm_drhob**2*( &
+                                            4.0_dp*v2sigma2(6, 1) - 4.0_dp*v2sigma2(5, 1) + v2sigma2(4, 1)))
                END IF
             END DO
 !$OMP           END DO
@@ -1952,7 +2127,7 @@ CONTAINS
                my_rhob = MAX(rhob(ii), 0.0_dp)
                my_tau_a = MAX(tau_a(ii), 0.0_dp)
                my_tau_b = MAX(tau_b(ii), 0.0_dp)
-               IF (((my_rhoa+my_rhob) > epsilon_rho) .AND. ((my_tau_a+my_tau_b) > epsilon_tau)) THEN
+               IF (((my_rhoa + my_rhob) > epsilon_rho) .AND. ((my_tau_a + my_tau_b) > epsilon_tau)) THEN
                   rhov(1, 1) = MAX(my_rhoa, EPSILON(0.0_dp)*1.e4_dp)
                   rhov(2, 1) = MAX(my_rhob, EPSILON(0.0_dp)*1.e4_dp)
                   my_norm_drhoa = MAX(norm_drhoa(ii), EPSILON(0.0_dp)*1.e4_dp)
@@ -1960,16 +2135,16 @@ CONTAINS
                   my_norm_drho = MAX(norm_drho(ii), EPSILON(0.0_dp)*1.e4_dp)
                   sigmav(1, 1) = my_norm_drhoa**2
                   sigmav(3, 1) = my_norm_drhob**2
-                  sigmav(2, 1) = 0.5_dp*(my_norm_drho**2-sigmav(1, 1)-sigmav(3, 1))
+                  sigmav(2, 1) = 0.5_dp*(my_norm_drho**2 - sigmav(1, 1) - sigmav(3, 1))
                   laplace_rhov(1, 1) = laplace_rhoa(ii)
                   laplace_rhov(2, 1) = laplace_rhob(ii)
                   tauv(1, 1) = MAX(my_tau_a, EPSILON(0.0_dp)*1.e4_dp)
                   tauv(2, 1) = MAX(my_tau_b, EPSILON(0.0_dp)*1.e4_dp)
                   tauv(1, 1) = MAX(tauv(1, 1), sigmav(1, 1)/(8.0_dp*rhov(1, 1)))
                   tauv(2, 1) = MAX(tauv(2, 1), sigmav(3, 1)/(8.0_dp*rhov(2, 1)))
-                  CALL xc_f03_mgga_exc(xc_func, 1, rhov(1, 1), sigmav(1, 1), &
+                  CALL xc_f03_mgga_exc(xc_func, one, rhov(1, 1), sigmav(1, 1), &
                                        laplace_rhov(1, 1), tauv(1, 1), exc)
-                  e_0(ii) = e_0(ii)+sc*exc(1)*(rhov(1, 1)+rhov(2, 1))
+                  e_0(ii) = e_0(ii) + sc*exc(1)*(rhov(1, 1) + rhov(2, 1))
                END IF
             END DO
 !$OMP           END DO
@@ -1980,7 +2155,7 @@ CONTAINS
                my_rhob = MAX(rhob(ii), 0.0_dp)
                my_tau_a = MAX(tau_a(ii), 0.0_dp)
                my_tau_b = MAX(tau_b(ii), 0.0_dp)
-               IF (((my_rhoa+my_rhob) > epsilon_rho) .AND. ((my_tau_a+my_tau_b) > epsilon_tau)) THEN
+               IF (((my_rhoa + my_rhob) > epsilon_rho) .AND. ((my_tau_a + my_tau_b) > epsilon_tau)) THEN
                   rhov(1, 1) = MAX(my_rhoa, EPSILON(0.0_dp)*1.e4_dp)
                   rhov(2, 1) = MAX(my_rhob, EPSILON(0.0_dp)*1.e4_dp)
                   my_norm_drhoa = MAX(norm_drhoa(ii), EPSILON(0.0_dp)*1.e4_dp)
@@ -1988,26 +2163,26 @@ CONTAINS
                   my_norm_drho = MAX(norm_drho(ii), EPSILON(0.0_dp)*1.e4_dp)
                   sigmav(1, 1) = my_norm_drhoa**2
                   sigmav(3, 1) = my_norm_drhob**2
-                  sigmav(2, 1) = 0.5_dp*(my_norm_drho**2-sigmav(1, 1)-sigmav(3, 1))
+                  sigmav(2, 1) = 0.5_dp*(my_norm_drho**2 - sigmav(1, 1) - sigmav(3, 1))
                   laplace_rhov(1, 1) = laplace_rhoa(ii)
                   laplace_rhov(2, 1) = laplace_rhob(ii)
                   tauv(1, 1) = MAX(my_tau_a, EPSILON(0.0_dp)*1.e4_dp)
                   tauv(2, 1) = MAX(my_tau_b, EPSILON(0.0_dp)*1.e4_dp)
                   tauv(1, 1) = MAX(tauv(1, 1), sigmav(1, 1)/(8.0_dp*rhov(1, 1)))
                   tauv(2, 1) = MAX(tauv(2, 1), sigmav(3, 1)/(8.0_dp*rhov(2, 1)))
-                  CALL xc_f03_mgga_vxc(xc_func, 1, rhov(1, 1), sigmav(1, 1), &
+                  CALL xc_f03_mgga_vxc(xc_func, one, rhov(1, 1), sigmav(1, 1), &
                                        laplace_rhov(1, 1), tauv(1, 1), vrho(1, 1), vsigma(1, 1), vlapl(1, 1), vtau(1, 1))
-                  e_rhoa(ii) = e_rhoa(ii)+sc*vrho(1, 1)
-                  e_rhob(ii) = e_rhob(ii)+sc*vrho(2, 1)
-                  e_ndrho(ii) = e_ndrho(ii)+sc*vsigma(2, 1)*my_norm_drho
-                  e_ndrhoa(ii) = e_ndrhoa(ii)+ &
-                                 sc*(2.0_dp*vsigma(1, 1)-vsigma(2, 1))*my_norm_drhoa
-                  e_ndrhob(ii) = e_ndrhob(ii)+ &
-                                 sc*(2.0_dp*vsigma(3, 1)-vsigma(2, 1))*my_norm_drhob
-                  e_laplace_rhoa(ii) = e_laplace_rhoa(ii)+sc*vlapl(1, 1)
-                  e_laplace_rhob(ii) = e_laplace_rhob(ii)+sc*vlapl(2, 1)
-                  e_tau_a(ii) = e_tau_a(ii)+sc*vtau(1, 1)
-                  e_tau_b(ii) = e_tau_b(ii)+sc*vtau(2, 1)
+                  e_rhoa(ii) = e_rhoa(ii) + sc*vrho(1, 1)
+                  e_rhob(ii) = e_rhob(ii) + sc*vrho(2, 1)
+                  e_ndrho(ii) = e_ndrho(ii) + sc*vsigma(2, 1)*my_norm_drho
+                  e_ndrhoa(ii) = e_ndrhoa(ii) + &
+                                 sc*(2.0_dp*vsigma(1, 1) - vsigma(2, 1))*my_norm_drhoa
+                  e_ndrhob(ii) = e_ndrhob(ii) + &
+                                 sc*(2.0_dp*vsigma(3, 1) - vsigma(2, 1))*my_norm_drhob
+                  e_laplace_rhoa(ii) = e_laplace_rhoa(ii) + sc*vlapl(1, 1)
+                  e_laplace_rhob(ii) = e_laplace_rhob(ii) + sc*vlapl(2, 1)
+                  e_tau_a(ii) = e_tau_a(ii) + sc*vtau(1, 1)
+                  e_tau_b(ii) = e_tau_b(ii) + sc*vtau(2, 1)
                END IF
             END DO
 !$OMP           END DO
@@ -2018,7 +2193,7 @@ CONTAINS
                my_rhob = MAX(rhob(ii), 0.0_dp)
                my_tau_a = MAX(tau_a(ii), 0.0_dp)
                my_tau_b = MAX(tau_b(ii), 0.0_dp)
-               IF (((my_rhoa+my_rhob) > epsilon_rho) .AND. ((my_tau_a+my_tau_b) > epsilon_tau)) THEN
+               IF (((my_rhoa + my_rhob) > epsilon_rho) .AND. ((my_tau_a + my_tau_b) > epsilon_tau)) THEN
                   rhov(1, 1) = MAX(my_rhoa, EPSILON(0.0_dp)*1.e4_dp)
                   rhov(2, 1) = MAX(my_rhob, EPSILON(0.0_dp)*1.e4_dp)
                   my_norm_drhoa = MAX(norm_drhoa(ii), EPSILON(0.0_dp)*1.e4_dp)
@@ -2026,7 +2201,7 @@ CONTAINS
                   my_norm_drho = MAX(norm_drho(ii), EPSILON(0.0_dp)*1.e4_dp)
                   sigmav(1, 1) = my_norm_drhoa**2
                   sigmav(3, 1) = my_norm_drhob**2
-                  sigmav(2, 1) = 0.5_dp*(my_norm_drho**2-sigmav(1, 1)-sigmav(3, 1))
+                  sigmav(2, 1) = 0.5_dp*(my_norm_drho**2 - sigmav(1, 1) - sigmav(3, 1))
                   laplace_rhov(1, 1) = laplace_rhoa(ii)
                   laplace_rhov(2, 1) = laplace_rhob(ii)
                   tauv(1, 1) = MAX(my_tau_a, EPSILON(0.0_dp)*1.e4_dp)
@@ -2034,27 +2209,27 @@ CONTAINS
                   tauv(1, 1) = MAX(tauv(1, 1), sigmav(1, 1)/(8.0_dp*rhov(1, 1)))
                   tauv(2, 1) = MAX(tauv(2, 1), sigmav(3, 1)/(8.0_dp*rhov(2, 1)))
                   IF (no_exc) THEN
-                     CALL xc_f03_mgga_vxc(xc_func, 1, rhov(1, 1), sigmav(1, 1), &
+                     CALL xc_f03_mgga_vxc(xc_func, one, rhov(1, 1), sigmav(1, 1), &
                                           laplace_rhov(1, 1), tauv(1, 1), vrho(1, 1), vsigma(1, 1), &
                                           vlapl(1, 1), vtau(1, 1))
                      exc = 0.0_dp
                   ELSE
-                     CALL xc_f03_mgga_exc_vxc(xc_func, 1, rhov(1, 1), sigmav(1, 1), &
+                     CALL xc_f03_mgga_exc_vxc(xc_func, one, rhov(1, 1), sigmav(1, 1), &
                                               laplace_rhov(1, 1), tauv(1, 1), exc, &
                                               vrho(1, 1), vsigma(1, 1), vlapl(1, 1), vtau(1, 1))
                   END IF
-                  e_0(ii) = e_0(ii)+sc*exc(1)*(rhov(1, 1)+rhov(2, 1))
-                  e_rhoa(ii) = e_rhoa(ii)+sc*vrho(1, 1)
-                  e_rhob(ii) = e_rhob(ii)+sc*vrho(2, 1)
-                  e_ndrho(ii) = e_ndrho(ii)+sc*vsigma(2, 1)*my_norm_drho
-                  e_ndrhoa(ii) = e_ndrhoa(ii)+ &
-                                 sc*(2.0_dp*vsigma(1, 1)-vsigma(2, 1))*my_norm_drhoa
-                  e_ndrhob(ii) = e_ndrhob(ii)+ &
-                                 sc*(2.0_dp*vsigma(3, 1)-vsigma(2, 1))*my_norm_drhob
-                  e_laplace_rhoa(ii) = e_laplace_rhoa(ii)+sc*vlapl(1, 1)
-                  e_laplace_rhob(ii) = e_laplace_rhob(ii)+sc*vlapl(2, 1)
-                  e_tau_a(ii) = e_tau_a(ii)+sc*vtau(1, 1)
-                  e_tau_b(ii) = e_tau_b(ii)+sc*vtau(2, 1)
+                  e_0(ii) = e_0(ii) + sc*exc(1)*(rhov(1, 1) + rhov(2, 1))
+                  e_rhoa(ii) = e_rhoa(ii) + sc*vrho(1, 1)
+                  e_rhob(ii) = e_rhob(ii) + sc*vrho(2, 1)
+                  e_ndrho(ii) = e_ndrho(ii) + sc*vsigma(2, 1)*my_norm_drho
+                  e_ndrhoa(ii) = e_ndrhoa(ii) + &
+                                 sc*(2.0_dp*vsigma(1, 1) - vsigma(2, 1))*my_norm_drhoa
+                  e_ndrhob(ii) = e_ndrhob(ii) + &
+                                 sc*(2.0_dp*vsigma(3, 1) - vsigma(2, 1))*my_norm_drhob
+                  e_laplace_rhoa(ii) = e_laplace_rhoa(ii) + sc*vlapl(1, 1)
+                  e_laplace_rhob(ii) = e_laplace_rhob(ii) + sc*vlapl(2, 1)
+                  e_tau_a(ii) = e_tau_a(ii) + sc*vtau(1, 1)
+                  e_tau_b(ii) = e_tau_b(ii) + sc*vtau(2, 1)
                END IF
             END DO
 !$OMP           END DO
@@ -2065,7 +2240,7 @@ CONTAINS
                my_rhob = MAX(rhob(ii), 0.0_dp)
                my_tau_a = MAX(tau_a(ii), 0.0_dp)
                my_tau_b = MAX(tau_b(ii), 0.0_dp)
-               IF (((my_rhoa+my_rhob) > epsilon_rho) .AND. ((my_tau_a+my_tau_b) > epsilon_tau)) THEN
+               IF (((my_rhoa + my_rhob) > epsilon_rho) .AND. ((my_tau_a + my_tau_b) > epsilon_tau)) THEN
                   rhov(1, 1) = MAX(my_rhoa, EPSILON(0.0_dp)*1.e4_dp)
                   rhov(2, 1) = MAX(my_rhob, EPSILON(0.0_dp)*1.e4_dp)
                   my_norm_drhoa = MAX(norm_drhoa(ii), EPSILON(0.0_dp)*1.e4_dp)
@@ -2073,7 +2248,7 @@ CONTAINS
                   my_norm_drho = MAX(norm_drho(ii), EPSILON(0.0_dp)*1.e4_dp)
                   sigmav(1, 1) = my_norm_drhoa**2
                   sigmav(3, 1) = my_norm_drhob**2
-                  sigmav(2, 1) = 0.5_dp*(my_norm_drho**2-sigmav(1, 1)-sigmav(3, 1))
+                  sigmav(2, 1) = 0.5_dp*(my_norm_drho**2 - sigmav(1, 1) - sigmav(3, 1))
                   laplace_rhov(1, 1) = laplace_rhoa(ii)
                   laplace_rhov(2, 1) = laplace_rhob(ii)
                   tauv(1, 1) = MAX(my_tau_a, EPSILON(0.0_dp)*1.e4_dp)
@@ -2081,87 +2256,85 @@ CONTAINS
                   tauv(1, 1) = MAX(tauv(1, 1), sigmav(1, 1)/(8.0_dp*rhov(1, 1)))
                   tauv(2, 1) = MAX(tauv(2, 1), sigmav(3, 1)/(8.0_dp*rhov(2, 1)))
                   IF (no_exc) THEN
-                     CALL xc_f03_mgga_vxc(xc_func, 1, rhov(1, 1), sigmav(1, 1), &
-                                          laplace_rhov(1, 1), tauv(1, 1), vrho(1, 1), vsigma(1, 1), &
-                                          vlapl(1, 1), vtau(1, 1))
-                     CALL xc_f03_mgga_fxc(xc_func, 1, rhov(1, 1), sigmav(1, 1), &
-                                          laplace_rhov(1, 1), tauv(1, 1), &
-                                          v2rho2(1, 1), v2sigma2(1, 1), v2lapl2(1, 1), v2tau2(1, 1), &
-                                          v2rhosigma(1, 1), v2rholapl(1, 1), v2rhotau(1, 1), &
-                                          v2sigmalapl(1, 1), v2sigmatau(1, 1), v2lapltau(1, 1))
+                     CALL xc_f03_mgga_vxc_fxc(xc_func, one, rhov(1, 1), sigmav(1, 1), &
+                                              laplace_rhov(1, 1), tauv(1, 1), vrho(1, 1), vsigma(1, 1), &
+                                              vlapl(1, 1), vtau(1, 1), &
+                                              v2rho2(1, 1), v2sigma2(1, 1), v2lapl2(1, 1), v2tau2(1, 1), &
+                                              v2rhosigma(1, 1), v2rholapl(1, 1), v2rhotau(1, 1), &
+                                              v2sigmalapl(1, 1), v2sigmatau(1, 1), v2lapltau(1, 1))
                   ELSE
-                     CALL xc_f03_mgga(xc_func, 1, rhov(1, 1), sigmav(1, 1), &
+                     CALL xc_f03_mgga(xc_func, one, rhov(1, 1), sigmav(1, 1), &
                                       laplace_rhov(1, 1), tauv(1, 1), exc, vrho(1, 1), vsigma(1, 1), &
                                       vlapl(1, 1), vtau(1, 1), v2rho2(1, 1), v2sigma2(1, 1), &
                                       v2lapl2(1, 1), v2tau2(1, 1), v2rhosigma(1, 1), v2rholapl(1, 1), &
                                       v2rhotau(1, 1), v2sigmalapl(1, 1), v2sigmatau(1, 1), v2lapltau(1, 1))
                   END IF
-                  e_rhoa_rhoa(ii) = e_rhoa_rhoa(ii)+sc*v2rho2(1, 1)
-                  e_rhoa_rhob(ii) = e_rhoa_rhob(ii)+sc*v2rho2(2, 1)
-                  e_rhob_rhob(ii) = e_rhob_rhob(ii)+sc*v2rho2(3, 1)
-                  e_ndrho_rhoa(ii) = e_ndrho_rhoa(ii)+sc*v2rhosigma(2, 1)*my_norm_drho
-                  e_ndrho_rhob(ii) = e_ndrho_rhob(ii)+sc*v2rhosigma(5, 1)*my_norm_drho
-                  e_ndrhoa_rhoa(ii) = e_ndrhoa_rhoa(ii)+ &
-                                      sc*(2.0_dp*v2rhosigma(1, 1)-v2rhosigma(2, 1))*my_norm_drhoa
-                  e_ndrhoa_rhob(ii) = e_ndrhoa_rhob(ii)+ &
-                                      sc*(2.0_dp*v2rhosigma(4, 1)-v2rhosigma(5, 1))*my_norm_drhoa
-                  e_ndrhob_rhoa(ii) = e_ndrhob_rhoa(ii)+ &
-                                      sc*(2.0_dp*v2rhosigma(3, 1)-v2rhosigma(2, 1))*my_norm_drhob
-                  e_ndrhob_rhob(ii) = e_ndrhob_rhob(ii)+ &
-                                      sc*(2.0_dp*v2rhosigma(6, 1)-v2rhosigma(5, 1))*my_norm_drhob
-                  e_ndrho_ndrho(ii) = e_ndrho_ndrho(ii)+ &
-                                      sc*(vsigma(2, 1)+my_norm_drho**2*v2sigma2(4, 1))
-                  e_ndrho_ndrhoa(ii) = e_ndrho_ndrhoa(ii)+ &
-                                       sc*(2.0_dp*v2sigma2(2, 1)-v2sigma2(4, 1))*my_norm_drho*my_norm_drhoa
-                  e_ndrho_ndrhob(ii) = e_ndrho_ndrhob(ii)+ &
-                                       sc*(2.0_dp*v2sigma2(5, 1)-v2sigma2(4, 1))*my_norm_drho*my_norm_drhob
-                  e_ndrhoa_ndrhoa(ii) = e_ndrhoa_ndrhoa(ii)+ &
-                                        sc*(2.0_dp*vsigma(1, 1)-vsigma(2, 1)+my_norm_drhoa**2*( &
-                                            4.0_dp*v2sigma2(1, 1)-4.0_dp*v2sigma2(2, 1)+v2sigma2(4, 1)))
-                  e_ndrhoa_ndrhob(ii) = e_ndrhoa_ndrhob(ii)+ &
-                                        sc*(4.0_dp*v2sigma2(3, 1)-2.0_dp*v2sigma2(2, 1)- &
-                                            2.0_dp*v2sigma2(5, 1)+v2sigma2(4, 1))*my_norm_drhoa*my_norm_drhob
-                  e_ndrhob_ndrhob(ii) = e_ndrhob_ndrhob(ii)+ &
-                                        sc*(2.0_dp*vsigma(3, 1)-vsigma(2, 1)+my_norm_drhob**2*( &
-                                            4.0_dp*v2sigma2(6, 1)-4.0_dp*v2sigma2(5, 1)+v2sigma2(4, 1)))
-                  e_rhoa_laplace_rhoa(ii) = e_rhoa_laplace_rhoa(ii)+sc*v2rholapl(1, 1)
-                  e_rhoa_laplace_rhob(ii) = e_rhoa_laplace_rhob(ii)+sc*v2rholapl(2, 1)
-                  e_rhob_laplace_rhoa(ii) = e_rhob_laplace_rhoa(ii)+sc*v2rholapl(3, 1)
-                  e_rhob_laplace_rhob(ii) = e_rhob_laplace_rhob(ii)+sc*v2rholapl(4, 1)
-                  e_rhoa_tau_a(ii) = e_rhoa_tau_a(ii)+sc*v2rhotau(1, 1)
-                  e_rhoa_tau_b(ii) = e_rhoa_tau_b(ii)+sc*v2rhotau(2, 1)
-                  e_rhob_tau_a(ii) = e_rhob_tau_a(ii)+sc*v2rhotau(3, 1)
-                  e_rhob_tau_b(ii) = e_rhob_tau_b(ii)+sc*v2rhotau(4, 1)
-                  e_ndrho_laplace_rhoa(ii) = e_ndrho_laplace_rhoa(ii)+sc*v2sigmalapl(3, 1)*my_norm_drho
-                  e_ndrho_laplace_rhob(ii) = e_ndrho_laplace_rhob(ii)+sc*v2sigmalapl(4, 1)*my_norm_drho
-                  e_ndrhoa_laplace_rhoa(ii) = e_ndrhoa_laplace_rhoa(ii)+ &
-                                              sc*(2.0_dp*v2sigmalapl(1, 1)-v2sigmalapl(3, 1))*my_norm_drhoa
-                  e_ndrhoa_laplace_rhob(ii) = e_ndrhoa_laplace_rhob(ii)+ &
-                                              sc*(2.0_dp*v2sigmalapl(2, 1)-v2sigmalapl(4, 1))*my_norm_drhoa
-                  e_ndrhob_laplace_rhoa(ii) = e_ndrhob_laplace_rhoa(ii)+ &
-                                              sc*(2.0_dp*v2sigmalapl(5, 1)-v2sigmalapl(3, 1))*my_norm_drhob
-                  e_ndrhob_laplace_rhob(ii) = e_ndrhob_laplace_rhob(ii)+ &
-                                              sc*(2.0_dp*v2sigmalapl(6, 1)-v2sigmalapl(4, 1))*my_norm_drhob
-                  e_ndrho_tau_a(ii) = e_ndrho_tau_a(ii)+sc*v2sigmatau(3, 1)*my_norm_drho
-                  e_ndrho_tau_b(ii) = e_ndrho_tau_b(ii)+sc*v2sigmatau(4, 1)*my_norm_drho
-                  e_ndrhoa_tau_a(ii) = e_ndrhoa_tau_a(ii)+ &
-                                       sc*(2.0_dp*v2sigmatau(1, 1)-v2sigmatau(3, 1))*my_norm_drhoa
-                  e_ndrhoa_tau_b(ii) = e_ndrhoa_tau_b(ii)+ &
-                                       sc*(2.0_dp*v2sigmatau(2, 1)-v2sigmatau(4, 1))*my_norm_drhoa
-                  e_ndrhob_tau_a(ii) = e_ndrhob_tau_a(ii)+ &
-                                       sc*(2.0_dp*v2sigmatau(5, 1)-v2sigmatau(3, 1))*my_norm_drhob
-                  e_ndrhob_tau_b(ii) = e_ndrhob_tau_b(ii)+ &
-                                       sc*(2.0_dp*v2sigmatau(6, 1)-v2sigmatau(4, 1))*my_norm_drhob
-                  e_laplace_rhoa_laplace_rhoa(ii) = e_laplace_rhoa_laplace_rhoa(ii)+sc*v2lapl2(1, 1)
-                  e_laplace_rhoa_laplace_rhob(ii) = e_laplace_rhoa_laplace_rhob(ii)+sc*v2lapl2(2, 1)
-                  e_laplace_rhob_laplace_rhob(ii) = e_laplace_rhob_laplace_rhob(ii)+sc*v2lapl2(3, 1)
-                  e_laplace_rhoa_tau_a(ii) = e_laplace_rhoa_tau_a(ii)+sc*v2lapltau(1, 1)
-                  e_laplace_rhoa_tau_b(ii) = e_laplace_rhoa_tau_b(ii)+sc*v2lapltau(2, 1)
-                  e_laplace_rhob_tau_a(ii) = e_laplace_rhob_tau_a(ii)+sc*v2lapltau(3, 1)
-                  e_laplace_rhob_tau_b(ii) = e_laplace_rhob_tau_b(ii)+sc*v2lapltau(4, 1)
-                  e_tau_a_tau_a(ii) = e_tau_a_tau_a(ii)+sc*v2tau2(1, 1)
-                  e_tau_a_tau_b(ii) = e_tau_a_tau_b(ii)+sc*v2tau2(2, 1)
-                  e_tau_b_tau_b(ii) = e_tau_b_tau_b(ii)+sc*v2tau2(3, 1)
+                  e_rhoa_rhoa(ii) = e_rhoa_rhoa(ii) + sc*v2rho2(1, 1)
+                  e_rhoa_rhob(ii) = e_rhoa_rhob(ii) + sc*v2rho2(2, 1)
+                  e_rhob_rhob(ii) = e_rhob_rhob(ii) + sc*v2rho2(3, 1)
+                  e_ndrho_rhoa(ii) = e_ndrho_rhoa(ii) + sc*v2rhosigma(2, 1)*my_norm_drho
+                  e_ndrho_rhob(ii) = e_ndrho_rhob(ii) + sc*v2rhosigma(5, 1)*my_norm_drho
+                  e_ndrhoa_rhoa(ii) = e_ndrhoa_rhoa(ii) + &
+                                      sc*(2.0_dp*v2rhosigma(1, 1) - v2rhosigma(2, 1))*my_norm_drhoa
+                  e_ndrhoa_rhob(ii) = e_ndrhoa_rhob(ii) + &
+                                      sc*(2.0_dp*v2rhosigma(4, 1) - v2rhosigma(5, 1))*my_norm_drhoa
+                  e_ndrhob_rhoa(ii) = e_ndrhob_rhoa(ii) + &
+                                      sc*(2.0_dp*v2rhosigma(3, 1) - v2rhosigma(2, 1))*my_norm_drhob
+                  e_ndrhob_rhob(ii) = e_ndrhob_rhob(ii) + &
+                                      sc*(2.0_dp*v2rhosigma(6, 1) - v2rhosigma(5, 1))*my_norm_drhob
+                  e_ndrho_ndrho(ii) = e_ndrho_ndrho(ii) + &
+                                      sc*(vsigma(2, 1) + my_norm_drho**2*v2sigma2(4, 1))
+                  e_ndrho_ndrhoa(ii) = e_ndrho_ndrhoa(ii) + &
+                                       sc*(2.0_dp*v2sigma2(2, 1) - v2sigma2(4, 1))*my_norm_drho*my_norm_drhoa
+                  e_ndrho_ndrhob(ii) = e_ndrho_ndrhob(ii) + &
+                                       sc*(2.0_dp*v2sigma2(5, 1) - v2sigma2(4, 1))*my_norm_drho*my_norm_drhob
+                  e_ndrhoa_ndrhoa(ii) = e_ndrhoa_ndrhoa(ii) + &
+                                        sc*(2.0_dp*vsigma(1, 1) - vsigma(2, 1) + my_norm_drhoa**2*( &
+                                            4.0_dp*v2sigma2(1, 1) - 4.0_dp*v2sigma2(2, 1) + v2sigma2(4, 1)))
+                  e_ndrhoa_ndrhob(ii) = e_ndrhoa_ndrhob(ii) + &
+                                        sc*(4.0_dp*v2sigma2(3, 1) - 2.0_dp*v2sigma2(2, 1) - &
+                                            2.0_dp*v2sigma2(5, 1) + v2sigma2(4, 1))*my_norm_drhoa*my_norm_drhob
+                  e_ndrhob_ndrhob(ii) = e_ndrhob_ndrhob(ii) + &
+                                        sc*(2.0_dp*vsigma(3, 1) - vsigma(2, 1) + my_norm_drhob**2*( &
+                                            4.0_dp*v2sigma2(6, 1) - 4.0_dp*v2sigma2(5, 1) + v2sigma2(4, 1)))
+                  e_rhoa_laplace_rhoa(ii) = e_rhoa_laplace_rhoa(ii) + sc*v2rholapl(1, 1)
+                  e_rhoa_laplace_rhob(ii) = e_rhoa_laplace_rhob(ii) + sc*v2rholapl(2, 1)
+                  e_rhob_laplace_rhoa(ii) = e_rhob_laplace_rhoa(ii) + sc*v2rholapl(3, 1)
+                  e_rhob_laplace_rhob(ii) = e_rhob_laplace_rhob(ii) + sc*v2rholapl(4, 1)
+                  e_rhoa_tau_a(ii) = e_rhoa_tau_a(ii) + sc*v2rhotau(1, 1)
+                  e_rhoa_tau_b(ii) = e_rhoa_tau_b(ii) + sc*v2rhotau(2, 1)
+                  e_rhob_tau_a(ii) = e_rhob_tau_a(ii) + sc*v2rhotau(3, 1)
+                  e_rhob_tau_b(ii) = e_rhob_tau_b(ii) + sc*v2rhotau(4, 1)
+                  e_ndrho_laplace_rhoa(ii) = e_ndrho_laplace_rhoa(ii) + sc*v2sigmalapl(3, 1)*my_norm_drho
+                  e_ndrho_laplace_rhob(ii) = e_ndrho_laplace_rhob(ii) + sc*v2sigmalapl(4, 1)*my_norm_drho
+                  e_ndrhoa_laplace_rhoa(ii) = e_ndrhoa_laplace_rhoa(ii) + &
+                                              sc*(2.0_dp*v2sigmalapl(1, 1) - v2sigmalapl(3, 1))*my_norm_drhoa
+                  e_ndrhoa_laplace_rhob(ii) = e_ndrhoa_laplace_rhob(ii) + &
+                                              sc*(2.0_dp*v2sigmalapl(2, 1) - v2sigmalapl(4, 1))*my_norm_drhoa
+                  e_ndrhob_laplace_rhoa(ii) = e_ndrhob_laplace_rhoa(ii) + &
+                                              sc*(2.0_dp*v2sigmalapl(5, 1) - v2sigmalapl(3, 1))*my_norm_drhob
+                  e_ndrhob_laplace_rhob(ii) = e_ndrhob_laplace_rhob(ii) + &
+                                              sc*(2.0_dp*v2sigmalapl(6, 1) - v2sigmalapl(4, 1))*my_norm_drhob
+                  e_ndrho_tau_a(ii) = e_ndrho_tau_a(ii) + sc*v2sigmatau(3, 1)*my_norm_drho
+                  e_ndrho_tau_b(ii) = e_ndrho_tau_b(ii) + sc*v2sigmatau(4, 1)*my_norm_drho
+                  e_ndrhoa_tau_a(ii) = e_ndrhoa_tau_a(ii) + &
+                                       sc*(2.0_dp*v2sigmatau(1, 1) - v2sigmatau(3, 1))*my_norm_drhoa
+                  e_ndrhoa_tau_b(ii) = e_ndrhoa_tau_b(ii) + &
+                                       sc*(2.0_dp*v2sigmatau(2, 1) - v2sigmatau(4, 1))*my_norm_drhoa
+                  e_ndrhob_tau_a(ii) = e_ndrhob_tau_a(ii) + &
+                                       sc*(2.0_dp*v2sigmatau(5, 1) - v2sigmatau(3, 1))*my_norm_drhob
+                  e_ndrhob_tau_b(ii) = e_ndrhob_tau_b(ii) + &
+                                       sc*(2.0_dp*v2sigmatau(6, 1) - v2sigmatau(4, 1))*my_norm_drhob
+                  e_laplace_rhoa_laplace_rhoa(ii) = e_laplace_rhoa_laplace_rhoa(ii) + sc*v2lapl2(1, 1)
+                  e_laplace_rhoa_laplace_rhob(ii) = e_laplace_rhoa_laplace_rhob(ii) + sc*v2lapl2(2, 1)
+                  e_laplace_rhob_laplace_rhob(ii) = e_laplace_rhob_laplace_rhob(ii) + sc*v2lapl2(3, 1)
+                  e_laplace_rhoa_tau_a(ii) = e_laplace_rhoa_tau_a(ii) + sc*v2lapltau(1, 1)
+                  e_laplace_rhoa_tau_b(ii) = e_laplace_rhoa_tau_b(ii) + sc*v2lapltau(2, 1)
+                  e_laplace_rhob_tau_a(ii) = e_laplace_rhob_tau_a(ii) + sc*v2lapltau(3, 1)
+                  e_laplace_rhob_tau_b(ii) = e_laplace_rhob_tau_b(ii) + sc*v2lapltau(4, 1)
+                  e_tau_a_tau_a(ii) = e_tau_a_tau_a(ii) + sc*v2tau2(1, 1)
+                  e_tau_a_tau_b(ii) = e_tau_a_tau_b(ii) + sc*v2tau2(2, 1)
+                  e_tau_b_tau_b(ii) = e_tau_b_tau_b(ii) + sc*v2tau2(3, 1)
                END IF
             END DO
 !$OMP           END DO
@@ -2172,7 +2345,7 @@ CONTAINS
                my_rhob = MAX(rhob(ii), 0.0_dp)
                my_tau_a = MAX(tau_a(ii), 0.0_dp)
                my_tau_b = MAX(tau_b(ii), 0.0_dp)
-               IF (((my_rhoa+my_rhob) > epsilon_rho) .AND. ((my_tau_a+my_tau_b) > epsilon_tau)) THEN
+               IF (((my_rhoa + my_rhob) > epsilon_rho) .AND. ((my_tau_a + my_tau_b) > epsilon_tau)) THEN
                   rhov(1, 1) = MAX(my_rhoa, EPSILON(0.0_dp)*1.e4_dp)
                   rhov(2, 1) = MAX(my_rhob, EPSILON(0.0_dp)*1.e4_dp)
                   my_norm_drhoa = MAX(norm_drhoa(ii), EPSILON(0.0_dp)*1.e4_dp)
@@ -2180,7 +2353,7 @@ CONTAINS
                   my_norm_drho = MAX(norm_drho(ii), EPSILON(0.0_dp)*1.e4_dp)
                   sigmav(1, 1) = my_norm_drhoa**2
                   sigmav(3, 1) = my_norm_drhob**2
-                  sigmav(2, 1) = 0.5_dp*(my_norm_drho**2-sigmav(1, 1)-sigmav(3, 1))
+                  sigmav(2, 1) = 0.5_dp*(my_norm_drho**2 - sigmav(1, 1) - sigmav(3, 1))
                   laplace_rhov(1, 1) = laplace_rhoa(ii)
                   laplace_rhov(2, 1) = laplace_rhob(ii)
                   tauv(1, 1) = MAX(my_tau_a, EPSILON(0.0_dp)*1.e4_dp)
@@ -2188,100 +2361,98 @@ CONTAINS
                   tauv(1, 1) = MAX(tauv(1, 1), sigmav(1, 1)/(8.0_dp*rhov(1, 1)))
                   tauv(2, 1) = MAX(tauv(2, 1), sigmav(3, 1)/(8.0_dp*rhov(2, 1)))
                   IF (no_exc) THEN
-                     CALL xc_f03_mgga_vxc(xc_func, 1, rhov(1, 1), sigmav(1, 1), &
-                                          laplace_rhov(1, 1), tauv(1, 1), vrho(1, 1), vsigma(1, 1), &
-                                          vlapl(1, 1), vtau(1, 1))
-                     CALL xc_f03_mgga_fxc(xc_func, 1, rhov(1, 1), sigmav(1, 1), &
-                                          laplace_rhov(1, 1), tauv(1, 1), &
-                                          v2rho2(1, 1), v2sigma2(1, 1), v2lapl2(1, 1), v2tau2(1, 1), &
-                                          v2rhosigma(1, 1), v2rholapl(1, 1), v2rhotau(1, 1), &
-                                          v2sigmalapl(1, 1), v2sigmatau(1, 1), v2lapltau(1, 1))
+                     CALL xc_f03_mgga_vxc_fxc(xc_func, one, rhov(1, 1), sigmav(1, 1), &
+                                              laplace_rhov(1, 1), tauv(1, 1), vrho(1, 1), vsigma(1, 1), &
+                                              vlapl(1, 1), vtau(1, 1), &
+                                              v2rho2(1, 1), v2sigma2(1, 1), v2lapl2(1, 1), v2tau2(1, 1), &
+                                              v2rhosigma(1, 1), v2rholapl(1, 1), v2rhotau(1, 1), &
+                                              v2sigmalapl(1, 1), v2sigmatau(1, 1), v2lapltau(1, 1))
                      exc = 0.0_dp
                   ELSE
-                     CALL xc_f03_mgga(xc_func, 1, rhov(1, 1), sigmav(1, 1), &
+                     CALL xc_f03_mgga(xc_func, one, rhov(1, 1), sigmav(1, 1), &
                                       laplace_rhov(1, 1), tauv(1, 1), exc, vrho(1, 1), vsigma(1, 1), &
                                       vlapl(1, 1), vtau(1, 1), v2rho2(1, 1), v2sigma2(1, 1), &
                                       v2lapl2(1, 1), v2tau2(1, 1), v2rhosigma(1, 1), v2rholapl(1, 1), &
                                       v2rhotau(1, 1), v2sigmalapl(1, 1), v2sigmatau(1, 1), v2lapltau(1, 1))
                   END IF
-                  e_0(ii) = e_0(ii)+sc*exc(1)*(rhov(1, 1)+rhov(2, 1))
-                  e_rhoa(ii) = e_rhoa(ii)+sc*vrho(1, 1)
-                  e_rhob(ii) = e_rhob(ii)+sc*vrho(2, 1)
-                  e_ndrho(ii) = e_ndrho(ii)+sc*vsigma(2, 1)*my_norm_drho
-                  e_ndrhoa(ii) = e_ndrhoa(ii)+ &
-                                 sc*(2.0_dp*vsigma(1, 1)-vsigma(2, 1))*my_norm_drhoa
-                  e_ndrhob(ii) = e_ndrhob(ii)+ &
-                                 sc*(2.0_dp*vsigma(3, 1)-vsigma(2, 1))*my_norm_drhob
-                  e_laplace_rhoa(ii) = e_laplace_rhoa(ii)+sc*vlapl(1, 1)
-                  e_laplace_rhob(ii) = e_laplace_rhob(ii)+sc*vlapl(2, 1)
-                  e_tau_a(ii) = e_tau_a(ii)+sc*vtau(1, 1)
-                  e_tau_b(ii) = e_tau_b(ii)+sc*vtau(2, 1)
-                  e_rhoa_rhoa(ii) = e_rhoa_rhoa(ii)+sc*v2rho2(1, 1)
-                  e_rhoa_rhob(ii) = e_rhoa_rhob(ii)+sc*v2rho2(2, 1)
-                  e_rhob_rhob(ii) = e_rhob_rhob(ii)+sc*v2rho2(3, 1)
-                  e_ndrho_rhoa(ii) = e_ndrho_rhoa(ii)+sc*v2rhosigma(2, 1)*my_norm_drho
-                  e_ndrho_rhob(ii) = e_ndrho_rhob(ii)+sc*v2rhosigma(5, 1)*my_norm_drho
-                  e_ndrhoa_rhoa(ii) = e_ndrhoa_rhoa(ii)+ &
-                                      sc*(2.0_dp*v2rhosigma(1, 1)-v2rhosigma(2, 1))*my_norm_drhoa
-                  e_ndrhoa_rhob(ii) = e_ndrhoa_rhob(ii)+ &
-                                      sc*(2.0_dp*v2rhosigma(4, 1)-v2rhosigma(5, 1))*my_norm_drhoa
-                  e_ndrhob_rhoa(ii) = e_ndrhob_rhoa(ii)+ &
-                                      sc*(2.0_dp*v2rhosigma(3, 1)-v2rhosigma(2, 1))*my_norm_drhob
-                  e_ndrhob_rhob(ii) = e_ndrhob_rhob(ii)+ &
-                                      sc*(2.0_dp*v2rhosigma(6, 1)-v2rhosigma(5, 1))*my_norm_drhob
-                  e_ndrho_ndrho(ii) = e_ndrho_ndrho(ii)+ &
-                                      sc*(vsigma(2, 1)+my_norm_drho**2*v2sigma2(4, 1))
-                  e_ndrho_ndrhoa(ii) = e_ndrho_ndrhoa(ii)+ &
-                                       sc*(2.0_dp*v2sigma2(2, 1)-v2sigma2(4, 1))*my_norm_drho*my_norm_drhoa
-                  e_ndrho_ndrhob(ii) = e_ndrho_ndrhob(ii)+ &
-                                       sc*(2.0_dp*v2sigma2(5, 1)-v2sigma2(4, 1))*my_norm_drho*my_norm_drhob
-                  e_ndrhoa_ndrhoa(ii) = e_ndrhoa_ndrhoa(ii)+ &
-                                        sc*(2.0_dp*vsigma(1, 1)-vsigma(2, 1)+my_norm_drhoa**2*( &
-                                            4.0_dp*v2sigma2(1, 1)-4.0_dp*v2sigma2(2, 1)+v2sigma2(4, 1)))
-                  e_ndrhoa_ndrhob(ii) = e_ndrhoa_ndrhob(ii)+ &
-                                        sc*(4.0_dp*v2sigma2(3, 1)-2.0_dp*v2sigma2(2, 1)- &
-                                            2.0_dp*v2sigma2(5, 1)+v2sigma2(4, 1))*my_norm_drhoa*my_norm_drhob
-                  e_ndrhob_ndrhob(ii) = e_ndrhob_ndrhob(ii)+ &
-                                        sc*(2.0_dp*vsigma(3, 1)-vsigma(2, 1)+my_norm_drhob**2*( &
-                                            4.0_dp*v2sigma2(6, 1)-4.0_dp*v2sigma2(5, 1)+v2sigma2(4, 1)))
-                  e_rhoa_laplace_rhoa(ii) = e_rhoa_laplace_rhoa(ii)+sc*v2rholapl(1, 1)
-                  e_rhoa_laplace_rhob(ii) = e_rhoa_laplace_rhob(ii)+sc*v2rholapl(2, 1)
-                  e_rhob_laplace_rhoa(ii) = e_rhob_laplace_rhoa(ii)+sc*v2rholapl(3, 1)
-                  e_rhob_laplace_rhob(ii) = e_rhob_laplace_rhob(ii)+sc*v2rholapl(4, 1)
-                  e_rhoa_tau_a(ii) = e_rhoa_tau_a(ii)+sc*v2rhotau(1, 1)
-                  e_rhoa_tau_b(ii) = e_rhoa_tau_b(ii)+sc*v2rhotau(2, 1)
-                  e_rhob_tau_a(ii) = e_rhob_tau_a(ii)+sc*v2rhotau(3, 1)
-                  e_rhob_tau_b(ii) = e_rhob_tau_b(ii)+sc*v2rhotau(4, 1)
-                  e_ndrho_laplace_rhoa(ii) = e_ndrho_laplace_rhoa(ii)+sc*v2sigmalapl(3, 1)*my_norm_drho
-                  e_ndrho_laplace_rhob(ii) = e_ndrho_laplace_rhob(ii)+sc*v2sigmalapl(4, 1)*my_norm_drho
-                  e_ndrhoa_laplace_rhoa(ii) = e_ndrhoa_laplace_rhoa(ii)+ &
-                                              sc*(2.0_dp*v2sigmalapl(1, 1)-v2sigmalapl(3, 1))*my_norm_drhoa
-                  e_ndrhoa_laplace_rhob(ii) = e_ndrhoa_laplace_rhob(ii)+ &
-                                              sc*(2.0_dp*v2sigmalapl(2, 1)-v2sigmalapl(4, 1))*my_norm_drhoa
-                  e_ndrhob_laplace_rhoa(ii) = e_ndrhob_laplace_rhoa(ii)+ &
-                                              sc*(2.0_dp*v2sigmalapl(5, 1)-v2sigmalapl(3, 1))*my_norm_drhob
-                  e_ndrhob_laplace_rhob(ii) = e_ndrhob_laplace_rhob(ii)+ &
-                                              sc*(2.0_dp*v2sigmalapl(6, 1)-v2sigmalapl(4, 1))*my_norm_drhob
-                  e_ndrho_tau_a(ii) = e_ndrho_tau_a(ii)+sc*v2sigmatau(3, 1)*my_norm_drho
-                  e_ndrho_tau_b(ii) = e_ndrho_tau_b(ii)+sc*v2sigmatau(4, 1)*my_norm_drho
-                  e_ndrhoa_tau_a(ii) = e_ndrhoa_tau_a(ii)+ &
-                                       sc*(2.0_dp*v2sigmatau(1, 1)-v2sigmatau(3, 1))*my_norm_drhoa
-                  e_ndrhoa_tau_b(ii) = e_ndrhoa_tau_b(ii)+ &
-                                       sc*(2.0_dp*v2sigmatau(2, 1)-v2sigmatau(4, 1))*my_norm_drhoa
-                  e_ndrhob_tau_a(ii) = e_ndrhob_tau_a(ii)+ &
-                                       sc*(2.0_dp*v2sigmatau(5, 1)-v2sigmatau(3, 1))*my_norm_drhob
-                  e_ndrhob_tau_b(ii) = e_ndrhob_tau_b(ii)+ &
-                                       sc*(2.0_dp*v2sigmatau(6, 1)-v2sigmatau(4, 1))*my_norm_drhob
-                  e_laplace_rhoa_laplace_rhoa(ii) = e_laplace_rhoa_laplace_rhoa(ii)+sc*v2lapl2(1, 1)
-                  e_laplace_rhoa_laplace_rhob(ii) = e_laplace_rhoa_laplace_rhob(ii)+sc*v2lapl2(2, 1)
-                  e_laplace_rhob_laplace_rhob(ii) = e_laplace_rhob_laplace_rhob(ii)+sc*v2lapl2(3, 1)
-                  e_laplace_rhoa_tau_a(ii) = e_laplace_rhoa_tau_a(ii)+sc*v2lapltau(1, 1)
-                  e_laplace_rhoa_tau_b(ii) = e_laplace_rhoa_tau_b(ii)+sc*v2lapltau(2, 1)
-                  e_laplace_rhob_tau_a(ii) = e_laplace_rhob_tau_a(ii)+sc*v2lapltau(3, 1)
-                  e_laplace_rhob_tau_b(ii) = e_laplace_rhob_tau_b(ii)+sc*v2lapltau(4, 1)
-                  e_tau_a_tau_a(ii) = e_tau_a_tau_a(ii)+sc*v2tau2(1, 1)
-                  e_tau_a_tau_b(ii) = e_tau_a_tau_b(ii)+sc*v2tau2(2, 1)
-                  e_tau_b_tau_b(ii) = e_tau_b_tau_b(ii)+sc*v2tau2(3, 1)
+                  e_0(ii) = e_0(ii) + sc*exc(1)*(rhov(1, 1) + rhov(2, 1))
+                  e_rhoa(ii) = e_rhoa(ii) + sc*vrho(1, 1)
+                  e_rhob(ii) = e_rhob(ii) + sc*vrho(2, 1)
+                  e_ndrho(ii) = e_ndrho(ii) + sc*vsigma(2, 1)*my_norm_drho
+                  e_ndrhoa(ii) = e_ndrhoa(ii) + &
+                                 sc*(2.0_dp*vsigma(1, 1) - vsigma(2, 1))*my_norm_drhoa
+                  e_ndrhob(ii) = e_ndrhob(ii) + &
+                                 sc*(2.0_dp*vsigma(3, 1) - vsigma(2, 1))*my_norm_drhob
+                  e_laplace_rhoa(ii) = e_laplace_rhoa(ii) + sc*vlapl(1, 1)
+                  e_laplace_rhob(ii) = e_laplace_rhob(ii) + sc*vlapl(2, 1)
+                  e_tau_a(ii) = e_tau_a(ii) + sc*vtau(1, 1)
+                  e_tau_b(ii) = e_tau_b(ii) + sc*vtau(2, 1)
+                  e_rhoa_rhoa(ii) = e_rhoa_rhoa(ii) + sc*v2rho2(1, 1)
+                  e_rhoa_rhob(ii) = e_rhoa_rhob(ii) + sc*v2rho2(2, 1)
+                  e_rhob_rhob(ii) = e_rhob_rhob(ii) + sc*v2rho2(3, 1)
+                  e_ndrho_rhoa(ii) = e_ndrho_rhoa(ii) + sc*v2rhosigma(2, 1)*my_norm_drho
+                  e_ndrho_rhob(ii) = e_ndrho_rhob(ii) + sc*v2rhosigma(5, 1)*my_norm_drho
+                  e_ndrhoa_rhoa(ii) = e_ndrhoa_rhoa(ii) + &
+                                      sc*(2.0_dp*v2rhosigma(1, 1) - v2rhosigma(2, 1))*my_norm_drhoa
+                  e_ndrhoa_rhob(ii) = e_ndrhoa_rhob(ii) + &
+                                      sc*(2.0_dp*v2rhosigma(4, 1) - v2rhosigma(5, 1))*my_norm_drhoa
+                  e_ndrhob_rhoa(ii) = e_ndrhob_rhoa(ii) + &
+                                      sc*(2.0_dp*v2rhosigma(3, 1) - v2rhosigma(2, 1))*my_norm_drhob
+                  e_ndrhob_rhob(ii) = e_ndrhob_rhob(ii) + &
+                                      sc*(2.0_dp*v2rhosigma(6, 1) - v2rhosigma(5, 1))*my_norm_drhob
+                  e_ndrho_ndrho(ii) = e_ndrho_ndrho(ii) + &
+                                      sc*(vsigma(2, 1) + my_norm_drho**2*v2sigma2(4, 1))
+                  e_ndrho_ndrhoa(ii) = e_ndrho_ndrhoa(ii) + &
+                                       sc*(2.0_dp*v2sigma2(2, 1) - v2sigma2(4, 1))*my_norm_drho*my_norm_drhoa
+                  e_ndrho_ndrhob(ii) = e_ndrho_ndrhob(ii) + &
+                                       sc*(2.0_dp*v2sigma2(5, 1) - v2sigma2(4, 1))*my_norm_drho*my_norm_drhob
+                  e_ndrhoa_ndrhoa(ii) = e_ndrhoa_ndrhoa(ii) + &
+                                        sc*(2.0_dp*vsigma(1, 1) - vsigma(2, 1) + my_norm_drhoa**2*( &
+                                            4.0_dp*v2sigma2(1, 1) - 4.0_dp*v2sigma2(2, 1) + v2sigma2(4, 1)))
+                  e_ndrhoa_ndrhob(ii) = e_ndrhoa_ndrhob(ii) + &
+                                        sc*(4.0_dp*v2sigma2(3, 1) - 2.0_dp*v2sigma2(2, 1) - &
+                                            2.0_dp*v2sigma2(5, 1) + v2sigma2(4, 1))*my_norm_drhoa*my_norm_drhob
+                  e_ndrhob_ndrhob(ii) = e_ndrhob_ndrhob(ii) + &
+                                        sc*(2.0_dp*vsigma(3, 1) - vsigma(2, 1) + my_norm_drhob**2*( &
+                                            4.0_dp*v2sigma2(6, 1) - 4.0_dp*v2sigma2(5, 1) + v2sigma2(4, 1)))
+                  e_rhoa_laplace_rhoa(ii) = e_rhoa_laplace_rhoa(ii) + sc*v2rholapl(1, 1)
+                  e_rhoa_laplace_rhob(ii) = e_rhoa_laplace_rhob(ii) + sc*v2rholapl(2, 1)
+                  e_rhob_laplace_rhoa(ii) = e_rhob_laplace_rhoa(ii) + sc*v2rholapl(3, 1)
+                  e_rhob_laplace_rhob(ii) = e_rhob_laplace_rhob(ii) + sc*v2rholapl(4, 1)
+                  e_rhoa_tau_a(ii) = e_rhoa_tau_a(ii) + sc*v2rhotau(1, 1)
+                  e_rhoa_tau_b(ii) = e_rhoa_tau_b(ii) + sc*v2rhotau(2, 1)
+                  e_rhob_tau_a(ii) = e_rhob_tau_a(ii) + sc*v2rhotau(3, 1)
+                  e_rhob_tau_b(ii) = e_rhob_tau_b(ii) + sc*v2rhotau(4, 1)
+                  e_ndrho_laplace_rhoa(ii) = e_ndrho_laplace_rhoa(ii) + sc*v2sigmalapl(3, 1)*my_norm_drho
+                  e_ndrho_laplace_rhob(ii) = e_ndrho_laplace_rhob(ii) + sc*v2sigmalapl(4, 1)*my_norm_drho
+                  e_ndrhoa_laplace_rhoa(ii) = e_ndrhoa_laplace_rhoa(ii) + &
+                                              sc*(2.0_dp*v2sigmalapl(1, 1) - v2sigmalapl(3, 1))*my_norm_drhoa
+                  e_ndrhoa_laplace_rhob(ii) = e_ndrhoa_laplace_rhob(ii) + &
+                                              sc*(2.0_dp*v2sigmalapl(2, 1) - v2sigmalapl(4, 1))*my_norm_drhoa
+                  e_ndrhob_laplace_rhoa(ii) = e_ndrhob_laplace_rhoa(ii) + &
+                                              sc*(2.0_dp*v2sigmalapl(5, 1) - v2sigmalapl(3, 1))*my_norm_drhob
+                  e_ndrhob_laplace_rhob(ii) = e_ndrhob_laplace_rhob(ii) + &
+                                              sc*(2.0_dp*v2sigmalapl(6, 1) - v2sigmalapl(4, 1))*my_norm_drhob
+                  e_ndrho_tau_a(ii) = e_ndrho_tau_a(ii) + sc*v2sigmatau(3, 1)*my_norm_drho
+                  e_ndrho_tau_b(ii) = e_ndrho_tau_b(ii) + sc*v2sigmatau(4, 1)*my_norm_drho
+                  e_ndrhoa_tau_a(ii) = e_ndrhoa_tau_a(ii) + &
+                                       sc*(2.0_dp*v2sigmatau(1, 1) - v2sigmatau(3, 1))*my_norm_drhoa
+                  e_ndrhoa_tau_b(ii) = e_ndrhoa_tau_b(ii) + &
+                                       sc*(2.0_dp*v2sigmatau(2, 1) - v2sigmatau(4, 1))*my_norm_drhoa
+                  e_ndrhob_tau_a(ii) = e_ndrhob_tau_a(ii) + &
+                                       sc*(2.0_dp*v2sigmatau(5, 1) - v2sigmatau(3, 1))*my_norm_drhob
+                  e_ndrhob_tau_b(ii) = e_ndrhob_tau_b(ii) + &
+                                       sc*(2.0_dp*v2sigmatau(6, 1) - v2sigmatau(4, 1))*my_norm_drhob
+                  e_laplace_rhoa_laplace_rhoa(ii) = e_laplace_rhoa_laplace_rhoa(ii) + sc*v2lapl2(1, 1)
+                  e_laplace_rhoa_laplace_rhob(ii) = e_laplace_rhoa_laplace_rhob(ii) + sc*v2lapl2(2, 1)
+                  e_laplace_rhob_laplace_rhob(ii) = e_laplace_rhob_laplace_rhob(ii) + sc*v2lapl2(3, 1)
+                  e_laplace_rhoa_tau_a(ii) = e_laplace_rhoa_tau_a(ii) + sc*v2lapltau(1, 1)
+                  e_laplace_rhoa_tau_b(ii) = e_laplace_rhoa_tau_b(ii) + sc*v2lapltau(2, 1)
+                  e_laplace_rhob_tau_a(ii) = e_laplace_rhob_tau_a(ii) + sc*v2lapltau(3, 1)
+                  e_laplace_rhob_tau_b(ii) = e_laplace_rhob_tau_b(ii) + sc*v2lapltau(4, 1)
+                  e_tau_a_tau_a(ii) = e_tau_a_tau_a(ii) + sc*v2tau2(1, 1)
+                  e_tau_a_tau_b(ii) = e_tau_a_tau_b(ii) + sc*v2tau2(2, 1)
+                  e_tau_b_tau_b(ii) = e_tau_b_tau_b(ii) + sc*v2tau2(3, 1)
                END IF
             END DO
 !$OMP           END DO
@@ -2289,8 +2460,6 @@ CONTAINS
       CASE default
          CPABORT(TRIM(func_name)//": this XC_FAMILY is currently not supported.")
       END SELECT
-
-      CALL xc_f03_func_end(xc_func)
 
    END SUBROUTINE libxc_lsd_calc
 #endif

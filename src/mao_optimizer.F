@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -54,7 +56,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: eps_grad, eps1
       INTEGER, INTENT(IN)                                :: iw
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mao_optimize', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'mao_optimize'
 
       INTEGER                                            :: handle, i, ispin, iter, nspin
       INTEGER, DIMENSION(:), POINTER                     :: col_blk_sizes, mao_sizes_a, mao_sizes_b
@@ -150,7 +152,7 @@ CONTAINS
             END IF
             DO iter = 1, max_iter
                IF (grad_norm < eps_grad) EXIT
-               IF ((1.0_dp-fval/electra(ispin)) < eps_fun) EXIT
+               IF ((1.0_dp - fval/electra(ispin)) < eps_fun) EXIT
                CALL dbcsr_add(mao_coef(ispin)%matrix, cgmat, 1.0_dp, alpha)
                CALL mao_orthogonalization(mao_coef(ispin)%matrix, matrix_smm(1)%matrix)
                CALL mao_function_gradient(mao_coef(ispin)%matrix, fval, mao_grad(ispin)%matrix, &
@@ -173,8 +175,8 @@ CONTAINS
                CALL dbcsr_add(amat, cgmat, 1.0_dp, alpha)
                CALL mao_orthogonalization(amat, matrix_smm(1)%matrix)
                CALL mao_function(amat, fa2, matrix_q(ispin)%matrix, matrix_smm(1)%matrix, binv, .TRUE.)
-               a2 = (4._dp*fa1-fa2-3._dp*fval)/alpha
-               a1 = (fa2-fval-a2*alpha)/(alpha*alpha)
+               a2 = (4._dp*fa1 - fa2 - 3._dp*fval)/alpha
+               a1 = (fa2 - fval - a2*alpha)/(alpha*alpha)
                IF (ABS(a1) > 1.e-14_dp) THEN
                   an = -a2/(2._dp*a1)
                   an = MIN(an, 2.0_dp*alpha)

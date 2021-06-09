@@ -1,10 +1,12 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
-!> \brief module handels definition of the tree nodes for the global and
+!> \brief module handles definition of the tree nodes for the global and
 !>      the subtrees binary tree
 !>                   parent element
 !>                      /      \
@@ -60,7 +62,7 @@ MODULE tmc_types
    TYPE tmc_env_type
       TYPE(tmc_comp_set_type), POINTER              :: tmc_comp_set
       TYPE(tmc_param_type), POINTER                 :: params
-      TYPE(rng_stream_type), POINTER                :: rng_stream
+      TYPE(rng_stream_type), ALLOCATABLE            :: rng_stream
       TYPE(master_env_type), POINTER                :: m_env
       TYPE(worker_env_type), POINTER                :: w_env
    END TYPE tmc_env_type
@@ -175,7 +177,7 @@ CONTAINS
    SUBROUTINE tmc_env_create(tmc_env)
       TYPE(tmc_env_type), POINTER                        :: tmc_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'tmc_env_create', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'tmc_env_create'
 
       INTEGER                                            :: handle
 
@@ -199,7 +201,6 @@ CONTAINS
       NULLIFY (tmc_env%tmc_comp_set%para_env_m_ana)
       NULLIFY (tmc_env%tmc_comp_set%para_env_m_only)
 
-      NULLIFY (tmc_env%rng_stream)
       NULLIFY (tmc_env%m_env, tmc_env%w_env)
 
       ! initialize the parameter section
@@ -240,8 +241,7 @@ CONTAINS
    SUBROUTINE tmc_env_release(tmc_env)
       TYPE(tmc_env_type), POINTER                        :: tmc_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'tmc_env_release', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'tmc_env_release'
 
       INTEGER                                            :: handle
 
@@ -284,8 +284,7 @@ CONTAINS
    SUBROUTINE tmc_master_env_create(tmc_env)
       TYPE(tmc_env_type), POINTER                        :: tmc_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'tmc_master_env_create', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'tmc_master_env_create'
 
       INTEGER                                            :: handle, i
 
@@ -344,8 +343,7 @@ CONTAINS
    SUBROUTINE tmc_master_env_release(tmc_env)
       TYPE(tmc_env_type), POINTER                        :: tmc_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'tmc_master_env_release', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'tmc_master_env_release'
 
       INTEGER                                            :: handle
 
@@ -378,8 +376,7 @@ CONTAINS
    SUBROUTINE tmc_worker_env_create(tmc_env)
       TYPE(tmc_env_type), POINTER                        :: tmc_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'tmc_worker_env_create', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'tmc_worker_env_create'
 
       INTEGER                                            :: handle
 
@@ -407,8 +404,7 @@ CONTAINS
    SUBROUTINE tmc_worker_env_release(tmc_env)
       TYPE(tmc_env_type), POINTER                        :: tmc_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'tmc_worker_env_release', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'tmc_worker_env_release'
 
       INTEGER                                            :: handle
 
@@ -433,9 +429,6 @@ CONTAINS
       TYPE(tmc_atom_type), DIMENSION(:), POINTER         :: atoms
       INTEGER, INTENT(IN)                                :: nr_atoms
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'allocate_tmc_atom_type', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(atoms))
       CPASSERT(nr_atoms .GT. 0)
 
@@ -454,9 +447,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE deallocate_tmc_atom_type(atoms)
       TYPE(tmc_atom_type), DIMENSION(:), POINTER         :: atoms
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'deallocate_tmc_atom_type', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(ASSOCIATED(atoms))
 

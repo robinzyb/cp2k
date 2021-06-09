@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -91,9 +93,6 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: eps_mm_rspace, maxchrg
       INTEGER, INTENT(IN)                                :: ncp(3), ncpl(3)
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_per_potential_init', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: I, idim, ig, ig_start, iw, ix, iy, iz, &
                                                             K, Kmax(3), n_rep_real(3), &
                                                             n_rep_real_val, ncoarsel, ncoarset, &
@@ -112,8 +111,8 @@ CONTAINS
       ncoarsel = PRODUCT(ncpl)
       logger => cp_get_default_logger()
       output_unit = cp_logger_get_default_io_unit(logger)
-      Rmax = SQRT(mm_cell%hmat(1, 1)**2+ &
-                  mm_cell%hmat(2, 2)**2+ &
+      Rmax = SQRT(mm_cell%hmat(1, 1)**2 + &
+                  mm_cell%hmat(2, 2)**2 + &
                   mm_cell%hmat(3, 3)**2)
       CALL section_vals_val_get(qmmm_periodic, "GMAX", r_val=Gmax)
       CALL section_vals_val_get(qmmm_periodic, "REPLICA", i_val=n_rep_real_val)
@@ -122,7 +121,7 @@ CONTAINS
       Vol = mm_cell%hmat(1, 1)* &
             mm_cell%hmat(2, 2)* &
             mm_cell%hmat(3, 3)
-      Ndim = (Kmax(1)+1)*(2*Kmax(2)+1)*(2*Kmax(3)+1)
+      Ndim = (Kmax(1) + 1)*(2*Kmax(2) + 1)*(2*Kmax(3) + 1)
       ig_start = 1
       n_rep_real = n_rep_real_val
       IF (compatibility .AND. (qmmm_coupl_type == do_qmmm_gauss)) ig_start = 2
@@ -160,12 +159,12 @@ CONTAINS
             DO ix = 0, kmax(1)
                DO iy = -kmax(2), kmax(2)
                   DO iz = -kmax(3), kmax(3)
-                     idim = idim+1
+                     idim = idim + 1
                      IF (ix == 0 .AND. iy == 0 .AND. iz == 0) THEN
                         DO Ig = ig_start, pgf%number_of_gaussians
                            Gk = pgf%Gk(Ig)
                            Ak = pgf%Ak(Ig)*Pi**(3.0_dp/2.0_dp)*Gk**3.0_dp
-                           LG(idim) = LG(idim)-Ak
+                           LG(idim) = LG(idim) - Ak
                         END DO
                      ELSE
                         fs = 2.0_dp; IF (ix == 0) fs = 1.0_dp
@@ -177,12 +176,12 @@ CONTAINS
                            LG(idim) = 4.0_dp*Pi/g2*EXP(-(g2*rc2)/4.0_dp)
                         ELSEIF (qmmm_coupl_type == do_qmmm_swave) THEN
                            tmp = 4.0_dp/rc2
-                           LG(idim) = 4.0_dp*Pi*tmp**2/(g2*(g2+tmp)**2)
+                           LG(idim) = 4.0_dp*Pi*tmp**2/(g2*(g2 + tmp)**2)
                         END IF
                         DO Ig = ig_start, pgf%number_of_gaussians
                            Gk = pgf%Gk(Ig)
                            Ak = pgf%Ak(Ig)*Pi**(3.0_dp/2.0_dp)*Gk**3.0_dp
-                           LG(idim) = LG(idim)-Ak*EXP(-(g*Gk)**2.0_dp/4.0_dp)
+                           LG(idim) = LG(idim) - Ak*EXP(-(g*Gk)**2.0_dp/4.0_dp)
                         END DO
                      ENDIF
                      LG(idim) = fs*LG(idim)*1.0_dp/Vol
@@ -200,18 +199,18 @@ CONTAINS
                      alpha = 1.0_dp/pgf%Gk(I)
                      alpha = alpha*alpha
                      Prefactor = pgf%Ak(I)*maxchrg
-                     mymaxradius = MAX(mymaxradius, exp_radius(0, alpha, eps_mm_rspace, Prefactor))
+                     mymaxradius = MAX(mymaxradius, exp_radius(0, alpha, eps_mm_rspace, Prefactor, rlow=mymaxradius))
                   END IF
                END DO
-               box(1) = (qm_cell_small%hmat(1, 1)-mm_cell%hmat(1, 1))/2.0_dp
-               box(2) = (qm_cell_small%hmat(2, 2)-mm_cell%hmat(2, 2))/2.0_dp
-               box(3) = (qm_cell_small%hmat(3, 3)-mm_cell%hmat(3, 3))/2.0_dp
+               box(1) = (qm_cell_small%hmat(1, 1) - mm_cell%hmat(1, 1))/2.0_dp
+               box(2) = (qm_cell_small%hmat(2, 2) - mm_cell%hmat(2, 2))/2.0_dp
+               box(3) = (qm_cell_small%hmat(3, 3) - mm_cell%hmat(3, 3))/2.0_dp
                IF (ANY(box > 0.0_dp)) THEN
                   CPABORT("")
                END IF
-               n_rep_real(1) = CEILING((box(1)+mymaxradius)/mm_cell%hmat(1, 1))
-               n_rep_real(2) = CEILING((box(2)+mymaxradius)/mm_cell%hmat(2, 2))
-               n_rep_real(3) = CEILING((box(3)+mymaxradius)/mm_cell%hmat(3, 3))
+               n_rep_real(1) = CEILING((box(1) + mymaxradius)/mm_cell%hmat(1, 1))
+               n_rep_real(2) = CEILING((box(2) + mymaxradius)/mm_cell%hmat(2, 2))
+               n_rep_real(3) = CEILING((box(3) + mymaxradius)/mm_cell%hmat(3, 3))
             END IF
 
          CASE DEFAULT
@@ -288,9 +287,6 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(section_vals_type), POINTER                   :: qmmm_per_section, print_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_per_pot_type_create', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: npts(3)
       INTEGER, DIMENSION(:), POINTER                     :: ngrids
       REAL(KIND=dp)                                      :: hmat(3, 3)
@@ -344,9 +340,6 @@ CONTAINS
       TYPE(cell_type), POINTER                           :: mm_cell
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(section_vals_type), POINTER                   :: qmmm_periodic, print_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_ewald_potential_init', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ewald_type, gmax(3), iw, o_spline, ounit
       LOGICAL                                            :: do_multipoles

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -67,9 +69,6 @@ CONTAINS
       TYPE(particle_type), DIMENSION(:), POINTER         :: particle_set
       INTEGER, INTENT(IN)                                :: nparticle
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_particle_set', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iparticle
 
       IF (ASSOCIATED(particle_set)) THEN
@@ -99,9 +98,6 @@ CONTAINS
    SUBROUTINE deallocate_particle_set(particle_set)
       TYPE(particle_type), DIMENSION(:), POINTER         :: particle_set
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_particle_set', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(particle_set)) THEN
          DEALLOCATE (particle_set)
       ELSE
@@ -123,13 +119,12 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE update_particle_set(particle_set, int_group, pos, vel, for, add)
 
-      TYPE(particle_type), POINTER                       :: particle_set(:)
+      TYPE(particle_type), INTENT(INOUT)                 :: particle_set(:)
       INTEGER, INTENT(IN)                                :: int_group
       REAL(KIND=dp), INTENT(INOUT), OPTIONAL             :: pos(:, :), vel(:, :), for(:, :)
       LOGICAL, INTENT(IN), OPTIONAL                      :: add
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'update_particle_set', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'update_particle_set'
 
       INTEGER                                            :: handle, iparticle, nparticle
       LOGICAL                                            :: my_add, update_for, update_pos, &
@@ -148,7 +143,7 @@ CONTAINS
          CALL mp_sum(pos, int_group)
          IF (my_add) THEN
             DO iparticle = 1, nparticle
-               particle_set(iparticle)%r(:) = particle_set(iparticle)%r(:)+pos(:, iparticle)
+               particle_set(iparticle)%r(:) = particle_set(iparticle)%r(:) + pos(:, iparticle)
             END DO
          ELSE
             DO iparticle = 1, nparticle
@@ -160,7 +155,7 @@ CONTAINS
          CALL mp_sum(vel, int_group)
          IF (my_add) THEN
             DO iparticle = 1, nparticle
-               particle_set(iparticle)%v(:) = particle_set(iparticle)%v(:)+vel(:, iparticle)
+               particle_set(iparticle)%v(:) = particle_set(iparticle)%v(:) + vel(:, iparticle)
             END DO
          ELSE
             DO iparticle = 1, nparticle
@@ -172,7 +167,7 @@ CONTAINS
          CALL mp_sum(for, int_group)
          IF (my_add) THEN
             DO iparticle = 1, nparticle
-               particle_set(iparticle)%f(:) = particle_set(iparticle)%f(:)+for(:, iparticle)
+               particle_set(iparticle)%f(:) = particle_set(iparticle)%f(:) + for(:, iparticle)
             END DO
          ELSE
             DO iparticle = 1, nparticle
@@ -199,22 +194,22 @@ CONTAINS
    FUNCTION get_particle_pos_or_vel(iatom, particle_set, vector) RESULT(x)
 
       INTEGER, INTENT(IN)                                :: iatom
-      TYPE(particle_type), DIMENSION(:), POINTER         :: particle_set
+      TYPE(particle_type), DIMENSION(:), INTENT(IN)      :: particle_set
       REAL(KIND=dp), DIMENSION(:), INTENT(IN)            :: vector
       REAL(KIND=dp), DIMENSION(3)                        :: x
 
       INTEGER                                            :: ic, is
       REAL(KIND=dp)                                      :: fc, fs, mass
 
-      ic = 3*(iatom-1)
+      ic = 3*(iatom - 1)
       IF (particle_set(iatom)%shell_index == 0) THEN
-         x(1:3) = vector(ic+1:ic+3)
+         x(1:3) = vector(ic + 1:ic + 3)
       ELSE
-         is = 3*(SIZE(particle_set)+particle_set(iatom)%shell_index-1)
+         is = 3*(SIZE(particle_set) + particle_set(iatom)%shell_index - 1)
          mass = particle_set(iatom)%atomic_kind%mass
          fc = particle_set(iatom)%atomic_kind%shell%mass_core/mass
          fs = particle_set(iatom)%atomic_kind%shell%mass_shell/mass
-         x(1:3) = fc*vector(ic+1:ic+3)+fs*vector(is+1:is+3)
+         x(1:3) = fc*vector(ic + 1:ic + 3) + fs*vector(is + 1:is + 3)
       END IF
 
    END FUNCTION get_particle_pos_or_vel
@@ -236,25 +231,25 @@ CONTAINS
    SUBROUTINE update_particle_pos_or_vel(iatom, particle_set, x, vector)
 
       INTEGER, INTENT(IN)                                :: iatom
-      TYPE(particle_type), DIMENSION(:), POINTER         :: particle_set
+      TYPE(particle_type), DIMENSION(:), INTENT(IN)      :: particle_set
       REAL(KIND=dp), DIMENSION(3), INTENT(INOUT)         :: x
       REAL(KIND=dp), DIMENSION(:), INTENT(INOUT)         :: vector
 
       INTEGER                                            :: ic, is
       REAL(KIND=dp)                                      :: fc, fs, mass
 
-      ic = 3*(iatom-1)
+      ic = 3*(iatom - 1)
       IF (particle_set(iatom)%shell_index == 0) THEN
-         vector(ic+1:ic+3) = vector(ic+1:ic+3)+x(1:3)
-         x(1:3) = vector(ic+1:ic+3)
+         vector(ic + 1:ic + 3) = vector(ic + 1:ic + 3) + x(1:3)
+         x(1:3) = vector(ic + 1:ic + 3)
       ELSE
-         is = 3*(SIZE(particle_set)+particle_set(iatom)%shell_index-1)
+         is = 3*(SIZE(particle_set) + particle_set(iatom)%shell_index - 1)
          mass = particle_set(iatom)%atomic_kind%mass
          fc = particle_set(iatom)%atomic_kind%shell%mass_core/mass
          fs = particle_set(iatom)%atomic_kind%shell%mass_shell/mass
-         vector(ic+1:ic+3) = vector(ic+1:ic+3)+x(1:3)
-         vector(is+1:is+3) = vector(is+1:is+3)+x(1:3)
-         x(1:3) = fc*vector(ic+1:ic+3)+fs*vector(is+1:is+3)
+         vector(ic + 1:ic + 3) = vector(ic + 1:ic + 3) + x(1:3)
+         vector(is + 1:is + 3) = vector(is + 1:is + 3) + x(1:3)
+         x(1:3) = fc*vector(ic + 1:ic + 3) + fs*vector(is + 1:is + 3)
       END IF
 
    END SUBROUTINE update_particle_pos_or_vel

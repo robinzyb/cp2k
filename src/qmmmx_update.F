@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -47,9 +49,6 @@ CONTAINS
    SUBROUTINE qmmmx_update_force_env(force_env, root_section)
       TYPE(force_env_type), POINTER                      :: force_env
       TYPE(section_vals_type), POINTER                   :: root_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'qmmmx_update_force_env', &
-         routineP = moduleN//':'//routineN
 
       LOGICAL                                            :: force_mixing_active, labels_changed
       TYPE(atomic_kind_list_type), POINTER               :: atomic_kinds, new_atomic_kinds
@@ -138,8 +137,7 @@ CONTAINS
       TYPE(atomic_kind_list_type), POINTER               :: to_local_particle_kinds
       TYPE(distribution_1d_type), POINTER                :: to_local_particles
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'copy_wiener_process', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'copy_wiener_process'
 
       INTEGER :: from_iparticle_kind, from_iparticle_local(1), from_nparticle_kind, &
          from_nparticle_local, handle, to_iparticle_global, to_iparticle_kind, to_iparticle_local, &
@@ -159,11 +157,11 @@ CONTAINS
       ! make sure total number of particles hasn't changed, even if particle kinds have
       tot_from_nparticle_local = 0
       DO from_iparticle_kind = 1, from_nparticle_kind
-         tot_from_nparticle_local = tot_from_nparticle_local+from_local_particles%n_el(from_iparticle_kind)
+         tot_from_nparticle_local = tot_from_nparticle_local + from_local_particles%n_el(from_iparticle_kind)
       END DO
       tot_to_nparticle_local = 0
       DO to_iparticle_kind = 1, to_nparticle_kind
-         tot_to_nparticle_local = tot_to_nparticle_local+to_local_particles%n_el(to_iparticle_kind)
+         tot_to_nparticle_local = tot_to_nparticle_local + to_local_particles%n_el(to_iparticle_kind)
       END DO
       CPASSERT(tot_from_nparticle_local == tot_to_nparticle_local)
 
@@ -181,10 +179,10 @@ CONTAINS
             ! find the matching kind/index where this particle was before
             DO from_iparticle_kind = 1, from_nparticle_kind
                from_nparticle_local = from_local_particles%n_el(from_iparticle_kind)
-               IF (MINVAL(ABS(from_local_particles%list(from_iparticle_kind)%array(1:from_nparticle_local)- &
+               IF (MINVAL(ABS(from_local_particles%list(from_iparticle_kind)%array(1:from_nparticle_local) - &
                               to_iparticle_global)) == 0) THEN
                   from_iparticle_local = &
-                     MINLOC(ABS(from_local_particles%list(from_iparticle_kind)%array(1:from_nparticle_local)- &
+                     MINLOC(ABS(from_local_particles%list(from_iparticle_kind)%array(1:from_nparticle_local) - &
                                 to_iparticle_global))
                   to_local_particles%local_particle_set(to_iparticle_kind)%rng(to_iparticle_local)%stream = &
                      from_local_particles%local_particle_set(from_iparticle_kind)%rng(from_iparticle_local(1))%stream

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -72,9 +74,6 @@ CONTAINS
    SUBROUTINE apply_qmmmx_translate(qmmmx_env)
       TYPE(qmmmx_env_type), POINTER                      :: qmmmx_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'apply_qmmmx_translate', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ip
       TYPE(cell_type), POINTER                           :: cell_core, cell_extended
       TYPE(cp_subsys_type), POINTER                      :: subsys_core, subsys_extended
@@ -117,9 +116,6 @@ CONTAINS
       TYPE(cp_subsys_type), POINTER                      :: subsys
       TYPE(section_vals_type), POINTER                   :: qmmm_section
       LOGICAL, OPTIONAL                                  :: labels_changed
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'update_force_mixing_labels', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_string_length), POINTER      :: adaptive_exclude_molecules(:)
       INTEGER :: i_rep_section, i_rep_val, ip, max_n_qm, n_new, n_rep_exclude, n_rep_section, &
@@ -372,8 +368,6 @@ CONTAINS
       INTEGER, POINTER                                   :: new_indices(:), new_labels(:)
       INTEGER                                            :: new_full_labels(:), max_n_qm
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'add_new_label', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, old_index
 
       IF (new_full_labels(ip) > force_mixing_label_none) THEN ! already marked, just change mark
@@ -390,13 +384,13 @@ CONTAINS
                           "already set, but not in new_indices array")
          new_labels(old_index) = label
       ELSE
-         n_new = n_new+1
+         n_new = n_new + 1
          IF (n_new > max_n_qm) &
             CALL cp_abort(__LOCATION__, &
                           "add_new_label tried to add more atoms "// &
                           "than allowed by &FORCE_MIXING&MAX_N_QM!")
-         IF (n_new > SIZE(new_indices)) CALL reallocate(new_indices, 1, n_new+9)
-         IF (n_new > SIZE(new_labels)) CALL reallocate(new_labels, 1, n_new+9)
+         IF (n_new > SIZE(new_indices)) CALL reallocate(new_indices, 1, n_new + 9)
+         IF (n_new > SIZE(new_labels)) CALL reallocate(new_labels, 1, n_new + 9)
          new_indices(n_new) = ip
          new_labels(n_new) = label
       ENDIF
@@ -443,9 +437,6 @@ CONTAINS
          POINTER                                         :: molecule_set
       INTEGER, OPTIONAL, POINTER                         :: broken_bonds(:)
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'add_layer_hysteretically', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i_ind, im, im_exclude, ip, ipair, &
                                                             ipairkind, j_ind, output_unit
       LOGICAL :: adaptive_exclude, i_in_new_seed, i_outside_new_seed, j_in_new_seed, &
@@ -471,7 +462,7 @@ CONTAINS
             j_outside_new_seed = (new_full_labels(j_ind) < seed_min_label_val)
 
             IF ((i_in_new_seed .AND. j_outside_new_seed) .OR. (j_in_new_seed .AND. i_outside_new_seed)) THEN
-               r_ij = pbc(particle_set(i_ind)%r-particle_set(j_ind)%r, cell)
+               r_ij = pbc(particle_set(i_ind)%r - particle_set(j_ind)%r, cell)
                r_ij_mag = SQRT(SUM(r_ij**2))
                IF (i_in_new_seed .AND. j_outside_new_seed .AND. (r_ij_mag < nearest_dist(j_ind))) THEN
                   nearest_dist(j_ind) = r_ij_mag
@@ -533,9 +524,6 @@ CONTAINS
       TYPE(cell_type), POINTER                           :: cell
       REAL(dp)                                           :: r_max
       TYPE(fist_neighbor_type), POINTER                  :: nlist
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'make_neighbor_list', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_string_length)               :: kind_name
       CHARACTER(LEN=default_string_length), POINTER      :: kind_name_a(:)
@@ -599,9 +587,6 @@ CONTAINS
       TYPE(cp_subsys_type), POINTER                      :: subsys
       TYPE(section_vals_type), POINTER                   :: qmmm_section, qmmm_core_section, &
                                                             qmmm_extended_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'setup_force_mixing_qmmm_sections', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(len=default_string_length), POINTER      :: elem_mapping(:, :), elem_mapping_entry(:)
       INTEGER :: delta_charge, i_rep_section_core, i_rep_section_extended, i_rep_val_core, &
@@ -710,14 +695,14 @@ CONTAINS
                 cur_labels(ip) /= force_mixing_label_termination) THEN
                qm_kind_section => section_vals_get_subs_vals3(qmmm_extended_section, "QM_KIND")
                IF (new_element_extended) THEN ! add new QM_KIND section for this element
-                  i_rep_section_extended = i_rep_section_extended+1
+                  i_rep_section_extended = i_rep_section_extended + 1
                   CALL section_vals_add_values(qm_kind_section)
                   CALL section_vals_val_set(qm_kind_section, "_SECTION_PARAMETERS_", i_rep_section=i_rep_section_extended, &
                                             c_val=elem_mapping(2, ielem))
                   i_rep_val_extended = 0
                   new_element_extended = .FALSE.
                ENDIF
-               i_rep_val_extended = i_rep_val_extended+1
+               i_rep_val_extended = i_rep_val_extended + 1
                CALL section_vals_val_set(qm_kind_section, "MM_INDEX", i_rep_section=i_rep_section_extended, &
                                          i_rep_val=i_rep_val_extended, i_val=cur_indices(ip))
             ENDIF ! is a non-termination QM atom
@@ -728,14 +713,14 @@ CONTAINS
             IF (cur_labels(ip) == force_mixing_label_QM_core) THEN
                qm_kind_section => section_vals_get_subs_vals3(qmmm_core_section, "QM_KIND")
                IF (new_element_core) THEN ! add new QM_KIND section for this element
-                  i_rep_section_core = i_rep_section_core+1
+                  i_rep_section_core = i_rep_section_core + 1
                   CALL section_vals_add_values(qm_kind_section)
                   CALL section_vals_val_set(qm_kind_section, "_SECTION_PARAMETERS_", i_rep_section=i_rep_section_core, &
                                             c_val=elem_mapping(2, ielem))
                   i_rep_val_core = 0
                   new_element_core = .FALSE.
                ENDIF
-               i_rep_val_core = i_rep_val_core+1
+               i_rep_val_core = i_rep_val_core + 1
                CALL section_vals_val_set(qm_kind_section, "MM_INDEX", i_rep_section=i_rep_section_core, &
                                          i_rep_val=i_rep_val_core, i_val=cur_indices(ip))
             ENDIF ! is a non-termination QM atom
@@ -768,9 +753,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: force_mixing_section
       INTEGER, POINTER                                   :: indices(:), labels(:)
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_force_mixing_indices', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i_rep_val, n_indices, n_labels, n_reps
       INTEGER, POINTER                                   :: indices_entry(:), labels_entry(:)
       LOGICAL                                            :: explicit
@@ -791,15 +773,15 @@ CONTAINS
       DO i_rep_val = 1, n_reps
          CALL section_vals_val_get(restart_section, "INDICES", &
                                    i_rep_val=i_rep_val, i_vals=indices_entry)
-         n_indices = n_indices+SIZE(indices_entry)
+         n_indices = n_indices + SIZE(indices_entry)
       END DO
       ALLOCATE (indices(n_indices))
       n_indices = 0
       DO i_rep_val = 1, n_reps
          CALL section_vals_val_get(restart_section, "INDICES", &
                                    i_rep_val=i_rep_val, i_vals=indices_entry)
-         indices(n_indices+1:n_indices+SIZE(indices_entry)) = indices_entry
-         n_indices = n_indices+SIZE(indices_entry)
+         indices(n_indices + 1:n_indices + SIZE(indices_entry)) = indices_entry
+         n_indices = n_indices + SIZE(indices_entry)
       END DO
 
       CALL section_vals_val_get(restart_section, "LABELS", n_rep_val=n_reps)
@@ -807,15 +789,15 @@ CONTAINS
       DO i_rep_val = 1, n_reps
          CALL section_vals_val_get(restart_section, "LABELS", &
                                    i_rep_val=i_rep_val, i_vals=labels_entry)
-         n_labels = n_labels+SIZE(labels_entry)
+         n_labels = n_labels + SIZE(labels_entry)
       END DO
       ALLOCATE (labels(n_labels))
       n_labels = 0
       DO i_rep_val = 1, n_reps
          CALL section_vals_val_get(restart_section, "LABELS", &
                                    i_rep_val=i_rep_val, i_vals=labels_entry)
-         labels(n_labels+1:n_labels+SIZE(labels_entry)) = labels_entry
-         n_labels = n_labels+SIZE(labels_entry)
+         labels(n_labels + 1:n_labels + SIZE(labels_entry)) = labels_entry
+         n_labels = n_labels + SIZE(labels_entry)
       END DO
 
       IF (n_indices /= n_labels) &

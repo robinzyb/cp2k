@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -77,15 +79,12 @@ CONTAINS
    SUBROUTINE qs_ks_qmmm_release(ks_qmmm_env)
       TYPE(qs_ks_qmmm_env_type), POINTER                 :: ks_qmmm_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_ks_qmmm_release', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
       TYPE(pw_pool_type), POINTER                        :: pool
 
       IF (ASSOCIATED(ks_qmmm_env)) THEN
          CPASSERT(ks_qmmm_env%ref_count > 0)
-         ks_qmmm_env%ref_count = ks_qmmm_env%ref_count-1
+         ks_qmmm_env%ref_count = ks_qmmm_env%ref_count - 1
 
          IF (ks_qmmm_env%ref_count < 1) THEN
             CALL pw_env_get(ks_qmmm_env%pw_env, auxbas_pw_pool=pool)
@@ -116,12 +115,9 @@ CONTAINS
    SUBROUTINE qs_ks_qmmm_retain(ks_qmmm_env)
       TYPE(qs_ks_qmmm_env_type), POINTER                 :: ks_qmmm_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_ks_qmmm_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(ks_qmmm_env))
       CPASSERT(ks_qmmm_env%ref_count > 0)
-      ks_qmmm_env%ref_count = ks_qmmm_env%ref_count+1
+      ks_qmmm_env%ref_count = ks_qmmm_env%ref_count + 1
    END SUBROUTINE qs_ks_qmmm_retain
 
 END MODULE qs_ks_qmmm_types

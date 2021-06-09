@@ -7,9 +7,35 @@ source /opt/cp2k-toolchain/install/setup
 
 echo -e "\n========== Compiling CP2K =========="
 cd /workspace/cp2k
-make -j VERSION=pdbg cp2k
+echo -n "Compiling cp2k... "
+if make -j VERSION=pdbg &> make.out; then
+  echo "done."
+else
+  echo -e "failed.\n\n"
+  tail -n 100 make.out
+  echo -e "\nSummary: Compilation failed."
+  echo -e "Status: FAILED\n"
+  exit 0
+fi
 
-echo -e "\n========== Installing CP2K =========="
+echo -e "\n========== Installing AiiDA-CP2K plugin =========="
+cd /opt/aiida-cp2k/
+git pull
+pip3 install './[test]'
+
+echo -e "\n========== Configuring AiiDA =========="
+AS_UBUNTU_USER="sudo -u ubuntu -H"
+
+#update reentry cache
+$AS_UBUNTU_USER reentry scan
+
+# start RabbitMQ
+service rabbitmq-server start
+
+# start and configure PostgreSQL
+service postgresql start
+
+# setup code
 cat > /usr/bin/cp2k << EndOfMessage
 #!/bin/bash -e
 source /opt/cp2k-toolchain/install/setup
@@ -17,27 +43,14 @@ source /opt/cp2k-toolchain/install/setup
 EndOfMessage
 chmod +x /usr/bin/cp2k
 
-echo -e "\n========== Installing AiiDA-CP2K plugin =========="
-cd /opt/
-git clone --quiet https://github.com/cp2k/aiida-cp2k.git
-pip install --quiet ./aiida-cp2k/[pre-commit]
-
-# workaround for dependency chain in 1.0.0b1
-pip install --quiet 'topika==0.1.3'
-
-echo -e "\n========== Configuring AiiDA =========="
-for i in $(dirname "$(which mpirun)")/* ; do ln -sf "$i" /usr/bin/; done
-SUDO="sudo -u ubuntu -H"
-cd /opt/aiida-cp2k/test/
-$SUDO ./configure_aiida.sh
-
 echo -e "\n========== Running AiiDA-CP2K Tests =========="
-cd  /opt/aiida-cp2k/test/
+cd /opt/aiida-cp2k/
 
 set +e # disable error trapping for remainder of script
 (
-set -e # abort on error
-$SUDO ./run_tests.sh
+  set -e         # abort on error
+  ulimit -t 1800 # abort after 30 minutes
+  $AS_UBUNTU_USER py.test
 )
 
 EXIT_CODE=$?
@@ -45,12 +58,12 @@ EXIT_CODE=$?
 echo ""
 
 AIIDA_COMMIT=$(git rev-parse --short HEAD)
-if (( EXIT_CODE )); then
-    echo "Summary: Something is wrong with aiida-cp2k commit ${AIIDA_COMMIT}."
-    echo "Status: FAILED"
+if ((EXIT_CODE)); then
+  echo "Summary: Something is wrong with aiida-cp2k commit ${AIIDA_COMMIT}."
+  echo "Status: FAILED"
 else
-    echo "Summary: aiida-cp2k commit ${AIIDA_COMMIT} works fine."
-    echo "Status: OK"
+  echo "Summary: aiida-cp2k commit ${AIIDA_COMMIT} works fine."
+  echo "Status: OK"
 fi
 
 #EOF

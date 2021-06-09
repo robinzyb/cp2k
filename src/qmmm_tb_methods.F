@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -105,8 +107,7 @@ CONTAINS
       TYPE(cell_type), POINTER                           :: mm_cell
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'build_tb_qmmm_matrix', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'build_tb_qmmm_matrix'
 
       INTEGER                                            :: blk, handle, i, iatom, ikind, jatom, &
                                                             natom, natorb, nkind
@@ -199,7 +200,7 @@ CONTAINS
                                  qmmm_env%spherical_cutoff, &
                                  particles_qm)
             END IF
-            pc_ener = pc_ener+qpot(iatom)*zeff
+            pc_ener = pc_ener + qpot(iatom)*zeff
          END DO
       END DO
 
@@ -219,7 +220,7 @@ CONTAINS
          CALL dbcsr_get_block_p(matrix=matrix_h(1)%matrix, &
                                 row=iatom, col=jatom, block=hblock, found=found)
          CPASSERT(found)
-         hblock = hblock-0.5_dp*sblock*(qpot(iatom)+qpot(jatom))
+         hblock = hblock - 0.5_dp*sblock*(qpot(iatom) + qpot(jatom))
       END DO
       CALL dbcsr_iterator_stop(iter)
 
@@ -245,8 +246,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'build_tb_qmmm_matrix_zero', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'build_tb_qmmm_matrix_zero'
 
       INTEGER                                            :: handle
       LOGICAL                                            :: do_dftb, do_xtb
@@ -315,8 +315,7 @@ CONTAINS
       TYPE(cell_type), POINTER                           :: mm_cell
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'build_tb_qmmm_matrix_pc', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'build_tb_qmmm_matrix_pc'
 
       INTEGER                                            :: blk, do_ipol, ewald_type, handle, i, &
                                                             iatom, ikind, imm, imp, indmm, ipot, &
@@ -496,7 +495,7 @@ CONTAINS
                                     qmmm_env%added_charges%mm_atom_index, mm_cell, iatom, rcutoff, &
                                     particles_qm)
                END IF
-               pc_ener = pc_ener+qpot(iatom)*zeff
+               pc_ener = pc_ener + qpot(iatom)*zeff
             END DO
          END DO
       CASE (do_ewald_none)
@@ -532,7 +531,7 @@ CONTAINS
                                     qmmm_env%spherical_cutoff, &
                                     particles_qm)
                END IF
-               pc_ener = pc_ener+qpot(iatom)*zeff
+               pc_ener = pc_ener + qpot(iatom)*zeff
             END DO
          END DO
       CASE DEFAULT
@@ -555,7 +554,7 @@ CONTAINS
          CALL dbcsr_get_block_p(matrix=matrix_h(1)%matrix, &
                                 row=iatom, col=jatom, block=hblock, found=found)
          CPASSERT(found)
-         hblock = hblock-0.5_dp*sblock*(qpot(iatom)+qpot(jatom))
+         hblock = hblock - 0.5_dp*sblock*(qpot(iatom) + qpot(jatom))
       END DO
       CALL dbcsr_iterator_stop(iter)
 
@@ -597,8 +596,7 @@ CONTAINS
       LOGICAL, INTENT(in), OPTIONAL                      :: calc_force
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: Forces, Forces_added_charges
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'deriv_tb_qmmm_matrix', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'deriv_tb_qmmm_matrix'
 
       INTEGER                                            :: atom_a, blk, handle, i, iatom, ikind, &
                                                             iqm, jatom, natom, natorb, nkind, &
@@ -680,7 +678,7 @@ CONTAINS
             END IF
             DO iatom = 1, natom
                atom_a = atomic_kind_set(ikind)%atom_list(iatom)
-               mcharge(atom_a) = zeff-SUM(charges(atom_a, 1:nspins))
+               mcharge(atom_a) = zeff - SUM(charges(atom_a, 1:nspins))
             END DO
          END DO
          DEALLOCATE (charges)
@@ -707,7 +705,7 @@ CONTAINS
             END IF
             DO i = 1, SIZE(list)
                iatom = list(i)
-               iqm = iqm+1
+               iqm = iqm + 1
                CALL build_mm_pot(qpot(iatom), 0, eta_a(0), qmmm_env%Potentials, particles_mm, &
                                  qmmm_env%mm_atom_chrg, qmmm_env%mm_atom_index, mm_cell, iatom, &
                                  qmmm_env%spherical_cutoff, particles_qm)
@@ -746,9 +744,9 @@ CONTAINS
                ! use all kinds
             END IF
             DO i = 1, SIZE(list)
-               iqm = iqm+1
+               iqm = iqm + 1
                iatom = qmmm_env%qm_atom_index(list(i))
-               particles_mm(iatom)%f(:) = particles_mm(iatom)%f(:)+Forces_QM(:, iqm)
+               particles_mm(iatom)%f(:) = particles_mm(iatom)%f(:) + Forces_QM(:, iqm)
             END DO
          END DO
 
@@ -765,19 +763,19 @@ CONTAINS
             !
             IF (iatom == jatom) CYCLE
             !
-            gmij = -0.5_dp*(qpot(iatom)+qpot(jatom))
+            gmij = -0.5_dp*(qpot(iatom) + qpot(jatom))
             NULLIFY (pblock)
             CALL dbcsr_get_block_p(matrix=matrix_p(1)%matrix, &
                                    row=iatom, col=jatom, block=pblock, found=found)
             CPASSERT(found)
             DO i = 1, 3
                NULLIFY (dsblock)
-               CALL dbcsr_get_block_p(matrix=matrix_s(1+i)%matrix, &
+               CALL dbcsr_get_block_p(matrix=matrix_s(1 + i)%matrix, &
                                       row=iatom, col=jatom, block=dsblock, found=found)
                CPASSERT(found)
                fi = -2.0_dp*gmij*SUM(pblock*dsblock)
-               Forces_QM(i, iatom) = Forces_QM(i, iatom)+fi
-               Forces_QM(i, jatom) = Forces_QM(i, jatom)-fi
+               Forces_QM(i, iatom) = Forces_QM(i, iatom) + fi
+               Forces_QM(i, jatom) = Forces_QM(i, jatom) - fi
             END DO
          END DO
          CALL dbcsr_iterator_stop(iter)
@@ -794,7 +792,7 @@ CONTAINS
             DO i = 1, SIZE(list)
                iqm = list(i)
                iatom = qmmm_env%qm_atom_index(iqm)
-               particles_mm(iatom)%f(:) = particles_mm(iatom)%f(:)+Forces_QM(:, iqm)
+               particles_mm(iatom)%f(:) = particles_mm(iatom)%f(:) + Forces_QM(:, iqm)
             END DO
          END DO
          !
@@ -835,8 +833,7 @@ CONTAINS
       LOGICAL, INTENT(in), OPTIONAL                      :: calc_force
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: Forces, Forces_added_charges
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'deriv_tb_qmmm_matrix_pc', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'deriv_tb_qmmm_matrix_pc'
 
       INTEGER :: atom_a, blk, do_ipol, ewald_type, handle, i, iatom, ikind, imm, imp, indmm, ipot, &
          iqm, jatom, natom, natorb, nkind, nmm, nspins, number_qm_atoms
@@ -923,7 +920,7 @@ CONTAINS
             END IF
             DO iatom = 1, natom
                atom_a = atomic_kind_set(ikind)%atom_list(iatom)
-               mcharge(atom_a) = zeff-SUM(charges(atom_a, 1:nspins))
+               mcharge(atom_a) = zeff - SUM(charges(atom_a, 1:nspins))
             END DO
          END DO
          DEALLOCATE (charges)
@@ -986,7 +983,7 @@ CONTAINS
                CALL mp_sum(Forces_MM, para_env%group)
                DO Imp = 1, nmm
                   Imm = Pot%mm_atom_index(Imp)
-                  Forces(:, Imm) = Forces(:, Imm)-Forces_MM(:, Imp)
+                  Forces(:, Imm) = Forces(:, Imm) - Forces_MM(:, Imp)
                END DO
                DEALLOCATE (Forces_MM)
             END DO
@@ -1027,7 +1024,7 @@ CONTAINS
                   CALL mp_sum(Forces_MM, para_env%group)
                   DO Imp = 1, nmm
                      Imm = Pot%mm_atom_index(Imp)
-                     Forces_added_charges(:, Imm) = Forces_added_charges(:, Imm)-Forces_MM(:, Imp)
+                     Forces_added_charges(:, Imm) = Forces_added_charges(:, Imm) - Forces_MM(:, Imp)
                   END DO
                   DEALLOCATE (Forces_MM)
                END DO
@@ -1057,7 +1054,7 @@ CONTAINS
                END IF
                DO i = 1, SIZE(list)
                   iatom = list(i)
-                  iqm = iqm+1
+                  iqm = iqm + 1
                   CALL build_mm_pot(qpot(iatom), 1, eta_a(0), qmmm_env%Potentials, particles_mm, &
                                     qmmm_env%mm_atom_chrg, qmmm_env%mm_atom_index, &
                                     mm_cell, iatom, rcutoff, particles_qm)
@@ -1119,7 +1116,7 @@ CONTAINS
                END IF
                DO i = 1, SIZE(list)
                   iatom = list(i)
-                  iqm = iqm+1
+                  iqm = iqm + 1
                   CALL build_mm_pot(qpot(iatom), 0, eta_a(0), qmmm_env%Potentials, particles_mm, &
                                     qmmm_env%mm_atom_chrg, qmmm_env%mm_atom_index, mm_cell, iatom, &
                                     qmmm_env%spherical_cutoff, particles_qm)
@@ -1161,9 +1158,9 @@ CONTAINS
                !
             END IF
             DO i = 1, SIZE(list)
-               iqm = iqm+1
+               iqm = iqm + 1
                iatom = qmmm_env%qm_atom_index(list(i))
-               particles_mm(iatom)%f(:) = particles_mm(iatom)%f(:)+Forces_QM(:, iqm)
+               particles_mm(iatom)%f(:) = particles_mm(iatom)%f(:) + Forces_QM(:, iqm)
             END DO
          END DO
 
@@ -1180,19 +1177,19 @@ CONTAINS
             !
             IF (iatom == jatom) CYCLE
             !
-            gmij = -0.5_dp*(qpot(iatom)+qpot(jatom))
+            gmij = -0.5_dp*(qpot(iatom) + qpot(jatom))
             NULLIFY (pblock)
             CALL dbcsr_get_block_p(matrix=matrix_p(1)%matrix, &
                                    row=iatom, col=jatom, block=pblock, found=found)
             CPASSERT(found)
             DO i = 1, 3
                NULLIFY (dsblock)
-               CALL dbcsr_get_block_p(matrix=matrix_s(1+i)%matrix, &
+               CALL dbcsr_get_block_p(matrix=matrix_s(1 + i)%matrix, &
                                       row=iatom, col=jatom, block=dsblock, found=found)
                CPASSERT(found)
                fi = -2.0_dp*gmij*SUM(pblock*dsblock)
-               Forces_QM(i, iatom) = Forces_QM(i, iatom)+fi
-               Forces_QM(i, jatom) = Forces_QM(i, jatom)-fi
+               Forces_QM(i, iatom) = Forces_QM(i, iatom) + fi
+               Forces_QM(i, jatom) = Forces_QM(i, jatom) - fi
             END DO
          END DO
          CALL dbcsr_iterator_stop(iter)
@@ -1209,7 +1206,7 @@ CONTAINS
             DO i = 1, SIZE(list)
                iqm = list(i)
                iatom = qmmm_env%qm_atom_index(iqm)
-               particles_mm(iatom)%f(:) = particles_mm(iatom)%f(:)+Forces_QM(:, iqm)
+               particles_mm(iatom)%f(:) = particles_mm(iatom)%f(:) + Forces_QM(:, iqm)
             END DO
          END DO
          !
@@ -1262,7 +1259,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: qmmm_spherical_cutoff(2)
       TYPE(particle_type), DIMENSION(:), POINTER         :: particles_qm
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'build_mm_pot', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'build_mm_pot'
       REAL(KIND=dp), PARAMETER                           :: qsmall = 1.0e-15_dp
 
       INTEGER                                            :: handle, Imm, Imp, IndMM, Ipot
@@ -1280,7 +1277,7 @@ CONTAINS
          LoopMM: DO Imp = 1, SIZE(Pot%mm_atom_index)
             Imm = Pot%mm_atom_index(Imp)
             IndMM = mm_atom_index(Imm)
-            r_pbc = pbc(particles_mm(IndMM)%r-particles_qm(IndQM)%r, mm_cell)
+            r_pbc = pbc(particles_mm(IndMM)%r - particles_qm(IndQM)%r, mm_cell)
             rt1 = r_pbc(1)
             rt2 = r_pbc(2)
             rt3 = r_pbc(3)
@@ -1296,13 +1293,13 @@ CONTAINS
             IF (dr > rtiny) THEN
                IF (pot_type == 0) THEN
                   sr = gamma_rab_sr(dr, qm_alpha, eta_mm, 0.0_dp)
-                  qpot = qpot+qeff*(1.0_dp/dr-sr)
+                  qpot = qpot + qeff*(1.0_dp/dr - sr)
                ELSE IF (pot_type == 1) THEN
                   sr = gamma_rab_sr(dr, qm_alpha, eta_mm, 0.0_dp)
-                  qpot = qpot-qeff*sr
+                  qpot = qpot - qeff*sr
                ELSE IF (pot_type == 2) THEN
                   sr = erfc(qm_alpha*dr)/dr
-                  qpot = qpot+qeff*sr
+                  qpot = qpot + qeff*sr
                ELSE
                   CPABORT("")
                END IF
@@ -1346,7 +1343,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: qmmm_spherical_cutoff(2)
       TYPE(particle_type), DIMENSION(:), POINTER         :: particles_qm
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'build_mm_dpot', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'build_mm_dpot'
       REAL(KIND=dp), PARAMETER                           :: qsmall = 1.0e-15_dp
 
       INTEGER                                            :: handle, Imm, Imp, IndMM, Ipot
@@ -1364,7 +1361,7 @@ CONTAINS
          LoopMM: DO Imp = 1, SIZE(Pot%mm_atom_index)
             Imm = Pot%mm_atom_index(Imp)
             IndMM = mm_atom_index(Imm)
-            r_pbc = pbc(particles_mm(IndMM)%r-particles_qm(IndQM)%r, mm_cell)
+            r_pbc = pbc(particles_mm(IndMM)%r - particles_qm(IndQM)%r, mm_cell)
             rt1 = r_pbc(1)
             rt2 = r_pbc(2)
             rt3 = r_pbc(3)
@@ -1379,18 +1376,18 @@ CONTAINS
             END IF
             IF (ABS(qeff) <= qsmall) CYCLE
             IF (dr > rtiny) THEN
-               drp = dr+ddrmm
-               drm = dr-ddrmm
+               drp = dr + ddrmm
+               drm = dr - ddrmm
                IF (pot_type == 0) THEN
-                  dsr = 0.5_dp*(gamma_rab_sr(drp, qm_alpha, eta_mm, 0.0_dp)- &
+                  dsr = 0.5_dp*(gamma_rab_sr(drp, qm_alpha, eta_mm, 0.0_dp) - &
                                 gamma_rab_sr(drm, qm_alpha, eta_mm, 0.0_dp))/ddrmm
-                  fsr = qeff*qcharge*(-1.0_dp/(dr*dr)-dsr)
+                  fsr = qeff*qcharge*(-1.0_dp/(dr*dr) - dsr)
                ELSE IF (pot_type == 1) THEN
-                  dsr = 0.5_dp*(gamma_rab_sr(drp, qm_alpha, eta_mm, 0.0_dp)- &
+                  dsr = 0.5_dp*(gamma_rab_sr(drp, qm_alpha, eta_mm, 0.0_dp) - &
                                 gamma_rab_sr(drm, qm_alpha, eta_mm, 0.0_dp))/ddrmm
                   fsr = -qeff*qcharge*dsr
                ELSE IF (pot_type == 2) THEN
-                  dsr = 0.5_dp*(erfc(qm_alpha*drp)/drp-erfc(qm_alpha*drm)/drm)/ddrmm
+                  dsr = 0.5_dp*(erfc(qm_alpha*drp)/drp - erfc(qm_alpha*drm)/drm)/ddrmm
                   fsr = qeff*qcharge*dsr
                ELSE
                   CPABORT("")
@@ -1400,9 +1397,9 @@ CONTAINS
                force_ab = 0.0_dp
             END IF
             ! The array of QM forces are really the forces
-            forces_qm(:) = forces_qm(:)-force_ab
+            forces_qm(:) = forces_qm(:) - force_ab
             ! The one of MM atoms are instead gradients
-            forces(:, Imm) = forces(:, Imm)-force_ab
+            forces(:, Imm) = forces(:, Imm) - force_ab
          END DO LoopMM
       END DO MainLoopPot
 

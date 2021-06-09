@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -73,6 +75,7 @@ MODULE qs_neighbor_lists
    USE qs_dispersion_types,             ONLY: qs_dispersion_type
    USE qs_environment_types,            ONLY: get_qs_env,&
                                               qs_environment_type
+   USE qs_gcp_types,                    ONLY: qs_gcp_type
    USE qs_kind_types,                   ONLY: get_qs_kind,&
                                               get_qs_kind_set,&
                                               qs_kind_type
@@ -80,12 +83,12 @@ MODULE qs_neighbor_lists
                                               qs_ks_env_type,&
                                               set_ks_env
    USE qs_neighbor_list_types,          ONLY: &
-        add_neighbor_list, add_neighbor_node, allocate_neighbor_list_set, &
-        deallocate_neighbor_list_set, get_iterator_info, neighbor_list_iterate, &
-        neighbor_list_iterator_create, neighbor_list_iterator_p_type, &
-        neighbor_list_iterator_release, neighbor_list_p_type, neighbor_list_set_p_type, &
-        neighbor_list_set_type
-   USE string_utilities,                ONLY: compress
+        add_neighbor_list, add_neighbor_node, allocate_neighbor_list_set, get_iterator_info, &
+        get_iterator_task, neighbor_list_iterate, neighbor_list_iterator_create, &
+        neighbor_list_iterator_p_type, neighbor_list_iterator_release, neighbor_list_p_type, &
+        neighbor_list_set_p_type, neighbor_list_set_type, release_neighbor_list_sets
+   USE string_utilities,                ONLY: compress,&
+                                              uppercase
    USE subcell_types,                   ONLY: allocate_subcell,&
                                               deallocate_subcell,&
                                               give_ijk_subcell,&
@@ -128,7 +131,7 @@ CONTAINS
    SUBROUTINE atom2d_cleanup(atom2d)
       TYPE(local_atoms_type), DIMENSION(:)               :: atom2d
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'atom2d_cleanup', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'atom2d_cleanup'
 
       INTEGER                                            :: handle, ikind
 
@@ -176,7 +179,7 @@ CONTAINS
       LOGICAL                                            :: molecule_only
       TYPE(particle_type), DIMENSION(:), POINTER         :: particle_set
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'atom2d_build', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'atom2d_build'
 
       INTEGER                                            :: atom_a, handle, ia, iat, iatom, &
                                                             iatom_local, ikind, imol, natom, &
@@ -291,18 +294,18 @@ CONTAINS
       LOGICAL, OPTIONAL                                  :: molecular
       TYPE(section_vals_type), POINTER                   :: force_env_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'build_qs_neighbor_lists', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'build_qs_neighbor_lists'
 
+      CHARACTER(LEN=2)                                   :: element_symbol, element_symbol2
       CHARACTER(LEN=default_string_length)               :: print_key_path
-      INTEGER                                            :: handle, ikind, iw, maxatom, nkind, &
-                                                            numshells, zat
+      INTEGER                                            :: handle, ikind, ingp, iw, jkind, maxatom, &
+                                                            ngp, nkind, numshells, zat
       LOGICAL :: all_potential_present, almo, dftb, do_hfx, dokp, explicit, gth_potential_present, &
          lri_optbas, lrigpw, mic, molecule_only, nddo, paw_atom, paw_atom_present, rigpw, &
          sgp_potential_present, xtb
       LOGICAL, ALLOCATABLE, DIMENSION(:) :: all_present, aux_fit_present, aux_present, &
-         core_present, default_present, oce_present, orb_present, ppl_present, ppnl_present, &
-         ri_present, xb1_atom, xb2_atom
+         core_present, default_present, nonbond1_atom, nonbond2_atom, oce_present, orb_present, &
+         ppl_present, ppnl_present, ri_present, xb1_atom, xb2_atom
       REAL(dp)                                           :: almo_rcov, almo_rvdw, rcut, roperator, &
                                                             subcells
       REAL(dp), ALLOCATABLE, DIMENSION(:) :: all_pot_rad, aux_fit_radius, c_radius, calpha, &
@@ -323,13 +326,14 @@ CONTAINS
       TYPE(local_atoms_type), ALLOCATABLE, DIMENSION(:)  :: atom2d
       TYPE(molecule_type), DIMENSION(:), POINTER         :: molecule_set
       TYPE(neighbor_list_set_p_type), DIMENSION(:), POINTER :: saa_list, sab_all, sab_almo, &
-         sab_aux_fit, sab_aux_fit_asymm, sab_aux_fit_vs_orb, sab_cn, sab_core, sab_kp, sab_lrc, &
-         sab_orb, sab_scp, sab_se, sab_tbe, sab_vdw, sab_xb, sac_ae, sac_lri, sac_ppl, sap_oce, &
-         sap_ppnl, soa_list, soo_list
+         sab_aux_fit, sab_aux_fit_asymm, sab_aux_fit_vs_orb, sab_cn, sab_core, sab_gcp, sab_kp, &
+         sab_lrc, sab_orb, sab_scp, sab_se, sab_tbe, sab_vdw, sab_xb, sab_xtb_nonbond, sac_ae, &
+         sac_lri, sac_ppl, sap_oce, sap_ppnl, soa_list, soo_list
       TYPE(particle_type), DIMENSION(:), POINTER         :: particle_set
       TYPE(paw_proj_set_type), POINTER                   :: paw_proj
       TYPE(qs_dftb_atom_type), POINTER                   :: dftb_atom
       TYPE(qs_dispersion_type), POINTER                  :: dispersion_env
+      TYPE(qs_gcp_type), POINTER                         :: gcp_env
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
       TYPE(qs_ks_env_type), POINTER                      :: ks_env
       TYPE(section_vals_type), POINTER                   :: hfx_sections, neighbor_list_section
@@ -354,6 +358,7 @@ CONTAINS
       NULLIFY (sab_tbe)
       NULLIFY (sab_core)
       NULLIFY (sab_xb)
+      NULLIFY (sab_xtb_nonbond)
       NULLIFY (sab_all)
       NULLIFY (sab_vdw)
       NULLIFY (sab_cn)
@@ -380,7 +385,7 @@ CONTAINS
 
       ! This sets the id number of the qs neighbor lists, new lists, means new version
       ! new version implies new sparsity of the matrices
-      last_qs_neighbor_list_id_nr = last_qs_neighbor_list_id_nr+1
+      last_qs_neighbor_list_id_nr = last_qs_neighbor_list_id_nr + 1
       CALL set_ks_env(ks_env=ks_env, neighbor_list_id=last_qs_neighbor_list_id_nr)
 
       CALL get_ks_env(ks_env=ks_env, &
@@ -399,6 +404,7 @@ CONTAINS
                       sab_tbe=sab_tbe, &
                       sab_core=sab_core, &
                       sab_xb=sab_xb, &
+                      sab_xtb_nonbond=sab_xtb_nonbond, &
                       sab_scp=sab_scp, &
                       sab_all=sab_all, &
                       sab_almo=sab_almo, &
@@ -648,7 +654,7 @@ CONTAINS
             ELSE
                CALL pair_radius_setup(orb_present, orb_present, orb_radius, orb_radius, pair_radius)
             END IF
-            pair_radius = pair_radius+roperator
+            pair_radius = pair_radius + roperator
          ELSE
             CALL pair_radius_setup(orb_present, orb_present, orb_radius, orb_radius, pair_radius)
          END IF
@@ -799,6 +805,40 @@ CONTAINS
          CALL build_neighbor_lists(sab_xb, particle_set, atom2d, cell, pair_radius, &
                                    symmetric=.FALSE., subcells=subcells, operator_type="PP", nlname="sab_xb")
          CALL set_ks_env(ks_env=ks_env, sab_xb=sab_xb)
+         CALL write_neighbor_lists(sab_xb, particle_set, cell, para_env, neighbor_list_section, &
+                                   "/SAB_XB", "sab_xb", "XB bonding")
+
+         ! nonbonded interactions list
+         IF (dft_control%qs_control%xtb_control%do_nonbonded) THEN
+            ngp = SIZE(dft_control%qs_control%xtb_control%nonbonded%pot)
+            ALLOCATE (nonbond1_atom(nkind), nonbond2_atom(nkind))
+            nonbond1_atom = .FALSE.
+            nonbond2_atom = .FALSE.
+            DO ingp = 1, ngp
+               DO ikind = 1, nkind
+                  rcut = SQRT(dft_control%qs_control%xtb_control%nonbonded%pot(ingp)%pot%rcutsq)
+                  c_radius = rcut
+                  CALL get_atomic_kind(atomic_kind_set(ikind), element_symbol=element_symbol)
+                  CALL uppercase(element_symbol)
+                  IF (TRIM(dft_control%qs_control%xtb_control%nonbonded%pot(ingp)%pot%at1) == TRIM(element_symbol)) THEN
+                     nonbond1_atom(ikind) = .TRUE.
+                     DO jkind = 1, nkind
+                        CALL get_atomic_kind(atomic_kind_set(jkind), element_symbol=element_symbol2)
+                        CALL uppercase(element_symbol2)
+                        IF (TRIM(dft_control%qs_control%xtb_control%nonbonded%pot(ingp)%pot%at2) == TRIM(element_symbol2)) THEN
+                           nonbond2_atom(jkind) = .TRUE.
+                        ENDIF
+                     ENDDO
+                  END IF
+               END DO
+               CALL pair_radius_setup(nonbond1_atom, nonbond2_atom, c_radius, c_radius, pair_radius)
+               CALL build_neighbor_lists(sab_xtb_nonbond, particle_set, atom2d, cell, pair_radius, &
+                                         symmetric=.FALSE., subcells=subcells, operator_type="PP", nlname="sab_xtb_nonbond")
+               CALL set_ks_env(ks_env=ks_env, sab_xtb_nonbond=sab_xtb_nonbond)
+               CALL write_neighbor_lists(sab_xtb_nonbond, particle_set, cell, para_env, neighbor_list_section, &
+                                         "/SAB_XTB_NONBOND", "sab_xtb_nonbond", "XTB NONBONDED INTERACTIONS")
+            END DO
+         ENDIF
       END IF
 
       ! Build the neighbor lists for the vdW pair potential
@@ -824,6 +864,24 @@ CONTAINS
             CALL build_neighbor_lists(sab_cn, particle_set, atom2d, cell, pair_radius, &
                                       subcells=subcells, operator_type="PP", nlname="sab_cn")
             dispersion_env%sab_cn => sab_cn
+         END IF
+      END IF
+
+      ! Build the neighbor lists for the gCP pair potential
+      NULLIFY (gcp_env)
+      CALL get_qs_env(qs_env=qs_env, gcp_env=gcp_env)
+      IF (ASSOCIATED(gcp_env)) THEN
+         IF (gcp_env%do_gcp) THEN
+            sab_gcp => gcp_env%sab_gcp
+            DO ikind = 1, nkind
+               c_radius(ikind) = gcp_env%gcp_kind(ikind)%rcsto
+            END DO
+            CALL pair_radius_setup(orb_present, orb_present, c_radius, c_radius, pair_radius)
+            CALL build_neighbor_lists(sab_gcp, particle_set, atom2d, cell, pair_radius, &
+                                      subcells=subcells, operator_type="PP", nlname="sab_gcp")
+            gcp_env%sab_gcp => sab_gcp
+         ELSE
+            NULLIFY (gcp_env%sab_gcp)
          END IF
       END IF
 
@@ -939,15 +997,17 @@ CONTAINS
 !> \param current_subset ...
 !> \param operator_type ...
 !> \param nlname ...
+!> \param atomb_to_keep the list of atom indices to keep for pairs from the atom2d%b_list
 !> \date    20.03.2002
 !> \par History
 !>          - Major refactoring (25.07.2010,jhu)
+!>          - Added option to filter out atoms from list_b (08.2018, A.  Bussy)
 !> \author  MK
 !> \version 2.0
 ! **************************************************************************************************
    SUBROUTINE build_neighbor_lists(ab_list, particle_set, atom, cell, pair_radius, subcells, &
                                    mic, symmetric, molecular, subset_of_mol, current_subset, &
-                                   operator_type, nlname)
+                                   operator_type, nlname, atomb_to_keep)
 
       TYPE(neighbor_list_set_p_type), DIMENSION(:), &
          POINTER                                         :: ab_list
@@ -961,33 +1021,35 @@ CONTAINS
       INTEGER, OPTIONAL                                  :: current_subset
       CHARACTER(LEN=*), INTENT(IN), OPTIONAL             :: operator_type
       CHARACTER(LEN=*), INTENT(IN)                       :: nlname
+      INTEGER, DIMENSION(:), INTENT(IN), OPTIONAL        :: atomb_to_keep
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'build_neighbor_lists', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'build_neighbor_lists'
 
       TYPE local_lists
          INTEGER, DIMENSION(:), POINTER           :: list
       END TYPE local_lists
+
       INTEGER :: atom_a, atom_b, handle, i, iab, iatom, iatom_local, &
                  iatom_subcell, icell, ikind, j, jatom, jatom_local, jcell, jkind, k, &
-                 kcell, maxat, mol_a, mol_b, nkind, otype, natom
-      INTEGER, DIMENSION(3)                    :: cell_b, ncell, &
-                                                  nsubcell, periodic
-      INTEGER, DIMENSION(:), POINTER           :: index_list
-      LOGICAL                                  :: include_ab, my_mic, &
-                                                  my_molecular, my_symmetric
-      LOGICAL, ALLOCATABLE, DIMENSION(:)       :: pres_a, pres_b
-      REAL(dp)                                 :: rab2, rab2_max, rab_max, rabm, deth, subcell_scale
-      REAL(dp), DIMENSION(3)                   :: r, rab, ra, rb, sab_max, sb, &
-                                                  sb_pbc, sb_min, sb_max, rab_pbc, pd, sab_max_guard
-      INTEGER, ALLOCATABLE, DIMENSION(:)       :: nlista, nlistb
-      TYPE(local_lists), DIMENSION(:), POINTER :: lista, listb
+                 kcell, maxat, mol_a, mol_b, nkind, otype, natom, inode, nnode, nentry
+      INTEGER, DIMENSION(3)                              :: cell_b, ncell, nsubcell, periodic
+      INTEGER, DIMENSION(:), POINTER                     :: index_list
+      LOGICAL                                            :: include_ab, my_mic, &
+                                                            my_molecular, my_symmetric, my_sort_atomb
+      LOGICAL, ALLOCATABLE, DIMENSION(:)                 :: pres_a, pres_b
+      REAL(dp)                                           :: rab2, rab2_max, rab_max, rabm, deth, subcell_scale
+      REAL(dp), DIMENSION(3)                             :: r, rab, ra, rb, sab_max, sb, &
+                                                            sb_pbc, sb_min, sb_max, rab_pbc, pd, sab_max_guard
+      INTEGER, ALLOCATABLE, DIMENSION(:)                 :: nlista, nlistb
+      TYPE(local_lists), DIMENSION(:), POINTER           :: lista, listb
       TYPE(neighbor_list_p_type), &
-         ALLOCATABLE, DIMENSION(:)              :: kind_a
-      TYPE(neighbor_list_set_type), POINTER    :: neighbor_list_set
+         ALLOCATABLE, DIMENSION(:)                       :: kind_a
+      TYPE(neighbor_list_set_type), POINTER              :: neighbor_list_set
       TYPE(subcell_type), DIMENSION(:, :, :), &
-         POINTER                                :: subcell
-      REAL(KIND=dp), DIMENSION(:, :), ALLOCATABLE :: r_pbc
+         POINTER                                         :: subcell
+      REAL(KIND=dp), DIMENSION(:, :), ALLOCATABLE        :: r_pbc
+      TYPE(neighbor_list_iterator_p_type), &
+         DIMENSION(:), POINTER                           :: nl_iterator
 
       CALL timeset(routineN//"_"//TRIM(nlname), handle)
 
@@ -1020,19 +1082,22 @@ CONTAINS
          ! default is a simple AB neighbor list
          otype = 1
       END IF
-
-      ! Deallocate the old neighbor list structure
-      IF (ASSOCIATED(ab_list)) THEN
-         DO iab = 1, SIZE(ab_list)
-            CALL deallocate_neighbor_list_set(ab_list(iab)%neighbor_list_set)
-         END DO
-         DEALLOCATE (ab_list)
+      my_sort_atomb = .FALSE.
+      IF (PRESENT(atomb_to_keep)) THEN
+         my_sort_atomb = .TRUE.
       END IF
+
       nkind = SIZE(atom)
+      ! Deallocate the old neighbor list structure
+      CALL release_neighbor_list_sets(ab_list)
       ! Allocate and initialize the new neighbor list structure
       ALLOCATE (ab_list(nkind*nkind))
       DO iab = 1, SIZE(ab_list)
          NULLIFY (ab_list(iab)%neighbor_list_set)
+         ab_list(iab)%nl_size = -1
+         ab_list(iab)%nl_start = -1
+         ab_list(iab)%nl_end = -1
+         NULLIFY (ab_list(iab)%nlist_task)
       END DO
 
       ! Allocate and initialize the kind availability
@@ -1111,7 +1176,7 @@ CONTAINS
          DO jkind = 1, nkind
             IF (.NOT. pres_b(jkind)) CYCLE
 
-            iab = ikind+nkind*(jkind-1)
+            iab = ikind + nkind*(jkind - 1)
 
             ! Calculate the square of the maximum interaction distance
             IF (pair_radius(ikind, jkind) <= 0._dp) CYCLE
@@ -1142,7 +1207,7 @@ CONTAINS
                                               0.5_dp*subcells*subcell_scale/sab_max_guard(:))))
 
             ! number of image cells to be considered
-            ncell(:) = (INT(sab_max(:))+1)*periodic(:)
+            ncell(:) = (INT(sab_max(:)) + 1)*periodic(:)
 
             CALL allocate_neighbor_list_set(neighbor_list_set=ab_list(iab)%neighbor_list_set, &
                                             symmetric=my_symmetric)
@@ -1162,12 +1227,12 @@ CONTAINS
                atom_a = atom(ikind)%list(iatom)
                r = r_pbc(:, atom_a)
                CALL give_ijk_subcell(r, i, j, k, cell, nsubcell)
-               subcell(i, j, k)%natom = subcell(i, j, k)%natom+1
+               subcell(i, j, k)%natom = subcell(i, j, k)%natom + 1
             END DO
             DO k = 1, nsubcell(3)
                DO j = 1, nsubcell(2)
                   DO i = 1, nsubcell(1)
-                     maxat = subcell(i, j, k)%natom+subcell(i, j, k)%natom/10
+                     maxat = subcell(i, j, k)%natom + subcell(i, j, k)%natom/10
                      ALLOCATE (subcell(i, j, k)%atom_list(maxat))
                      subcell(i, j, k)%natom = 0
                   END DO
@@ -1178,13 +1243,16 @@ CONTAINS
                atom_a = atom(ikind)%list(iatom)
                r = r_pbc(:, atom_a)
                CALL give_ijk_subcell(r, i, j, k, cell, nsubcell)
-               subcell(i, j, k)%natom = subcell(i, j, k)%natom+1
+               subcell(i, j, k)%natom = subcell(i, j, k)%natom + 1
                subcell(i, j, k)%atom_list(subcell(i, j, k)%natom) = iatom_local
             END DO
 
             DO jatom_local = 1, nlistb(jkind)
                jatom = listb(jkind)%list(jatom_local)
                atom_b = atom(jkind)%list(jatom)
+               IF (my_sort_atomb .AND. .NOT. my_symmetric) THEN
+                  IF (.NOT. ANY(atomb_to_keep == atom_b)) CYCLE
+               END IF
                IF (my_molecular) THEN
                   mol_b = atom(jkind)%list_b_mol(jatom_local)
                   IF (PRESENT(subset_of_mol)) THEN
@@ -1195,9 +1263,9 @@ CONTAINS
                CALL real_to_scaled(sb_pbc(:), r(:), cell)
 
                loop2_kcell: DO kcell = -ncell(3), ncell(3)
-                  sb(3) = sb_pbc(3)+REAL(kcell, dp)
-                  sb_min(3) = sb(3)-sab_max(3)
-                  sb_max(3) = sb(3)+sab_max(3)
+                  sb(3) = sb_pbc(3) + REAL(kcell, dp)
+                  sb_min(3) = sb(3) - sab_max(3)
+                  sb_max(3) = sb(3) + sab_max(3)
                   IF (periodic(3) /= 0) THEN
                      IF (sb_min(3) >= 0.5_dp) EXIT loop2_kcell
                      IF (sb_max(3) < -0.5_dp) CYCLE loop2_kcell
@@ -1205,9 +1273,9 @@ CONTAINS
                   cell_b(3) = kcell
 
                   loop2_jcell: DO jcell = -ncell(2), ncell(2)
-                     sb(2) = sb_pbc(2)+REAL(jcell, dp)
-                     sb_min(2) = sb(2)-sab_max(2)
-                     sb_max(2) = sb(2)+sab_max(2)
+                     sb(2) = sb_pbc(2) + REAL(jcell, dp)
+                     sb_min(2) = sb(2) - sab_max(2)
+                     sb_max(2) = sb(2) + sab_max(2)
                      IF (periodic(2) /= 0) THEN
                         IF (sb_min(2) >= 0.5_dp) EXIT loop2_jcell
                         IF (sb_max(2) < -0.5_dp) CYCLE loop2_jcell
@@ -1215,9 +1283,9 @@ CONTAINS
                      cell_b(2) = jcell
 
                      loop2_icell: DO icell = -ncell(1), ncell(1)
-                        sb(1) = sb_pbc(1)+REAL(icell, dp)
-                        sb_min(1) = sb(1)-sab_max(1)
-                        sb_max(1) = sb(1)+sab_max(1)
+                        sb(1) = sb_pbc(1) + REAL(icell, dp)
+                        sb_min(1) = sb(1) - sab_max(1)
+                        sb_max(1) = sb(1) + sab_max(1)
                         IF (periodic(1) /= 0) THEN
                            IF (sb_min(1) >= 0.5_dp) EXIT loop2_icell
                            IF (sb_max(1) < -0.5_dp) CYCLE loop2_icell
@@ -1259,24 +1327,30 @@ CONTAINS
                                     END IF
                                     IF (my_symmetric) THEN
                                        IF (atom_a > atom_b) THEN
-                                          include_ab = (MODULO(atom_a+atom_b, 2) /= 0)
+                                          include_ab = (MODULO(atom_a + atom_b, 2) /= 0)
                                        ELSE
-                                          include_ab = (MODULO(atom_a+atom_b, 2) == 0)
+                                          include_ab = (MODULO(atom_a + atom_b, 2) == 0)
+                                       END IF
+                                       IF (my_sort_atomb) THEN
+                                          IF ((.NOT. ANY(atomb_to_keep == atom_b)) .AND. &
+                                              (.NOT. ANY(atomb_to_keep == atom_a))) THEN
+                                             include_ab = .FALSE.
+                                          END IF
                                        END IF
                                     ELSE
                                        include_ab = .TRUE.
                                     END IF
                                     IF (include_ab) THEN
                                        ra(:) = r_pbc(:, atom_a)
-                                       rab(:) = rb(:)-ra(:)
-                                       rab2 = rab(1)*rab(1)+rab(2)*rab(2)+rab(3)*rab(3)
+                                       rab(:) = rb(:) - ra(:)
+                                       rab2 = rab(1)*rab(1) + rab(2)*rab(2) + rab(3)*rab(3)
                                        IF (rab2 < rab2_max) THEN
                                           include_ab = .TRUE.
                                           IF (my_mic) THEN
                                              ! only if rab is minimum image the pair will be included
                                              ! ideally the range of the pair list is < L/2 so that this never triggers
                                              rab_pbc(:) = pbc(rab(:), cell)
-                                             IF (SUM((rab_pbc-rab)**2) > EPSILON(1.0_dp)) THEN
+                                             IF (SUM((rab_pbc - rab)**2) > EPSILON(1.0_dp)) THEN
                                                 include_ab = .FALSE.
                                              ENDIF
                                           ENDIF
@@ -1320,6 +1394,40 @@ CONTAINS
       DEALLOCATE (index_list)
       DEALLOCATE (r_pbc)
 
+!deb
+      nentry = 0
+      CALL neighbor_list_iterator_create(nl_iterator, ab_list)
+      DO WHILE (neighbor_list_iterate(nl_iterator) == 0)
+         CALL get_iterator_info(nl_iterator, inode=inode, nnode=nnode)
+         IF (inode == 1) nentry = nentry + nnode
+      END DO
+      CALL neighbor_list_iterator_release(nl_iterator)
+      !
+      ALLOCATE (ab_list(1)%nlist_task(nentry))
+      ab_list(1)%nl_size = nentry
+      DO iab = 2, SIZE(ab_list)
+         ab_list(iab)%nl_size = nentry
+         ab_list(iab)%nlist_task => ab_list(1)%nlist_task
+      END DO
+      !
+      nentry = 0
+      CALL neighbor_list_iterator_create(nl_iterator, ab_list)
+      DO WHILE (neighbor_list_iterate(nl_iterator) == 0)
+         nentry = nentry + 1
+         CALL get_iterator_task(nl_iterator, ab_list(1)%nlist_task(nentry))
+         CALL get_iterator_info(nl_iterator, ikind=ikind, jkind=jkind, nkind=nkind)
+         iab = (ikind - 1)*nkind + jkind
+         IF (ab_list(iab)%nl_start < 0) ab_list(iab)%nl_start = nentry
+         IF (ab_list(iab)%nl_end < 0) THEN
+            ab_list(iab)%nl_end = nentry
+         ELSE
+            CPASSERT(ab_list(iab)%nl_end + 1 == nentry)
+            ab_list(iab)%nl_end = nentry
+         END IF
+      END DO
+      CALL neighbor_list_iterator_release(nl_iterator)
+!deb
+
       CALL timestop(handle)
 
    END SUBROUTINE build_neighbor_lists
@@ -1348,9 +1456,6 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       LOGICAL, INTENT(IN), OPTIONAL                      :: mic, symmetric, molecular
       CHARACTER(LEN=*), INTENT(IN), OPTIONAL             :: operator_type
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'setup_neighbor_list', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=4)                                   :: otype
       INTEGER                                            :: ikind, nkind
@@ -1455,8 +1560,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: ikind
       TYPE(local_atoms_type), DIMENSION(:), INTENT(IN)   :: atom
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'combine_lists', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, ib, na, nb
       INTEGER, DIMENSION(:), POINTER                     :: lista, listb
 
@@ -1477,7 +1580,7 @@ CONTAINS
          nb = 0
       END IF
 
-      ALLOCATE (list(na+nb))
+      ALLOCATE (list(na + nb))
 
       n = na
       IF (na .GT. 0) list(1:na) = lista(1:na)
@@ -1486,7 +1589,7 @@ CONTAINS
             DO i = 1, na
                IF (listb(ib) == list(i)) CYCLE loopb
             END DO
-            n = n+1
+            n = n + 1
             list(n) = listb(ib)
          END DO loopb
       ENDIF
@@ -1507,9 +1610,6 @@ CONTAINS
       REAL(dp), DIMENSION(:), INTENT(IN)                 :: radius_a, radius_b
       REAL(dp), DIMENSION(:, :), INTENT(OUT)             :: pair_radius
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pair_radius_setup', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, j, nkind
 
       nkind = SIZE(present_a)
@@ -1520,7 +1620,7 @@ CONTAINS
          IF (.NOT. present_a(i)) CYCLE
          DO j = 1, nkind
             IF (.NOT. present_b(j)) CYCLE
-            pair_radius(i, j) = radius_a(i)+radius_b(j)
+            pair_radius(i, j) = radius_a(i) + radius_b(j)
          END DO
       END DO
 
@@ -1543,8 +1643,7 @@ CONTAINS
       INTEGER, INTENT(in)                                :: output_unit
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'write_neighbor_distribution', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'write_neighbor_distribution'
       LOGICAL, PARAMETER                                 :: full_output = .FALSE.
 
       INTEGER                                            :: group, handle, ikind, inode, ipe, jkind, &
@@ -1558,7 +1657,7 @@ CONTAINS
 
       CALL timeset(routineN, handle)
       group = para_env%group
-      mype = para_env%mepos+1
+      mype = para_env%mepos + 1
       npe = para_env%num_pe
 
       ! Allocate work storage
@@ -1580,8 +1679,8 @@ CONTAINS
          CALL get_iterator_info(nl_iterator, ikind=ikind, jkind=jkind, inode=inode, nnode=nnode)
          IF (inode == 1) THEN
             n = nnsgf(ikind)*nnsgf(jkind)
-            nblock(mype) = nblock(mype)+nnode
-            nelement(mype) = nelement(mype)+n*nnode
+            nblock(mype) = nblock(mype) + nnode
+            nelement(mype) = nelement(mype) + n*nnode
          END IF
       END DO
       CALL neighbor_list_iterator_release(nl_iterator)
@@ -1612,16 +1711,16 @@ CONTAINS
                    FMT="(/,/,T2,A,/,/,T3,A,/,/,(T4,I6,T27,I10,T55,I10))") &
                "DISTRIBUTION OF THE NEIGHBOR LISTS", &
                "Process   Number of particle pairs   Number of matrix elements", &
-               (ipe-1, nblock(ipe), nelement(ipe), ipe=1, npe)
+               (ipe - 1, nblock(ipe), nelement(ipe), ipe=1, npe)
             WRITE (UNIT=output_unit, FMT="(/,T7,A3,T27,I10,T55,I10)") &
                "Sum", SUM(nblock), SUM(nelement)
          ELSE
             WRITE (UNIT=output_unit, FMT="(/,T2,A)") "DISTRIBUTION OF THE NEIGHBOR LISTS"
             WRITE (UNIT=output_unit, FMT="(T15,A,T68,I13)") "Total number of particle pairs:", nblock_sum
             WRITE (UNIT=output_unit, FMT="(T15,A,T68,I13)") "Total number of matrix elements:", nelement_sum
-            WRITE (UNIT=output_unit, FMT="(T15,A,T68,I13)") "Average number of particle pairs:", (nblock_sum+npe-1)/npe
+            WRITE (UNIT=output_unit, FMT="(T15,A,T68,I13)") "Average number of particle pairs:", (nblock_sum + npe - 1)/npe
             WRITE (UNIT=output_unit, FMT="(T15,A,T68,I13)") "Maximum number of particle pairs:", nblock_max
-            WRITE (UNIT=output_unit, FMT="(T15,A,T68,I13)") "Average number of matrix element:", (nelement_sum+npe-1)/npe
+            WRITE (UNIT=output_unit, FMT="(T15,A,T68,I13)") "Average number of matrix element:", (nelement_sum + npe - 1)/npe
             WRITE (UNIT=output_unit, FMT="(T15,A,T68,I13)") "Maximum number of matrix elements:", nelement_max
          ENDIF
       END IF
@@ -1702,10 +1801,10 @@ CONTAINS
          DO WHILE (neighbor_list_iterate(nl_iterator) == 0)
             CALL get_iterator_info(nl_iterator, inode=inode, nnode=nnode, &
                                    iatom=iatom, jatom=jatom, cell=cell_b, r=rab)
-            nneighbor = nneighbor+1
+            nneighbor = nneighbor + 1
             ra(:) = pbc(particle_set(iatom)%r, cell)
-            rb(:) = ra(:)+rab(:)
-            dab = SQRT(rab(1)*rab(1)+rab(2)*rab(2)+rab(3)*rab(3))
+            rb(:) = ra(:) + rab(:)
+            dab = SQRT(rab(1)*rab(1) + rab(2)*rab(2) + rab(3)*rab(3))
             IF (iw > 0) THEN
                IF (inode == 1) THEN
                   WRITE (UNIT=iw, FMT="(/,T2,I5,3X,I6,3X,3F12.6)") &

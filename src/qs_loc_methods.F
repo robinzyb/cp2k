@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -23,8 +25,7 @@ MODULE qs_loc_methods
    USE cell_types,                      ONLY: cell_type,&
                                               pbc
    USE cp_control_types,                ONLY: dft_control_type
-   USE cp_dbcsr_operations,             ONLY: copy_dbcsr_to_fm,&
-                                              cp_dbcsr_sm_fm_multiply
+   USE cp_dbcsr_operations,             ONLY: copy_dbcsr_to_fm
    USE cp_fm_pool_types,                ONLY: cp_fm_pool_p_type,&
                                               fm_pool_create_fm
    USE cp_fm_struct,                    ONLY: cp_fm_struct_create,&
@@ -47,8 +48,9 @@ MODULE qs_loc_methods
    USE cp_units,                        ONLY: cp_unit_from_cp2k
    USE dbcsr_api,                       ONLY: dbcsr_p_type
    USE input_constants,                 ONLY: &
-        do_loc_crazy, do_loc_direct, do_loc_jacobi, do_loc_l1_norm_sd, do_loc_none, dump_dcd, &
-        dump_dcd_aligned_cell, dump_xmol, op_loc_berry, op_loc_boys, op_loc_pipek, state_loc_list
+        do_loc_crazy, do_loc_direct, do_loc_jacobi, do_loc_l1_norm_sd, do_loc_none, do_loc_scdm, &
+        dump_dcd, dump_dcd_aligned_cell, dump_xmol, op_loc_berry, op_loc_boys, op_loc_pipek, &
+        state_loc_list
    USE input_section_types,             ONLY: section_get_ival,&
                                               section_get_ivals,&
                                               section_get_lval,&
@@ -91,7 +93,9 @@ MODULE qs_loc_methods
    USE qs_localization_methods,         ONLY: approx_l1_norm_sd,&
                                               crazy_rotations,&
                                               direct_mini,&
-                                              jacobi_rotations
+                                              jacobi_rotations,&
+                                              scdm_qrfact,&
+                                              zij_matrix
    USE qs_matrix_pools,                 ONLY: mpools_get
    USE qs_mo_types,                     ONLY: get_mo_set,&
                                               mo_set_p_type
@@ -109,7 +113,7 @@ MODULE qs_loc_methods
    CHARACTER(len=*), PARAMETER, PRIVATE :: moduleN = 'qs_loc_methods'
 
 ! *** Public ***
-   PUBLIC ::  qs_loc_driver, qs_print_cubes
+   PUBLIC ::  qs_loc_driver, qs_print_cubes, centers_spreads_berry
 
 CONTAINS
 
@@ -153,38 +157,28 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: ispin
       TYPE(section_vals_type), POINTER                   :: print_loc_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'optimize_loc_berry', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'optimize_loc_berry'
 
-      INTEGER                                            :: handle, i, j, max_iter, nao, nmoloc, &
-                                                            out_each, output_unit, sweeps
-      LOGICAL                                            :: converged, crazy_use_diag
+      INTEGER                                            :: handle, max_iter, nao, nmoloc, out_each, &
+                                                            output_unit, sweeps
+      LOGICAL                                            :: converged, crazy_use_diag, &
+                                                            do_jacobi_refinement
       REAL(dp)                                           :: crazy_scale, eps_localization, &
                                                             max_crazy_angle, start_time, &
                                                             target_time
-      TYPE(cp_fm_type), POINTER                          :: opvec
       TYPE(cp_logger_type), POINTER                      :: logger
+
+!      INTEGER :: i,j
 
       CALL timeset(routineN, handle)
       logger => cp_get_default_logger()
       output_unit = cp_print_key_unit_nr(logger, print_loc_section, "PROGRAM_RUN_INFO", &
                                          extension=".locInfo")
 
-      NULLIFY (opvec)
       ! get rows and cols of the input
       CALL cp_fm_get_info(vectors, nrow_global=nao, ncol_global=nmoloc)
-      ! replicate the input kind of matrix
-      CALL cp_fm_create(opvec, vectors%matrix_struct)
 
-      ! Compute zij here
-      DO i = 1, SIZE(zij_fm_set, 2)
-         DO j = 1, SIZE(zij_fm_set, 1)
-            CALL cp_fm_set_all(zij_fm_set(j, i)%matrix, 0.0_dp)
-            CALL cp_dbcsr_sm_fm_multiply(op_sm_set(j, i)%matrix, vectors, opvec, ncol=nmoloc)
-            CALL cp_gemm("T", "N", nmoloc, nmoloc, nao, 1.0_dp, vectors, opvec, 0.0_dp, &
-                         zij_fm_set(j, i)%matrix)
-         ENDDO
-      ENDDO
+      CALL zij_matrix(vectors, op_sm_set, zij_fm_set)
 
       max_iter = qs_loc_env%localized_wfn_control%max_iter
       max_crazy_angle = qs_loc_env%localized_wfn_control%max_crazy_angle
@@ -194,6 +188,7 @@ CONTAINS
       out_each = qs_loc_env%localized_wfn_control%out_each
       target_time = qs_loc_env%target_time
       start_time = qs_loc_env%start_time
+      do_jacobi_refinement = qs_loc_env%localized_wfn_control%jacobi_refinement
       CALL centers_spreads_berry(qs_loc_env, zij_fm_set, nmoloc, cell, weights, &
                                  ispin, print_loc_section, only_initial_out=.TRUE.)
       SELECT CASE (method)
@@ -201,6 +196,19 @@ CONTAINS
          CALL jacobi_rotations(weights, zij_fm_set, vectors, para_env, max_iter=max_iter, &
                                eps_localization=eps_localization, sweeps=sweeps, &
                                out_each=out_each, target_time=target_time, start_time=start_time)
+      CASE (do_loc_scdm)
+         ! Decomposition
+         CALL scdm_qrfact(vectors)
+         ! Calculation of Zij
+         CALL zij_matrix(vectors, op_sm_set, zij_fm_set)
+         IF (do_jacobi_refinement) THEN
+            ! Intermediate spread and centers
+            CALL centers_spreads_berry(qs_loc_env, zij_fm_set, nmoloc, cell, weights, &
+                                       ispin, print_loc_section, only_initial_out=.TRUE.)
+            CALL jacobi_rotations(weights, zij_fm_set, vectors, para_env, max_iter=max_iter, &
+                                  eps_localization=eps_localization, sweeps=sweeps, &
+                                  out_each=out_each, target_time=target_time, start_time=start_time)
+         END IF
       CASE (do_loc_crazy)
          CALL crazy_rotations(weights, zij_fm_set, vectors, max_iter=max_iter, max_crazy_angle=max_crazy_angle, &
                               crazy_scale=crazy_scale, crazy_use_diag=crazy_use_diag, &
@@ -229,14 +237,7 @@ CONTAINS
          ELSE
             CALL approx_l1_norm_sd(vectors, max_iter, eps_localization, converged, sweeps)
             ! here we need to set zij for the computation of the centers and spreads
-            DO i = 1, SIZE(zij_fm_set, 2)
-               DO j = 1, SIZE(zij_fm_set, 1)
-                  CALL cp_fm_set_all(zij_fm_set(j, i)%matrix, 0.0_dp)
-                  CALL cp_dbcsr_sm_fm_multiply(op_sm_set(j, i)%matrix, vectors, opvec, ncol=nmoloc)
-                  CALL cp_gemm("T", "N", nmoloc, nmoloc, nao, 1.0_dp, vectors, opvec, 0.0_dp, &
-                               zij_fm_set(j, i)%matrix)
-               ENDDO
-            ENDDO
+            CALL zij_matrix(vectors, op_sm_set, zij_fm_set)
          END IF
       CASE (do_loc_none)
          IF (output_unit > 0) THEN
@@ -252,7 +253,6 @@ CONTAINS
 
       CALL centers_spreads_berry(qs_loc_env, zij_fm_set, nmoloc, cell, weights, &
                                  ispin, print_loc_section)
-      CALL cp_fm_release(opvec)
       CALL cp_print_key_finished_output(output_unit, logger, print_loc_section, "PROGRAM_RUN_INFO")
 
       CALL timestop(handle)
@@ -282,8 +282,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: ispin
       TYPE(section_vals_type), POINTER                   :: print_loc_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'optimize_loc_pipek', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'optimize_loc_pipek'
 
       INTEGER                                            :: handle, iatom, isgf, ldz, nao, natom, &
                                                             ncol, nmoloc, output_unit, sweeps
@@ -303,6 +302,7 @@ CONTAINS
       NULLIFY (particle_set)
       ! get rows and cols of the input
       CALL cp_fm_get_info(vectors, nrow_global=nao, ncol_global=nmoloc)
+
       ! replicate the input kind of matrix
       CALL cp_fm_create(opvec, vectors%matrix_struct)
       CALL cp_fm_set_all(opvec, 0.0_dp)
@@ -330,18 +330,22 @@ CONTAINS
          CALL cp_fm_get_info(zij_fm_set(iatom, 1)%matrix, ncol_global=ldz)
          isgf = first_sgf(iatom)
          ncol = nsgf(iatom)
+
          ! multiply fmxfm, using only part of the ao : Ct x S
          CALL cp_gemm('N', 'N', nao, nmoloc, nao, 1.0_dp, ov_fm, vectors, 0.0_dp, opvec, &
                       a_first_col=1, a_first_row=1, b_first_col=1, b_first_row=1)
+
          CALL cp_gemm('T', 'N', nmoloc, nmoloc, ncol, 0.5_dp, vectors, opvec, &
                       0.0_dp, zij_fm_set(iatom, 1)%matrix, &
                       a_first_col=1, a_first_row=isgf, b_first_col=1, b_first_row=isgf)
 
          CALL cp_gemm('N', 'N', nao, nmoloc, ncol, 1.0_dp, ov_fm, vectors, 0.0_dp, opvec, &
-                      a_first_col=1, a_first_row=isgf, b_first_col=1, b_first_row=isgf)
+                      a_first_col=isgf, a_first_row=1, b_first_col=1, b_first_row=isgf)
+
          CALL cp_gemm('T', 'N', nmoloc, nmoloc, nao, 0.5_dp, vectors, opvec, &
                       1.0_dp, zij_fm_set(iatom, 1)%matrix, &
                       a_first_col=1, a_first_row=1, b_first_col=1, b_first_row=1)
+
       END DO ! iatom
 
       !   And now perform the optimization and rotate the orbitals
@@ -400,9 +404,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: print_loc_section
       LOGICAL, INTENT(IN), OPTIONAL                      :: only_initial_out
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'centers_spreads_berry', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(len=default_path_length)                 :: file_tmp, iter
       COMPLEX(KIND=dp)                                   :: z
       INTEGER                                            :: idir, istate, jdir, nstates, &
@@ -446,13 +447,13 @@ CONTAINS
             CALL cp_fm_get_element(zij(1, jdir)%matrix, istate, istate, realpart)
             CALL cp_fm_get_element(zij(2, jdir)%matrix, istate, istate, imagpart)
             z = CMPLX(realpart, imagpart, dp)
-            spread_i = spread_i-weights(jdir)* &
-                       LOG(realpart*realpart+imagpart*imagpart)/twopi/twopi
-            spread_ii = spread_ii+weights(jdir)* &
-                        (1.0_dp-(realpart*realpart+imagpart*imagpart))/twopi/twopi
+            spread_i = spread_i - weights(jdir)* &
+                       LOG(realpart*realpart + imagpart*imagpart)/twopi/twopi
+            spread_ii = spread_ii + weights(jdir)* &
+                        (1.0_dp - (realpart*realpart + imagpart*imagpart))/twopi/twopi
             IF (jdir < 4) THEN
                DO idir = 1, 3
-                  c(idir) = c(idir)+ &
+                  c(idir) = c(idir) + &
                             (cell%hmat(idir, jdir)/twopi)*AIMAG(LOG(z))
                ENDDO
             END IF
@@ -461,8 +462,8 @@ CONTAINS
          centers(1:3, istate) = cpbc(1:3)
          centers(4, istate) = spread_i
          centers(5, istate) = spread_ii
-         sum_spread_i = sum_spread_i+centers(4, istate)
-         sum_spread_ii = sum_spread_ii+centers(5, istate)
+         sum_spread_i = sum_spread_i + centers(4, istate)
+         sum_spread_ii = sum_spread_ii + centers(5, istate)
          IF (unit_out_s > 0 .AND. .NOT. my_only_init) WRITE (unit_out_s, '(I6,2F16.8)') istate, centers(4:5, istate)
       ENDDO
 
@@ -506,9 +507,6 @@ CONTAINS
       TYPE(particle_type), DIMENSION(:), POINTER         :: particle_set
       INTEGER, INTENT(IN)                                :: ispin
       TYPE(section_vals_type), POINTER                   :: print_loc_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'centers_spreads_pipek', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(len=default_path_length)                 :: file_tmp, iter
       INTEGER                                            :: iatom, istate, natom, nstate, unit_out_s
@@ -554,7 +552,7 @@ CONTAINS
 
       DO iatom = 1, natom
          DO istate = 1, nstate
-            Qii(istate) = Qii(istate)+diag(istate, iatom)*diag(istate, iatom)
+            Qii(istate) = Qii(istate) + diag(istate, iatom)*diag(istate, iatom)
             IF (ABS(diag(istate, iatom)) > ziimax(istate)) THEN
                ziimax(istate) = ABS(diag(istate, iatom))
                atom_of_state(istate) = iatom
@@ -600,7 +598,7 @@ CONTAINS
       INTEGER, INTENT(IN), OPTIONAL                      :: myspin
       TYPE(cp_fm_type), OPTIONAL, POINTER                :: ext_mo_coeff
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_loc_driver', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'qs_loc_driver'
 
       CHARACTER(LEN=default_string_length)               :: my_pos
       INTEGER                                            :: dim_op, handle, i, imo, imoloc, ir, &
@@ -647,9 +645,12 @@ CONTAINS
       END IF
 
       DO ispin = s_spin, l_spin
+
          CALL get_mo_set(mo_set=mos(ispin)%mo_set, nao=nao, nmo=nmo)
          loc_method = localized_wfn_control%localization_method
+
          SELECT CASE (localized_wfn_control%operator_type)
+
          CASE (op_loc_berry)
             ! Here we allocate op_fm_set with the RIGHT size for uks
             NULLIFY (tmp_fm_struct, mo_coeff)
@@ -692,6 +693,7 @@ CONTAINS
             CPABORT("Boys localization not implemented")
 
          CASE (op_loc_pipek)
+
             CALL optimize_loc_pipek(qs_env, loc_method, qs_loc_env, moloc_coeff(ispin)%matrix, &
                                     op_fm_set, ispin, print_loc_section)
 
@@ -711,7 +713,7 @@ CONTAINS
             imoloc = 0
             DO i = lb, ub
                ! Get the index in the subset
-               imoloc = imoloc+1
+               imoloc = imoloc + 1
                ! Get the index in the full set
                imo = localized_wfn_control%loc_states(i, ispin)
 
@@ -744,12 +746,12 @@ CONTAINS
             ! Provides boundaries of MOs
             CALL section_vals_val_get(print_loc_section, "WANNIER_CUBES%CUBES_LU_BOUNDS", &
                                       i_vals=bounds)
-            ncubes = bounds(2)-bounds(1)+1
+            ncubes = bounds(2) - bounds(1) + 1
             IF (ncubes > 0) THEN
                list_cubes_setup = .TRUE.
                ALLOCATE (list_cubes(ncubes))
                DO ir = 1, ncubes
-                  list_cubes(ir) = bounds(1)+(ir-1)
+                  list_cubes(ir) = bounds(1) + (ir - 1)
                END DO
             END IF
 
@@ -762,11 +764,11 @@ CONTAINS
                   CALL section_vals_val_get(print_loc_section, "WANNIER_CUBES%CUBES_LIST", &
                                             i_rep_val=ir, i_vals=list)
                   IF (ASSOCIATED(list)) THEN
-                     CALL reallocate(list_cubes, 1, ncubes+SIZE(list))
+                     CALL reallocate(list_cubes, 1, ncubes + SIZE(list))
                      DO i = 1, SIZE(list)
-                        list_cubes(i+ncubes) = list(i)
+                        list_cubes(i + ncubes) = list(i)
                      END DO
-                     ncubes = ncubes+SIZE(list)
+                     ncubes = ncubes + SIZE(list)
                   END IF
                END DO
                IF (ncubes > 0) list_cubes_setup = .TRUE.
@@ -835,7 +837,7 @@ CONTAINS
 !>      08.2005 created [MI]
 !> \author MI
 !> \note
-!>      This routine shoul not be in this module
+!>      This routine should not be in this module
 ! **************************************************************************************************
    SUBROUTINE qs_print_cubes(qs_env, mo_coeff, nstates, state_list, centers, &
                              print_key, root, ispin, idir, state0, file_position)
@@ -851,7 +853,7 @@ CONTAINS
       INTEGER, OPTIONAL                                  :: state0
       CHARACTER(LEN=default_string_length), OPTIONAL     :: file_position
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_print_cubes', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'qs_print_cubes'
       CHARACTER, DIMENSION(3), PARAMETER                 :: labels = (/'x', 'y', 'z'/)
 
       CHARACTER                                          :: label
@@ -909,7 +911,7 @@ CONTAINS
       END IF
 
       DO istate = 1, nstates
-         ivector = state_list(istate)-my_state0
+         ivector = state_list(istate) - my_state0
          CALL get_qs_env(qs_env=qs_env, atomic_kind_set=atomic_kind_set, qs_kind_set=qs_kind_set, cell=cell, &
                          dft_control=dft_control, particle_set=particle_set, pw_env=pw_env)
 
@@ -967,9 +969,6 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: center(:, :)
       TYPE(cp_logger_type), POINTER                      :: logger
       INTEGER, INTENT(IN)                                :: ispin
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'print_wannier_centers', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(default_string_length)                   :: iter, unit_str
       CHARACTER(LEN=default_string_length)               :: my_ext, my_form
@@ -1030,9 +1029,6 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: init_traj
       REAL(KIND=dp), INTENT(IN)                          :: unit_conv
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'print_wannier_traj', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(len=default_string_length)               :: iter, remark1, remark2, title
       INTEGER                                            :: i, iskip, natom, ntot, outformat
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
@@ -1043,7 +1039,7 @@ CONTAINS
       NULLIFY (particle_set, atomic_kind_set, atomic_kind, logger)
       logger => cp_get_default_logger()
       natom = SIZE(qs_loc_env%particle_set)
-      ntot = natom+SIZE(center, 2)
+      ntot = natom + SIZE(center, 2)
       CALL allocate_particle_set(particle_set, ntot)
       ALLOCATE (atomic_kind_set(1))
       atomic_kind => atomic_kind_set(1)
@@ -1055,9 +1051,9 @@ CONTAINS
          particle_set(i)%r = pbc(qs_loc_env%particle_set(i)%r, qs_loc_env%cell)
       END DO
       ! Wannier Centers
-      DO i = natom+1, ntot
+      DO i = natom + 1, ntot
          particle_set(i)%atomic_kind => atomic_kind
-         particle_set(i)%r = pbc(center(1:3, i-natom), qs_loc_env%cell)
+         particle_set(i)%r = pbc(center(1:3, i - natom), qs_loc_env%cell)
       END DO
       ! Dump the structure
       CALL section_vals_val_get(print_key, "FORMAT", i_val=outformat)

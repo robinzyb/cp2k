@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -43,8 +45,7 @@ CONTAINS
       TYPE(pao_env_type), POINTER                        :: pao
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pao_param_init_exp', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'pao_param_init_exp'
 
       INTEGER                                            :: acol, arow, handle, iatom, N
       LOGICAL                                            :: found
@@ -83,7 +84,7 @@ CONTAINS
 
          ! construct H
          ALLOCATE (block_H(N, N))
-         block_H = MATMUL(MATMUL(block_N, block_H0+block_V0), block_N) ! transform into orthonormal basis
+         block_H = MATMUL(MATMUL(block_N, block_H0 + block_V0), block_N) ! transform into orthonormal basis
 
          ! diagonalize H
          ALLOCATE (H_evecs(N, N), H_evals(N))
@@ -126,9 +127,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: ikind
       INTEGER, INTENT(OUT)                               :: nparams
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pao_param_count_exp', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: cols, pao_basis_size, pri_basis_size, &
                                                             rows
       TYPE(gto_basis_set_type), POINTER                  :: basis_set
@@ -142,7 +140,7 @@ CONTAINS
 
       ! we only consider rotations between occupied and virtuals
       rows = pao_basis_size
-      cols = pri_basis_size-pao_basis_size
+      cols = pri_basis_size - pao_basis_size
       nparams = rows*cols
 
    END SUBROUTINE pao_param_count_exp
@@ -153,9 +151,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pao_param_initguess_exp(pao)
       TYPE(pao_env_type), POINTER                        :: pao
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'pao_param_initguess_exp', &
-         routineP = moduleN//':'//routineN
 
       CALL dbcsr_set(pao%matrix_X, 0.0_dp) ! actual initial guess is matrix_U0
 
@@ -171,7 +166,7 @@ CONTAINS
       TYPE(pao_env_type), POINTER                        :: pao
       TYPE(dbcsr_type), OPTIONAL                         :: matrix_M, matrix_G
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pao_calc_U_exp', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'pao_calc_U_exp'
 
       COMPLEX(dp)                                        :: denom
       COMPLEX(dp), DIMENSION(:), POINTER                 :: evals
@@ -211,8 +206,8 @@ CONTAINS
          ALLOCATE (block_X_full(N, N))
          block_X_full(:, :) = 0.0_dp
          DO i = 1, nparams
-            block_X_full(MOD(i-1, M)+1, M+(i-1)/M+1) = +block_X(i, 1)
-            block_X_full(M+(i-1)/M+1, MOD(i-1, M)+1) = -block_X(i, 1)
+            block_X_full(MOD(i - 1, M) + 1, M + (i - 1)/M + 1) = +block_X(i, 1)
+            block_X_full(M + (i - 1)/M + 1, MOD(i - 1, M) + 1) = -block_X(i, 1)
          ENDDO
 
          ! diagonalize block_X_full
@@ -224,7 +219,7 @@ CONTAINS
          DO k = 1, N
             DO i = 1, N
                DO j = 1, N
-                  block_U(i, j) = block_U(i, j)+REAL(EXP(evals(k))*evecs(i, k)*CONJG(evecs(j, k)), dp)
+                  block_U(i, j) = block_U(i, j) + REAL(EXP(evals(k))*evecs(i, k)*CONJG(evecs(j, k)), dp)
                ENDDO
             ENDDO
          ENDDO
@@ -243,11 +238,11 @@ CONTAINS
             ALLOCATE (block_D(N, N), block_tmp(N, N), block_G_full(N, N))
             DO i = 1, N
                DO j = 1, N
-                  denom = evals(i)-evals(j)
+                  denom = evals(i) - evals(j)
                   IF (i == j) THEN
                      block_D(i, i) = EXP(evals(i)) ! diagonal elements
                   ELSE IF (ABS(denom) > 1e-10_dp) THEN
-                     block_D(i, j) = (EXP(evals(i))-EXP(evals(j)))/denom
+                     block_D(i, j) = (EXP(evals(i)) - EXP(evals(j)))/denom
                   ELSE
                      block_D(i, j) = 1.0_dp ! limit according to L'Hospital's rule
                   ENDIF
@@ -263,7 +258,7 @@ CONTAINS
 
             ! return only gradient for rotations between occupied and virtuals
             DO i = 1, nparams
-               block_G(i, 1) = 2.0_dp*block_G_full(MOD(i-1, M)+1, M+(i-1)/M+1)
+               block_G(i, 1) = 2.0_dp*block_G_full(MOD(i - 1, M) + 1, M + (i - 1)/M + 1)
             ENDDO
 
             DEALLOCATE (block_D, block_tmp, block_G_full)
@@ -290,9 +285,6 @@ CONTAINS
       COMPLEX(dp), DIMENSION(:, :), INTENT(IN)           :: D, R
       REAL(dp), DIMENSION(SIZE(M, 1), SIZE(M, 1))        :: G
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fold_derivatives', &
-         routineP = moduleN//':'//routineN
-
       COMPLEX(dp), DIMENSION(:, :), POINTER              :: F, RF, RM, RMR
       INTEGER                                            :: n
       REAL(dp), DIMENSION(:, :), POINTER                 :: RFR
@@ -308,7 +300,7 @@ CONTAINS
       RFR = REAL(MATMUL(RF, TRANSPOSE(CONJG(R))))
 
       ! gradient dE/dX has to be anti-symmetric
-      G = 0.5_dp*(TRANSPOSE(RFR)-RFR)
+      G = 0.5_dp*(TRANSPOSE(RFR) - RFR)
 
       DEALLOCATE (RM, RMR, F, RF, RFR)
    END FUNCTION fold_derivatives
@@ -324,13 +316,11 @@ CONTAINS
       COMPLEX(dp), DIMENSION(:, :)                       :: evecs
       COMPLEX(dp), DIMENSION(:)                          :: evals
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'diag_antisym', routineP = moduleN//':'//routineN
-
       COMPLEX(dp), DIMENSION(:, :), POINTER              :: matrix_c
       INTEGER                                            :: N
       REAL(dp), DIMENSION(:), POINTER                    :: evals_r
 
-      IF (MAXVAL(ABS(matrix+TRANSPOSE(matrix))) > 1e-14_dp) CPABORT("Expected anti-symmetric matrix")
+      IF (MAXVAL(ABS(matrix + TRANSPOSE(matrix))) > 1e-14_dp) CPABORT("Expected anti-symmetric matrix")
       N = SIZE(matrix, 1)
       ALLOCATE (matrix_c(N, N), evals_r(N))
 
@@ -351,7 +341,7 @@ CONTAINS
       COMPLEX(dp), DIMENSION(:, :)                       :: matrix, eigenvectors
       REAL(dp), DIMENSION(:)                             :: eigenvalues
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'zheevd_wrapper', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'zheevd_wrapper'
 
       COMPLEX(KIND=dp), DIMENSION(:), POINTER            :: work
       COMPLEX(KIND=dp), DIMENSION(:, :), POINTER         :: A
@@ -362,7 +352,7 @@ CONTAINS
       CALL timeset(routineN, handle)
 
       IF (SIZE(matrix, 1) /= SIZE(matrix, 2)) CPABORT("expected square matrix")
-      IF (MAXVAL(ABS(matrix-CONJG(TRANSPOSE(matrix)))) > 1e-14_dp) CPABORT("Expect hermitian matrix")
+      IF (MAXVAL(ABS(matrix - CONJG(TRANSPOSE(matrix)))) > 1e-14_dp) CPABORT("Expect hermitian matrix")
 
       n = SIZE(matrix, 1)
       ALLOCATE (iwork(1), rwork(1), work(1), A(n, n))

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -67,9 +69,6 @@ CONTAINS
    SUBROUTINE calc_c_mat_force(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calc_c_mat_force', &
-         routineP = moduleN//':'//routineN
-
       IF (qs_env%rtp%linear_scaling) THEN
          CALL calc_c_mat_force_ls(qs_env)
       ELSE
@@ -86,8 +85,7 @@ CONTAINS
    SUBROUTINE calc_c_mat_force_fm(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calc_c_mat_force_fm', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calc_c_mat_force_fm'
 
       INTEGER                                            :: handle, i, im, ispin, nao, natom, nmo, re
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: atom_of_kind, kind_of
@@ -127,7 +125,7 @@ CONTAINS
       CALL get_atomic_kind_set(atomic_kind_set=atomic_kind_set, atom_of_kind=atom_of_kind, kind_of=kind_of)
 
       DO ispin = 1, SIZE(SinvH)
-         re = 2*ispin-1
+         re = 2*ispin - 1
          im = 2*ispin
          alpha = mos(ispin)%mo_set%maxocc
 
@@ -195,8 +193,7 @@ CONTAINS
    SUBROUTINE calc_c_mat_force_ls(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calc_c_mat_force_ls', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calc_c_mat_force_ls'
       REAL(KIND=dp), PARAMETER                           :: one = 1.0_dp, zero = 0.0_dp
 
       INTEGER                                            :: handle, i, im, ispin, natom, re
@@ -243,7 +240,7 @@ CONTAINS
       CALL get_rtp(rtp=rtp, rho_new=rho_new, S_minus_half=S_minus_half)
 
       DO ispin = 1, SIZE(SinvH)
-         re = 2*ispin-1
+         re = 2*ispin - 1
          im = 2*ispin
          CALL dbcsr_multiply("N", "N", one, SinvH(ispin)%matrix, rho_new(re)%matrix, zero, tmp, &
                              filter_eps=rtp%filter_eps)
@@ -288,8 +285,6 @@ CONTAINS
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: C_mat
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: kind_of, atom_of_kind
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'compute_forces', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: col_atom, i, ikind, kind_atom, row_atom
       LOGICAL                                            :: found
       REAL(dp), DIMENSION(:), POINTER                    :: block_values, block_values2
@@ -308,7 +303,7 @@ CONTAINS
                kind_atom = atom_of_kind(col_atom)
                !The block_values are in a vector format,
                ! so the dot_product is the sum over all elements of the hamand product, that I need
-               force(ikind)%ehrenfest(i, kind_atom) = force(ikind)%ehrenfest(i, kind_atom)+ &
+               force(ikind)%ehrenfest(i, kind_atom) = force(ikind)%ehrenfest(i, kind_atom) + &
                                                       2.0_dp*DOT_PRODUCT(block_values, block_values2)
             ENDIF
          END DO
@@ -325,7 +320,7 @@ CONTAINS
                kind_atom = atom_of_kind(col_atom)
                !The block_values are in a vector format, so the dot_product is
                ! the sum over all elements of the hamand product, that I need
-               force(ikind)%ehrenfest(i, kind_atom) = force(ikind)%ehrenfest(i, kind_atom)+ &
+               force(ikind)%ehrenfest(i, kind_atom) = force(ikind)%ehrenfest(i, kind_atom) + &
                                                       2.0_dp*DOT_PRODUCT(block_values, block_values2)
             ENDIF
          END DO
@@ -340,8 +335,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE rt_admm_force(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'rt_admm_force', routineP = moduleN//':'//routineN
 
       TYPE(admm_type), POINTER                           :: admm_env
       TYPE(cp_fm_p_type), DIMENSION(:), POINTER          :: mos, mos_admm
@@ -383,9 +376,6 @@ CONTAINS
                                                             matrix_s_aux_fit_vs_orb
       TYPE(cp_fm_p_type), DIMENSION(:), POINTER          :: mos_admm, mos
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'rt_admm_forces_none', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: im, ispin, nao, natom, naux, nmo, re
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :)        :: admm_force
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
@@ -416,7 +406,7 @@ CONTAINS
                       "W MATRIX AUX Q")
 
       DO ispin = 1, SIZE(KS_aux_re)
-         re = 2*ispin-1; im = 2*ispin
+         re = 2*ispin - 1; im = 2*ispin
          naux = admm_env%nao_aux_fit; nmo = admm_env%nmo(ispin); nao = admm_env%nao_orb
 
          ALLOCATE (tmp_aux_aux(2), tmp_aux_nao(2), tmp_aux_mo(2), tmp_aux_mo1(2))

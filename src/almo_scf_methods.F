@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -14,6 +16,7 @@ MODULE almo_scf_methods
    USE almo_scf_types,                  ONLY: almo_scf_env_type,&
                                               almo_scf_history_type
    USE bibliography,                    ONLY: Kolafa2004,&
+                                              Kuhne2007,&
                                               cite_reference
    USE cp_blacs_env,                    ONLY: cp_blacs_env_type
    USE cp_dbcsr_cholesky,               ONLY: cp_dbcsr_cholesky_decompose,&
@@ -75,9 +78,52 @@ MODULE almo_scf_methods
       distribute_domains, &
       almo_scf_ks_to_ks_xx, &
       construct_domain_r_down, &
-      xalmo_initial_guess
+      xalmo_initial_guess, &
+      fill_matrix_with_ones
 
 CONTAINS
+
+! **************************************************************************************************
+!> \brief Fill all matrix blocks with 1.0_dp
+!> \param matrix ...
+!> \par History
+!>       2019.09 created [Rustam Z Khaliullin]
+!> \author Rustam Z Khaliullin
+! **************************************************************************************************
+   SUBROUTINE fill_matrix_with_ones(matrix)
+
+      TYPE(dbcsr_type), INTENT(INOUT)                    :: matrix
+
+      INTEGER                                            :: col, hold, iblock_col, iblock_row, &
+                                                            mynode, nblkcols_tot, nblkrows_tot, row
+      LOGICAL                                            :: tr
+      REAL(KIND=dp), DIMENSION(:, :), POINTER            :: p_new_block
+      TYPE(dbcsr_distribution_type)                      :: dist
+
+      CALL dbcsr_get_info(matrix, distribution=dist)
+      CALL dbcsr_distribution_get(dist, mynode=mynode)
+      CALL dbcsr_work_create(matrix, work_mutable=.TRUE.)
+      nblkrows_tot = dbcsr_nblkrows_total(matrix)
+      nblkcols_tot = dbcsr_nblkcols_total(matrix)
+      DO row = 1, nblkrows_tot
+         DO col = 1, nblkcols_tot
+            tr = .FALSE.
+            iblock_row = row
+            iblock_col = col
+            CALL dbcsr_get_stored_coordinates(matrix, &
+                                              iblock_row, iblock_col, hold)
+            IF (hold .EQ. mynode) THEN
+               NULLIFY (p_new_block)
+               CALL dbcsr_reserve_block2d(matrix, &
+                                          iblock_row, iblock_col, p_new_block)
+               CPASSERT(ASSOCIATED(p_new_block))
+               p_new_block(:, :) = 1.0_dp
+            ENDIF
+         ENDDO
+      ENDDO
+      CALL dbcsr_finalize(matrix)
+
+   END SUBROUTINE fill_matrix_with_ones
 
 ! **************************************************************************************************
 !> \brief builds projected KS matrices for the overlapping domains
@@ -91,8 +137,7 @@ CONTAINS
 
       TYPE(almo_scf_env_type), INTENT(INOUT)             :: almo_scf_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'almo_scf_ks_to_ks_xx', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'almo_scf_ks_to_ks_xx'
 
       INTEGER                                            :: handle, ispin, ndomains
       REAL(KIND=dp)                                      :: eps_multiply
@@ -437,8 +482,7 @@ CONTAINS
 
       TYPE(almo_scf_env_type), INTENT(INOUT)             :: almo_scf_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'almo_scf_ks_to_ks_blk', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'almo_scf_ks_to_ks_blk'
 
       INTEGER                                            :: handle, ispin
       REAL(KIND=dp)                                      :: eps_multiply
@@ -723,8 +767,7 @@ CONTAINS
 
       TYPE(almo_scf_env_type), INTENT(INOUT)             :: almo_scf_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'almo_scf_ks_xx_to_tv_xx', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'almo_scf_ks_xx_to_tv_xx'
 
       INTEGER                                            :: handle, iblock_size, idomain, info, &
                                                             ispin, lwork, ndomains
@@ -815,7 +858,7 @@ CONTAINS
                                         subm_t(idomain))
                !! Copy occupied eigenvalues if smearing requested
                IF (almo_scf_env%smear) THEN
-                  almo_scf_env%mo_energies(1+SUM(almo_scf_env%nocc_of_domain(:idomain-1, ispin)) &
+                  almo_scf_env%mo_energies(1 + SUM(almo_scf_env%nocc_of_domain(:idomain - 1, ispin)) &
                                            :SUM(almo_scf_env%nocc_of_domain(:idomain, ispin)), ispin) &
                      = eigenvalues(1:almo_scf_env%nocc_of_domain(idomain, ispin))
                END IF
@@ -871,8 +914,7 @@ CONTAINS
 
       TYPE(almo_scf_env_type), INTENT(INOUT)             :: almo_scf_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'almo_scf_ks_blk_to_tv_blk', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'almo_scf_ks_blk_to_tv_blk'
 
       INTEGER                                            :: handle, iblock_col, iblock_row, &
                                                             iblock_size, info, ispin, lwork, &
@@ -986,7 +1028,7 @@ CONTAINS
                   !!             (which is still a reasonable smearing in most cases...)
                   IF (almo_scf_env%smear) THEN
                      DO orbital = 1, nocc_of_block
-                        almo_scf_env%mo_energies(SUM(almo_scf_env%nocc_of_domain(:iblock_row-1, ispin))+orbital, &
+                        almo_scf_env%mo_energies(SUM(almo_scf_env%nocc_of_domain(:iblock_row - 1, ispin)) + orbital, &
                                                  ispin) = eigenvalues(orbital)
                      END DO
                   END IF
@@ -998,14 +1040,14 @@ CONTAINS
                   NULLIFY (p_new_block)
                   CALL dbcsr_reserve_block2d(matrix_v_blk_orthog, iblock_row, iblock_col, p_new_block)
                   CPASSERT(ASSOCIATED(p_new_block))
-                  p_new_block(:, :) = data_copy(:, (nocc_of_block+1):(nocc_of_block+nvirt_of_block))
+                  p_new_block(:, :) = data_copy(:, (nocc_of_block + 1):(nocc_of_block + nvirt_of_block))
                   ! virtual energies
                   NULLIFY (p_new_block)
                   CALL dbcsr_reserve_block2d(almo_scf_env%matrix_evv_full(ispin), iblock_row, iblock_col, p_new_block)
                   CPASSERT(ASSOCIATED(p_new_block))
                   p_new_block(:, :) = 0.0_dp
                   DO orbital = 1, nvirt_of_block
-                     p_new_block(orbital, orbital) = eigenvalues(nocc_of_block+orbital)
+                     p_new_block(orbital, orbital) = eigenvalues(nocc_of_block + orbital)
                   ENDDO
                ENDIF
 
@@ -1067,8 +1109,7 @@ CONTAINS
       TYPE(dbcsr_type), INTENT(INOUT)                    :: matrix_out
       INTEGER, DIMENSION(:)                              :: nocc
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pseudo_invert_diagonal_blk', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'pseudo_invert_diagonal_blk'
 
       INTEGER                                            :: handle, iblock_col, iblock_row, &
                                                             iblock_size, methodID
@@ -1135,8 +1176,7 @@ CONTAINS
       TYPE(almo_scf_env_type), INTENT(INOUT)             :: almo_scf_env
       LOGICAL, INTENT(IN)                                :: ionic
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'almo_scf_p_blk_to_t_blk', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'almo_scf_p_blk_to_t_blk'
 
       INTEGER                                            :: handle, iblock_col, iblock_row, &
                                                             iblock_size, info, ispin, lwork, &
@@ -1153,7 +1193,7 @@ CONTAINS
 
       ! get a useful unit_nr
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -1218,7 +1258,7 @@ CONTAINS
                nocc_of_block = SIZE(p_new_block, 2)
                CPASSERT(ASSOCIATED(p_new_block))
                CPASSERT(nocc_of_block .GT. 0)
-               p_new_block(:, :) = data_copy(:, iblock_size-nocc_of_block+1:)
+               p_new_block(:, :) = data_copy(:, iblock_size - nocc_of_block + 1:)
 
                DEALLOCATE (WORK)
                DEALLOCATE (data_copy)
@@ -1294,8 +1334,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: ndomains
       INTEGER, DIMENSION(:), INTENT(IN)                  :: nocc_of_domain
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'almo_scf_t_rescaling', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'almo_scf_t_rescaling'
 
       INTEGER                                            :: handle, idomain, neigenval_used, nmo
       REAL(KIND=dp)                                      :: kTS
@@ -1322,15 +1361,15 @@ CONTAINS
 
       !! Apply Fermi-Dirac smearing for each domain and store associated occupations for the whole system
       DO idomain = 1, ndomains
-         CALL FermiFixed(occupation_numbers(1+neigenval_used:nocc_of_domain(idomain)+neigenval_used), &
+         CALL FermiFixed(occupation_numbers(1 + neigenval_used:nocc_of_domain(idomain) + neigenval_used), &
                          mu_of_domain(idomain), &
                          kTS, &
-                         mo_energies(1+neigenval_used:nocc_of_domain(idomain)+neigenval_used), &
+                         mo_energies(1 + neigenval_used:nocc_of_domain(idomain) + neigenval_used), &
                          real_ne_of_domain(idomain), &
                          smear_e_temp, &
                          1.0_dp) !! Warning, maxocc is set to 1 since we don't want to interfere with the spin_factor rescaling
-         spin_kTS = spin_kTS+kTS !! Add up electronic entropy contributions
-         neigenval_used = neigenval_used+nocc_of_domain(idomain) !! Update eigenvalues index offset
+         spin_kTS = spin_kTS + kTS !! Add up electronic entropy contributions
+         neigenval_used = neigenval_used + nocc_of_domain(idomain) !! Update eigenvalues index offset
       END DO
       rescaling_factors(:) = SQRT(occupation_numbers) !! scale = sqrt(occupation_number)
 
@@ -1388,7 +1427,7 @@ CONTAINS
       REAL(KIND=dp)                                      :: eps_filter
       LOGICAL, INTENT(IN), OPTIONAL                      :: smear
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_overlap', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'get_overlap'
 
       INTEGER                                            :: dim0, handle
       LOGICAL                                            :: local_retain_sparsity, smearing
@@ -1477,8 +1516,7 @@ CONTAINS
       TYPE(dbcsr_type), INTENT(INOUT), OPTIONAL          :: overlap_sqrti
       LOGICAL, INTENT(IN), OPTIONAL                      :: smear
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'orthogonalize_mos', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'orthogonalize_mos'
 
       INTEGER                                            :: dim0, handle
       LOGICAL                                            :: smearing
@@ -1604,8 +1642,7 @@ CONTAINS
       INTEGER, INTENT(IN), OPTIONAL                      :: max_iter_lanczos, inverse_accelerator
       REAL(KIND=dp), INTENT(IN), OPTIONAL                :: inv_eps_factor
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'almo_scf_t_to_proj', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'almo_scf_t_to_proj'
 
       INTEGER                                            :: dim0, handle, my_accelerator, &
                                                             my_algorithm
@@ -1825,8 +1862,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: eps_filter
       TYPE(dbcsr_type), INTENT(IN), OPTIONAL             :: sig_inv_projector, sig_inv_template
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'apply_projector', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'apply_projector'
 
       INTEGER                                            :: handle
       TYPE(dbcsr_type)                                   :: tmp_no, tmp_ov, tmp_ov2, tmp_sig, &
@@ -1978,8 +2014,7 @@ CONTAINS
       TYPE(dbcsr_type), INTENT(INOUT)                    :: U
       REAL(KIND=dp), INTENT(IN)                          :: eps_filter
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'generator_to_unitary', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'generator_to_unitary'
 
       INTEGER                                            :: handle, unit_nr
       LOGICAL                                            :: safe_mode
@@ -1993,7 +2028,7 @@ CONTAINS
 
       ! get a useful output_unit
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -2086,8 +2121,7 @@ CONTAINS
       TYPE(dbcsr_type), INTENT(IN), OPTIONAL             :: matrix_trimmer
       LOGICAL, INTENT(IN), OPTIONAL                      :: use_trimmer
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'apply_domain_operators', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'apply_domain_operators'
 
       INTEGER                                            :: handle, ndomains
       LOGICAL                                            :: matrix_trimmer_required, my_use_trimmer, &
@@ -2185,19 +2219,26 @@ CONTAINS
 !> \param use_trimmer ...
 !> \param eps_zero_eigenvalues ...
 !> \param my_action ...
+!> \param skip_inversion ...
 !> \par History
 !>       2013.01 created [Rustam Z. Khaliullin]
 !> \author Rustam Z. Khaliullin
 ! **************************************************************************************************
-   SUBROUTINE construct_domain_preconditioner(matrix_main, subm_s_inv, subm_s_inv_half, subm_s_half, &
-                                              subm_r_down, matrix_trimmer, dpattern, map, node_of_domain, preconditioner, &
-                                              bad_modes_projector_down, use_trimmer, eps_zero_eigenvalues, my_action)
+   SUBROUTINE construct_domain_preconditioner(matrix_main, subm_s_inv, &
+                                              subm_s_inv_half, subm_s_half, &
+                                              subm_r_down, matrix_trimmer, &
+                                              dpattern, map, node_of_domain, &
+                                              preconditioner, &
+                                              bad_modes_projector_down, &
+                                              use_trimmer, &
+                                              eps_zero_eigenvalues, &
+                                              my_action, skip_inversion)
 
       TYPE(dbcsr_type), INTENT(INOUT)                    :: matrix_main
       TYPE(domain_submatrix_type), DIMENSION(:), &
          INTENT(IN), OPTIONAL                            :: subm_s_inv, subm_s_inv_half, &
                                                             subm_s_half, subm_r_down
-      TYPE(dbcsr_type), INTENT(INOUT), OPTIONAL          :: matrix_trimmer
+      TYPE(dbcsr_type), INTENT(IN), OPTIONAL             :: matrix_trimmer
       TYPE(dbcsr_type), INTENT(IN)                       :: dpattern
       TYPE(domain_map_type), INTENT(IN)                  :: map
       INTEGER, DIMENSION(:), INTENT(IN)                  :: node_of_domain
@@ -2208,17 +2249,17 @@ CONTAINS
       LOGICAL, INTENT(IN), OPTIONAL                      :: use_trimmer
       REAL(KIND=dp), INTENT(IN), OPTIONAL                :: eps_zero_eigenvalues
       INTEGER, INTENT(IN)                                :: my_action
+      LOGICAL, INTENT(IN), OPTIONAL                      :: skip_inversion
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'construct_domain_preconditioner', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'construct_domain_preconditioner'
 
       INTEGER                                            :: handle, idomain, index1_end, &
                                                             index1_start, n_domain_mos, naos, &
                                                             nblkrows_tot, ndomains, neighbor, row
       INTEGER, DIMENSION(:), POINTER                     :: nmos
-      LOGICAL                                            :: matrix_r_required, &
-                                                            matrix_s_inv_required, &
-                                                            matrix_trimmer_required, my_use_trimmer
+      LOGICAL :: eps_zero_eigenvalues_required, matrix_r_required, matrix_s_half_required, &
+         matrix_s_inv_half_required, matrix_s_inv_required, matrix_trimmer_required, &
+         my_skip_inversion, my_use_trimmer
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :)        :: Minv, proj_array
       TYPE(domain_submatrix_type), ALLOCATABLE, &
          DIMENSION(:)                                    :: subm_main, subm_tmp, subm_tmp2
@@ -2230,6 +2271,14 @@ CONTAINS
          my_use_trimmer = use_trimmer
       ENDIF
 
+      my_skip_inversion = .FALSE.
+      IF (PRESENT(skip_inversion)) THEN
+         my_skip_inversion = skip_inversion
+      ENDIF
+
+      matrix_s_inv_half_required = .FALSE.
+      matrix_s_half_required = .FALSE.
+      eps_zero_eigenvalues_required = .FALSE.
       matrix_s_inv_required = .FALSE.
       matrix_trimmer_required = .FALSE.
       matrix_r_required = .FALSE.
@@ -2240,7 +2289,23 @@ CONTAINS
          matrix_trimmer_required = .TRUE.
          CPABORT("TRIMMED PRECONDITIONER DISABLED!")
       ENDIF
+      ! tie the following optional arguments together to prevent bad calls
+      IF (PRESENT(bad_modes_projector_down)) THEN
+         matrix_s_inv_half_required = .TRUE.
+         matrix_s_half_required = .TRUE.
+         eps_zero_eigenvalues_required = .TRUE.
+      ENDIF
 
+      ! check if all required optional arguments are provided
+      IF (.NOT. PRESENT(subm_s_inv_half) .AND. matrix_s_inv_half_required) THEN
+         CPABORT("S_inv_half SUBMATRICES ARE REQUIRED")
+      ENDIF
+      IF (.NOT. PRESENT(subm_s_half) .AND. matrix_s_half_required) THEN
+         CPABORT("S_half SUBMATRICES ARE REQUIRED")
+      ENDIF
+      IF (.NOT. PRESENT(eps_zero_eigenvalues) .AND. eps_zero_eigenvalues_required) THEN
+         CPABORT("EPS_ZERO_EIGENVALUES IS REQUIRED")
+      ENDIF
       IF (.NOT. PRESENT(subm_s_inv) .AND. matrix_s_inv_required) THEN
          CPABORT("S_inv SUBMATRICES ARE REQUIRED")
       ENDIF
@@ -2292,111 +2357,92 @@ CONTAINS
          DEALLOCATE (subm_tmp)
       ENDIF
 
-      ! loop over domains - perform inversion
-      DO idomain = 1, ndomains
+      IF (my_skip_inversion) THEN
+         CALL copy_submatrices(subm_main, preconditioner, .TRUE.)
+      ELSE
+         ! loop over domains - perform inversion
+         DO idomain = 1, ndomains
 
-         ! check if the submatrix exists
-         IF (subm_main(idomain)%domain .GT. 0) THEN
+            ! check if the submatrix exists
+            IF (subm_main(idomain)%domain .GT. 0) THEN
 
-            ! find sizes of MO submatrices
-            IF (idomain .EQ. 1) THEN
-               index1_start = 1
-            ELSE
-               index1_start = map%index1(idomain-1)
-            ENDIF
-            index1_end = map%index1(idomain)-1
+               ! find sizes of MO submatrices
+               IF (idomain .EQ. 1) THEN
+                  index1_start = 1
+               ELSE
+                  index1_start = map%index1(idomain - 1)
+               ENDIF
+               index1_end = map%index1(idomain) - 1
 
-            n_domain_mos = 0
-            DO row = index1_start, index1_end
-               neighbor = map%pairs(row, 1)
-               n_domain_mos = n_domain_mos+nmos(neighbor)
-            ENDDO
+               n_domain_mos = 0
+               DO row = index1_start, index1_end
+                  neighbor = map%pairs(row, 1)
+                  n_domain_mos = n_domain_mos + nmos(neighbor)
+               ENDDO
 
-            naos = subm_main(idomain)%nrows
-            !WRITE(*,*) "Domain, mo_self_and_neig, ao_domain: ", idomain, n_domain_mos, naos
+               naos = subm_main(idomain)%nrows
+               !WRITE(*,*) "Domain, mo_self_and_neig, ao_domain: ", idomain, n_domain_mos, naos
 
-            ALLOCATE (Minv(naos, naos))
+               ALLOCATE (Minv(naos, naos))
 
-            !!!TRIM IF (my_use_trimmer) THEN
-            !!!TRIM    ! THIS IS SUPER EXPENSIVE (ELIMINATE)
-            !!!TRIM    ! trim the main matrix before inverting
-            !!!TRIM    ! assume that the trimmer columns are different (i.e. the main matrix is different for each MO)
-            !!!TRIM    allocate(tmp(naos,nmos(idomain)))
-            !!!TRIM    DO ii=1, nmos(idomain)
-            !!!TRIM       ! transform the main matrix using the trimmer for the current MO
-            !!!TRIM       DO jj=1, naos
-            !!!TRIM          DO kk=1, naos
-            !!!TRIM             Mstore(jj,kk)=sumb_main(idomain)%mdata(jj,kk)*&
-            !!!TRIM                subm_trimmer(idomain)%mdata(jj,ii)*&
-            !!!TRIM                subm_trimmer(idomain)%mdata(kk,ii)
-            !!!TRIM          ENDDO
-            !!!TRIM       ENDDO
-            !!!TRIM       ! invert the main matrix (exclude some eigenvalues, shift some)
-            !!!TRIM       CALL pseudo_invert_matrix(A=Mstore,Ainv=Minv,N=naos,method=1,&
-            !!!TRIM               !range1_thr=1.0E-9_dp,range2_thr=1.0E-9_dp,&
-            !!!TRIM               shift=1.0E-5_dp,&
-            !!!TRIM               range1=nmos(idomain),range2=nmos(idomain),&
-            !!!TRIM
-            !!!TRIM       ! apply the inverted matrix
-            !!!TRIM       ! RZK-warning this is only possible when the preconditioner is applied
-            !!!TRIM       tmp(:,ii)=MATMUL(Minv,subm_in(idomain)%mdata(:,ii))
-            !!!TRIM    ENDDO
-            !!!TRIM    subm_out=MATMUL(tmp,sigma)
-            !!!TRIM    deallocate(tmp)
-            !!!TRIM ELSE
+               !!!TRIM IF (my_use_trimmer) THEN
+               !!!TRIM    ! THIS IS SUPER EXPENSIVE (ELIMINATE)
+               !!!TRIM    ! trim the main matrix before inverting
+               !!!TRIM    ! assume that the trimmer columns are different (i.e. the main matrix is different for each MO)
+               !!!TRIM    allocate(tmp(naos,nmos(idomain)))
+               !!!TRIM    DO ii=1, nmos(idomain)
+               !!!TRIM       ! transform the main matrix using the trimmer for the current MO
+               !!!TRIM       DO jj=1, naos
+               !!!TRIM          DO kk=1, naos
+               !!!TRIM             Mstore(jj,kk)=sumb_main(idomain)%mdata(jj,kk)*&
+               !!!TRIM                subm_trimmer(idomain)%mdata(jj,ii)*&
+               !!!TRIM                subm_trimmer(idomain)%mdata(kk,ii)
+               !!!TRIM          ENDDO
+               !!!TRIM       ENDDO
+               !!!TRIM       ! invert the main matrix (exclude some eigenvalues, shift some)
+               !!!TRIM       CALL pseudo_invert_matrix(A=Mstore,Ainv=Minv,N=naos,method=1,&
+               !!!TRIM               !range1_thr=1.0E-9_dp,range2_thr=1.0E-9_dp,&
+               !!!TRIM               shift=1.0E-5_dp,&
+               !!!TRIM               range1=nmos(idomain),range2=nmos(idomain),&
+               !!!TRIM
+               !!!TRIM       ! apply the inverted matrix
+               !!!TRIM       ! RZK-warning this is only possible when the preconditioner is applied
+               !!!TRIM       tmp(:,ii)=MATMUL(Minv,subm_in(idomain)%mdata(:,ii))
+               !!!TRIM    ENDDO
+               !!!TRIM    subm_out=MATMUL(tmp,sigma)
+               !!!TRIM    deallocate(tmp)
+               !!!TRIM ELSE
 
-            IF (PRESENT(bad_modes_projector_down)) THEN
-               ALLOCATE (proj_array(naos, naos))
-            ENDIF
-
-            IF (PRESENT(eps_zero_eigenvalues)) THEN
-               IF (PRESENT(subm_s_inv_half)) THEN
+               IF (PRESENT(bad_modes_projector_down)) THEN
+                  ALLOCATE (proj_array(naos, naos))
                   CALL pseudo_invert_matrix(A=subm_main(idomain)%mdata, Ainv=Minv, N=naos, method=1, &
                                             range1=nmos(idomain), range2=n_domain_mos, &
                                             range1_thr=eps_zero_eigenvalues, &
                                             bad_modes_projector_down=proj_array, &
                                             s_inv_half=subm_s_inv_half(idomain)%mdata, &
                                             s_half=subm_s_half(idomain)%mdata &
-                                            !metric_inv=subm_s_inv(idomain)%mdata &
                                             )
                ELSE
                   CALL pseudo_invert_matrix(A=subm_main(idomain)%mdata, Ainv=Minv, N=naos, method=1, &
-                                            range1=nmos(idomain), range2=n_domain_mos, &
-                                            range1_thr=eps_zero_eigenvalues, &
-                                            bad_modes_projector_down=proj_array &
-                                            )
+                                            range1=nmos(idomain), range2=n_domain_mos)
                ENDIF
-            ELSE
-               IF (PRESENT(subm_s_inv_half)) THEN
-                  CALL pseudo_invert_matrix(A=subm_main(idomain)%mdata, Ainv=Minv, N=naos, method=1, &
-                                            range1=nmos(idomain), range2=n_domain_mos, &
-                                            bad_modes_projector_down=proj_array, &
-                                            s_inv_half=subm_s_inv_half(idomain)%mdata, &
-                                            s_half=subm_s_inv(idomain)%mdata)
-               ELSE
-                  CALL pseudo_invert_matrix(A=subm_main(idomain)%mdata, Ainv=Minv, N=naos, method=1, &
-                                            range1=nmos(idomain), range2=n_domain_mos, &
-                                            bad_modes_projector_down=proj_array)
+               !!!TRIM ENDIF
+
+               CALL copy_submatrices(subm_main(idomain), preconditioner(idomain), .FALSE.)
+               CALL copy_submatrix_data(Minv, preconditioner(idomain))
+               DEALLOCATE (Minv)
+
+               IF (PRESENT(bad_modes_projector_down)) THEN
+                  CALL copy_submatrices(subm_main(idomain), bad_modes_projector_down(idomain), .FALSE.)
+                  CALL copy_submatrix_data(proj_array, bad_modes_projector_down(idomain))
+                  DEALLOCATE (proj_array)
                ENDIF
-            ENDIF ! eps_zero_eigenvalues
-            !!!TRIM ENDIF
 
-            CALL copy_submatrices(subm_main(idomain), preconditioner(idomain), .FALSE.)
-            CALL copy_submatrix_data(Minv, preconditioner(idomain))
+            ENDIF ! submatrix for the domain exists
 
-            IF (PRESENT(bad_modes_projector_down)) THEN
-               CALL copy_submatrices(subm_main(idomain), bad_modes_projector_down(idomain), .FALSE.)
-               CALL copy_submatrix_data(proj_array, bad_modes_projector_down(idomain))
-            ENDIF
+         ENDDO ! loop over domains
 
-            DEALLOCATE (Minv)
-            IF (PRESENT(bad_modes_projector_down)) THEN
-               DEALLOCATE (proj_array)
-            ENDIF
-
-         ENDIF ! submatrix for the domain exists
-
-      ENDDO ! loop over domains
+      ENDIF
 
       CALL release_submatrices(subm_main)
       DEALLOCATE (subm_main)
@@ -2408,8 +2454,6 @@ CONTAINS
       !   CALL dbcsr_release(m_tmp_no_2)
       !   CALL dbcsr_release(matrix_r)
       !ENDIF
-
-      !RZK-warning do we need a barrier here ?
 
       CALL timestop(handle)
 
@@ -2437,8 +2481,7 @@ CONTAINS
       TYPE(domain_map_type), INTENT(IN)                  :: map
       INTEGER, DIMENSION(:), INTENT(IN)                  :: node_of_domain
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'construct_domain_s_sqrt', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'construct_domain_s_sqrt'
 
       INTEGER                                            :: handle, idomain, naos, ndomains
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :)        :: Ssqrt, Ssqrtinv
@@ -2510,8 +2553,7 @@ CONTAINS
       TYPE(domain_map_type), INTENT(IN)                  :: map
       INTEGER, DIMENSION(:), INTENT(IN)                  :: node_of_domain
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'construct_domain_s_inv', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'construct_domain_s_inv'
 
       INTEGER                                            :: handle, idomain, naos, ndomains
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :)        :: Sinv
@@ -2583,8 +2625,7 @@ CONTAINS
       INTEGER, DIMENSION(:), INTENT(IN)                  :: node_of_domain
       REAL(KIND=dp)                                      :: filter_eps
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'construct_domain_r_down', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'construct_domain_r_down'
 
       INTEGER                                            :: handle, ndomains
       TYPE(dbcsr_type)                                   :: m_tmp_no_1, m_tmp_no_2, matrix_r
@@ -2640,7 +2681,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :), INTENT(INOUT)      :: Asqrt, Asqrtinv
       INTEGER, INTENT(IN)                                :: N
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'matrix_sqrt', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'matrix_sqrt'
 
       INTEGER                                            :: handle, INFO, jj, LWORK, unit_nr
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:)           :: eigenvalues, WORK
@@ -2654,7 +2695,7 @@ CONTAINS
 
       ! get a useful unit_nr
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -2760,17 +2801,16 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: N, method
       INTEGER, INTENT(IN), OPTIONAL                      :: range1, range2
       REAL(KIND=dp), INTENT(IN), OPTIONAL                :: range1_thr, shift
-      REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :), &
-         INTENT(INOUT), OPTIONAL                         :: bad_modes_projector_down
+      REAL(KIND=dp), DIMENSION(:, :), INTENT(INOUT), &
+         OPTIONAL                                        :: bad_modes_projector_down
       REAL(KIND=dp), DIMENSION(:, :), INTENT(IN), &
          OPTIONAL                                        :: s_inv_half, s_half
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pseudo_invert_matrix', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'pseudo_invert_matrix'
 
       INTEGER                                            :: handle, ii, INFO, jj, LWORK, range1_eiv, &
                                                             range2_eiv, range3_eiv, unit_nr
-      LOGICAL                                            :: use_both, use_ranges
+      LOGICAL                                            :: use_both, use_ranges_only, use_thr_only
       REAL(KIND=dp)                                      :: my_shift
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:)           :: eigenvalues, WORK
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :)        :: temp1, temp2, temp3, temp4
@@ -2780,22 +2820,37 @@ CONTAINS
 
       ! get a useful unit_nr
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
       END IF
 
       IF (method .EQ. 1) THEN
+
+         IF ((PRESENT(range1) .AND. (.NOT. PRESENT(range2))) .OR. (PRESENT(range2) .AND. (.NOT. PRESENT(range1)))) THEN
+            CPABORT("range1 and range2 must be provided together")
+         ENDIF
+
          IF (PRESENT(range1) .AND. PRESENT(range1_thr)) THEN
             use_both = .TRUE.
+            use_thr_only = .FALSE.
+            use_ranges_only = .FALSE.
          ELSE
             use_both = .FALSE.
+
             IF (PRESENT(range1)) THEN
-               use_ranges = .TRUE.
+               use_ranges_only = .TRUE.
             ELSE
-               use_ranges = .FALSE.
+               use_ranges_only = .FALSE.
             ENDIF
+
+            IF (PRESENT(range1_thr)) THEN
+               use_thr_only = .TRUE.
+            ELSE
+               use_thr_only = .FALSE.
+            ENDIF
+
          ENDIF
 
          IF ((PRESENT(s_half) .AND. (.NOT. PRESENT(s_inv_half))) .OR. (PRESENT(s_inv_half) .AND. (.NOT. PRESENT(s_half)))) THEN
@@ -2812,7 +2867,7 @@ CONTAINS
       INFO = 0
 
       SELECT CASE (method)
-      CASE (0)
+      CASE (0) ! Inversion via cholesky factorization
 
          CALL DPOTRF('L', N, Ainv, N, INFO)
          IF (INFO .NE. 0) THEN
@@ -2824,7 +2879,7 @@ CONTAINS
          END IF
          ! complete the matrix
          DO ii = 1, N
-            DO jj = ii+1, N
+            DO jj = ii + 1, N
                Ainv(ii, jj) = Ainv(jj, ii)
             ENDDO
             !WRITE(*,'(100F13.9)') Ainv(ii,:)
@@ -2863,9 +2918,7 @@ CONTAINS
          ! invert eigenvalues and use eigenvectors to compute pseudo Ainv
          ! project out near-zero eigenvalue modes
          ALLOCATE (temp2(N, N))
-         IF (PRESENT(bad_modes_projector_down)) THEN
-            IF (ALLOCATED(bad_modes_projector_down)) ALLOCATE (temp3(N, N))
-         ENDIF
+         IF (PRESENT(bad_modes_projector_down)) ALLOCATE (temp3(N, N))
          temp2(1:N, 1:N) = Ainv(1:N, 1:N)
 
          range1_eiv = 0
@@ -2876,70 +2929,55 @@ CONTAINS
             DO jj = 1, N
                IF ((jj .LE. range2) .AND. (eigenvalues(jj) .LT. range1_thr)) THEN
                   temp1(jj, :) = temp2(:, jj)*0.0_dp
-                  IF (PRESENT(bad_modes_projector_down)) THEN
-                     IF (ALLOCATED(bad_modes_projector_down)) temp3(jj, :) = Ainv(:, jj)*1.0_dp
-                  ENDIF
-                  range1_eiv = range1_eiv+1
+                  IF (PRESENT(bad_modes_projector_down)) temp3(jj, :) = Ainv(:, jj)*1.0_dp
+                  range1_eiv = range1_eiv + 1
                ELSE
-                  temp1(jj, :) = temp2(:, jj)/(eigenvalues(jj)+my_shift)
-                  IF (PRESENT(bad_modes_projector_down)) THEN
-                     IF (ALLOCATED(bad_modes_projector_down)) temp3(jj, :) = Ainv(:, jj)*0.0_dp
-                  ENDIF
-                  range2_eiv = range2_eiv+1
+                  temp1(jj, :) = temp2(:, jj)/(eigenvalues(jj) + my_shift)
+                  IF (PRESENT(bad_modes_projector_down)) temp3(jj, :) = Ainv(:, jj)*0.0_dp
+                  range2_eiv = range2_eiv + 1
                ENDIF
             ENDDO
          ELSE
-            IF (use_ranges) THEN
+            IF (use_ranges_only) THEN
                DO jj = 1, N
                   IF (jj .LE. range1) THEN
                      temp1(jj, :) = temp2(:, jj)*0.0_dp
-                     IF (PRESENT(bad_modes_projector_down)) THEN
-                        IF (ALLOCATED(bad_modes_projector_down)) temp3(jj, :) = Ainv(:, jj)*1.0_dp
-                     ENDIF
-                     range1_eiv = range1_eiv+1
+                     IF (PRESENT(bad_modes_projector_down)) temp3(jj, :) = Ainv(:, jj)*1.0_dp
+                     range1_eiv = range1_eiv + 1
                   ELSE IF (jj .LE. range2) THEN
                      temp1(jj, :) = temp2(:, jj)*1.0_dp
-                     IF (PRESENT(bad_modes_projector_down)) THEN
-                        IF (ALLOCATED(bad_modes_projector_down)) temp3(jj, :) = Ainv(:, jj)*1.0_dp
-                     ENDIF
-                     range2_eiv = range2_eiv+1
+                     IF (PRESENT(bad_modes_projector_down)) temp3(jj, :) = Ainv(:, jj)*1.0_dp
+                     range2_eiv = range2_eiv + 1
                   ELSE
-                     temp1(jj, :) = temp2(:, jj)/(eigenvalues(jj)+my_shift)
-                     IF (PRESENT(bad_modes_projector_down)) THEN
-                        IF (ALLOCATED(bad_modes_projector_down)) temp3(jj, :) = Ainv(:, jj)*0.0_dp
-                     ENDIF
-                     range3_eiv = range3_eiv+1
+                     temp1(jj, :) = temp2(:, jj)/(eigenvalues(jj) + my_shift)
+                     IF (PRESENT(bad_modes_projector_down)) temp3(jj, :) = Ainv(:, jj)*0.0_dp
+                     range3_eiv = range3_eiv + 1
                   ENDIF
                ENDDO
-            ELSE
+            ELSE IF (use_thr_only) THEN
                DO jj = 1, N
                   IF (eigenvalues(jj) .LT. range1_thr) THEN
                      temp1(jj, :) = temp2(:, jj)*0.0_dp
-                     IF (PRESENT(bad_modes_projector_down)) THEN
-                        IF (ALLOCATED(bad_modes_projector_down)) temp3(jj, :) = Ainv(:, jj)*1.0_dp
-                     ENDIF
-                     range1_eiv = range1_eiv+1
+                     IF (PRESENT(bad_modes_projector_down)) temp3(jj, :) = Ainv(:, jj)*1.0_dp
+                     range1_eiv = range1_eiv + 1
                   ELSE
-                     temp1(jj, :) = temp2(:, jj)/(eigenvalues(jj)+my_shift)
-                     IF (PRESENT(bad_modes_projector_down)) THEN
-                        IF (ALLOCATED(bad_modes_projector_down)) temp3(jj, :) = Ainv(:, jj)*0.0_dp
-                     ENDIF
-
-                     range2_eiv = range2_eiv+1
+                     temp1(jj, :) = temp2(:, jj)/(eigenvalues(jj) + my_shift)
+                     IF (PRESENT(bad_modes_projector_down)) temp3(jj, :) = Ainv(:, jj)*0.0_dp
+                     range2_eiv = range2_eiv + 1
                   ENDIF
                ENDDO
+            ELSE ! no ranges, no thresholds
+               CPABORT("Invert using Cholesky. It would be faster.")
             ENDIF
          ENDIF
          !WRITE(*,*) ' EIV RANGES: ', range1_eiv, range2_eiv, range3_eiv
          IF (PRESENT(bad_modes_projector_down)) THEN
-            IF (ALLOCATED(bad_modes_projector_down)) THEN
-               IF (PRESENT(s_half)) THEN
-                  CALL DSYMM('L', 'U', N, N, 1.0_dp, s_half, N, temp2, N, 0.0_dp, Ainv, N)
-                  CALL DSYMM('R', 'U', N, N, 1.0_dp, s_half, N, temp3, N, 0.0_dp, temp4, N)
-                  CALL DGEMM('N', 'N', N, N, N, 1.0_dp, Ainv, N, temp4, N, 0.0_dp, bad_modes_projector_down, N)
-               ELSE
-                  CALL DGEMM('N', 'N', N, N, N, 1.0_dp, temp2, N, temp3, N, 0.0_dp, bad_modes_projector_down, N)
-               ENDIF
+            IF (PRESENT(s_half)) THEN
+               CALL DSYMM('L', 'U', N, N, 1.0_dp, s_half, N, temp2, N, 0.0_dp, Ainv, N)
+               CALL DSYMM('R', 'U', N, N, 1.0_dp, s_half, N, temp3, N, 0.0_dp, temp4, N)
+               CALL DGEMM('N', 'N', N, N, N, 1.0_dp, Ainv, N, temp4, N, 0.0_dp, bad_modes_projector_down, N)
+            ELSE
+               CALL DGEMM('N', 'N', N, N, N, 1.0_dp, temp2, N, temp3, N, 0.0_dp, bad_modes_projector_down, N)
             ENDIF
          ENDIF
 
@@ -2951,9 +2989,7 @@ CONTAINS
             CALL DGEMM('N', 'N', N, N, N, 1.0_dp, temp2, N, temp1, N, 0.0_dp, Ainv, N)
          ENDIF
          DEALLOCATE (temp1, temp2, temp4)
-         IF (PRESENT(bad_modes_projector_down)) THEN
-            IF (ALLOCATED(bad_modes_projector_down)) DEALLOCATE (temp3)
-         ENDIF
+         IF (PRESENT(bad_modes_projector_down)) DEALLOCATE (temp3)
          DEALLOCATE (eigenvalues)
 
       CASE DEFAULT
@@ -3004,8 +3040,7 @@ CONTAINS
       INTEGER, INTENT(IN), OPTIONAL                      :: range1
       REAL(KIND=dp), INTENT(IN), OPTIONAL                :: range1_thr, shift
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pseudo_matrix_power', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'pseudo_matrix_power'
 
       INTEGER                                            :: handle, INFO, jj, LWORK, range1_eiv, &
                                                             range2_eiv, unit_nr
@@ -3019,7 +3054,7 @@ CONTAINS
 
       ! get a useful unit_nr
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -3087,9 +3122,9 @@ CONTAINS
          DO jj = 1, N
             IF ((jj .LE. range1) .AND. (eigenvalues(jj) .LT. range1_thr)) THEN
                temp1(jj, :) = temp2(:, jj)*0.0_dp
-               range1_eiv = range1_eiv+1
+               range1_eiv = range1_eiv + 1
             ELSE
-               temp1(jj, :) = temp2(:, jj)*((eigenvalues(jj)+my_shift)**power)
+               temp1(jj, :) = temp2(:, jj)*((eigenvalues(jj) + my_shift)**power)
             ENDIF
          ENDDO
       ELSE
@@ -3097,9 +3132,9 @@ CONTAINS
             DO jj = 1, N
                IF (jj .LE. range1) THEN
                   temp1(jj, :) = temp2(:, jj)*0.0_dp
-                  range1_eiv = range1_eiv+1
+                  range1_eiv = range1_eiv + 1
                ELSE
-                  temp1(jj, :) = temp2(:, jj)*((eigenvalues(jj)+my_shift)**power)
+                  temp1(jj, :) = temp2(:, jj)*((eigenvalues(jj) + my_shift)**power)
                ENDIF
             ENDDO
          ELSE
@@ -3108,14 +3143,14 @@ CONTAINS
                   IF (eigenvalues(jj) .LT. range1_thr) THEN
                      temp1(jj, :) = temp2(:, jj)*0.0_dp
 
-                     range1_eiv = range1_eiv+1
+                     range1_eiv = range1_eiv + 1
                   ELSE
-                     temp1(jj, :) = temp2(:, jj)*((eigenvalues(jj)+my_shift)**power)
+                     temp1(jj, :) = temp2(:, jj)*((eigenvalues(jj) + my_shift)**power)
                   ENDIF
                ENDDO
             ELSE
                DO jj = 1, N
-                  temp1(jj, :) = temp2(:, jj)*((eigenvalues(jj)+my_shift)**power)
+                  temp1(jj, :) = temp2(:, jj)*((eigenvalues(jj) + my_shift)**power)
                ENDDO
             ENDIF
          ENDIF
@@ -3140,8 +3175,7 @@ CONTAINS
 
       TYPE(almo_scf_env_type), INTENT(INOUT)             :: almo_scf_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'distribute_domains', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'distribute_domains'
 
       INTEGER                                            :: handle, idomain, least_loaded, nao, &
                                                             ncpus, ndomains
@@ -3170,8 +3204,8 @@ CONTAINS
 
       DO idomain = 1, ndomains
          least_loaded = MINLOC(cpu_load, 1)
-         cpu_load(least_loaded) = cpu_load(least_loaded)+domain_load(idomain)
-         almo_scf_env%cpu_of_domain(index0(idomain)) = least_loaded-1
+         cpu_load(least_loaded) = cpu_load(least_loaded) + domain_load(idomain)
+         almo_scf_env%cpu_of_domain(index0(idomain)) = least_loaded - 1
       ENDDO
 
       DEALLOCATE (cpu_load)
@@ -3198,7 +3232,7 @@ CONTAINS
       TYPE(domain_map_type), INTENT(IN)                  :: map
       INTEGER, DIMENSION(:), INTENT(IN)                  :: node_of_domain
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'construct_test', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'construct_test'
 
       INTEGER                                            :: GroupID, handle, ndomains
       TYPE(dbcsr_type)                                   :: copy1
@@ -3277,8 +3311,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: max_iter_lanczos
       INTEGER, DIMENSION(:, :), INTENT(IN)               :: nocc_of_domain
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xalmo_initial_guess', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'xalmo_initial_guess'
 
       INTEGER                                            :: handle, iaspc, ispin, istore, naspc, &
                                                             unit_nr
@@ -3291,7 +3324,7 @@ CONTAINS
 
       ! get a useful output_unit
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -3330,6 +3363,7 @@ CONTAINS
       ELSE !aspc_guess
 
          CALL cite_reference(Kolafa2004)
+         CALL cite_reference(Kuhne2007)
 
          naspc = MIN(xalmo_history%istore, xalmo_history%nstore)
          IF (unit_nr > 0) THEN
@@ -3351,9 +3385,9 @@ CONTAINS
             ! extrapolation
             DO iaspc = 1, naspc
 
-               istore = MOD(xalmo_history%istore-iaspc, xalmo_history%nstore)+1
-               alpha = (-1.0_dp)**(iaspc+1)*REAL(iaspc, KIND=dp)* &
-                       binomial(2*naspc, naspc-iaspc)/binomial(2*naspc-2, naspc-1)
+               istore = MOD(xalmo_history%istore - iaspc, xalmo_history%nstore) + 1
+               alpha = (-1.0_dp)**(iaspc + 1)*REAL(iaspc, KIND=dp)* &
+                       binomial(2*naspc, naspc - iaspc)/binomial(2*naspc - 2, naspc - 1)
                IF (unit_nr > 0) THEN
                   WRITE (unit_nr, FMT="(T3,A2,I0,A4,F10.6)") &
                      "B(", iaspc, ") = ", alpha

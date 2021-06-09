@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 MODULE optbas_fenv_manipulation
    USE admm_types,                      ONLY: admm_env_create,&
@@ -93,9 +95,6 @@ CONTAINS
       INTEGER                                            :: bas_id
       TYPE(section_vals_type), POINTER                   :: input_file
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'modify_input_settings', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length)               :: atom
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: abasinfo, obasinfo
@@ -123,7 +122,7 @@ CONTAINS
 
       ! add the new basis file containing the templates to the basis file list
       CALL section_vals_val_get(dft_section, "BASIS_SET_FILE_NAME", n_rep_val=nbasis)
-      CALL section_vals_val_set(dft_section, "BASIS_SET_FILE_NAME", i_rep_val=nbasis+1, &
+      CALL section_vals_val_set(dft_section, "BASIS_SET_FILE_NAME", i_rep_val=nbasis + 1, &
                                 c_val=basis_optimization%work_basis_file)
 
       ! Set the auxilarry basis in the kind sections
@@ -174,9 +173,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE allocate_mo_sets(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_mo_sets', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ispin
       INTEGER, DIMENSION(2)                              :: nelectron_spin
@@ -238,9 +234,6 @@ CONTAINS
    SUBROUTINE calculate_ks_matrix(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_ks_matrix', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ispin
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: rho_ao
       TYPE(dft_control_type), POINTER                    :: dft_control
@@ -278,9 +271,6 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(cp_blacs_env_type), POINTER                   :: context
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_overlap_inverse', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: nao
       TYPE(cp_fm_struct_type), POINTER                   :: fm_struct_tmp
       TYPE(cp_fm_type), POINTER                          :: work1
@@ -309,9 +299,6 @@ CONTAINS
    SUBROUTINE calculate_overlap(ks_env, S_type)
       TYPE(qs_ks_env_type), POINTER                      :: ks_env
       CHARACTER(LEN=*)                                   :: S_type
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_overlap', &
-         routineP = moduleN//':'//routineN
 
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: matrix_s, matrix_s_aux_fit, &
                                                             matrix_s_aux_fit_vs_orb
@@ -357,9 +344,6 @@ CONTAINS
    SUBROUTINE create_opt_admm_env(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_opt_admm_env', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: natoms
       TYPE(admm_type), POINTER                           :: admm_env
       TYPE(cp_para_env_type), POINTER                    :: para_env
@@ -392,9 +376,6 @@ CONTAINS
       INTEGER                                            :: bas_id
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'update_basis_set', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(default_string_length)                   :: elem
       INTEGER                                            :: ibasis, ikind, jkind
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
@@ -418,7 +399,7 @@ CONTAINS
          END DO
       END DO
 
-      CALL init_interaction_radii(dft_control%qs_control, atomic_kind_set, qs_kind_set)
+      CALL init_interaction_radii(dft_control%qs_control, qs_kind_set)
 
    END SUBROUTINE update_basis_set
 
@@ -430,9 +411,6 @@ CONTAINS
    SUBROUTINE transfer_data_to_gto(gto_basis, basis)
       TYPE(gto_basis_set_type), POINTER                  :: gto_basis
       TYPE(flex_basis_type)                              :: basis
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'transfer_data_to_gto', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ipgf, iset, ishell
 

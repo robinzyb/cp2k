@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -84,7 +86,7 @@ CONTAINS
       TYPE(epr_env_type)                                 :: epr_env
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'epr_env_init', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'epr_env_init'
 
       INTEGER                                            :: handle, i_B, idir, ispin, n_mo(2), nao, &
                                                             natom, nmoloc, nspins, output_unit
@@ -165,8 +167,8 @@ CONTAINS
       ! Magical constant twopi/cell%deth just like in NMR shift (basically undo scale_fac in qs_linres_nmr_current.F)
       epr_env%g_free_factor = -1.0_dp*e_gfactor
       epr_env%g_zke_factor = e_gfactor*(a_fine)**2
-      epr_env%g_so_factor = (a_fine)**2*(-1.0_dp*e_gfactor-1.0_dp)/2.0_dp*twopi/cell%deth
-      epr_env%g_so_factor_gapw = (a_fine)**2*(-1.0_dp*e_gfactor-1.0_dp)/2.0_dp
+      epr_env%g_so_factor = (a_fine)**2*(-1.0_dp*e_gfactor - 1.0_dp)/2.0_dp*twopi/cell%deth
+      epr_env%g_so_factor_gapw = (a_fine)**2*(-1.0_dp*e_gfactor - 1.0_dp)/2.0_dp
       ! * 2 because B_ind = 2 * B_beta
       epr_env%g_soo_factor = 2.0_dp*fourpi*(a_fine)**2*twopi/cell%deth
       ! 2 * 2 * 1/4 * e^2 / m * a_0^2 * 2/3 * mu_0 / (omega * 1e-30 )
@@ -240,12 +242,9 @@ CONTAINS
 
       TYPE(epr_env_type)                                 :: epr_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'epr_env_cleanup', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i_B, idir, ispin
 
-      epr_env%ref_count = epr_env%ref_count-1
+      epr_env%ref_count = epr_env%ref_count - 1
       IF (epr_env%ref_count == 0) THEN
          ! nablavks_set
          IF (ASSOCIATED(epr_env%nablavks_set)) THEN

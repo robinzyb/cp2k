@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -123,15 +125,12 @@ CONTAINS
       INTEGER, DIMENSION(2, 3), INTENT(in)               :: local_bounds
       REAL(kind=dp), INTENT(in), OPTIONAL                :: rho_cutoff, drho_cutoff, tau_cutoff
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xc_rho_set_create', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
 
       CPASSERT(.NOT. ASSOCIATED(rho_set))
       ALLOCATE (rho_set)
       rho_set%ref_count = 1
-      last_rho_set_id = last_rho_set_id+1
+      last_rho_set_id = last_rho_set_id + 1
       rho_set%id_nr = last_rho_set_id
       rho_set%rho_cutoff = EPSILON(0.0_dp)
       IF (PRESENT(rho_cutoff)) rho_set%rho_cutoff = rho_cutoff
@@ -164,12 +163,9 @@ CONTAINS
    SUBROUTINE xc_rho_set_retain(rho_set)
       TYPE(xc_rho_set_type), POINTER                     :: rho_set
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xc_rho_set_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(rho_set))
       CPASSERT(rho_set%ref_count > 0)
-      rho_set%ref_count = rho_set%ref_count+1
+      rho_set%ref_count = rho_set%ref_count + 1
    END SUBROUTINE xc_rho_set_retain
 
 ! **************************************************************************************************
@@ -181,14 +177,11 @@ CONTAINS
       TYPE(xc_rho_set_type), POINTER                     :: rho_set
       TYPE(pw_pool_type), OPTIONAL, POINTER              :: pw_pool
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xc_rho_set_release', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
 
       IF (ASSOCIATED(rho_set)) THEN
          CPASSERT(rho_set%ref_count > 0)
-         rho_set%ref_count = rho_set%ref_count-1
+         rho_set%ref_count = rho_set%ref_count - 1
          IF (rho_set%ref_count == 0) THEN
             IF (PRESENT(pw_pool)) THEN
                IF (ASSOCIATED(pw_pool)) THEN
@@ -287,7 +280,7 @@ CONTAINS
 
 ! **************************************************************************************************
 !> \brief returns the various attributes of rho_set
-!> \param rho_set the object you whant info about
+!> \param rho_set the object you want info about
 !> \param can_return_null if true the object returned can be null,
 !>        if false (the default) it stops with an error if a requested
 !>        component is not associated
@@ -334,8 +327,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :, :), OPTIONAL, &
          POINTER                                         :: tau, tau_a, tau_b
       INTEGER, DIMENSION(:, :), OPTIONAL, POINTER        :: local_bounds
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'xc_rho_set_get', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
       LOGICAL                                            :: my_can_return_null
@@ -449,9 +440,6 @@ CONTAINS
    SUBROUTINE xc_rho_set_clean(rho_set, pw_pool)
       TYPE(xc_rho_set_type), POINTER                     :: rho_set
       TYPE(pw_pool_type), POINTER                        :: pw_pool
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'xc_rho_set_clean', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: idir
 
@@ -584,8 +572,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: xc_deriv_method_id, xc_rho_smooth_id
       TYPE(pw_pool_type), POINTER                        :: pw_pool
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xc_rho_set_update', &
-         routineP = moduleN//':'//routineN
       REAL(KIND=dp), PARAMETER                           :: f13 = (1.0_dp/3.0_dp)
 
       INTEGER                                            :: i, idir, ispin, j, k, nspins
@@ -863,8 +849,8 @@ CONTAINS
                DO j = rho_set%local_bounds(1, 2), rho_set%local_bounds(2, 2)
                   DO i = rho_set%local_bounds(1, 1), rho_set%local_bounds(2, 1)
                      rho_set%norm_drho(i, j, k) = SQRT( &
-                                                  drho_r(1, 1)%pw%cr3d(i, j, k)**2+ &
-                                                  drho_r(2, 1)%pw%cr3d(i, j, k)**2+ &
+                                                  drho_r(1, 1)%pw%cr3d(i, j, k)**2 + &
+                                                  drho_r(2, 1)%pw%cr3d(i, j, k)**2 + &
                                                   drho_r(3, 1)%pw%cr3d(i, j, k)**2)
                   END DO
                END DO
@@ -879,8 +865,8 @@ CONTAINS
                DO j = rho_set%local_bounds(1, 2), rho_set%local_bounds(2, 2)
                   DO i = rho_set%local_bounds(1, 1), rho_set%local_bounds(2, 1)
                      rho_set%laplace_rho(i, j, k) = &
-                        laplace_rho_r(1, 1)%pw%cr3d(i, j, k)+ &
-                        laplace_rho_r(2, 1)%pw%cr3d(i, j, k)+ &
+                        laplace_rho_r(1, 1)%pw%cr3d(i, j, k) + &
+                        laplace_rho_r(2, 1)%pw%cr3d(i, j, k) + &
                         laplace_rho_r(3, 1)%pw%cr3d(i, j, k)
                   END DO
                END DO
@@ -908,7 +894,7 @@ CONTAINS
             DO k = rho_set%local_bounds(1, 3), rho_set%local_bounds(2, 3)
                DO j = rho_set%local_bounds(1, 2), rho_set%local_bounds(2, 2)
                   DO i = rho_set%local_bounds(1, 1), rho_set%local_bounds(2, 1)
-                     rho_set%rho(i, j, k) = my_rho_r(1)%pw%cr3d(i, j, k)+ &
+                     rho_set%rho(i, j, k) = my_rho_r(1)%pw%cr3d(i, j, k) + &
                                             my_rho_r(2)%pw%cr3d(i, j, k)
                   END DO
                END DO
@@ -923,7 +909,7 @@ CONTAINS
             DO k = rho_set%local_bounds(1, 3), rho_set%local_bounds(2, 3)
                DO j = rho_set%local_bounds(1, 2), rho_set%local_bounds(2, 2)
                   DO i = rho_set%local_bounds(1, 1), rho_set%local_bounds(2, 1)
-                     rho_set%rho_1_3(i, j, k) = MAX(my_rho_r(1)%pw%cr3d(i, j, k)+ &
+                     rho_set%rho_1_3(i, j, k) = MAX(my_rho_r(1)%pw%cr3d(i, j, k) + &
                                                     my_rho_r(2)%pw%cr3d(i, j, k), 0.0_dp)**f13
                   END DO
                END DO
@@ -974,9 +960,9 @@ CONTAINS
                DO j = rho_set%local_bounds(1, 2), rho_set%local_bounds(2, 2)
                   DO i = rho_set%local_bounds(1, 1), rho_set%local_bounds(2, 1)
                      rho_set%norm_drho(i, j, k) = SQRT( &
-                                                  (drho_r(1, 1)%pw%cr3d(i, j, k)+drho_r(1, 2)%pw%cr3d(i, j, k))**2+ &
-                                                  (drho_r(2, 1)%pw%cr3d(i, j, k)+drho_r(2, 2)%pw%cr3d(i, j, k))**2+ &
-                                                  (drho_r(3, 1)%pw%cr3d(i, j, k)+drho_r(3, 2)%pw%cr3d(i, j, k))**2)
+                                                  (drho_r(1, 1)%pw%cr3d(i, j, k) + drho_r(1, 2)%pw%cr3d(i, j, k))**2 + &
+                                                  (drho_r(2, 1)%pw%cr3d(i, j, k) + drho_r(2, 2)%pw%cr3d(i, j, k))**2 + &
+                                                  (drho_r(3, 1)%pw%cr3d(i, j, k) + drho_r(3, 2)%pw%cr3d(i, j, k))**2)
                   END DO
                END DO
             END DO
@@ -992,8 +978,8 @@ CONTAINS
                DO j = rho_set%local_bounds(1, 2), rho_set%local_bounds(2, 2)
                   DO i = rho_set%local_bounds(1, 1), rho_set%local_bounds(2, 1)
                      rho_set%norm_drhoa(i, j, k) = SQRT( &
-                                                   drho_r(1, 1)%pw%cr3d(i, j, k)**2+ &
-                                                   drho_r(2, 1)%pw%cr3d(i, j, k)**2+ &
+                                                   drho_r(1, 1)%pw%cr3d(i, j, k)**2 + &
+                                                   drho_r(2, 1)%pw%cr3d(i, j, k)**2 + &
                                                    drho_r(3, 1)%pw%cr3d(i, j, k)**2)
                   END DO
                END DO
@@ -1006,8 +992,8 @@ CONTAINS
                DO j = rho_set%local_bounds(1, 2), rho_set%local_bounds(2, 2)
                   DO i = rho_set%local_bounds(1, 1), rho_set%local_bounds(2, 1)
                      rho_set%norm_drhob(i, j, k) = SQRT( &
-                                                   drho_r(1, 2)%pw%cr3d(i, j, k)**2+ &
-                                                   drho_r(2, 2)%pw%cr3d(i, j, k)**2+ &
+                                                   drho_r(1, 2)%pw%cr3d(i, j, k)**2 + &
+                                                   drho_r(2, 2)%pw%cr3d(i, j, k)**2 + &
                                                    drho_r(3, 2)%pw%cr3d(i, j, k)**2)
                   END DO
                END DO
@@ -1023,8 +1009,8 @@ CONTAINS
                DO j = rho_set%local_bounds(1, 2), rho_set%local_bounds(2, 2)
                   DO i = rho_set%local_bounds(1, 1), rho_set%local_bounds(2, 1)
                      rho_set%laplace_rhoa(i, j, k) = &
-                        laplace_rho_r(1, 1)%pw%cr3d(i, j, k)+ &
-                        laplace_rho_r(2, 1)%pw%cr3d(i, j, k)+ &
+                        laplace_rho_r(1, 1)%pw%cr3d(i, j, k) + &
+                        laplace_rho_r(2, 1)%pw%cr3d(i, j, k) + &
                         laplace_rho_r(3, 1)%pw%cr3d(i, j, k)
                   END DO
                END DO
@@ -1037,8 +1023,8 @@ CONTAINS
                DO j = rho_set%local_bounds(1, 2), rho_set%local_bounds(2, 2)
                   DO i = rho_set%local_bounds(1, 1), rho_set%local_bounds(2, 1)
                      rho_set%laplace_rhob(i, j, k) = &
-                        laplace_rho_r(1, 2)%pw%cr3d(i, j, k)+ &
-                        laplace_rho_r(2, 2)%pw%cr3d(i, j, k)+ &
+                        laplace_rho_r(1, 2)%pw%cr3d(i, j, k) + &
+                        laplace_rho_r(2, 2)%pw%cr3d(i, j, k) + &
                         laplace_rho_r(3, 2)%pw%cr3d(i, j, k)
                   END DO
                END DO
@@ -1054,8 +1040,8 @@ CONTAINS
                DO j = rho_set%local_bounds(1, 2), rho_set%local_bounds(2, 2)
                   DO i = rho_set%local_bounds(1, 1), rho_set%local_bounds(2, 1)
                      rho_set%drhoa_drhob(i, j, k) = &
-                        drho_r(1, 1)%pw%cr3d(i, j, k)*drho_r(1, 2)%pw%cr3d(i, j, k)+ &
-                        drho_r(2, 1)%pw%cr3d(i, j, k)*drho_r(2, 2)%pw%cr3d(i, j, k)+ &
+                        drho_r(1, 1)%pw%cr3d(i, j, k)*drho_r(1, 2)%pw%cr3d(i, j, k) + &
+                        drho_r(2, 1)%pw%cr3d(i, j, k)*drho_r(2, 2)%pw%cr3d(i, j, k) + &
                         drho_r(3, 1)%pw%cr3d(i, j, k)*drho_r(3, 2)%pw%cr3d(i, j, k)
                   END DO
                END DO
@@ -1074,7 +1060,7 @@ CONTAINS
                   DO j = rho_set%local_bounds(1, 2), rho_set%local_bounds(2, 2)
                      DO i = rho_set%local_bounds(1, 1), rho_set%local_bounds(2, 1)
                         rho_set%drho(idir)%array(i, j, k) = &
-                           drho_r(idir, 1)%pw%cr3d(i, j, k)+ &
+                           drho_r(idir, 1)%pw%cr3d(i, j, k) + &
                            drho_r(idir, 2)%pw%cr3d(i, j, k)
                      END DO
                   END DO
@@ -1129,7 +1115,7 @@ CONTAINS
                   DO i = rho_set%local_bounds(1, 1), rho_set%local_bounds(2, 1)
 
                      rho_set%tau(i, j, k) = &
-                        tau(1)%pw%cr3d(i, j, k)+ &
+                        tau(1)%pw%cr3d(i, j, k) + &
                         tau(2)%pw%cr3d(i, j, k)
                   END DO
                END DO

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -75,8 +77,6 @@ CONTAINS
 
       TYPE(lri_opt_type), POINTER                        :: lri_opt
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_lri_opt', routineP = moduleN//':'//routineN
-
       ALLOCATE (lri_opt)
 
       NULLIFY (lri_opt%ri_gcc_orig)
@@ -102,9 +102,6 @@ CONTAINS
    SUBROUTINE deallocate_lri_opt(lri_opt)
 
       TYPE(lri_opt_type), POINTER                        :: lri_opt
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_lri_opt', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
 
@@ -145,9 +142,6 @@ CONTAINS
       TYPE(gto_basis_set_type), POINTER                  :: gto_basis_set
       TYPE(lri_opt_type), POINTER                        :: lri_opt
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_original_gcc', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: il, ipgf, iset, ishell, l, maxpgf, &
                                                             maxshell, nl, nset
       INTEGER, DIMENSION(:), POINTER                     :: lmax, lmin, ncont_l
@@ -163,7 +157,7 @@ CONTAINS
       DO iset = 1, gto_basis_set%nset
          DO ishell = 1, gto_basis_set%nshell(iset)
             l = gto_basis_set%l(ishell, iset)
-            expzet = 0.25_dp*REAL(2*l+3, dp)
+            expzet = 0.25_dp*REAL(2*l + 3, dp)
             prefac = 2.0_dp**l*(2.0_dp/pi)**0.75_dp
             DO ipgf = 1, gto_basis_set%npgf(iset)
                gcca = gto_basis_set%gcc(ipgf, ishell, iset)
@@ -179,7 +173,7 @@ CONTAINS
                                 lmax=lmax, lmin=lmin)
          ALLOCATE (lri_opt%subset(nset))
          DO iset = 1, gto_basis_set%nset
-            nl = lmax(iset)-lmin(iset)+1
+            nl = lmax(iset) - lmin(iset) + 1
             lri_opt%subset(iset)%nl = nl
             il = 1
             ALLOCATE (lri_opt%subset(iset)%ncont_l(nl))
@@ -187,10 +181,10 @@ CONTAINS
             ncont_l = 1
             DO ishell = 2, gto_basis_set%nshell(iset)
                l = gto_basis_set%l(ishell, iset)
-               IF (l == gto_basis_set%l(ishell-1, iset)) THEN
-                  ncont_l(il) = ncont_l(il)+1
+               IF (l == gto_basis_set%l(ishell - 1, iset)) THEN
+                  ncont_l(il) = ncont_l(il) + 1
                ELSE
-                  il = il+1
+                  il = il + 1
                   ncont_l(il) = 1
                ENDIF
             ENDDO
@@ -211,9 +205,6 @@ CONTAINS
       TYPE(gto_basis_set_type), POINTER                  :: gto_basis_set
       TYPE(lri_opt_type), POINTER                        :: lri_opt
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'orthonormalize_gcc', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: il, iset, ishell, ishell1, ishell2, &
                                                             istart, nset
       INTEGER, DIMENSION(:), POINTER                     :: nshell
@@ -224,15 +215,15 @@ CONTAINS
       DO iset = 1, nset
          istart = 1
          DO il = 1, lri_opt%subset(iset)%nl
-            DO ishell1 = istart, istart+lri_opt%subset(iset)%ncont_l(il)-2
-               DO ishell2 = ishell1+1, istart+lri_opt%subset(iset)%ncont_l(il)-1
+            DO ishell1 = istart, istart + lri_opt%subset(iset)%ncont_l(il) - 2
+               DO ishell2 = ishell1 + 1, istart + lri_opt%subset(iset)%ncont_l(il) - 1
                   gs_scale = DOT_PRODUCT(gcc(:, ishell2, iset), gcc(:, ishell1, iset))/ &
                              DOT_PRODUCT(gcc(:, ishell1, iset), gcc(:, ishell1, iset))
-                  gcc(:, ishell2, iset) = gcc(:, ishell2, iset)- &
+                  gcc(:, ishell2, iset) = gcc(:, ishell2, iset) - &
                                           gs_scale*gcc(:, ishell1, iset)
                ENDDO
             ENDDO
-            istart = istart+lri_opt%subset(iset)%ncont_l(il)
+            istart = istart + lri_opt%subset(iset)%ncont_l(il)
          ENDDO
 
          DO ishell = 1, gto_basis_set%nshell(iset)

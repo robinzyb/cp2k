@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -21,16 +23,16 @@ MODULE qmmm_gpw_energy
                                               cp_print_key_unit_nr
    USE cp_para_types,                   ONLY: cp_para_env_type
    USE cp_realspace_grid_cube,          ONLY: cp_pw_to_cube
-   USE cp_spline_utils,                 ONLY: pw_prolongate_s3
+   USE cp_spline_utils,                 ONLY: pw_prolongate_s3,&
+                                              spline3_nopbc_interp,&
+                                              spline3_pbc_interp
    USE cube_utils,                      ONLY: cube_info_type
    USE input_constants,                 ONLY: do_par_atom,&
                                               do_qmmm_coulomb,&
                                               do_qmmm_gauss,&
                                               do_qmmm_none,&
                                               do_qmmm_pcharge,&
-                                              do_qmmm_swave,&
-                                              spline3_nopbc_interp,&
-                                              spline3_pbc_interp
+                                              do_qmmm_swave
    USE input_section_types,             ONLY: section_get_ivals,&
                                               section_vals_get_subs_vals,&
                                               section_vals_type,&
@@ -98,8 +100,7 @@ CONTAINS
       TYPE(particle_type), DIMENSION(:), POINTER         :: mm_particles
       TYPE(cell_type), POINTER                           :: mm_cell
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_el_coupling', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'qmmm_el_coupling'
 
       INTEGER                                            :: handle, iw, iw2
       LOGICAL                                            :: mpi_io
@@ -256,8 +257,7 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: interp_section
       TYPE(cell_type), POINTER                           :: mm_cell
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_elec_with_gaussian', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_elec_with_gaussian'
 
       INTEGER                                            :: handle, handle2, igrid, ilevel, &
                                                             kind_interp, lb(3), ngrids, ub(3)
@@ -294,7 +294,7 @@ CONTAINS
                                           cube_info, para_env, eps_mm_rspace, qmmm_env%added_charges%pgfs, auxbas_grid, &
                                           coarser_grid, qmmm_env%added_charges%potentials, &
                                           mm_cell=mm_cell, dOmmOqm=qmmm_env%dOmmOqm, periodic=qmmm_env%periodic, &
-                                          per_potentials=qmmm_env%per_potentials, par_scheme=qmmm_env%par_scheme, &
+                                          per_potentials=qmmm_env%added_charges%per_potentials, par_scheme=qmmm_env%par_scheme, &
                                           qmmm_spherical_cutoff=qmmm_env%spherical_cutoff, shells=shells)
       END IF
       IF (qmmm_env%added_shells%num_mm_atoms .GT. 0) THEN
@@ -322,9 +322,9 @@ CONTAINS
          ! Spline Iterpolator
          CALL mp_sync(para_env%group)
          CALL timeset(TRIM(routineN)//":spline3Int", handle2)
-         DO Ilevel = coarser_grid, auxbas_grid+1, -1
+         DO Ilevel = coarser_grid, auxbas_grid + 1, -1
             CALL pw_prolongate_s3(grids(Ilevel)%pw, &
-                                  grids(Ilevel-1)%pw, &
+                                  grids(Ilevel - 1)%pw, &
                                   aug_pools(Ilevel)%pool, &
                                   param_section=interp_section)
          END DO
@@ -393,7 +393,7 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: shells
 
       CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_elec_with_gaussian_low', &
-         routineNb = 'qmmm_elec_gaussian_low', routineP = moduleN//':'//routineN
+         routineNb = 'qmmm_elec_gaussian_low'
 
       INTEGER                                            :: handle, handle2, IGauss, ilevel, Imm, &
                                                             IndMM, IRadTyp, LIndMM, myind, &
@@ -429,15 +429,15 @@ CONTAINS
             ilevel = pgf%grid_level(IGauss)
             Atoms: DO Imm = 1, SIZE(pot%mm_atom_index)
                IF (par_scheme == do_par_atom) THEN
-                  myind = myind+1
+                  myind = myind + 1
                   IF (MOD(myind, para_env%num_pe) /= para_env%mepos) CYCLE Atoms
                END IF
                LIndMM = pot%mm_atom_index(Imm)
                IndMM = mm_atom_index(LIndMM)
                IF (shells) THEN
-                  ra(:) = pbc(mm_particles(LIndMM)%r-dOmmOqm, mm_cell)+dOmmOqm
+                  ra(:) = pbc(mm_particles(LIndMM)%r - dOmmOqm, mm_cell) + dOmmOqm
                ELSE
-                  ra(:) = pbc(mm_particles(IndMM)%r-dOmmOqm, mm_cell)+dOmmOqm
+                  ra(:) = pbc(mm_particles(IndMM)%r - dOmmOqm, mm_cell) + dOmmOqm
                END IF
                W = mm_charges(LIndMM)*height
                ! Possible Spherical Cutoff
@@ -547,8 +547,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(2), INTENT(IN)            :: qmmm_spherical_cutoff
       LOGICAL                                            :: shells
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_elec_with_gaussian_LG', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_elec_with_gaussian_LG'
 
       INTEGER                                            :: handle, i, ii1, ii2, ii3, ii4, ij1, ij2, &
                                                             ij3, ij4, ik1, ik2, ik3, ik4, Imm, &
@@ -582,18 +581,29 @@ CONTAINS
          dr2 = pw%pw_grid%dr(2)
          dr3 = pw%pw_grid%dr(3)
          grid => pw%cr3d(:, :, :)
+         !$OMP PARALLEL DO DEFAULT(NONE) &
+         !$OMP SHARED(bo, gbo, grid, grid2, pw, npts, per_pot, mm_atom_index) &
+         !$OMP SHARED(dr1, dr2, dr3, dr1c, dr2c, dr3c, par_scheme, mm_charges, mm_particles) &
+         !$OMP SHARED(mm_cell, dOmmOqm, shells, para_env, IRadTyp, qmmm_spherical_cutoff) &
+         !$OMP PRIVATE(Imm, LIndMM, IndMM, qt, sph_chrg_factor, ra, myind) &
+         !$OMP PRIVATE(rt1, rt2, rt3, k, vec, ivec, xd1, xd2, xd3, ik1, ik2, ik3, ik4) &
+         !$OMP PRIVATE(ij1, ij2, ij3, ij4, ii1, ii2, ii3, ii4, my_k, my_j, xs1, xs2, xs3) &
+         !$OMP PRIVATE(p1, p2, p3, q1, q2, q3, r1, r2, r3, v1, v2, v3, v4, e1, e2, e3) &
+         !$OMP PRIVATE(f1, f2, f3, g1, g2, g3, h1, h2, h3, s1, s2, s3, s4, a1, a2, a3) &
+         !$OMP PRIVATE(b1, b2, b3, c1, c2, c3, d1, d2, d3, t1, t2, t3, t4, u1, u2, u3, val) &
+         !$OMP PRIVATE(rv1, rv2, rv3, abc_X, abc_X_Y)
          Atoms: DO Imm = 1, SIZE(per_pot%mm_atom_index)
             IF (par_scheme == do_par_atom) THEN
-               myind = myind+1
+               myind = Imm + (IRadTyp - 1)*SIZE(per_pot%mm_atom_index)
                IF (MOD(myind, para_env%num_pe) /= para_env%mepos) CYCLE
             END IF
             LIndMM = per_pot%mm_atom_index(Imm)
             IndMM = mm_atom_index(LIndMM)
             qt = mm_charges(LIndMM)
             IF (shells) THEN
-               ra(:) = pbc(mm_particles(LIndMM)%r-dOmmOqm, mm_cell)+dOmmOqm
+               ra(:) = pbc(mm_particles(LIndMM)%r - dOmmOqm, mm_cell) + dOmmOqm
             ELSE
-               ra(:) = pbc(mm_particles(IndMM)%r-dOmmOqm, mm_cell)+dOmmOqm
+               ra(:) = pbc(mm_particles(IndMM)%r - dOmmOqm, mm_cell) + dOmmOqm
             END IF
             ! Possible Spherical Cutoff
             IF (qmmm_spherical_cutoff(1) > 0.0_dp) THEN
@@ -605,121 +615,123 @@ CONTAINS
             rt2 = ra(2)
             rt3 = ra(3)
             LoopOnGrid: DO k = bo(1, 3), bo(2, 3)
-               my_k = k-gbo(1, 3)
+               my_k = k - gbo(1, 3)
                xs3 = REAL(my_k, dp)*dr3c
-               my_j = bo(1, 2)-gbo(1, 2)
+               my_j = bo(1, 2) - gbo(1, 2)
                xs2 = REAL(my_j, dp)*dr2c
-               rv3 = rt3-xs3
+               rv3 = rt3 - xs3
                vec(3) = rv3
                ivec(3) = FLOOR(vec(3)/pw%pw_grid%dr(3))
-               xd3 = (vec(3)/dr3)-REAL(ivec(3), kind=dp)
-               ik1 = MODULO(ivec(3)-1, npts(3))+1
-               ik2 = MODULO(ivec(3), npts(3))+1
-               ik3 = MODULO(ivec(3)+1, npts(3))+1
-               ik4 = MODULO(ivec(3)+2, npts(3))+1
-               p1 = 3.0_dp+xd3
+               xd3 = (vec(3)/dr3) - REAL(ivec(3), kind=dp)
+               ik1 = MODULO(ivec(3) - 1, npts(3)) + 1
+               ik2 = MODULO(ivec(3), npts(3)) + 1
+               ik3 = MODULO(ivec(3) + 1, npts(3)) + 1
+               ik4 = MODULO(ivec(3) + 2, npts(3)) + 1
+               p1 = 3.0_dp + xd3
                p2 = p1*p1
                p3 = p2*p1
-               q1 = 2.0_dp+xd3
+               q1 = 2.0_dp + xd3
                q2 = q1*q1
                q3 = q2*q1
-               r1 = 1.0_dp+xd3
+               r1 = 1.0_dp + xd3
                r2 = r1*r1
                r3 = r2*r1
                u1 = xd3
                u2 = u1*u1
                u3 = u2*u1
-               v1 = 1.0_dp/6.0_dp*(64.0_dp-48.0_dp*p1+12.0_dp*p2-p3)
-               v2 = -22.0_dp/3.0_dp+10.0_dp*q1-4.0_dp*q2+0.5_dp*q3
-               v3 = 2.0_dp/3.0_dp-2.0_dp*r1+2.0_dp*r2-0.5_dp*r3
+               v1 = 1.0_dp/6.0_dp*(64.0_dp - 48.0_dp*p1 + 12.0_dp*p2 - p3)
+               v2 = -22.0_dp/3.0_dp + 10.0_dp*q1 - 4.0_dp*q2 + 0.5_dp*q3
+               v3 = 2.0_dp/3.0_dp - 2.0_dp*r1 + 2.0_dp*r2 - 0.5_dp*r3
                v4 = 1.0_dp/6.0_dp*u3
                DO j = bo(1, 2), bo(2, 2)
-                  xs1 = (bo(1, 1)-gbo(1, 1))*dr1c
-                  rv2 = rt2-xs2
+                  xs1 = (bo(1, 1) - gbo(1, 1))*dr1c
+                  rv2 = rt2 - xs2
                   vec(2) = rv2
                   ivec(2) = FLOOR(vec(2)/pw%pw_grid%dr(2))
-                  xd2 = (vec(2)/dr2)-REAL(ivec(2), kind=dp)
-                  ij1 = MODULO(ivec(2)-1, npts(2))+1
-                  ij2 = MODULO(ivec(2), npts(2))+1
-                  ij3 = MODULO(ivec(2)+1, npts(2))+1
-                  ij4 = MODULO(ivec(2)+2, npts(2))+1
-                  e1 = 3.0_dp+xd2
+                  xd2 = (vec(2)/dr2) - REAL(ivec(2), kind=dp)
+                  ij1 = MODULO(ivec(2) - 1, npts(2)) + 1
+                  ij2 = MODULO(ivec(2), npts(2)) + 1
+                  ij3 = MODULO(ivec(2) + 1, npts(2)) + 1
+                  ij4 = MODULO(ivec(2) + 2, npts(2)) + 1
+                  e1 = 3.0_dp + xd2
                   e2 = e1*e1
                   e3 = e2*e1
-                  f1 = 2.0_dp+xd2
+                  f1 = 2.0_dp + xd2
                   f2 = f1*f1
                   f3 = f2*f1
-                  g1 = 1.0_dp+xd2
+                  g1 = 1.0_dp + xd2
                   g2 = g1*g1
                   g3 = g2*g1
                   h1 = xd2
                   h2 = h1*h1
                   h3 = h2*h1
-                  s1 = 1.0_dp/6.0_dp*(64.0_dp-48.0_dp*e1+12.0_dp*e2-e3)
-                  s2 = -22.0_dp/3.0_dp+10.0_dp*f1-4.0_dp*f2+0.5_dp*f3
-                  s3 = 2.0_dp/3.0_dp-2.0_dp*g1+2.0_dp*g2-0.5_dp*g3
+                  s1 = 1.0_dp/6.0_dp*(64.0_dp - 48.0_dp*e1 + 12.0_dp*e2 - e3)
+                  s2 = -22.0_dp/3.0_dp + 10.0_dp*f1 - 4.0_dp*f2 + 0.5_dp*f3
+                  s3 = 2.0_dp/3.0_dp - 2.0_dp*g1 + 2.0_dp*g2 - 0.5_dp*g3
                   s4 = 1.0_dp/6.0_dp*h3
                   DO i = bo(1, 1), bo(2, 1)
-                     rv1 = rt1-xs1
+                     rv1 = rt1 - xs1
                      vec(1) = rv1
                      ivec(1) = FLOOR(vec(1)/pw%pw_grid%dr(1))
-                     xd1 = (vec(1)/dr1)-REAL(ivec(1), kind=dp)
-                     ii1 = MODULO(ivec(1)-1, npts(1))+1
-                     ii2 = MODULO(ivec(1), npts(1))+1
-                     ii3 = MODULO(ivec(1)+1, npts(1))+1
-                     ii4 = MODULO(ivec(1)+2, npts(1))+1
+                     xd1 = (vec(1)/dr1) - REAL(ivec(1), kind=dp)
+                     ii1 = MODULO(ivec(1) - 1, npts(1)) + 1
+                     ii2 = MODULO(ivec(1), npts(1)) + 1
+                     ii3 = MODULO(ivec(1) + 1, npts(1)) + 1
+                     ii4 = MODULO(ivec(1) + 2, npts(1)) + 1
                      !
                      ! Spline Interpolation
                      !
 
-                     a1 = 3.0_dp+xd1
+                     a1 = 3.0_dp + xd1
                      a2 = a1*a1
                      a3 = a2*a1
-                     b1 = 2.0_dp+xd1
+                     b1 = 2.0_dp + xd1
                      b2 = b1*b1
                      b3 = b2*b1
-                     c1 = 1.0_dp+xd1
+                     c1 = 1.0_dp + xd1
                      c2 = c1*c1
                      c3 = c2*c1
                      d1 = xd1
                      d2 = d1*d1
                      d3 = d2*d1
-                     t1 = 1.0_dp/6.0_dp*(64.0_dp-48.0_dp*a1+12.0_dp*a2-a3)
-                     t2 = -22.0_dp/3.0_dp+10.0_dp*b1-4.0_dp*b2+0.5_dp*b3
-                     t3 = 2.0_dp/3.0_dp-2.0_dp*c1+2.0_dp*c2-0.5_dp*c3
+                     t1 = 1.0_dp/6.0_dp*(64.0_dp - 48.0_dp*a1 + 12.0_dp*a2 - a3)
+                     t2 = -22.0_dp/3.0_dp + 10.0_dp*b1 - 4.0_dp*b2 + 0.5_dp*b3
+                     t3 = 2.0_dp/3.0_dp - 2.0_dp*c1 + 2.0_dp*c2 - 0.5_dp*c3
                      t4 = 1.0_dp/6.0_dp*d3
 
-                     abc_X(1, 1) = grid(ii1, ij1, ik1)*v1+grid(ii1, ij1, ik2)*v2+grid(ii1, ij1, ik3)*v3+grid(ii1, ij1, ik4)*v4
-                     abc_X(1, 2) = grid(ii1, ij2, ik1)*v1+grid(ii1, ij2, ik2)*v2+grid(ii1, ij2, ik3)*v3+grid(ii1, ij2, ik4)*v4
-                     abc_X(1, 3) = grid(ii1, ij3, ik1)*v1+grid(ii1, ij3, ik2)*v2+grid(ii1, ij3, ik3)*v3+grid(ii1, ij3, ik4)*v4
-                     abc_X(1, 4) = grid(ii1, ij4, ik1)*v1+grid(ii1, ij4, ik2)*v2+grid(ii1, ij4, ik3)*v3+grid(ii1, ij4, ik4)*v4
-                     abc_X(2, 1) = grid(ii2, ij1, ik1)*v1+grid(ii2, ij1, ik2)*v2+grid(ii2, ij1, ik3)*v3+grid(ii2, ij1, ik4)*v4
-                     abc_X(2, 2) = grid(ii2, ij2, ik1)*v1+grid(ii2, ij2, ik2)*v2+grid(ii2, ij2, ik3)*v3+grid(ii2, ij2, ik4)*v4
-                     abc_X(2, 3) = grid(ii2, ij3, ik1)*v1+grid(ii2, ij3, ik2)*v2+grid(ii2, ij3, ik3)*v3+grid(ii2, ij3, ik4)*v4
-                     abc_X(2, 4) = grid(ii2, ij4, ik1)*v1+grid(ii2, ij4, ik2)*v2+grid(ii2, ij4, ik3)*v3+grid(ii2, ij4, ik4)*v4
-                     abc_X(3, 1) = grid(ii3, ij1, ik1)*v1+grid(ii3, ij1, ik2)*v2+grid(ii3, ij1, ik3)*v3+grid(ii3, ij1, ik4)*v4
-                     abc_X(3, 2) = grid(ii3, ij2, ik1)*v1+grid(ii3, ij2, ik2)*v2+grid(ii3, ij2, ik3)*v3+grid(ii3, ij2, ik4)*v4
-                     abc_X(3, 3) = grid(ii3, ij3, ik1)*v1+grid(ii3, ij3, ik2)*v2+grid(ii3, ij3, ik3)*v3+grid(ii3, ij3, ik4)*v4
-                     abc_X(3, 4) = grid(ii3, ij4, ik1)*v1+grid(ii3, ij4, ik2)*v2+grid(ii3, ij4, ik3)*v3+grid(ii3, ij4, ik4)*v4
-                     abc_X(4, 1) = grid(ii4, ij1, ik1)*v1+grid(ii4, ij1, ik2)*v2+grid(ii4, ij1, ik3)*v3+grid(ii4, ij1, ik4)*v4
-                     abc_X(4, 2) = grid(ii4, ij2, ik1)*v1+grid(ii4, ij2, ik2)*v2+grid(ii4, ij2, ik3)*v3+grid(ii4, ij2, ik4)*v4
-                     abc_X(4, 3) = grid(ii4, ij3, ik1)*v1+grid(ii4, ij3, ik2)*v2+grid(ii4, ij3, ik3)*v3+grid(ii4, ij3, ik4)*v4
-                     abc_X(4, 4) = grid(ii4, ij4, ik1)*v1+grid(ii4, ij4, ik2)*v2+grid(ii4, ij4, ik3)*v3+grid(ii4, ij4, ik4)*v4
+                     abc_X(1, 1) = grid(ii1, ij1, ik1)*v1 + grid(ii1, ij1, ik2)*v2 + grid(ii1, ij1, ik3)*v3 + grid(ii1, ij1, ik4)*v4
+                     abc_X(1, 2) = grid(ii1, ij2, ik1)*v1 + grid(ii1, ij2, ik2)*v2 + grid(ii1, ij2, ik3)*v3 + grid(ii1, ij2, ik4)*v4
+                     abc_X(1, 3) = grid(ii1, ij3, ik1)*v1 + grid(ii1, ij3, ik2)*v2 + grid(ii1, ij3, ik3)*v3 + grid(ii1, ij3, ik4)*v4
+                     abc_X(1, 4) = grid(ii1, ij4, ik1)*v1 + grid(ii1, ij4, ik2)*v2 + grid(ii1, ij4, ik3)*v3 + grid(ii1, ij4, ik4)*v4
+                     abc_X(2, 1) = grid(ii2, ij1, ik1)*v1 + grid(ii2, ij1, ik2)*v2 + grid(ii2, ij1, ik3)*v3 + grid(ii2, ij1, ik4)*v4
+                     abc_X(2, 2) = grid(ii2, ij2, ik1)*v1 + grid(ii2, ij2, ik2)*v2 + grid(ii2, ij2, ik3)*v3 + grid(ii2, ij2, ik4)*v4
+                     abc_X(2, 3) = grid(ii2, ij3, ik1)*v1 + grid(ii2, ij3, ik2)*v2 + grid(ii2, ij3, ik3)*v3 + grid(ii2, ij3, ik4)*v4
+                     abc_X(2, 4) = grid(ii2, ij4, ik1)*v1 + grid(ii2, ij4, ik2)*v2 + grid(ii2, ij4, ik3)*v3 + grid(ii2, ij4, ik4)*v4
+                     abc_X(3, 1) = grid(ii3, ij1, ik1)*v1 + grid(ii3, ij1, ik2)*v2 + grid(ii3, ij1, ik3)*v3 + grid(ii3, ij1, ik4)*v4
+                     abc_X(3, 2) = grid(ii3, ij2, ik1)*v1 + grid(ii3, ij2, ik2)*v2 + grid(ii3, ij2, ik3)*v3 + grid(ii3, ij2, ik4)*v4
+                     abc_X(3, 3) = grid(ii3, ij3, ik1)*v1 + grid(ii3, ij3, ik2)*v2 + grid(ii3, ij3, ik3)*v3 + grid(ii3, ij3, ik4)*v4
+                     abc_X(3, 4) = grid(ii3, ij4, ik1)*v1 + grid(ii3, ij4, ik2)*v2 + grid(ii3, ij4, ik3)*v3 + grid(ii3, ij4, ik4)*v4
+                     abc_X(4, 1) = grid(ii4, ij1, ik1)*v1 + grid(ii4, ij1, ik2)*v2 + grid(ii4, ij1, ik3)*v3 + grid(ii4, ij1, ik4)*v4
+                     abc_X(4, 2) = grid(ii4, ij2, ik1)*v1 + grid(ii4, ij2, ik2)*v2 + grid(ii4, ij2, ik3)*v3 + grid(ii4, ij2, ik4)*v4
+                     abc_X(4, 3) = grid(ii4, ij3, ik1)*v1 + grid(ii4, ij3, ik2)*v2 + grid(ii4, ij3, ik3)*v3 + grid(ii4, ij3, ik4)*v4
+                     abc_X(4, 4) = grid(ii4, ij4, ik1)*v1 + grid(ii4, ij4, ik2)*v2 + grid(ii4, ij4, ik3)*v3 + grid(ii4, ij4, ik4)*v4
 
-                     abc_X_Y(1) = abc_X(1, 1)*t1+abc_X(2, 1)*t2+abc_X(3, 1)*t3+abc_X(4, 1)*t4
-                     abc_X_Y(2) = abc_X(1, 2)*t1+abc_X(2, 2)*t2+abc_X(3, 2)*t3+abc_X(4, 2)*t4
-                     abc_X_Y(3) = abc_X(1, 3)*t1+abc_X(2, 3)*t2+abc_X(3, 3)*t3+abc_X(4, 3)*t4
-                     abc_X_Y(4) = abc_X(1, 4)*t1+abc_X(2, 4)*t2+abc_X(3, 4)*t3+abc_X(4, 4)*t4
+                     abc_X_Y(1) = abc_X(1, 1)*t1 + abc_X(2, 1)*t2 + abc_X(3, 1)*t3 + abc_X(4, 1)*t4
+                     abc_X_Y(2) = abc_X(1, 2)*t1 + abc_X(2, 2)*t2 + abc_X(3, 2)*t3 + abc_X(4, 2)*t4
+                     abc_X_Y(3) = abc_X(1, 3)*t1 + abc_X(2, 3)*t2 + abc_X(3, 3)*t3 + abc_X(4, 3)*t4
+                     abc_X_Y(4) = abc_X(1, 4)*t1 + abc_X(2, 4)*t2 + abc_X(3, 4)*t3 + abc_X(4, 4)*t4
 
-                     val = abc_X_Y(1)*s1+abc_X_Y(2)*s2+abc_X_Y(3)*s3+abc_X_Y(4)*s4
-
-                     grid2(i, j, k) = grid2(i, j, k)-val*qt
-                     xs1 = xs1+dr1c
+                     val = abc_X_Y(1)*s1 + abc_X_Y(2)*s2 + abc_X_Y(3)*s3 + abc_X_Y(4)*s4
+                     !$OMP ATOMIC
+                     grid2(i, j, k) = grid2(i, j, k) - val*qt
+                     !$OMP END ATOMIC
+                     xs1 = xs1 + dr1c
                   END DO
-                  xs2 = xs2+dr2c
+                  xs2 = xs2 + dr2c
                END DO
             END DO LoopOnGrid
          END DO Atoms
+         !$OMP END PARALLEL DO
       END DO Radius
       CALL timestop(handle)
    END SUBROUTINE qmmm_elec_with_gaussian_LG
@@ -760,8 +772,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(2), INTENT(IN)            :: qmmm_spherical_cutoff
       LOGICAL                                            :: shells
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_elec_with_gaussian_LR', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_elec_with_gaussian_LR'
 
       INTEGER                                            :: handle, i, Imm, IndMM, IRadTyp, ix, j, &
                                                             k, LIndMM, my_j, my_k, myind, n1, n2, &
@@ -790,17 +801,22 @@ CONTAINS
          pot => potentials(IRadTyp)%pot
          dx = Pot%dx
          pot0_2 => Pot%pot0_2
+         !$OMP PARALLEL DO DEFAULT(NONE) &
+         !$OMP SHARED(pot, par_scheme, para_env, mm_atom_index, mm_particles, dOmmOqm, mm_cell, qmmm_spherical_cutoff) &
+         !$OMP SHARED(bo, gbo, dr1, dr2, dr3, grid2, shells, pot0_2, dx, mm_charges, IRadTyp) &
+         !$OMP PRIVATE(myind, Imm, LIndMM, IndMM, ra, qt, sph_chrg_factor, rt1, rt2, rt3, my_k, my_j) &
+         !$OMP PRIVATE(rv1, rv2, rv3, rx2, rx3, r, r2, rx, Term, xs1, xs2, xs3, i, j, k, ix)
          Atoms: DO Imm = 1, SIZE(pot%mm_atom_index)
             IF (par_scheme == do_par_atom) THEN
-               myind = myind+1
+               myind = Imm + (IRadTyp - 1)*SIZE(pot%mm_atom_index)
                IF (MOD(myind, para_env%num_pe) /= para_env%mepos) CYCLE
             END IF
             LIndMM = pot%mm_atom_index(Imm)
             IndMM = mm_atom_index(LIndMM)
-            ra(:) = pbc(mm_particles(IndMM)%r-dOmmOqm, mm_cell)+dOmmOqm
+            ra(:) = pbc(mm_particles(IndMM)%r - dOmmOqm, mm_cell) + dOmmOqm
             qt = mm_charges(LIndMM)
             IF (shells) &
-               ra(:) = pbc(mm_particles(LIndMM)%r-dOmmOqm, mm_cell)+dOmmOqm
+               ra(:) = pbc(mm_particles(LIndMM)%r - dOmmOqm, mm_cell) + dOmmOqm
             ! Possible Spherical Cutoff
             IF (qmmm_spherical_cutoff(1) > 0.0_dp) THEN
                CALL spherical_cutoff_factor(qmmm_spherical_cutoff, ra, sph_chrg_factor)
@@ -811,33 +827,36 @@ CONTAINS
             rt2 = ra(2)
             rt3 = ra(3)
             LoopOnGrid: DO k = bo(1, 3), bo(2, 3)
-               my_k = k-gbo(1, 3)
+               my_k = k - gbo(1, 3)
                xs3 = REAL(my_k, dp)*dr3
-               my_j = bo(1, 2)-gbo(1, 2)
+               my_j = bo(1, 2) - gbo(1, 2)
                xs2 = REAL(my_j, dp)*dr2
-               rv3 = rt3-xs3
+               rv3 = rt3 - xs3
                DO j = bo(1, 2), bo(2, 2)
-                  xs1 = (bo(1, 1)-gbo(1, 1))*dr1
-                  rv2 = rt2-xs2
+                  xs1 = (bo(1, 1) - gbo(1, 1))*dr1
+                  rv2 = rt2 - xs2
                   DO i = bo(1, 1), bo(2, 1)
-                     rv1 = rt1-xs1
-                     r2 = rv1*rv1+rv2*rv2+rv3*rv3
+                     rv1 = rt1 - xs1
+                     r2 = rv1*rv1 + rv2*rv2 + rv3*rv3
                      r = SQRT(r2)
-                     ix = FLOOR(r/dx)+1
-                     rx = (r-REAL(ix-1, dp)*dx)/dx
+                     ix = FLOOR(r/dx) + 1
+                     rx = (r - REAL(ix - 1, dp)*dx)/dx
                      rx2 = rx*rx
                      rx3 = rx2*rx
-                     Term = pot0_2(1, ix)*(1.0_dp-3.0_dp*rx2+2.0_dp*rx3) &
-                            +pot0_2(2, ix)*(rx-2.0_dp*rx2+rx3) &
-                            +pot0_2(1, ix+1)*(3.0_dp*rx2-2.0_dp*rx3) &
-                            +pot0_2(2, ix+1)*(-rx2+rx3)
-                     grid2(i, j, k) = grid2(i, j, k)-Term*qt
-                     xs1 = xs1+dr1
+                     Term = pot0_2(1, ix)*(1.0_dp - 3.0_dp*rx2 + 2.0_dp*rx3) &
+                            + pot0_2(2, ix)*(rx - 2.0_dp*rx2 + rx3) &
+                            + pot0_2(1, ix + 1)*(3.0_dp*rx2 - 2.0_dp*rx3) &
+                            + pot0_2(2, ix + 1)*(-rx2 + rx3)
+                     !$OMP ATOMIC
+                     grid2(i, j, k) = grid2(i, j, k) - Term*qt
+                     !$OMP END ATOMIC
+                     xs1 = xs1 + dr1
                   END DO
-                  xs2 = xs2+dr2
+                  xs2 = xs2 + dr2
                END DO
             END DO LoopOnGrid
          END DO Atoms
+         !$OMP END PARALLEL DO
       END DO Radius
       CALL timestop(handle)
    END SUBROUTINE qmmm_elec_with_gaussian_LR

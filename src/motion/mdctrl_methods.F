@@ -1,12 +1,14 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
 !> \brief A common interface (wrapper) for a callback into the md_run loop.
 !>        Currently this is only used by the glbopt machinery, but its meant
-!>        to be extended if others need to controll the md_run loop, too.
+!>        to be extended if others need to control the md_run loop, too.
 !>
 !> \par History
 !>      11.2012 created [Ole]
@@ -37,9 +39,6 @@ CONTAINS
       TYPE(mdctrl_type), POINTER                         :: mdctrl
       TYPE(md_environment_type), POINTER                 :: md_env
       LOGICAL, INTENT(inout)                             :: should_stop
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'mdctrl_callback', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(ASSOCIATED(md_env))
       CPASSERT(ASSOCIATED(mdctrl))

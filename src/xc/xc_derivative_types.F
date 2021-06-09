@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -66,16 +68,13 @@ CONTAINS
       CHARACTER(len=*), INTENT(in)                       :: desc
       REAL(kind=dp), DIMENSION(:, :, :), POINTER         :: cr3d_ptr
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xc_derivative_create', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(len=MAX_DERIVATIVE_DESC_LENGTH)          :: my_desc
 
       ALLOCATE (derivative)
 
       derivative%ref_count = 1
       derivative%id_nr = derivative_id_nr
-      derivative_id_nr = derivative_id_nr+1
+      derivative_id_nr = derivative_id_nr + 1
       CALL standardize_derivative_desc(desc, my_desc)
       CALL create_split_derivative_desc(my_desc, derivative%split_desc)
       derivative%desc = my_desc
@@ -93,12 +92,9 @@ CONTAINS
    SUBROUTINE xc_derivative_retain(deriv)
       TYPE(xc_derivative_type), POINTER                  :: deriv
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xc_derivative_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(deriv))
       CPASSERT(deriv%ref_count > 0)
-      deriv%ref_count = deriv%ref_count+1
+      deriv%ref_count = deriv%ref_count + 1
    END SUBROUTINE xc_derivative_retain
 
 ! **************************************************************************************************
@@ -112,13 +108,10 @@ CONTAINS
       TYPE(xc_derivative_type), POINTER                  :: derivative
       TYPE(pw_pool_type), OPTIONAL, POINTER              :: pw_pool
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xc_derivative_release', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(derivative))
       CPASSERT(derivative%ref_count >= 1)
 
-      derivative%ref_count = derivative%ref_count-1
+      derivative%ref_count = derivative%ref_count - 1
       IF (derivative%ref_count == 0) THEN
          IF (PRESENT(pw_pool)) THEN
             IF (ASSOCIATED(pw_pool)) THEN
@@ -139,7 +132,7 @@ CONTAINS
 
 ! **************************************************************************************************
 !> \brief returns various information on the given derivative
-!> \param deriv thederivative you whant information about
+!> \param deriv the derivative you want information about
 !> \param desc a string that describes the derivative (empty string
 !>        for the function itself, otherwise a string of the form
 !>        "(rho)(rho)(norm_drhoa)")
@@ -161,9 +154,6 @@ CONTAINS
       REAL(kind=dp), DIMENSION(:, :, :), OPTIONAL, &
          POINTER                                         :: deriv_data
       LOGICAL, INTENT(in), OPTIONAL                      :: accept_null_data
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'xc_derivative_get', &
-         routineP = moduleN//':'//routineN
 
       LOGICAL                                            :: my_accept_null_data
 

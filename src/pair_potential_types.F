@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2018  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -45,8 +47,9 @@ MODULE pair_potential_types
                                  tersoff_type = 11, &
                                  ftd_type = 12, &
                                  siepmann_type = 13, &
-                                 quip_type = 14, &
-                                 deepmd_type = 15
+                                 gal_type = 14, &
+                                 quip_type = 15, &
+                                 deepmd_type = 16
 
    INTEGER, PUBLIC, PARAMETER, DIMENSION(16) :: list_pot = (/nn_type, &
                                                              lj_type, &
@@ -62,6 +65,7 @@ MODULE pair_potential_types
                                                              tersoff_type, &
                                                              ftd_type, &
                                                              siepmann_type, &
+                                                             gal_type, &
                                                              quip_type, &
                                                              deepmd_type/)
    ! Shell model
@@ -97,7 +101,8 @@ MODULE pair_potential_types
              quip_pot_type, &
              deepmd_pot_type, &
              tersoff_pot_type, &
-             siepmann_pot_type
+             siepmann_pot_type, &
+             gal_pot_type
 
    PUBLIC :: pair_potential_lj_create
    PUBLIC :: compare_pot
@@ -239,6 +244,29 @@ MODULE pair_potential_types
    END TYPE siepmann_pot_type
 
 ! **************************************************************************************************
+   TYPE gal_pot_type
+      CHARACTER(LEN=2) :: met1
+      CHARACTER(LEN=2) :: met2
+      REAL(KIND=dp) :: epsilon
+      REAL(KIND=dp) :: bxy
+      REAL(KIND=dp) :: bz
+      REAL(KIND=dp) :: r1
+      REAL(KIND=dp) :: r2
+      REAL(KIND=dp) :: a1
+      REAL(KIND=dp) :: a2
+      REAL(KIND=dp) :: a3
+      REAL(KIND=dp) :: a4
+      REAL(KIND=dp) :: a
+      REAL(KIND=dp) :: b
+      REAL(KIND=dp) :: c
+      REAL(KIND=dp), POINTER, DIMENSION(:) :: gcn
+      REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :)    :: n_vectors
+      REAL(KIND=dp)  :: rcutsq
+      LOGICAL        :: express
+   END TYPE gal_pot_type
+
+! **************************************************************************************************
+
    TYPE pot_set_type
       REAL(KIND=dp)                      :: rmin, rmax
       TYPE(ipbv_pot_type), POINTER :: ipbv
@@ -254,6 +282,7 @@ MODULE pair_potential_types
       TYPE(buckmorse_pot_type), POINTER :: buckmo
       TYPE(tersoff_pot_type), POINTER :: tersoff
       TYPE(siepmann_pot_type), POINTER :: siepmann
+      TYPE(gal_pot_type), POINTER :: gal
       TYPE(ftd_pot_type), POINTER :: ftd
    END TYPE pot_set_type
 
@@ -308,8 +337,6 @@ CONTAINS
       TYPE(pair_potential_single_type), POINTER          :: pot1, pot2
       LOGICAL, INTENT(OUT)                               :: compare
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'compare_pot', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
       LOGICAL                                            :: mycompare
 
@@ -326,7 +353,7 @@ CONTAINS
       CPASSERT(ASSOCIATED(pot2%set))
       DO i = 1, SIZE(pot1%type)
          mycompare = .FALSE.
-         SELECT CASE (pot1%type (i))
+         SELECT CASE (pot1%type(i))
          CASE (lj_type, lj_charmm_type)
             IF ((pot1%set(i)%lj%epsilon == pot2%set(i)%lj%epsilon) .AND. &
                 (pot1%set(i)%lj%sigma6 == pot2%set(i)%lj%sigma6) .AND. &
@@ -347,14 +374,14 @@ CONTAINS
                IF ((pot1%set(i)%eam%drar == pot2%set(i)%eam%drar) .AND. &
                    (pot1%set(i)%eam%drhoar == pot2%set(i)%eam%drhoar) .AND. &
                    (pot1%set(i)%eam%acutal == pot2%set(i)%eam%acutal) .AND. &
-                   (SUM(ABS(pot1%set(i)%eam%rho-pot2%set(i)%eam%rho)) == 0.0_dp) .AND. &
-                   (SUM(ABS(pot1%set(i)%eam%phi-pot2%set(i)%eam%phi)) == 0.0_dp) .AND. &
-                   (SUM(ABS(pot1%set(i)%eam%frho-pot2%set(i)%eam%frho)) == 0.0_dp) .AND. &
-                   (SUM(ABS(pot1%set(i)%eam%rhoval-pot2%set(i)%eam%rhoval)) == 0.0_dp) .AND. &
-                   (SUM(ABS(pot1%set(i)%eam%rval-pot2%set(i)%eam%rval)) == 0.0_dp) .AND. &
-                   (SUM(ABS(pot1%set(i)%eam%rhop-pot2%set(i)%eam%rhop)) == 0.0_dp) .AND. &
-                   (SUM(ABS(pot1%set(i)%eam%phip-pot2%set(i)%eam%phip)) == 0.0_dp) .AND. &
-                   (SUM(ABS(pot1%set(i)%eam%frhop-pot2%set(i)%eam%frhop)) == 0.0_dp)) mycompare = .TRUE.
+                   (SUM(ABS(pot1%set(i)%eam%rho - pot2%set(i)%eam%rho)) == 0.0_dp) .AND. &
+                   (SUM(ABS(pot1%set(i)%eam%phi - pot2%set(i)%eam%phi)) == 0.0_dp) .AND. &
+                   (SUM(ABS(pot1%set(i)%eam%frho - pot2%set(i)%eam%frho)) == 0.0_dp) .AND. &
+                   (SUM(ABS(pot1%set(i)%eam%rhoval - pot2%set(i)%eam%rhoval)) == 0.0_dp) .AND. &
+                   (SUM(ABS(pot1%set(i)%eam%rval - pot2%set(i)%eam%rval)) == 0.0_dp) .AND. &
+                   (SUM(ABS(pot1%set(i)%eam%rhop - pot2%set(i)%eam%rhop)) == 0.0_dp) .AND. &
+                   (SUM(ABS(pot1%set(i)%eam%phip - pot2%set(i)%eam%phip)) == 0.0_dp) .AND. &
+                   (SUM(ABS(pot1%set(i)%eam%frhop - pot2%set(i)%eam%frhop)) == 0.0_dp)) mycompare = .TRUE.
             END IF
          CASE (deepmd_type)
             IF ((pot1%set(i)%deepmd%deepmd_file_name == pot2%set(i)%deepmd%deepmd_file_name) .AND. &
@@ -375,7 +402,7 @@ CONTAINS
                 (pot1%set(i)%ftd%D == pot2%set(i)%ftd%D) .AND. &
                 (pot1%set(i)%ftd%BD == pot2%set(i)%ftd%BD)) mycompare = .TRUE.
          CASE (ip_type)
-            IF ((SUM(ABS(pot1%set(i)%ipbv%a-pot2%set(i)%ipbv%a)) == 0.0_dp) .AND. &
+            IF ((SUM(ABS(pot1%set(i)%ipbv%a - pot2%set(i)%ipbv%a)) == 0.0_dp) .AND. &
                 (pot1%set(i)%ipbv%rcore == pot2%set(i)%ipbv%rcore) .AND. &
                 (pot1%set(i)%ipbv%m == pot2%set(i)%ipbv%m) .AND. &
                 (pot1%set(i)%ipbv%b == pot2%set(i)%ipbv%b)) mycompare = .TRUE.
@@ -407,6 +434,23 @@ CONTAINS
                  pot2%set(i)%siepmann%allow_o_formation) .AND. &
                 (pot1%set(i)%siepmann%allow_h3o_formation .EQV. &
                  pot2%set(i)%siepmann%allow_h3o_formation)) mycompare = .TRUE.
+         CASE (gal_type)
+            IF ((pot1%set(i)%gal%epsilon == pot2%set(i)%gal%epsilon) .AND. &
+                (pot1%set(i)%gal%bxy == pot2%set(i)%gal%bxy) .AND. &
+                (pot1%set(i)%gal%bz == pot2%set(i)%gal%bz) .AND. &
+                (pot1%set(i)%gal%r1 == pot2%set(i)%gal%r1) .AND. &
+                (pot1%set(i)%gal%r2 == pot2%set(i)%gal%r2) .AND. &
+                (pot1%set(i)%gal%a1 == pot2%set(i)%gal%a1) .AND. &
+                (pot1%set(i)%gal%a2 == pot2%set(i)%gal%a2) .AND. &
+                (pot1%set(i)%gal%a3 == pot2%set(i)%gal%a3) .AND. &
+                (pot1%set(i)%gal%a4 == pot2%set(i)%gal%a4) .AND. &
+                (pot1%set(i)%gal%a == pot2%set(i)%gal%a) .AND. &
+                (pot1%set(i)%gal%b == pot2%set(i)%gal%b) .AND. &
+                (pot1%set(i)%gal%c == pot2%set(i)%gal%c) .AND. &
+                (pot1%set(i)%gal%express .EQV. &
+                 pot2%set(i)%gal%express) .AND. &
+                (pot1%set(i)%gal%rcutsq == pot2%set(i)%gal%rcutsq)) mycompare = .TRUE.
+
          END SELECT
          mycompare = mycompare .AND. &
                      (pot1%set(i)%rmin == pot2%set(i)%rmin) .AND. (pot1%set(i)%rmax == pot2%set(i)%rmax)
@@ -425,9 +469,6 @@ CONTAINS
    SUBROUTINE pair_potential_single_create(potparm, nset)
       TYPE(pair_potential_single_type), POINTER          :: potparm
       INTEGER, INTENT(IN), OPTIONAL                      :: nset
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'pair_potential_single_create', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, lnset
 
@@ -456,6 +497,7 @@ CONTAINS
                   potparm%set(i)%buckmo, &
                   potparm%set(i)%tersoff, &
                   potparm%set(i)%siepmann, &
+                  potparm%set(i)%gal, &
                   potparm%set(i)%ftd)
       END DO
       CALL pair_potential_single_clean(potparm)
@@ -468,9 +510,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_single_clean(potparm)
       TYPE(pair_potential_single_type), POINTER          :: potparm
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'pair_potential_single_clean', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
 
@@ -504,6 +543,7 @@ CONTAINS
          CALL pair_potential_gp_clean(potparm%set(i)%gp)
          CALL pair_potential_tersoff_clean(potparm%set(i)%tersoff)
          CALL pair_potential_siepmann_clean(potparm%set(i)%siepmann)
+         CALL pair_potential_gal_clean(potparm%set(i)%gal)
       END DO
    END SUBROUTINE pair_potential_single_clean
 
@@ -515,9 +555,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_single_copy(potparm_source, potparm_dest)
       TYPE(pair_potential_single_type), POINTER          :: potparm_source, potparm_dest
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'pair_potential_single_copy', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
 
@@ -560,6 +597,7 @@ CONTAINS
          CALL pair_potential_gp_copy(potparm_source%set(i)%gp, potparm_dest%set(i)%gp)
          CALL pair_potential_tersoff_copy(potparm_source%set(i)%tersoff, potparm_dest%set(i)%tersoff)
          CALL pair_potential_siepmann_copy(potparm_source%set(i)%siepmann, potparm_dest%set(i)%siepmann)
+         CALL pair_potential_gal_copy(potparm_source%set(i)%gal, potparm_dest%set(i)%gal)
       END DO
    END SUBROUTINE pair_potential_single_copy
 
@@ -572,9 +610,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_single_add(potparm_source, potparm_dest)
       TYPE(pair_potential_single_type), POINTER          :: potparm_source, potparm_dest
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'pair_potential_single_add', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, j, size_dest, size_source
       LOGICAL                                            :: allocate_new, check
@@ -608,7 +643,8 @@ CONTAINS
                     (ASSOCIATED(potparm_dest%set(1)%buckmo)) .OR. &
                     (ASSOCIATED(potparm_dest%set(1)%gp)) .OR. &
                     (ASSOCIATED(potparm_dest%set(1)%tersoff)) .OR. &
-                    (ASSOCIATED(potparm_dest%set(1)%siepmann))
+                    (ASSOCIATED(potparm_dest%set(1)%siepmann)) .OR. &
+                    (ASSOCIATED(potparm_dest%set(1)%gal))
             IF (.NOT. check) THEN
                allocate_new = .TRUE.
                CALL pair_potential_single_release(potparm_dest)
@@ -630,7 +666,7 @@ CONTAINS
          NULLIFY (potparm_tmp)
          CALL pair_potential_single_copy(potparm_dest, potparm_tmp)
          CALL pair_potential_single_release(potparm_dest)
-         CALL pair_potential_single_create(potparm_dest, size_dest+size_source)
+         CALL pair_potential_single_create(potparm_dest, size_dest + size_source)
          ! Copy back original informations..
          potparm_dest%shell_type = potparm_tmp%shell_type
          potparm_dest%undef = potparm_tmp%undef
@@ -657,6 +693,7 @@ CONTAINS
             CALL pair_potential_gp_copy(potparm_tmp%set(i)%gp, potparm_dest%set(i)%gp)
             CALL pair_potential_tersoff_copy(potparm_tmp%set(i)%tersoff, potparm_dest%set(i)%tersoff)
             CALL pair_potential_siepmann_copy(potparm_tmp%set(i)%siepmann, potparm_dest%set(i)%siepmann)
+            CALL pair_potential_gal_copy(potparm_tmp%set(i)%gal, potparm_dest%set(i)%gal)
          END DO
          CALL pair_potential_single_release(potparm_tmp)
       END IF
@@ -670,8 +707,8 @@ CONTAINS
               (potparm_dest%rcutsq == potparm_source%rcutsq)
       CPASSERT(check)
       ! Now copy the new pair_potential type
-      DO i = size_dest+1, size_dest+size_source
-         j = i-size_dest
+      DO i = size_dest + 1, size_dest + size_source
+         j = i - size_dest
          potparm_dest%type(i) = potparm_source%type(j)
          potparm_dest%set(i)%rmin = potparm_source%set(j)%rmin
          potparm_dest%set(i)%rmax = potparm_source%set(j)%rmax
@@ -689,6 +726,7 @@ CONTAINS
          CALL pair_potential_gp_copy(potparm_source%set(j)%gp, potparm_dest%set(i)%gp)
          CALL pair_potential_tersoff_copy(potparm_source%set(j)%tersoff, potparm_dest%set(i)%tersoff)
          CALL pair_potential_siepmann_copy(potparm_source%set(j)%siepmann, potparm_dest%set(i)%siepmann)
+         CALL pair_potential_gal_copy(potparm_source%set(j)%gal, potparm_dest%set(i)%gal)
       END DO
    END SUBROUTINE pair_potential_single_add
 
@@ -699,9 +737,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_single_release(potparm)
       TYPE(pair_potential_single_type), POINTER          :: potparm
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'pair_potential_single_release', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
 
@@ -723,6 +758,7 @@ CONTAINS
          CALL pair_potential_gp_release(potparm%set(i)%gp)
          CALL pair_potential_tersoff_release(potparm%set(i)%tersoff)
          CALL pair_potential_siepmann_release(potparm%set(i)%siepmann)
+         CALL pair_potential_gal_release(potparm%set(i)%gal)
       END DO
       DEALLOCATE (potparm%type)
       DEALLOCATE (potparm%set)
@@ -738,9 +774,6 @@ CONTAINS
    SUBROUTINE pair_potential_pp_create(potparm, nkinds)
       TYPE(pair_potential_pp_type), POINTER              :: potparm
       INTEGER, INTENT(IN)                                :: nkinds
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'pair_potential_pp_create', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, j
 
@@ -772,9 +805,6 @@ CONTAINS
    SUBROUTINE pair_potential_pp_release(potparm)
       TYPE(pair_potential_pp_type), POINTER              :: potparm
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pair_potential_pp_release', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, j
 
       IF (ASSOCIATED(potparm)) THEN
@@ -803,9 +833,6 @@ CONTAINS
    SUBROUTINE pair_potential_p_create(potparm, ndim, ub, lb)
       TYPE(pair_potential_p_type), POINTER               :: potparm
       INTEGER, INTENT(IN), OPTIONAL                      :: ndim, ub, lb
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'pair_potential_p_create', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, loc_lb, loc_ub
 
@@ -845,9 +872,6 @@ CONTAINS
    SUBROUTINE pair_potential_p_release(potparm)
       TYPE(pair_potential_p_type), POINTER               :: potparm
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pair_potential_p_release', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
 
       IF (ASSOCIATED(potparm)) THEN
@@ -873,9 +897,6 @@ CONTAINS
    SUBROUTINE pair_potential_p_copy(source, dest, istart, iend)
       TYPE(pair_potential_p_type), POINTER               :: source, dest
       INTEGER, INTENT(IN), OPTIONAL                      :: istart, iend
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_p_copy', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, l_end, l_start
 
@@ -911,25 +932,21 @@ CONTAINS
 !> \param gp ...
 !> \param tersoff ...
 !> \param siepmann ...
+!> \param gal ...
 !> \author Teodoro Laino [Teo] 11.2005
 ! **************************************************************************************************
    SUBROUTINE pair_potential_reallocate(p, lb1_new, ub1_new, lj, lj_charmm, williams, &
                                         goodwin, eam, quip, bmhft, bmhftd, ipbv, buck4r, buckmo, gp, tersoff, &
-                                        siepmann, deepmd)
+                                        siepmann, gal, deepmd)
       TYPE(pair_potential_p_type), POINTER               :: p
       INTEGER, INTENT(IN)                                :: lb1_new, ub1_new
       LOGICAL, INTENT(IN), OPTIONAL                      :: lj, lj_charmm, williams, goodwin, eam, &
                                                             quip, bmhft, bmhftd, ipbv, buck4r, &
-                                                            buckmo, gp, tersoff, siepmann, deepmd
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_reallocate', &
-         routineP = moduleN//':'//routineN
+                                                            buckmo, gp, tersoff, siepmann, gal, deepmd
 
       INTEGER                                            :: i, ipot, lb1_old, std_dim, ub1_old
-      LOGICAL                                            :: check, lbmhft, lbmhftd, lbuck4r, &
-                                                            lbuckmo, leam, lgoodwin, lgp, lipbv, &
-                                                            llj, llj_charmm, lquip, lsiepmann, &
-                                                            ltersoff, lwilliams, ldeepmd
+      LOGICAL :: check, lbmhft, lbmhftd, lbuck4r, lbuckmo, leam, lgal, lgoodwin, lgp, lipbv, llj, &
+         llj_charmm, lquip, lsiepmann, ltersoff, lwilliams, ldeepmd
       TYPE(pair_potential_p_type), POINTER               :: work
 
       NULLIFY (work)
@@ -949,97 +966,104 @@ CONTAINS
       lgp = .FALSE.; IF (PRESENT(gp)) lgp = gp
       ltersoff = .FALSE.; IF (PRESENT(tersoff)) ltersoff = tersoff
       lsiepmann = .FALSE.; IF (PRESENT(siepmann)) lsiepmann = siepmann
+      lgal = .FALSE.; IF (PRESENT(gal)) lgal = gal
 
       IF (llj) THEN
          ipot = lj_type
          check = .NOT. (llj_charmm .OR. lwilliams .OR. lgoodwin .OR. leam .OR. lquip .OR. lbmhft &
                         .OR. lbmhftd .OR. lipbv .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff &
-                        .OR. lsiepmann .OR. ldeepmd)
+                        .OR. lsiepmann .OR. lgal .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (llj_charmm) THEN
          ipot = lj_charmm_type
          check = .NOT. (llj .OR. lwilliams .OR. lgoodwin .OR. leam .OR. lquip .OR. lbmhft .OR. lbmhftd .OR. lipbv &
-                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
+                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. lgal .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (lwilliams) THEN
          ipot = wl_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. leam .OR. lquip .OR. lbmhft .OR. lbmhftd .OR. lipbv &
-                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
+                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. lgal .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (lgoodwin) THEN
          ipot = gw_type
          check = .NOT. (llj .OR. llj_charmm .OR. lwilliams .OR. leam .OR. lquip .OR. lbmhft .OR. lbmhftd .OR. lipbv &
-                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
+                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. lgal .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (leam) THEN
          ipot = ea_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. lwilliams .OR. lquip .OR. lbmhft .OR. lbmhftd .OR. lipbv &
-                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
+                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. lgal .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (lquip) THEN
          ipot = quip_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. lwilliams .OR. leam .OR. lbmhft .OR. lbmhftd .OR. lipbv &
-                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
+                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. lgal .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (ldeepmd) THEN
          ipot = deepmd_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. lwilliams .OR. leam .OR. lbmhft .OR. lbmhftd .OR. lipbv &
-                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. lquip)
+                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. lquip .OR. lgal)
          CPASSERT(check)
       END IF
 
       IF (lbmhft) THEN
          ipot = ft_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. leam .OR. lquip .OR. lwilliams .OR. lbmhftd .OR. lipbv &
-                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
+                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. lgal .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (lbmhftd) THEN
          ipot = ftd_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. leam .OR. lquip .OR. lwilliams .OR. lbmhft .OR. lipbv &
-                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
+                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. lgal .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (lipbv) THEN
          ipot = ip_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. leam .OR. lquip .OR. lwilliams .OR. lbmhft .OR. lbmhftd &
-                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
+                        .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. lgal .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (lbuck4r) THEN
          ipot = b4_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. leam .OR. lquip .OR. lwilliams .OR. lbmhft .OR. lbmhftd &
-                        .OR. lipbv .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
+                        .OR. lipbv .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. lgal .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (lbuckmo) THEN
          ipot = bm_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. leam .OR. lquip .OR. lwilliams .OR. lbmhft .OR. lbmhftd &
-                        .OR. lipbv .OR. lbuck4r .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
+                        .OR. lipbv .OR. lbuck4r .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. lgal .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (ltersoff) THEN
          ipot = tersoff_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. leam .OR. lquip .OR. lwilliams .OR. lbmhft .OR. lbmhftd &
-                        .OR. lipbv .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. lsiepmann .OR. ldeepmd)
+                        .OR. lipbv .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. lsiepmann .OR. lgal .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (lsiepmann) THEN
          ipot = siepmann_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. leam .OR. lquip .OR. lwilliams .OR. lbmhft .OR. lbmhftd &
-                        .OR. lipbv .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. ldeepmd)
+                        .OR. lipbv .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lgal .OR. ldeepmd)
+         CPASSERT(check)
+      END IF
+      IF (lgal) THEN
+         ipot = gal_type
+         check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. leam .OR. lquip .OR. lwilliams .OR. lbmhft .OR. lbmhftd &
+                        .OR. lipbv .OR. lbuck4r .OR. lbuckmo .OR. lgp .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
          CPASSERT(check)
       END IF
       IF (lgp) THEN
          ipot = gp_type
          check = .NOT. (llj .OR. llj_charmm .OR. lgoodwin .OR. leam .OR. lwilliams .OR. lbmhft .OR. lbmhftd &
-                        .OR. lipbv .OR. lbuck4r .OR. lbuckmo .OR. ltersoff .OR. lsiepmann .OR. ldeepmd)
+                        .OR. lipbv .OR. lbuck4r .OR. lbuckmo .OR. ltersoff .OR. lsiepmann .OR. lgal .OR. ldeepmd)
          CPASSERT(check)
       END IF
 
@@ -1058,7 +1082,7 @@ CONTAINS
          CALL pair_potential_p_copy(work, p, istart=lb1_old, iend=ub1_old)
       END IF
       std_dim = 1
-      DO i = ub1_old+1, ub1_new
+      DO i = ub1_old + 1, ub1_new
          check = (SIZE(p%pot(i)%pot%type) == std_dim) .AND. (SIZE(p%pot(i)%pot%type) == std_dim)
          CPASSERT(check)
          p%pot(i)%pot%type = nn_type
@@ -1099,6 +1123,8 @@ CONTAINS
             CALL pair_potential_tersoff_create(p%pot(i)%pot%set(std_dim)%tersoff)
          CASE (siepmann_type)
             CALL pair_potential_siepmann_create(p%pot(i)%pot%set(std_dim)%siepmann)
+         CASE (gal_type)
+            CALL pair_potential_gal_create(p%pot(i)%pot%set(std_dim)%gal)
          END SELECT
          NULLIFY (p%pot(i)%pot%spl_f)
          NULLIFY (p%pot(i)%pot%pair_spline_data)
@@ -1115,9 +1141,6 @@ CONTAINS
    SUBROUTINE pair_potential_gp_create(gp)
       TYPE(gp_pot_type), POINTER                         :: gp
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_gp_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(gp))
       ALLOCATE (gp)
       NULLIFY (gp%parameters)
@@ -1133,9 +1156,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_gp_copy(gp_source, gp_dest)
       TYPE(gp_pot_type), POINTER                         :: gp_source, gp_dest
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_gp_copy', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: idim
 
@@ -1165,9 +1185,6 @@ CONTAINS
    SUBROUTINE pair_potential_gp_clean(gp)
       TYPE(gp_pot_type), POINTER                         :: gp
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_gp_clean', &
-         routineP = moduleN//':'//routineN
-
       IF (.NOT. ASSOCIATED(gp)) RETURN
       gp%myid = 0
       gp%potential = ""
@@ -1187,9 +1204,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_gp_release(gp)
       TYPE(gp_pot_type), POINTER                         :: gp
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_gp_release', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(gp)) THEN
          IF (ASSOCIATED(gp%parameters)) THEN
@@ -1211,9 +1225,6 @@ CONTAINS
    SUBROUTINE pair_potential_lj_create(lj)
       TYPE(lj_pot_type), POINTER                         :: lj
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_lj_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(lj))
       ALLOCATE (lj)
       CALL pair_potential_lj_clean(lj)
@@ -1227,9 +1238,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_lj_copy(lj_source, lj_dest)
       TYPE(lj_pot_type), POINTER                         :: lj_source, lj_dest
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_lj_copy', &
-         routineP = moduleN//':'//routineN
 
       IF (.NOT. ASSOCIATED(lj_source)) RETURN
       IF (ASSOCIATED(lj_dest)) CALL pair_potential_lj_release(lj_dest)
@@ -1247,9 +1255,6 @@ CONTAINS
    SUBROUTINE pair_potential_lj_clean(lj)
       TYPE(lj_pot_type), POINTER                         :: lj
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_lj_clean', &
-         routineP = moduleN//':'//routineN
-
       IF (.NOT. ASSOCIATED(lj)) RETURN
       lj%epsilon = 0.0_dp
       lj%sigma6 = 0.0_dp
@@ -1263,9 +1268,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_lj_release(lj)
       TYPE(lj_pot_type), POINTER                         :: lj
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_lj_release', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(lj)) THEN
          DEALLOCATE (lj)
@@ -1281,9 +1283,6 @@ CONTAINS
    SUBROUTINE pair_potential_williams_create(willis)
       TYPE(williams_pot_type), POINTER                   :: willis
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_williams_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(willis))
       ALLOCATE (willis)
       CALL pair_potential_williams_clean(willis)
@@ -1297,9 +1296,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_williams_copy(willis_source, willis_dest)
       TYPE(williams_pot_type), POINTER                   :: willis_source, willis_dest
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_williams_copy', &
-         routineP = moduleN//':'//routineN
 
       IF (.NOT. ASSOCIATED(willis_source)) RETURN
       IF (ASSOCIATED(willis_dest)) CALL pair_potential_williams_release(willis_dest)
@@ -1317,9 +1313,6 @@ CONTAINS
    SUBROUTINE pair_potential_williams_clean(willis)
       TYPE(williams_pot_type), POINTER                   :: willis
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_williams_clean', &
-         routineP = moduleN//':'//routineN
-
       IF (.NOT. ASSOCIATED(willis)) RETURN
       willis%a = 0.0_dp
       willis%b = 0.0_dp
@@ -1333,9 +1326,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_williams_release(willis)
       TYPE(williams_pot_type), POINTER                   :: willis
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_williams_release', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(willis)) THEN
          DEALLOCATE (willis)
@@ -1351,9 +1341,6 @@ CONTAINS
    SUBROUTINE pair_potential_goodwin_create(goodwin)
       TYPE(goodwin_pot_type), POINTER                    :: goodwin
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_goodwin_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(goodwin))
       ALLOCATE (goodwin)
       CALL pair_potential_goodwin_clean(goodwin)
@@ -1367,9 +1354,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_goodwin_copy(goodwin_source, goodwin_dest)
       TYPE(goodwin_pot_type), POINTER                    :: goodwin_source, goodwin_dest
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_goodwin_copy', &
-         routineP = moduleN//':'//routineN
 
       IF (.NOT. ASSOCIATED(goodwin_source)) RETURN
       IF (ASSOCIATED(goodwin_dest)) CALL pair_potential_goodwin_release(goodwin_dest)
@@ -1389,9 +1373,6 @@ CONTAINS
    SUBROUTINE pair_potential_goodwin_clean(goodwin)
       TYPE(goodwin_pot_type), POINTER                    :: goodwin
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_goodwin_clean', &
-         routineP = moduleN//':'//routineN
-
       IF (.NOT. ASSOCIATED(goodwin)) RETURN
       goodwin%vr0 = 0.0_dp
       goodwin%d = 0.0_dp
@@ -1408,9 +1389,6 @@ CONTAINS
    SUBROUTINE pair_potential_goodwin_release(goodwin)
       TYPE(goodwin_pot_type), POINTER                    :: goodwin
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_goodwin_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(goodwin)) THEN
          DEALLOCATE (goodwin)
       END IF
@@ -1424,9 +1402,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_eam_create(eam)
       TYPE(eam_pot_type), POINTER                        :: eam
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_eam_create', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(.NOT. ASSOCIATED(eam))
       ALLOCATE (eam)
@@ -1443,9 +1418,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_eam_copy(eam_source, eam_dest)
       TYPE(eam_pot_type), POINTER                        :: eam_source, eam_dest
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_eam_copy', &
-         routineP = moduleN//':'//routineN
 
       IF (.NOT. ASSOCIATED(eam_source)) RETURN
       IF (ASSOCIATED(eam_dest)) CALL pair_potential_eam_release(eam_dest)
@@ -1482,9 +1454,6 @@ CONTAINS
    SUBROUTINE pair_potential_eam_clean(eam)
       TYPE(eam_pot_type), POINTER                        :: eam
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_eam_clean', &
-         routineP = moduleN//':'//routineN
-
       IF (.NOT. ASSOCIATED(eam)) RETURN
       eam%eam_file_name = 'NULL'
       eam%drar = 0.0_dp
@@ -1508,9 +1477,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_eam_release(eam)
       TYPE(eam_pot_type), POINTER                        :: eam
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_eam_release', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(eam)) THEN
          IF (ASSOCIATED(eam%rho)) THEN
@@ -1543,8 +1509,8 @@ CONTAINS
 
 ! **************************************************************************************************
 !> \brief Creates the DEEPMD potential type
-!> \param quip ...
-!> \author Teodoro Laino [teo] 11.2005
+!> \param deepmd ...
+!> \author Yongbin Zhuang 07.2019
 ! **************************************************************************************************
    SUBROUTINE pair_potential_deepmd_create(deepmd)
       TYPE(deepmd_pot_type), POINTER                       :: deepmd
@@ -1561,9 +1527,9 @@ CONTAINS
 
 ! **************************************************************************************************
 !> \brief Copy two DEEPMD potential type
-!> \param quip_source ...
-!> \param quip_dest ...
-!> \author Teodoro Laino [teo] 11.2005
+!> \param deepmd_source ...
+!> \param deepmd_dest ...
+!> \author Yongbin Zhuang 07.2019
 ! **************************************************************************************************
    SUBROUTINE pair_potential_deepmd_copy(deepmd_source, deepmd_dest)
       TYPE(deepmd_pot_type), POINTER                       :: deepmd_source, deepmd_dest
@@ -1580,8 +1546,8 @@ CONTAINS
 
 ! **************************************************************************************************
 !> \brief CLEAN the DEEPMD potential type
-!> \param quip ...
-!> \author Teodoro Laino [teo] 11.2005
+!> \param deepmd ...
+!> \author Yongbin Zhuang 07.2019
 ! **************************************************************************************************
    SUBROUTINE pair_potential_deepmd_clean(deepmd)
       TYPE(deepmd_pot_type), POINTER                       :: deepmd
@@ -1596,8 +1562,8 @@ CONTAINS
 
 ! **************************************************************************************************
 !> \brief Destroys the DEEPMD potential type
-!> \param quip ...
-!> \author Teodoro Laino [teo] 11.2005
+!> \param deepmd ...
+!> \author Yongbin Zhuang 07.2019
 ! **************************************************************************************************
    SUBROUTINE pair_potential_deepmd_release(deepmd)
       TYPE(deepmd_pot_type), POINTER                       :: deepmd
@@ -1618,9 +1584,6 @@ CONTAINS
    SUBROUTINE pair_potential_quip_create(quip)
       TYPE(quip_pot_type), POINTER                       :: quip
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_quip_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(quip))
       ALLOCATE (quip)
       quip%quip_file_name = ""
@@ -1638,9 +1601,6 @@ CONTAINS
    SUBROUTINE pair_potential_quip_copy(quip_source, quip_dest)
       TYPE(quip_pot_type), POINTER                       :: quip_source, quip_dest
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_quip_copy', &
-         routineP = moduleN//':'//routineN
-
       IF (.NOT. ASSOCIATED(quip_source)) RETURN
       IF (ASSOCIATED(quip_dest)) CALL pair_potential_quip_release(quip_dest)
       CALL pair_potential_quip_create(quip_dest)
@@ -1657,9 +1617,6 @@ CONTAINS
    SUBROUTINE pair_potential_quip_clean(quip)
       TYPE(quip_pot_type), POINTER                       :: quip
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_quip_clean', &
-         routineP = moduleN//':'//routineN
-
       IF (.NOT. ASSOCIATED(quip)) RETURN
       quip%quip_file_name = 'NULL'
       quip%init_args = ''
@@ -1674,9 +1631,6 @@ CONTAINS
    SUBROUTINE pair_potential_quip_release(quip)
       TYPE(quip_pot_type), POINTER                       :: quip
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_quip_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(quip)) THEN
          DEALLOCATE (quip)
       END IF
@@ -1689,9 +1643,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_bmhft_create(ft)
       TYPE(ft_pot_type), POINTER                         :: ft
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_bmhft_create', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(.NOT. ASSOCIATED(ft))
       ALLOCATE (ft)
@@ -1706,9 +1657,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_bmhft_copy(ft_source, ft_dest)
       TYPE(ft_pot_type), POINTER                         :: ft_source, ft_dest
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_bmhft_copy', &
-         routineP = moduleN//':'//routineN
 
       IF (.NOT. ASSOCIATED(ft_source)) RETURN
       IF (ASSOCIATED(ft_dest)) CALL pair_potential_bmhft_release(ft_dest)
@@ -1727,9 +1675,6 @@ CONTAINS
    SUBROUTINE pair_potential_bmhft_clean(ft)
       TYPE(ft_pot_type), POINTER                         :: ft
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_bmhft_clean', &
-         routineP = moduleN//':'//routineN
-
       IF (.NOT. ASSOCIATED(ft)) RETURN
       ft%A = 0.0_dp
       ft%B = 0.0_dp
@@ -1745,9 +1690,6 @@ CONTAINS
    SUBROUTINE pair_potential_bmhft_release(ft)
       TYPE(ft_pot_type), POINTER                         :: ft
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_bmhft_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(ft)) THEN
          DEALLOCATE (ft)
       END IF
@@ -1762,9 +1704,6 @@ CONTAINS
    SUBROUTINE pair_potential_bmhftd_create(ftd)
       TYPE(ftd_pot_type), POINTER                        :: ftd
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_bmhftd_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(ftd))
       ALLOCATE (ftd)
       CALL pair_potential_bmhftd_clean(ftd)
@@ -1778,9 +1717,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_bmhftd_copy(ftd_source, ftd_dest)
       TYPE(ftd_pot_type), POINTER                        :: ftd_source, ftd_dest
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_bmhftd_copy', &
-         routineP = moduleN//':'//routineN
 
       IF (.NOT. ASSOCIATED(ftd_source)) RETURN
       IF (ASSOCIATED(ftd_dest)) CALL pair_potential_bmhftd_release(ftd_dest)
@@ -1800,9 +1736,6 @@ CONTAINS
    SUBROUTINE pair_potential_bmhftd_clean(ftd)
       TYPE(ftd_pot_type), POINTER                        :: ftd
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_bmhftd_clean', &
-         routineP = moduleN//':'//routineN
-
       IF (.NOT. ASSOCIATED(ftd)) RETURN
       ftd%A = 0.0_dp
       ftd%B = 0.0_dp
@@ -1819,9 +1752,6 @@ CONTAINS
    SUBROUTINE pair_potential_bmhftd_release(ftd)
       TYPE(ftd_pot_type), POINTER                        :: ftd
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_bmhftd_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(ftd)) THEN
          DEALLOCATE (ftd)
       END IF
@@ -1836,9 +1766,6 @@ CONTAINS
    SUBROUTINE pair_potential_ipbv_create(ipbv)
       TYPE(ipbv_pot_type), POINTER                       :: ipbv
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_ipbv_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(ipbv))
       ALLOCATE (ipbv)
       CALL pair_potential_ipbv_clean(ipbv)
@@ -1852,9 +1779,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_ipbv_copy(ipbv_source, ipbv_dest)
       TYPE(ipbv_pot_type), POINTER                       :: ipbv_source, ipbv_dest
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_ipbv_copy', &
-         routineP = moduleN//':'//routineN
 
       IF (.NOT. ASSOCIATED(ipbv_source)) RETURN
       IF (ASSOCIATED(ipbv_dest)) CALL pair_potential_ipbv_release(ipbv_dest)
@@ -1873,9 +1797,6 @@ CONTAINS
    SUBROUTINE pair_potential_ipbv_clean(ipbv)
       TYPE(ipbv_pot_type), POINTER                       :: ipbv
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_ipbv_clean', &
-         routineP = moduleN//':'//routineN
-
       IF (.NOT. ASSOCIATED(ipbv)) RETURN
       ipbv%a = 0.0_dp
       ipbv%rcore = 0.0_dp
@@ -1891,9 +1812,6 @@ CONTAINS
    SUBROUTINE pair_potential_ipbv_release(ipbv)
       TYPE(ipbv_pot_type), POINTER                       :: ipbv
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_ipbv_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(ipbv)) THEN
          DEALLOCATE (ipbv)
       END IF
@@ -1908,9 +1826,6 @@ CONTAINS
    SUBROUTINE pair_potential_buck4r_create(buck4r)
       TYPE(buck4ran_pot_type), POINTER                   :: buck4r
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_buck4r_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(buck4r))
       ALLOCATE (buck4r)
       CALL pair_potential_buck4r_clean(buck4r)
@@ -1924,9 +1839,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_buck4r_copy(buck4r_source, buck4r_dest)
       TYPE(buck4ran_pot_type), POINTER                   :: buck4r_source, buck4r_dest
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_buck4r_copy', &
-         routineP = moduleN//':'//routineN
 
       IF (.NOT. ASSOCIATED(buck4r_source)) RETURN
       IF (ASSOCIATED(buck4r_dest)) CALL pair_potential_buck4r_release(buck4r_dest)
@@ -1951,9 +1863,6 @@ CONTAINS
    SUBROUTINE pair_potential_buck4r_clean(buck4r)
       TYPE(buck4ran_pot_type), POINTER                   :: buck4r
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_buck4r_clean', &
-         routineP = moduleN//':'//routineN
-
       IF (.NOT. ASSOCIATED(buck4r)) RETURN
       buck4r%a = 0.0_dp
       buck4r%b = 0.0_dp
@@ -1975,9 +1884,6 @@ CONTAINS
    SUBROUTINE pair_potential_buck4r_release(buck4r)
       TYPE(buck4ran_pot_type), POINTER                   :: buck4r
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_buck4r_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(buck4r)) THEN
          DEALLOCATE (buck4r)
       END IF
@@ -1992,9 +1898,6 @@ CONTAINS
    SUBROUTINE pair_potential_buckmo_create(buckmo)
       TYPE(buckmorse_pot_type), POINTER                  :: buckmo
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_buckmo_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(buckmo))
       ALLOCATE (buckmo)
       CALL pair_potential_buckmo_clean(buckmo)
@@ -2008,9 +1911,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_buckmo_copy(buckmo_source, buckmo_dest)
       TYPE(buckmorse_pot_type), POINTER                  :: buckmo_source, buckmo_dest
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_buckmo_copy', &
-         routineP = moduleN//':'//routineN
 
       IF (.NOT. ASSOCIATED(buckmo_source)) RETURN
       IF (ASSOCIATED(buckmo_dest)) CALL pair_potential_buckmo_release(buckmo_dest)
@@ -2034,9 +1934,6 @@ CONTAINS
    SUBROUTINE pair_potential_buckmo_clean(buckmo)
       TYPE(buckmorse_pot_type), POINTER                  :: buckmo
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_buckmo_clean', &
-         routineP = moduleN//':'//routineN
-
       IF (.NOT. ASSOCIATED(buckmo)) RETURN
       buckmo%f0 = 0.0_dp
       buckmo%a1 = 0.0_dp
@@ -2057,9 +1954,6 @@ CONTAINS
    SUBROUTINE pair_potential_buckmo_release(buckmo)
       TYPE(buckmorse_pot_type), POINTER                  :: buckmo
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_buckmo_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(buckmo)) THEN
          DEALLOCATE (buckmo)
       END IF
@@ -2074,9 +1968,6 @@ CONTAINS
    SUBROUTINE pair_potential_tersoff_create(tersoff)
       TYPE(tersoff_pot_type), POINTER                    :: tersoff
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_tersoff_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(tersoff))
       ALLOCATE (tersoff)
       CALL pair_potential_tersoff_clean(tersoff)
@@ -2090,9 +1981,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_tersoff_copy(tersoff_source, tersoff_dest)
       TYPE(tersoff_pot_type), POINTER                    :: tersoff_source, tersoff_dest
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_tersoff_copy', &
-         routineP = moduleN//':'//routineN
 
       IF (.NOT. ASSOCIATED(tersoff_source)) RETURN
       IF (ASSOCIATED(tersoff_dest)) CALL pair_potential_tersoff_release(tersoff_dest)
@@ -2121,9 +2009,6 @@ CONTAINS
    SUBROUTINE pair_potential_tersoff_clean(tersoff)
       TYPE(tersoff_pot_type), POINTER                    :: tersoff
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_tersoff_clean', &
-         routineP = moduleN//':'//routineN
-
       IF (.NOT. ASSOCIATED(tersoff)) RETURN
       tersoff%A = 0.0_dp
       tersoff%B = 0.0_dp
@@ -2149,9 +2034,6 @@ CONTAINS
    SUBROUTINE pair_potential_tersoff_release(tersoff)
       TYPE(tersoff_pot_type), POINTER                    :: tersoff
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_tersoff_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(tersoff)) THEN
          DEALLOCATE (tersoff)
       END IF
@@ -2166,9 +2048,6 @@ CONTAINS
    SUBROUTINE pair_potential_siepmann_create(siepmann)
       TYPE(siepmann_pot_type), POINTER                   :: siepmann
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_siepmann_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(siepmann))
       ALLOCATE (siepmann)
       CALL pair_potential_siepmann_clean(siepmann)
@@ -2181,9 +2060,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pair_potential_siepmann_copy(siepmann_source, siepmann_dest)
       TYPE(siepmann_pot_type), POINTER                   :: siepmann_source, siepmann_dest
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_siepmann_copy', &
-         routineP = moduleN//':'//routineN
 
       IF (.NOT. ASSOCIATED(siepmann_source)) RETURN
       IF (ASSOCIATED(siepmann_dest)) CALL pair_potential_siepmann_release(siepmann_dest)
@@ -2208,9 +2084,6 @@ CONTAINS
    SUBROUTINE pair_potential_siepmann_clean(siepmann)
       TYPE(siepmann_pot_type), POINTER                   :: siepmann
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_siepmann_clean', &
-         routineP = moduleN//':'//routineN
-
       IF (.NOT. ASSOCIATED(siepmann)) RETURN
       siepmann%B = 0.0_dp
       siepmann%D = 0.0_dp
@@ -2232,14 +2105,98 @@ CONTAINS
    SUBROUTINE pair_potential_siepmann_release(siepmann)
       TYPE(siepmann_pot_type), POINTER                   :: siepmann
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'pair_potential_siepmann_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(siepmann)) THEN
          DEALLOCATE (siepmann)
       END IF
       NULLIFY (siepmann)
    END SUBROUTINE pair_potential_siepmann_release
+
+! **************************************************************************************************
+!> \brief Creates the GAL17 potential type
+!>      (??)
+!> \param gal ...
+! **************************************************************************************************
+   SUBROUTINE pair_potential_gal_create(gal)
+      TYPE(gal_pot_type), POINTER                        :: gal
+
+      CPASSERT(.NOT. ASSOCIATED(gal))
+      ALLOCATE (gal)
+      CALL pair_potential_gal_clean(gal)
+   END SUBROUTINE pair_potential_gal_create
+
+! **************************************************************************************************
+!> \brief Copy two GAL potential type
+!>      (??)
+!> \param gal_source ...
+!> \param gal_dest ...
+! **************************************************************************************************
+   SUBROUTINE pair_potential_gal_copy(gal_source, gal_dest)
+      TYPE(gal_pot_type), POINTER                        :: gal_source, gal_dest
+
+      IF (.NOT. ASSOCIATED(gal_source)) RETURN
+      IF (ASSOCIATED(gal_dest)) CALL pair_potential_gal_release(gal_dest)
+      CALL pair_potential_gal_create(gal_dest)
+      gal_dest%met1 = gal_source%met1
+      gal_dest%met2 = gal_source%met2
+      gal_dest%epsilon = gal_source%epsilon
+      gal_dest%bxy = gal_source%bxy
+      gal_dest%bz = gal_source%bz
+      gal_dest%r1 = gal_source%r1
+      gal_dest%r2 = gal_source%r2
+      gal_dest%a1 = gal_source%a1
+      gal_dest%a2 = gal_source%a2
+      gal_dest%a3 = gal_source%a3
+      gal_dest%a4 = gal_source%a4
+      gal_dest%a = gal_source%a
+      gal_dest%b = gal_source%b
+      gal_dest%c = gal_source%c
+      ALLOCATE (gal_dest%gcn(SIZE(gal_source%gcn)))
+      gal_dest%gcn = gal_source%gcn
+      gal_dest%express = gal_source%express
+      gal_dest%rcutsq = gal_source%rcutsq
+
+   END SUBROUTINE pair_potential_gal_copy
+
+! **************************************************************************************************
+!> \brief Creates the GAL17 potential type
+!>      (??)
+!> \param gal ...
+! **************************************************************************************************
+   SUBROUTINE pair_potential_gal_clean(gal)
+      TYPE(gal_pot_type), POINTER                        :: gal
+
+      IF (.NOT. ASSOCIATED(gal)) RETURN
+      gal%epsilon = 0.0_dp
+      gal%bxy = 0.0_dp
+      gal%bz = 0.0_dp
+      gal%r1 = 0.0_dp
+      gal%r2 = 0.0_dp
+      gal%a1 = 0.0_dp
+      gal%a2 = 0.0_dp
+      gal%a3 = 0.0_dp
+      gal%a4 = 0.0_dp
+      gal%a = 0.0_dp
+      gal%b = 0.0_dp
+      gal%c = 0.0_dp
+      gal%rcutsq = 0.0_dp
+      gal%express = .FALSE.
+
+   END SUBROUTINE pair_potential_gal_clean
+
+! **************************************************************************************************
+!> \brief Destroys the GAL17 potential
+!>      (??)
+!> \param gal ...
+! **************************************************************************************************
+   SUBROUTINE pair_potential_gal_release(gal)
+      TYPE(gal_pot_type), POINTER                        :: gal
+
+      IF (ASSOCIATED(gal)) THEN
+         DEALLOCATE (gal%gcn)
+         DEALLOCATE (gal)
+      END IF
+      NULLIFY (gal)
+   END SUBROUTINE pair_potential_gal_release
 
 END MODULE pair_potential_types
 

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -57,13 +59,11 @@ CONTAINS
       CHARACTER(LEN=*), INTENT(IN)                       :: storageform
       REAL(KIND=dp), INTENT(OUT)                         :: eigenvalues(:), eigenvectors(:, :)
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'diagonalise_ssyev', &
-         routineP = moduleN//':'//routineN
       CHARACTER, PARAMETER                               :: jobz = "V"
 
       CHARACTER                                          :: uplo
       INTEGER                                            :: info, lda, lwork
-      REAL(KIND=dp)                                      :: work(3*mysize-1)
+      REAL(KIND=dp)                                      :: work(3*mysize - 1)
 
       IF (storageform(1:5) == "Lower" .OR. &
           storageform(1:5) == "LOWER" .OR. &
@@ -78,7 +78,7 @@ CONTAINS
       END IF
 
       lda = SIZE(matrix, 1)
-      lwork = 3*mysize-1
+      lwork = 3*mysize - 1
 
       eigenvectors = matrix
 
@@ -107,14 +107,12 @@ CONTAINS
       REAL(KIND=dp), INTENT(OUT)                         :: eigenvalues(:)
       COMPLEX(KIND=dp), INTENT(OUT)                      :: eigenvectors(:, :)
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'diagonalise_chpev', &
-         routineP = moduleN//':'//routineN
       CHARACTER, PARAMETER                               :: jobz = "V"
 
       CHARACTER                                          :: uplo
       INTEGER                                            :: info
-      COMPLEX(KIND=dp)                                   :: work(2*mysize-1)
-      REAL(KIND=dp)                                      :: rwork(3*mysize-2)
+      COMPLEX(KIND=dp)                                   :: work(2*mysize - 1)
+      REAL(KIND=dp)                                      :: rwork(3*mysize - 2)
 
       IF (storageform(1:5) == "Lower" .OR. &
           storageform(1:5) == "LOWER" .OR. &
@@ -152,13 +150,12 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: mrow, ncol
       REAL(KIND=dp), INTENT(OUT)                         :: uvec(:, :), vtvec(:, :)
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp2k_sgesvd', routineP = moduleN//':'//routineN
       CHARACTER, PARAMETER                               :: jobu = "A", jobvt = "A"
 
       INTEGER                                            :: info, lda, ldu, ldvt, lwork
-      REAL(KIND=dp)                                      :: work(25*(mrow+ncol))
+      REAL(KIND=dp)                                      :: work(25*(mrow + ncol))
 
-      lwork = 25*(mrow+ncol)
+      lwork = 25*(mrow + ncol)
       lda = SIZE(matrix, 1)
       ldu = SIZE(uvec, 1)
       ldvt = SIZE(vtvec, 1)
@@ -187,14 +184,13 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: mrow, ncol
       COMPLEX(KIND=dp), INTENT(OUT)                      :: uvec(:, :), vtvec(:, :)
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp2k_cgesvd', routineP = moduleN//':'//routineN
       CHARACTER, PARAMETER                               :: jobu = "A", jobvt = "A"
 
       INTEGER                                            :: info, lda, ldu, ldvt, lwork
-      COMPLEX(KIND=dp)                                   :: work(25*(mrow+ncol))
-      REAL(KIND=dp)                                      :: rwork(25*(mrow+ncol))
+      COMPLEX(KIND=dp)                                   :: work(25*(mrow + ncol))
+      REAL(KIND=dp)                                      :: rwork(25*(mrow + ncol))
 
-      lwork = 25*(mrow+ncol)
+      lwork = 25*(mrow + ncol)
       lda = SIZE(matrix, 1)
       ldu = SIZE(uvec, 1)
       ldvt = SIZE(vtvec, 1)

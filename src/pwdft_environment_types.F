@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -10,17 +12,22 @@
 !> \author JHU
 ! **************************************************************************************************
 MODULE pwdft_environment_types
-   USE ISO_C_BINDING,                   ONLY: C_NULL_PTR,&
-                                              C_PTR
-   USE cp_para_types,                   ONLY: cp_para_env_type
-   USE cp_subsys_types,                 ONLY: cp_subsys_type
-   USE input_section_types,             ONLY: section_vals_type
-   USE kinds,                           ONLY: dp
-   USE qs_subsys_types,                 ONLY: qs_subsys_get,&
-                                              qs_subsys_release,&
-                                              qs_subsys_retain,&
-                                              qs_subsys_set,&
-                                              qs_subsys_type
+   USE ISO_C_BINDING, ONLY: C_NULL_PTR, &
+                            C_PTR
+   USE cp_para_types, ONLY: cp_para_env_type
+   USE cp_subsys_types, ONLY: cp_subsys_type
+   USE input_section_types, ONLY: section_vals_type
+   USE kinds, ONLY: dp
+   USE qs_subsys_types, ONLY: qs_subsys_get, &
+                              qs_subsys_release, &
+                              qs_subsys_retain, &
+                              qs_subsys_set, &
+                              qs_subsys_type
+
+#if defined(__SIRIUS)
+   USE sirius, ONLY: sirius_free_handler
+#endif
+
 #include "./base/base_uses.f90"
 
    IMPLICIT NONE
@@ -99,14 +106,11 @@ CONTAINS
 
       TYPE(pwdft_environment_type), POINTER              :: pwdft_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pwdft_env_retain', &
-         routineP = moduleN//':'//routineN
-
 !   ------------------------------------------------------------------------
 
       CPASSERT(ASSOCIATED(pwdft_env))
       CPASSERT(pwdft_env%ref_count > 0)
-      pwdft_env%ref_count = pwdft_env%ref_count+1
+      pwdft_env%ref_count = pwdft_env%ref_count + 1
    END SUBROUTINE pwdft_env_retain
 
 ! **************************************************************************************************
@@ -120,16 +124,19 @@ CONTAINS
 
       TYPE(pwdft_environment_type), POINTER              :: pwdft_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pwdft_env_release', &
-         routineP = moduleN//':'//routineN
-
 !   ------------------------------------------------------------------------
 
       IF (ASSOCIATED(pwdft_env)) THEN
          CPASSERT(pwdft_env%ref_count > 0)
-         pwdft_env%ref_count = pwdft_env%ref_count-1
+         pwdft_env%ref_count = pwdft_env%ref_count - 1
          IF (pwdft_env%ref_count < 1) THEN
-            !
+
+#if defined(__SIRIUS)
+            CALL sirius_free_handler(pwdft_env%gs_handler)
+            CALL sirius_free_handler(pwdft_env%ks_handler)
+            CALL sirius_free_handler(pwdft_env%sctx)
+#endif
+
             IF (ASSOCIATED(pwdft_env%qs_subsys)) THEN
                CALL qs_subsys_release(pwdft_env%qs_subsys)
             END IF
@@ -180,8 +187,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :), OPTIONAL, POINTER  :: forces
       REAL(KIND=dp), DIMENSION(3, 3), OPTIONAL           :: stress
       TYPE(C_PTR), OPTIONAL                              :: sctx, gs_handler, ks_handler
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'pwdft_env_get', routineP = moduleN//':'//routineN
 
 !   ------------------------------------------------------------------------
 
@@ -243,8 +248,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(3, 3), OPTIONAL           :: stress
       TYPE(C_PTR), OPTIONAL                              :: sctx, gs_handler, ks_handler
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pwdft_env_set', routineP = moduleN//':'//routineN
-
 !   ------------------------------------------------------------------------
 
       CPASSERT(ASSOCIATED(pwdft_env))
@@ -284,9 +287,6 @@ CONTAINS
 
       TYPE(pwdft_environment_type), POINTER              :: pwdft_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pwdft_env_clear', &
-         routineP = moduleN//':'//routineN
-
 !   ------------------------------------------------------------------------
 
       CPASSERT(ASSOCIATED(pwdft_env))
@@ -321,13 +321,10 @@ CONTAINS
 
       TYPE(pwdft_environment_type), POINTER              :: pwdft_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pwdft_env_create', &
-         routineP = moduleN//':'//routineN
-
       ALLOCATE (pwdft_env)
 
       pwdft_env%ref_count = 1
-      last_pwdft_id = last_pwdft_id+1
+      last_pwdft_id = last_pwdft_id + 1
       pwdft_env%id_nr = last_pwdft_id
       CALL pwdft_env_clear(pwdft_env)
 

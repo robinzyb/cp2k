@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -107,9 +109,6 @@ CONTAINS
       INTEGER(KIND=int_8), INTENT(IN)                    :: key
       TYPE(neighbor_list_task_type), INTENT(IN), POINTER :: val
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'nl_hash_table_add', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: islot
       LOGICAL                                            :: check_ok
 
@@ -127,7 +126,7 @@ CONTAINS
 
       ! add a new task to the list of tasks with that key
       IF (hash_table%obj%table(islot)%key == EMPTY_KEY) THEN
-         hash_table%obj%nelements = hash_table%obj%nelements+1
+         hash_table%obj%nelements = hash_table%obj%nelements + 1
          hash_table%obj%table(islot)%key = key
       END IF
 
@@ -149,9 +148,6 @@ CONTAINS
       TYPE(nl_hash_table_obj), INTENT(INOUT)             :: hash_table
       INTEGER, INTENT(IN), OPTIONAL                      :: nmax
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'nl_hash_table_create', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: my_nmax
       LOGICAL                                            :: check_ok
 
@@ -168,7 +164,7 @@ CONTAINS
 
       ! book keeping stuff
       hash_table%obj%ref_count = 1
-      hash_table%obj%id_nr = last_nl_hash_table_id+1
+      hash_table%obj%id_nr = last_nl_hash_table_id + 1
       last_nl_hash_table_id = hash_table%obj%id_nr
    END SUBROUTINE nl_hash_table_create
 
@@ -183,9 +179,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: idx
       TYPE(neighbor_list_task_type), INTENT(OUT), &
          POINTER                                         :: val
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'nl_hash_table_get_from_index', &
-         routineP = moduleN//':'//routineN
 
       LOGICAL                                            :: check_ok
 
@@ -218,9 +211,6 @@ CONTAINS
    SUBROUTINE nl_hash_table_init(hash_table, nmax)
       TYPE(nl_hash_table_obj), INTENT(INOUT)             :: hash_table
       INTEGER, INTENT(IN), OPTIONAL                      :: nmax
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'nl_hash_table_init', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ii, my_nmax, two_to_power
       LOGICAL                                            :: check_ok
@@ -268,9 +258,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: key
       LOGICAL, INTENT(OUT)                               :: is_null
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'nl_hash_table_is_null', &
-         routineP = moduleN//':'//routineN
-
       LOGICAL                                            :: check_ok
 
       check_ok = nl_hash_table_has_data(hash_table)
@@ -294,9 +281,6 @@ CONTAINS
    RECURSIVE SUBROUTINE nl_hash_table_rehash(hash_table, nmax)
       TYPE(nl_hash_table_obj), INTENT(INOUT)             :: hash_table
       INTEGER, INTENT(IN), OPTIONAL                      :: nmax
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'nl_hash_table_rehash', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ii, my_nmax
       TYPE(nl_hash_table_element), ALLOCATABLE, &
@@ -333,15 +317,12 @@ CONTAINS
    SUBROUTINE nl_hash_table_release(hash_table)
       TYPE(nl_hash_table_obj), INTENT(INOUT)             :: hash_table
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'nl_hash_table_release', &
-         routineP = moduleN//':'//routineN
-
       LOGICAL                                            :: check_ok
 
       IF (ASSOCIATED(hash_table%obj)) THEN
          check_ok = hash_table%obj%ref_count > 0
          CPASSERT(check_ok)
-         hash_table%obj%ref_count = hash_table%obj%ref_count-1
+         hash_table%obj%ref_count = hash_table%obj%ref_count - 1
          IF (hash_table%obj%ref_count == 0) THEN
             hash_table%obj%ref_count = 1
             IF (ASSOCIATED(hash_table%obj%table)) THEN
@@ -365,9 +346,6 @@ CONTAINS
    SUBROUTINE nl_hash_table_status(hash_table, nelements, nmax, prime)
       TYPE(nl_hash_table_obj), INTENT(INOUT)             :: hash_table
       INTEGER, INTENT(OUT), OPTIONAL                     :: nelements, nmax, prime
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'nl_hash_table_status', &
-         routineP = moduleN//':'//routineN
 
       LOGICAL                                            :: check_ok
 
@@ -395,7 +373,7 @@ CONTAINS
       guess = nl_hash_table_hash_function(hash_table, key)
 
       ! then search for key and stop at first empty slot from guess to
-      ! nmax.  using the same linear probe for adding and retreiving
+      ! nmax.  using the same linear probe for adding and retrieving
       ! makes all non-empty keys being put before the first empty slot.
       DO islot = guess, hash_table%obj%nmax
          IF ((hash_table%obj%table(islot)%key == key) .OR. &
@@ -403,7 +381,7 @@ CONTAINS
       END DO
 
       ! if unsuccessful, search from 1 to guess
-      DO islot = 1, guess-1
+      DO islot = 1, guess - 1
          IF ((hash_table%obj%table(islot)%key == key) .OR. &
              (hash_table%obj%table(islot)%key == EMPTY_KEY)) RETURN
       END DO
@@ -429,7 +407,7 @@ CONTAINS
       prime_8 = INT(hash_table%obj%prime, int_8)
 
       ! IAND with nmax-1 is equivalent to MOD nmax if nmax is alway a power of 2.
-      hash_8 = IAND(key*prime_8, nmax_8-1)+1_int_8
+      hash_8 = IAND(key*prime_8, nmax_8 - 1) + 1_int_8
       hash = INT(hash_8)
    END FUNCTION nl_hash_table_hash_function
 

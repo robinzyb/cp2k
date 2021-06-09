@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 MODULE optimize_basis_utils
    USE cp_files,                        ONLY: close_file,&
@@ -59,9 +61,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: root_section
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'optimize_basis_init_read_input', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_path_length)                 :: main_dir
       INTEGER                                            :: iset, iweight, nrep
       TYPE(section_vals_type), POINTER                   :: kind_section, optbas_section, &
@@ -107,7 +106,7 @@ CONTAINS
       ALLOCATE (opt_bas%fval_weight(0:opt_bas%ncombinations))
       opt_bas%fval_weight = 1.0_dp
       DO iweight = 1, nrep
-         CALL section_vals_val_get(optbas_section, "RESIDUUM_WEIGHT", r_val=opt_bas%fval_weight(iweight-1), &
+         CALL section_vals_val_get(optbas_section, "RESIDUUM_WEIGHT", r_val=opt_bas%fval_weight(iweight - 1), &
                                    i_rep_val=iweight)
       END DO
 
@@ -115,7 +114,7 @@ CONTAINS
       ALLOCATE (opt_bas%condition_weight(0:opt_bas%ncombinations))
       opt_bas%condition_weight = 1.0_dp
       DO iweight = 1, nrep
-         CALL section_vals_val_get(optbas_section, "CONDITION_WEIGHT", r_val=opt_bas%condition_weight(iweight-1), &
+         CALL section_vals_val_get(optbas_section, "CONDITION_WEIGHT", r_val=opt_bas%condition_weight(iweight - 1), &
                                    i_rep_val=iweight)
       END DO
 
@@ -131,8 +130,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE print_opt_info(opt_bas)
       TYPE(basis_optimization_type)                      :: opt_bas
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'print_opt_info', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: icomb, ikind, unit_nr
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -168,9 +165,6 @@ CONTAINS
       TYPE(basis_optimization_type)                      :: opt_bas
       TYPE(section_vals_type), POINTER                   :: optbas_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'generate_basis_combinations', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, ikind, j, n_rep
       INTEGER, DIMENSION(:), POINTER                     :: i_vals, tmp_i, tmp_i2
       LOGICAL                                            :: explicit, raise
@@ -192,10 +186,10 @@ CONTAINS
             DO j = 1, opt_bas%nkind
                opt_bas%combination(i, j) = tmp_i2(j)
             END DO
-            tmp_i2(opt_bas%nkind) = tmp_i2(opt_bas%nkind)+1
+            tmp_i2(opt_bas%nkind) = tmp_i2(opt_bas%nkind) + 1
             raise = .FALSE.
             DO j = opt_bas%nkind, 1, -1
-               IF (raise) tmp_i2(j) = tmp_i2(j)+1
+               IF (raise) tmp_i2(j) = tmp_i2(j) + 1
                IF (tmp_i2(j) .GT. tmp_i(j)) THEN
                   tmp_i2(j) = 0
                   raise = .TRUE.
@@ -231,16 +225,13 @@ CONTAINS
       TYPE(basis_optimization_type)                      :: opt_bas
       INTEGER                                            :: set_id, bas_id
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_set_and_basis_id', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ncom, nset
 
       ncom = opt_bas%ncombinations
       nset = opt_bas%ntraining_sets
 
-      set_id = (calc_id)/ncom+1
-      bas_id = MOD(calc_id, ncom)+1
+      set_id = (calc_id)/ncom + 1
+      bas_id = MOD(calc_id, ncom) + 1
 
    END SUBROUTINE
 
@@ -258,9 +249,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: optbas_section
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'generate_computation_groups', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iadd1, iadd2, icount, igroup, isize, j, &
                                                             ncalc, nproc, nptot
       INTEGER, DIMENSION(:), POINTER                     :: i_vals
@@ -276,27 +264,27 @@ CONTAINS
             iadd1 = nproc/ncalc
             iadd2 = MOD(nproc, ncalc)
             ALLOCATE (opt_bas%comp_group(ncalc))
-            ALLOCATE (opt_bas%group_partition(0:ncalc-1))
-            DO igroup = 0, ncalc-1
-               ALLOCATE (opt_bas%comp_group(igroup+1)%member_list(1))
-               opt_bas%comp_group(igroup+1)%member_list(1) = igroup
+            ALLOCATE (opt_bas%group_partition(0:ncalc - 1))
+            DO igroup = 0, ncalc - 1
+               ALLOCATE (opt_bas%comp_group(igroup + 1)%member_list(1))
+               opt_bas%comp_group(igroup + 1)%member_list(1) = igroup
                opt_bas%group_partition(igroup) = iadd1
-               IF (igroup .LT. iadd2) opt_bas%group_partition(igroup) = opt_bas%group_partition(igroup)+1
+               IF (igroup .LT. iadd2) opt_bas%group_partition(igroup) = opt_bas%group_partition(igroup) + 1
             END DO
          ELSE
             iadd1 = ncalc/nproc
             iadd2 = MOD(ncalc, nproc)
             ALLOCATE (opt_bas%comp_group(nproc))
-            ALLOCATE (opt_bas%group_partition(0:nproc-1))
+            ALLOCATE (opt_bas%group_partition(0:nproc - 1))
             icount = 0
-            DO igroup = 0, nproc-1
+            DO igroup = 0, nproc - 1
                opt_bas%group_partition(igroup) = 1
                isize = iadd1
-               IF (igroup .LT. iadd2) isize = isize+1
-               ALLOCATE (opt_bas%comp_group(igroup+1)%member_list(isize))
+               IF (igroup .LT. iadd2) isize = isize + 1
+               ALLOCATE (opt_bas%comp_group(igroup + 1)%member_list(isize))
                DO j = 1, isize
-                  opt_bas%comp_group(igroup+1)%member_list(j) = icount
-                  icount = icount+1
+                  opt_bas%comp_group(igroup + 1)%member_list(j) = icount
+                  icount = icount + 1
                END DO
             END DO
          END IF
@@ -316,26 +304,26 @@ CONTAINS
                           " Please change input.")
          CPASSERT(nptot == nproc)
          ALLOCATE (opt_bas%comp_group(isize))
-         ALLOCATE (opt_bas%group_partition(0:isize-1))
+         ALLOCATE (opt_bas%group_partition(0:isize - 1))
          IF (isize .LT. ncalc) THEN
             iadd1 = ncalc/isize
             iadd2 = MOD(ncalc, isize)
             icount = 0
-            DO igroup = 0, isize-1
-               opt_bas%group_partition(igroup) = i_vals(igroup+1)
+            DO igroup = 0, isize - 1
+               opt_bas%group_partition(igroup) = i_vals(igroup + 1)
                isize = iadd1
-               IF (igroup .LT. iadd2) isize = isize+1
-               ALLOCATE (opt_bas%comp_group(igroup+1)%member_list(isize))
+               IF (igroup .LT. iadd2) isize = isize + 1
+               ALLOCATE (opt_bas%comp_group(igroup + 1)%member_list(isize))
                DO j = 1, isize
-                  opt_bas%comp_group(igroup+1)%member_list(j) = icount
-                  icount = icount+1
+                  opt_bas%comp_group(igroup + 1)%member_list(j) = icount
+                  icount = icount + 1
                END DO
             END DO
          ELSE
-            DO igroup = 0, isize-1
-               opt_bas%group_partition(igroup) = i_vals(igroup+1)
-               ALLOCATE (opt_bas%comp_group(igroup+1)%member_list(1))
-               opt_bas%comp_group(igroup+1)%member_list(1) = igroup
+            DO igroup = 0, isize - 1
+               opt_bas%group_partition(igroup) = i_vals(igroup + 1)
+               ALLOCATE (opt_bas%comp_group(igroup + 1)%member_list(1))
+               opt_bas%comp_group(igroup + 1)%member_list(1) = igroup
             END DO
          END IF
       END IF
@@ -355,9 +343,6 @@ CONTAINS
       LOGICAL                                            :: write_it
       CHARACTER(LEN=default_path_length)                 :: output_file
       TYPE(cp_para_env_type), POINTER                    :: para_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'update_derived_basis_sets', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ibasis, ikind, unit_nr
 
@@ -399,20 +384,17 @@ CONTAINS
       TYPE(derived_basis_info)                           :: info_new
       TYPE(flex_basis_type)                              :: basis, basis_new
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'update_used_parts', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: icont, iset, jcont, jset
 
       jset = 0
       DO iset = 1, basis%nsets
          IF (info_new%in_use_set(iset)) THEN
-            jset = jset+1
+            jset = jset + 1
             basis_new%subset(jset)%exps(:) = basis%subset(iset)%exps
             jcont = 0
             DO icont = 1, basis%subset(iset)%ncon_tot
                IF (info_new%use_contr(iset)%in_use(icont)) THEN
-                  jcont = jcont+1
+                  jcont = jcont + 1
                   basis_new%subset(jset)%coeff(:, jcont) = basis%subset(iset)%coeff(:, icont)
                END IF
             END DO
@@ -431,9 +413,6 @@ CONTAINS
    SUBROUTINE generate_derived_basis_sets(opt_bas, para_env)
       TYPE(basis_optimization_type)                      :: opt_bas
       TYPE(cp_para_env_type), POINTER                    :: para_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'generate_derived_basis_sets', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ibasis, ikind, iref, jbasis, unit_nr
 
@@ -488,8 +467,6 @@ CONTAINS
       CHARACTER(LEN=default_string_length)               :: element
       INTEGER                                            :: unit_nr
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'write_basis', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iexp, iset
 
       IF (unit_nr > 0) THEN
@@ -521,9 +498,6 @@ CONTAINS
       TYPE(derived_basis_info)                           :: info_new, info_ref
       TYPE(flex_basis_type)                              :: basis, basis_new
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'setup_used_parts_init_basis', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, jset, lind, nsets
 
 ! copy the reference information on the new set
@@ -548,14 +522,14 @@ CONTAINS
 
       nsets = 0
       DO i = 1, basis%nsets
-         IF (info_new%in_use_set(i)) nsets = nsets+1
+         IF (info_new%in_use_set(i)) nsets = nsets + 1
       END DO
       basis_new%nsets = nsets
       ALLOCATE (basis_new%subset(nsets))
       jset = 0
       DO i = 1, basis%nsets
          IF (info_new%in_use_set(i)) THEN
-            jset = jset+1
+            jset = jset + 1
             CALL create_new_subset(basis%subset(i), basis_new%subset(jset), info_new%use_contr(jset)%in_use)
          END IF
       END DO
@@ -574,26 +548,23 @@ CONTAINS
       TYPE(subset_type)                                  :: subset, subset_new
       LOGICAL, DIMENSION(:)                              :: in_use
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_new_subset', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: icon, iind, il
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: tmp_l
 
       ALLOCATE (tmp_l(SIZE(subset%l)))
       tmp_l(:) = subset%l
       subset_new%lmin = subset%lmin
-      subset_new%lmax = subset%lmin-1
+      subset_new%lmax = subset%lmin - 1
       subset_new%nexp = subset%nexp
       subset_new%n = subset%n
       DO il = 1, SIZE(subset%l)
          DO icon = 1, subset%l(il)
-            iind = convert_l_contr_to_entry(subset%lmin, subset%l, icon, subset%lmin+il-1)
-            IF (.NOT. in_use(iind)) tmp_l(il) = tmp_l(il)-1
+            iind = convert_l_contr_to_entry(subset%lmin, subset%l, icon, subset%lmin + il - 1)
+            IF (.NOT. in_use(iind)) tmp_l(il) = tmp_l(il) - 1
          END DO
-         IF (tmp_l(il) .GT. 0) subset_new%lmax = subset_new%lmax+1
+         IF (tmp_l(il) .GT. 0) subset_new%lmax = subset_new%lmax + 1
       END DO
-      subset_new%nl = subset_new%lmax-subset_new%lmin+1
+      subset_new%nl = subset_new%lmax - subset_new%lmin + 1
       subset_new%ncon_tot = SUM(tmp_l)
       ALLOCATE (subset_new%l(subset_new%nl))
       ALLOCATE (subset_new%coeff(subset_new%nexp, subset_new%ncon_tot))
@@ -607,7 +578,7 @@ CONTAINS
       iind = 0
       DO icon = 1, subset%ncon_tot
          IF (in_use(icon)) THEN
-            iind = iind+1
+            iind = iind + 1
             subset_new%coeff(:, iind) = subset%coeff(:, icon)
          END IF
       END DO
@@ -624,9 +595,6 @@ CONTAINS
    SUBROUTINE init_deriv_info_ref(info, basis)
       TYPE(derived_basis_info)                           :: info
       TYPE(flex_basis_type)                              :: basis
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_deriv_info_ref', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
 
@@ -653,9 +621,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: kind_section
       TYPE(basis_optimization_type)                      :: opt_bas
       TYPE(cp_para_env_type), POINTER                    :: para_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'generate_initial_basis', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ikind, variable_counter
       LOGICAL                                            :: explicit
@@ -685,7 +650,7 @@ CONTAINS
 
          CALL parse_derived_basis(kind_section, opt_bas%kind_basis(ikind)%deriv_info, ikind)
 
-         variable_counter = variable_counter+opt_bas%kind_basis(ikind)%flex_basis(0)%nopt
+         variable_counter = variable_counter + opt_bas%kind_basis(ikind)%flex_basis(0)%nopt
       END DO
 
       ALLOCATE (opt_bas%x_opt(variable_counter))
@@ -712,20 +677,17 @@ CONTAINS
       TYPE(derived_basis_info), DIMENSION(:)             :: deriv_info
       INTEGER                                            :: ikind
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'parse_derived_basis', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i_rep, iset, jset, n_rep, nsets
       INTEGER, DIMENSION(:), POINTER                     :: i_vals
       LOGICAL                                            :: explicit
       TYPE(section_vals_type), POINTER                   :: set1_section
 
-      nsets = SIZE(deriv_info)-1
+      nsets = SIZE(deriv_info) - 1
       set1_section => section_vals_get_subs_vals(kind_section, "DERIVED_BASIS_SETS", &
                                                  i_rep_section=ikind)
       DO jset = 1, nsets
          ! stracnge but as derive info is allcated from 0 to n the count over here has to be shifted
-         iset = jset+1
+         iset = jset + 1
          CALL section_vals_val_get(set1_section, "BASIS_SET_NAME", c_val=deriv_info(iset)%basis_name, &
                                    i_rep_section=jset)
          CALL section_vals_val_get(set1_section, "REFERENCE_SET", i_vals=i_vals, i_rep_section=jset)
@@ -766,9 +728,6 @@ CONTAINS
    SUBROUTINE setup_exp_constraints(kind1_section, flex_basis)
       TYPE(section_vals_type), POINTER                   :: kind1_section
       TYPE(flex_basis_type)                              :: flex_basis
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'setup_exp_constraints', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ipgf, irep, iset, nrep
       INTEGER, DIMENSION(:), POINTER                     :: def_exp
@@ -842,8 +801,6 @@ CONTAINS
       LOGICAL                                            :: is_bound, is_varlim
       INTEGER                                            :: irep
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_constraint', routineP = moduleN//':'//routineN
-
       REAL(KIND=dp)                                      :: r_val
       REAL(KIND=dp), DIMENSION(:), POINTER               :: r_vals
 
@@ -865,7 +822,7 @@ CONTAINS
                           " to"//cp_to_string(MAXVAL(r_vals))// &
                           " Please change input.")
          flex_basis%subset(iset)%exp_const(ipgf)%init = SUM(r_vals)/2.0_dp
-         flex_basis%subset(iset)%exp_const(ipgf)%var_fac = MAXVAL(r_vals)/flex_basis%subset(iset)%exp_const(ipgf)%init-1.0_dp
+         flex_basis%subset(iset)%exp_const(ipgf)%var_fac = MAXVAL(r_vals)/flex_basis%subset(iset)%exp_const(ipgf)%init - 1.0_dp
       END IF
       IF (is_varlim) THEN
          flex_basis%subset(iset)%exp_const(ipgf)%const_type = 1
@@ -889,21 +846,18 @@ CONTAINS
       TYPE(flex_basis_type)                              :: basis
       INTEGER                                            :: x_ind
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'assign_x_to_basis', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: icont, ipgf, iset
 
       DO iset = 1, basis%nsets
          DO ipgf = 1, basis%subset(iset)%nexp
             IF (basis%subset(iset)%opt_exps(ipgf)) THEN
-               x_ind = x_ind+1
+               x_ind = x_ind + 1
                basis%subset(iset)%exp_x_ind(ipgf) = x_ind
                x(x_ind) = basis%subset(iset)%exps(ipgf)
             END IF
             DO icont = 1, basis%subset(iset)%ncon_tot
                IF (basis%subset(iset)%opt_coeff(ipgf, icont)) THEN
-                  x_ind = x_ind+1
+                  x_ind = x_ind + 1
                   basis%subset(iset)%coeff_x_ind(ipgf, icont) = x_ind
                   x(x_ind) = basis%subset(iset)%coeff(ipgf, icont)
                END IF
@@ -932,9 +886,6 @@ CONTAINS
       CHARACTER(LEN=default_string_length)               :: element, basis_name
       TYPE(cp_para_env_type), POINTER                    :: para_env
       INTEGER                                            :: ikind
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'fill_basis_template', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: icont, idof, ipgf, irep, iset, nrep
       INTEGER, DIMENSION(:), POINTER                     :: switch
@@ -992,7 +943,7 @@ CONTAINS
          CALL section_vals_val_get(kind1_section, "SWITCH_SET_STATE", i_rep_val=irep, &
                                    i_rep_section=ikind, i_vals=switch)
          DO ipgf = 1, flex_basis%subset(switch(2))%nexp
-            SELECT CASE (switch (1))
+            SELECT CASE (switch(1))
             CASE (0) ! switch all states in the set
                DO icont = 1, flex_basis%subset(switch(2))%ncon_tot
                   flex_basis%subset(switch(2))%opt_coeff(ipgf, icont) = &
@@ -1026,9 +977,9 @@ CONTAINS
       DO irep = 1, flex_basis%nsets
          DO ipgf = 1, flex_basis%subset(irep)%nexp
             DO icont = 1, flex_basis%subset(irep)%ncon_tot
-               IF (flex_basis%subset(irep)%opt_coeff(ipgf, icont)) flex_basis%nopt = flex_basis%nopt+1
+               IF (flex_basis%subset(irep)%opt_coeff(ipgf, icont)) flex_basis%nopt = flex_basis%nopt + 1
             END DO
-            IF (flex_basis%subset(irep)%opt_exps(ipgf)) flex_basis%nopt = flex_basis%nopt+1
+            IF (flex_basis%subset(irep)%opt_exps(ipgf)) flex_basis%nopt = flex_basis%nopt + 1
          END DO
       END DO
 
@@ -1052,12 +1003,12 @@ CONTAINS
 
       INTEGER                                            :: i, icon2l, iwork
 
-      iwork = l-lmin
+      iwork = l - lmin
       icon2l = 0
       DO i = 1, iwork
-         icon2l = icon2l+nl(i)
+         icon2l = icon2l + nl(i)
       END DO
-      ientry = icon2l+icontr
+      ientry = icon2l + icontr
 
    END FUNCTION convert_l_contr_to_entry
 
@@ -1076,8 +1027,6 @@ CONTAINS
       CHARACTER(LEN=default_path_length)                 :: template_basis_file
       CHARACTER(LEN=default_string_length)               :: element, basis_name
       TYPE(cp_para_env_type), POINTER                    :: para_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'parse_basis', routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=240)                                 :: line
       CHARACTER(LEN=242)                                 :: line2
@@ -1102,8 +1051,8 @@ CONTAINS
             line2 = " "//line//" "
             element2 = " "//TRIM(element)//" "
             basis_name2 = " "//TRIM(basis_name)//" "
-            strlen1 = LEN_TRIM(element2)+1
-            strlen2 = LEN_TRIM(basis_name2)+1
+            strlen1 = LEN_TRIM(element2) + 1
+            strlen2 = LEN_TRIM(basis_name2) + 1
             IF ((INDEX(line2, element2(:strlen1)) > 0) .AND. &
                 (INDEX(line2, basis_name2(:strlen2)) > 0)) match = .TRUE.
             IF (match) THEN
@@ -1139,8 +1088,6 @@ CONTAINS
       TYPE(cp_parser_type), POINTER                      :: parser
       TYPE(subset_type)                                  :: subset
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'parse_subset', routineP = moduleN//':'//routineN
-
       CHARACTER(len=20*default_string_length)            :: line_att
       INTEGER                                            :: icon1, icon2, il, ipgf, ishell, istart
       REAL(KIND=dp)                                      :: gs_scale
@@ -1151,7 +1098,7 @@ CONTAINS
       CALL parser_get_object(parser, subset%lmin)
       CALL parser_get_object(parser, subset%lmax)
       CALL parser_get_object(parser, subset%nexp)
-      subset%nl = subset%lmax-subset%lmin+1
+      subset%nl = subset%lmax - subset%lmin + 1
       ALLOCATE (r_val)
       ALLOCATE (subset%l(subset%nl))
       ALLOCATE (subset%exps(subset%nexp))
@@ -1181,14 +1128,14 @@ CONTAINS
       ! orthonormalize contraction coefficients using gram schmidt
       istart = 1
       DO il = 1, subset%nl
-         DO icon1 = istart, istart+subset%l(il)-2
-            DO icon2 = icon1+1, istart+subset%l(il)-1
+         DO icon1 = istart, istart + subset%l(il) - 2
+            DO icon2 = icon1 + 1, istart + subset%l(il) - 1
                gs_scale = DOT_PRODUCT(subset%coeff(:, icon2), subset%coeff(:, icon1))/ &
                           DOT_PRODUCT(subset%coeff(:, icon1), subset%coeff(:, icon1))
-               subset%coeff(:, icon2) = subset%coeff(:, icon2)-gs_scale*subset%coeff(:, icon1)
+               subset%coeff(:, icon2) = subset%coeff(:, icon2) - gs_scale*subset%coeff(:, icon1)
             END DO
          END DO
-         istart = istart+subset%l(il)
+         istart = istart + subset%l(il)
       END DO
 
       ! just to get an understandable basis normalize coefficients
@@ -1210,9 +1157,6 @@ CONTAINS
    SUBROUTINE init_powell_var(p_param, powell_section)
       TYPE(opt_state_type)                               :: p_param
       TYPE(section_vals_type), POINTER                   :: powell_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_powell_var', &
-         routineP = moduleN//':'//routineN
 
       p_param%state = 0
       p_param%nvar = 0

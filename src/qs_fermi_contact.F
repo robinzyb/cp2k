@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -75,8 +77,7 @@ CONTAINS
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: matrix_fc
       REAL(dp), DIMENSION(3), INTENT(IN)                 :: rc
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'build_fermi_contact_matrix', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'build_fermi_contact_matrix'
 
       INTEGER :: after, handle, iatom, icol, ikind, inode, irow, iset, iw, jatom, jkind, jset, &
          last_jatom, ldai, ldfc, maxco, maxlgto, maxsgf, natom, ncoa, ncob, nkind, nseta, nsetb, &
@@ -185,11 +186,11 @@ CONTAINS
 
          IF (inode == 1) last_jatom = 0
 
-         rb = rab+ra
-         rab2 = rab(1)*rab(1)+rab(2)*rab(2)+rab(3)*rab(3)
+         rb = rab + ra
+         rab2 = rab(1)*rab(1) + rab(2)*rab(2) + rab(3)*rab(3)
          dab = SQRT(rab2)
          rac = pbc(ra, rc, cell)
-         rbc = rac-rab
+         rbc = rac - rab
 
          IF (jatom /= last_jatom) THEN
             new_atom_b = .TRUE.
@@ -219,7 +220,7 @@ CONTAINS
 
             DO jset = 1, nsetb
 
-               IF (set_radius_a(iset)+set_radius_b(jset) < dab) CYCLE
+               IF (set_radius_a(iset) + set_radius_b(jset) < dab) CYCLE
 
                ncob = npgfb(jset)*ncoset(lb_max(jset))
                sgfb = first_sgfb(1, jset)

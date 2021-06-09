@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -56,6 +58,7 @@ MODULE qs_energy_utils
    USE qs_tddfpt2_methods,              ONLY: tddfpt
    USE scf_control_types,               ONLY: scf_control_type
    USE xas_methods,                     ONLY: xas
+   USE xas_tdp_methods,                 ONLY: xas_tdp
 #include "./base/base_uses.f90"
 
    IMPLICIT NONE
@@ -85,8 +88,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       LOGICAL, INTENT(IN)                                :: calc_forces
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_energies_compute_matrix_w', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'qs_energies_compute_matrix_w'
 
       INTEGER                                            :: handle, is, ispin, nao, nspin
       LOGICAL                                            :: do_kpoints, has_unit_metric
@@ -211,8 +213,7 @@ CONTAINS
    SUBROUTINE qs_energies_properties(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_energies_properties', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'qs_energies_properties'
 
       INTEGER                                            :: handle
       LOGICAL                                            :: do_et, do_et_proj
@@ -250,6 +251,7 @@ CONTAINS
          CALL atprop_array_add(atprop%atener, atprop%atexc)
          CALL atprop_array_add(atprop%atener, atprop%atecoul)
          CALL atprop_array_add(atprop%atener, atprop%atevdw)
+         CALL atprop_array_add(atprop%atener, atprop%ategcp)
          CALL atprop_array_add(atprop%atener, atprop%atecc)
          CALL atprop_array_add(atprop%atener, atprop%ate1c)
       END IF
@@ -289,6 +291,10 @@ CONTAINS
          CALL xas(qs_env, dft_control)
       END IF
 
+      IF (dft_control%do_xas_tdp_calculation) THEN
+         CALL xas_tdp(qs_env)
+      END IF
+
       ! Compute Linear Response properties as post-scf
       IF (.NOT. qs_env%linres_run) THEN
          CALL linres_calculation_low(qs_env)
@@ -312,9 +318,6 @@ CONTAINS
    SUBROUTINE qs_energies_mulliken(qs_env)
 
       TYPE(qs_environment_type), POINTER                 :: qs_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_energies_mulliken', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ispin
       TYPE(atprop_type), POINTER                         :: atprop
@@ -355,8 +358,6 @@ CONTAINS
       REAL(kind=dp), INTENT(IN)                          :: factor
       REAL(KIND=dp), DIMENSION(:), POINTER               :: atrace
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'atom_trace', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: blk, iblock_col, iblock_row, nblock
       LOGICAL                                            :: found
       REAL(kind=dp)                                      :: btr, mult
@@ -381,8 +382,8 @@ CONTAINS
             mult = 1.0_dp
          ENDIF
          btr = factor*mult*SUM(a_block*b_block)
-         atrace(iblock_row) = atrace(iblock_row)+btr
-         atrace(iblock_col) = atrace(iblock_col)+btr
+         atrace(iblock_row) = atrace(iblock_row) + btr
+         atrace(iblock_col) = atrace(iblock_col) + btr
 
       ENDDO
       CALL dbcsr_iterator_stop(iter)
@@ -398,9 +399,6 @@ CONTAINS
    SUBROUTINE qs_energies_mp2(qs_env, calc_forces)
       TYPE(qs_environment_type), POINTER                 :: qs_env
       LOGICAL, INTENT(IN)                                :: calc_forces
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_energies_mp2', &
-         routineP = moduleN//':'//routineN
 
       LOGICAL                                            :: should_stop
 

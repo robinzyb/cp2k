@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -71,7 +73,7 @@ CONTAINS
       TYPE(rt_prop_type), POINTER                        :: rtp
       TYPE(rtp_control_type), POINTER                    :: rtp_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'propagate_exp', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'propagate_exp'
       REAL(KIND=dp), PARAMETER                           :: one = 1.0_dp, zero = 0.0_dp
 
       INTEGER                                            :: handle, i, im, nmo, re
@@ -87,7 +89,7 @@ CONTAINS
       CALL compute_exponential(exp_H_new, propagator_matrix, rtp_control, rtp)
 
       DO i = 1, SIZE(mos_new)/2
-         re = 2*i-1
+         re = 2*i - 1
          im = 2*i
 
          CALL cp_fm_get_info(mos_new(re)%matrix, ncol_global=nmo)
@@ -135,8 +137,7 @@ CONTAINS
       TYPE(rt_prop_type), POINTER                        :: rtp
       TYPE(rtp_control_type), POINTER                    :: rtp_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'propagate_exp_density', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'propagate_exp_density'
       REAL(KIND=dp), PARAMETER                           :: one = 1.0_dp, zero = 0.0_dp
 
       INTEGER                                            :: handle, i, im, re
@@ -160,7 +161,7 @@ CONTAINS
       CALL dbcsr_create(tmp_im, template=propagator_matrix(1)%matrix, matrix_type="N")
 
       DO i = 1, SIZE(exp_H_new)/2
-         re = 2*i-1
+         re = 2*i - 1
          im = 2*i
          !Save some work by computing the first half of the propagation only once in case of ETRS
          !For EM this matrix has to be the initial matrix, thus a copy is enough
@@ -199,8 +200,7 @@ CONTAINS
       TYPE(rt_prop_type), POINTER                        :: rtp
       TYPE(rtp_control_type), POINTER                    :: rtp_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'propagate_arnoldi', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'propagate_arnoldi'
 
       INTEGER                                            :: handle, i, im, ispin, nspin, re
       REAL(dp)                                           :: eps_arnoldi, t
@@ -234,7 +234,7 @@ CONTAINS
       END DO
 
       DO ispin = 1, nspin
-         re = ispin*2-1
+         re = ispin*2 - 1
          im = ispin*2
          IF (rtp_control%fixed_ions .AND. .NOT. rtp%do_hfx) THEN
             CALL arnoldi(mos_old(re:im), mos_new(re:im), &
@@ -270,7 +270,7 @@ CONTAINS
       TYPE(rt_prop_type), POINTER                        :: rtp
       TYPE(rtp_control_type), POINTER                    :: rtp_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'propagate_bch', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'propagate_bch'
 
       INTEGER                                            :: handle, im, ispin, re
       REAL(dp)                                           :: dt
@@ -284,7 +284,7 @@ CONTAINS
                    rho_next=rho_next)
 
       DO ispin = 1, SIZE(propagator_matrix)/2
-         re = 2*ispin-1
+         re = 2*ispin - 1
          im = 2*ispin
 
          IF (rtp%iter == 1) THEN
@@ -341,9 +341,6 @@ CONTAINS
       TYPE(rtp_control_type), POINTER                    :: rtp_control
       TYPE(rt_prop_type), POINTER                        :: rtp
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'compute_exponential', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, im, ispin, re
       TYPE(cp_fm_p_type), DIMENSION(:), POINTER          :: propagator_fm, propagator_matrix_fm
 
@@ -363,7 +360,7 @@ CONTAINS
       END DO
 
       DO ispin = 1, SIZE(propagator)/2
-         re = 2*ispin-1
+         re = 2*ispin - 1
          im = 2*ispin
 
          SELECT CASE (rtp_control%mat_exp)
@@ -410,15 +407,14 @@ CONTAINS
       TYPE(rtp_control_type), POINTER                    :: rtp_control
       TYPE(rt_prop_type), POINTER                        :: rtp
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'compute_exponential_sparse', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'compute_exponential_sparse'
 
       INTEGER                                            :: handle, im, ispin, re
 
       CALL timeset(routineN, handle)
 
       DO ispin = 1, SIZE(propagator)/2
-         re = 2*ispin-1
+         re = 2*ispin - 1
          im = 2*ispin
          IF (rtp_control%fixed_ions .AND. .NOT. rtp%do_hfx) THEN
             CALL taylor_only_imaginary_dbcsr(propagator(re:im), propagator_matrix(im)%matrix, &

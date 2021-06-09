@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -17,8 +19,6 @@ MODULE csvr_system_types
                                               section_vals_val_get
    USE kinds,                           ONLY: dp
    USE parallel_rng_types,              ONLY: GAUSSIAN,&
-                                              create_rng_stream,&
-                                              delete_rng_stream,&
                                               next_rng_seed,&
                                               rng_stream_type
    USE simpar_types,                    ONLY: simpar_type
@@ -39,7 +39,7 @@ MODULE csvr_system_types
       REAL(KIND=dp)                           :: nkt
       REAL(KIND=dp)                           :: thermostat_energy
       REAL(KIND=dp)                           :: region_kin_energy
-      TYPE(rng_stream_type), POINTER          :: gaussian_rng_stream
+      TYPE(rng_stream_type)                   :: gaussian_rng_stream
    END TYPE csvr_thermo_type
 
 ! **************************************************************************************************
@@ -67,8 +67,6 @@ CONTAINS
       TYPE(simpar_type), POINTER                         :: simpar
       TYPE(section_vals_type), POINTER                   :: section
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'csvr_init', routineP = moduleN//':'//routineN
-
       NULLIFY (csvr%nvt)
       NULLIFY (csvr%map_info)
       csvr%loc_num_csvr = 0
@@ -92,9 +90,6 @@ CONTAINS
    SUBROUTINE csvr_thermo_create(csvr)
       TYPE(csvr_system_type), POINTER                    :: csvr
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'csvr_thermo_create', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=40)                                  :: name
       INTEGER                                            :: i, ithermo, my_index
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :, :)     :: seed
@@ -106,7 +101,6 @@ CONTAINS
       ALLOCATE (csvr%nvt(csvr%loc_num_csvr))
       DO i = 1, csvr%loc_num_csvr
          csvr%nvt(i)%thermostat_energy = 0.0_dp
-         NULLIFY (csvr%nvt(i)%gaussian_rng_stream)
       END DO
       ! Initialize the gaussian stream random number
       ALLOCATE (seed(3, 2, csvr%glob_num_csvr))
@@ -114,7 +108,7 @@ CONTAINS
 
       seed(:, :, 1) = initial_seed
       DO ithermo = 2, csvr%glob_num_csvr
-         seed(:, :, ithermo) = next_rng_seed(seed(:, :, ithermo-1))
+         seed(:, :, ithermo) = next_rng_seed(seed(:, :, ithermo - 1))
       END DO
       ! Update initial seed
       initial_seed = next_rng_seed(seed(:, :, csvr%glob_num_csvr))
@@ -123,9 +117,8 @@ CONTAINS
          my_seed = seed(:, :, my_index)
          WRITE (UNIT=name, FMT="(A,I8)") "Wiener process for Thermostat #", my_index
          CALL compress(name)
-         CALL create_rng_stream(rng_stream=csvr%nvt(ithermo)%gaussian_rng_stream, &
-                                name=name, distribution_type=GAUSSIAN, extended_precision=.TRUE., &
-                                seed=my_seed)
+         csvr%nvt(ithermo)%gaussian_rng_stream = rng_stream_type( &
+                                                 name=name, distribution_type=GAUSSIAN, extended_precision=.TRUE., seed=my_seed)
       END DO
       DEALLOCATE (seed)
 
@@ -138,8 +131,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE csvr_dealloc(csvr)
       TYPE(csvr_system_type), POINTER                    :: csvr
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'csvr_dealloc', routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(csvr)) THEN
          CALL csvr_thermo_dealloc(csvr%nvt)
@@ -157,19 +148,8 @@ CONTAINS
    SUBROUTINE csvr_thermo_dealloc(nvt)
       TYPE(csvr_thermo_type), DIMENSION(:), POINTER      :: nvt
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'csvr_thermo_dealloc', &
-         routineP = moduleN//':'//routineN
-
-      INTEGER                                            :: i
-
-      IF (ASSOCIATED(nvt)) THEN
-         DO i = 1, SIZE(nvt)
-            IF (ASSOCIATED(nvt(i)%gaussian_rng_stream)) THEN
-               CALL delete_rng_stream(nvt(i)%gaussian_rng_stream)
-            ENDIF
-         END DO
+      IF (ASSOCIATED(nvt)) &
          DEALLOCATE (nvt)
-      ENDIF
    END SUBROUTINE csvr_thermo_dealloc
 
 END MODULE csvr_system_types

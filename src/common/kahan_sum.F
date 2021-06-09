@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -72,17 +74,17 @@ CONTAINS
       IF (PRESENT(mask)) THEN
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1)) THEN
-               y = array(i1)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
       ELSE
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
       ENDIF
@@ -107,17 +109,17 @@ CONTAINS
       IF (PRESENT(mask)) THEN
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1)) THEN
-               y = array(i1)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
       ELSE
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
       ENDIF
@@ -140,9 +142,9 @@ CONTAINS
 
       n = SIZE(array1)
       DO i = 1, n
-         y = array1(i)*array2(i)-c
-         t = ks+y
-         c = (t-ks)-y
+         y = array1(i)*array2(i) - c
+         t = ks + y
+         c = (t - ks) - y
          ks = t
       END DO
    END FUNCTION kahan_dot_product_d1
@@ -166,17 +168,17 @@ CONTAINS
       IF (PRESENT(mask)) THEN
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1)) THEN
-               y = array(i1)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
       ELSE
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
       ENDIF
@@ -201,17 +203,17 @@ CONTAINS
       IF (PRESENT(mask)) THEN
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1)) THEN
-               y = array(i1)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
       ELSE
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
       ENDIF
@@ -237,9 +239,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2)) THEN
-               y = array(i1, i2)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -247,9 +249,9 @@ CONTAINS
       ELSE
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -275,9 +277,9 @@ CONTAINS
       n2 = SIZE(array1, 2)
       DO i2 = 1, n2
          DO i1 = 1, n1
-            y = REAL(array1(i1, i2), dp)*REAL(array2(i1, i2), dp)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = REAL(array1(i1, i2), dp)*REAL(array2(i1, i2), dp) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          END DO
       END DO
@@ -303,9 +305,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2)) THEN
-               y = array(i1, i2)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -313,9 +315,9 @@ CONTAINS
       ELSE
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -341,9 +343,9 @@ CONTAINS
       n2 = SIZE(array1, 2)
       DO i2 = 1, n2
          DO i1 = 1, n1
-            y = array1(i1, i2)*array2(i1, i2)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array1(i1, i2)*array2(i1, i2) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          END DO
       END DO
@@ -369,9 +371,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2)) THEN
-               y = array(i1, i2)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -379,9 +381,9 @@ CONTAINS
       ELSE
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -408,9 +410,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2)) THEN
-               y = array(i1, i2)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -418,9 +420,9 @@ CONTAINS
       ELSE
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -440,15 +442,15 @@ CONTAINS
       COMPLEX(KIND=dp)                                   :: c, t, y
       INTEGER                                            :: i1, i2, n1, n2
 
-      ks = dzero; t = dzero; y = dzero; c = dzero
+      ks = zzero; t = zzero; y = zzero; c = zzero
 
       n1 = SIZE(array1, 1)
       n2 = SIZE(array1, 2)
       DO i2 = 1, n2
          DO i1 = 1, n1
-            y = array1(i1, i2)*array2(i1, i2)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array1(i1, i2)*array2(i1, i2) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          END DO
       END DO
@@ -475,9 +477,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2, i3)) THEN
-               y = array(i1, i2, i3)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2, i3) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -487,9 +489,9 @@ CONTAINS
          DO i3 = 1, SIZE(array, 3)
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2, i3)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2, i3) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -518,9 +520,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2, i3)) THEN
-               y = array(i1, i2, i3)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2, i3) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -530,9 +532,9 @@ CONTAINS
          DO i3 = 1, SIZE(array, 3)
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2, i3)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2, i3) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -561,9 +563,9 @@ CONTAINS
       DO i3 = 1, n3
          DO i2 = 1, n2
             DO i1 = 1, n1
-               y = array1(i1, i2, i3)*array2(i1, i2, i3)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array1(i1, i2, i3)*array2(i1, i2, i3) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END DO
          END DO
@@ -594,9 +596,9 @@ CONTAINS
       DO i2 = LBOUND(mask, 2), UBOUND(mask, 2)
       DO i1 = LBOUND(mask, 1), UBOUND(mask, 1)
          IF (mask(i1, i2, i3) .GT. th) THEN
-            y = array1(i1, i2, i3)*array2(i1, i2, i3)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array1(i1, i2, i3)*array2(i1, i2, i3) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          END IF
       ENDDO
@@ -625,9 +627,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2, i3)) THEN
-               y = array(i1, i2, i3)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2, i3) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -637,9 +639,9 @@ CONTAINS
          DO i3 = 1, SIZE(array, 3)
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2, i3)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2, i3) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -668,9 +670,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2, i3)) THEN
-               y = array(i1, i2, i3)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2, i3) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -680,9 +682,9 @@ CONTAINS
          DO i3 = 1, SIZE(array, 3)
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2, i3)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2, i3) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -713,9 +715,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2, i3, i4)) THEN
-               y = array(i1, i2, i3, i4)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2, i3, i4) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -727,9 +729,9 @@ CONTAINS
          DO i3 = 1, SIZE(array, 3)
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2, i3, i4)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2, i3, i4) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -761,9 +763,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2, i3, i4)) THEN
-               y = array(i1, i2, i3, i4)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2, i3, i4) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -775,9 +777,9 @@ CONTAINS
          DO i3 = 1, SIZE(array, 3)
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2, i3, i4)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2, i3, i4) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -810,9 +812,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2, i3, i4)) THEN
-               y = array(i1, i2, i3, i4)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2, i3, i4) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -824,9 +826,9 @@ CONTAINS
          DO i3 = 1, SIZE(array, 3)
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2, i3, i4)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2, i3, i4) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -859,9 +861,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2, i3, i4)) THEN
-               y = array(i1, i2, i3, i4)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2, i3, i4) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -873,9 +875,9 @@ CONTAINS
          DO i3 = 1, SIZE(array, 3)
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2, i3, i4)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2, i3, i4) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -909,9 +911,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2, i3, i4, i5)) THEN
-               y = array(i1, i2, i3, i4, i5)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2, i3, i4, i5) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -925,9 +927,9 @@ CONTAINS
          DO i3 = 1, SIZE(array, 3)
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2, i3, i4, i5)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2, i3, i4, i5) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -962,9 +964,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2, i3, i4, i5)) THEN
-               y = array(i1, i2, i3, i4, i5)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2, i3, i4, i5) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -978,9 +980,9 @@ CONTAINS
          DO i3 = 1, SIZE(array, 3)
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2, i3, i4, i5)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2, i3, i4, i5) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -1015,9 +1017,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2, i3, i4, i5)) THEN
-               y = array(i1, i2, i3, i4, i5)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2, i3, i4, i5) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -1031,9 +1033,9 @@ CONTAINS
          DO i3 = 1, SIZE(array, 3)
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2, i3, i4, i5)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2, i3, i4, i5) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -1068,9 +1070,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2, i3, i4, i5)) THEN
-               y = array(i1, i2, i3, i4, i5)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2, i3, i4, i5) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -1084,9 +1086,9 @@ CONTAINS
          DO i3 = 1, SIZE(array, 3)
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2, i3, i4, i5)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2, i3, i4, i5) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -1122,9 +1124,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2, i3, i4, i5, i6)) THEN
-               y = array(i1, i2, i3, i4, i5, i6)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2, i3, i4, i5, i6) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -1140,9 +1142,9 @@ CONTAINS
          DO i3 = 1, SIZE(array, 3)
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2, i3, i4, i5, i6)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2, i3, i4, i5, i6) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -1179,9 +1181,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2, i3, i4, i5, i6)) THEN
-               y = array(i1, i2, i3, i4, i5, i6)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2, i3, i4, i5, i6) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -1197,9 +1199,9 @@ CONTAINS
          DO i3 = 1, SIZE(array, 3)
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2, i3, i4, i5, i6)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2, i3, i4, i5, i6) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -1236,9 +1238,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2, i3, i4, i5, i6)) THEN
-               y = array(i1, i2, i3, i4, i5, i6)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2, i3, i4, i5, i6) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -1254,9 +1256,9 @@ CONTAINS
          DO i3 = 1, SIZE(array, 3)
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2, i3, i4, i5, i6)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2, i3, i4, i5, i6) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -1293,9 +1295,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2, i3, i4, i5, i6)) THEN
-               y = array(i1, i2, i3, i4, i5, i6)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2, i3, i4, i5, i6) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -1311,9 +1313,9 @@ CONTAINS
          DO i3 = 1, SIZE(array, 3)
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2, i3, i4, i5, i6)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2, i3, i4, i5, i6) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -1351,9 +1353,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2, i3, i4, i5, i6, i7)) THEN
-               y = array(i1, i2, i3, i4, i5, i6, i7)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2, i3, i4, i5, i6, i7) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -1371,9 +1373,9 @@ CONTAINS
          DO i3 = 1, SIZE(array, 3)
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2, i3, i4, i5, i6, i7)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2, i3, i4, i5, i6, i7) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -1412,9 +1414,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2, i3, i4, i5, i6, i7)) THEN
-               y = array(i1, i2, i3, i4, i5, i6, i7)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2, i3, i4, i5, i6, i7) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -1432,9 +1434,9 @@ CONTAINS
          DO i3 = 1, SIZE(array, 3)
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2, i3, i4, i5, i6, i7)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2, i3, i4, i5, i6, i7) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -1473,9 +1475,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2, i3, i4, i5, i6, i7)) THEN
-               y = array(i1, i2, i3, i4, i5, i6, i7)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2, i3, i4, i5, i6, i7) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -1493,9 +1495,9 @@ CONTAINS
          DO i3 = 1, SIZE(array, 3)
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2, i3, i4, i5, i6, i7)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2, i3, i4, i5, i6, i7) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO
@@ -1534,9 +1536,9 @@ CONTAINS
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
             IF (mask(i1, i2, i3, i4, i5, i6, i7)) THEN
-               y = array(i1, i2, i3, i4, i5, i6, i7)-c
-               t = ks+y
-               c = (t-ks)-y
+               y = array(i1, i2, i3, i4, i5, i6, i7) - c
+               t = ks + y
+               c = (t - ks) - y
                ks = t
             END IF
          ENDDO
@@ -1554,9 +1556,9 @@ CONTAINS
          DO i3 = 1, SIZE(array, 3)
          DO i2 = 1, SIZE(array, 2)
          DO i1 = 1, SIZE(array, 1)
-            y = array(i1, i2, i3, i4, i5, i6, i7)-c
-            t = ks+y
-            c = (t-ks)-y
+            y = array(i1, i2, i3, i4, i5, i6, i7) - c
+            t = ks + y
+            c = (t - ks) - y
             ks = t
          ENDDO
          ENDDO

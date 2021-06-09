@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -19,14 +21,14 @@ MODULE ct_methods
    USE ct_types,                        ONLY: ct_step_env_type
    USE dbcsr_api,                       ONLY: &
         dbcsr_add, dbcsr_add_on_diag, dbcsr_copy, dbcsr_create, dbcsr_desymmetrize, &
-        dbcsr_distribution_get, dbcsr_distribution_type, dbcsr_filter, dbcsr_finalize, &
+        dbcsr_distribution_get, dbcsr_distribution_type, dbcsr_dot, dbcsr_filter, dbcsr_finalize, &
         dbcsr_frobenius_norm, dbcsr_func_inverse, dbcsr_function_of_elements, dbcsr_get_diag, &
         dbcsr_get_info, dbcsr_get_stored_coordinates, dbcsr_hadamard_product, &
         dbcsr_iterator_blocks_left, dbcsr_iterator_next_block, dbcsr_iterator_start, &
         dbcsr_iterator_stop, dbcsr_iterator_type, dbcsr_multiply, dbcsr_nblkcols_total, &
         dbcsr_nblkrows_total, dbcsr_norm, dbcsr_norm_maxabsnorm, dbcsr_release, &
-        dbcsr_reserve_block2d, dbcsr_scale, dbcsr_set, dbcsr_set_diag, dbcsr_trace, &
-        dbcsr_transposed, dbcsr_type, dbcsr_type_no_symmetry, dbcsr_work_create
+        dbcsr_reserve_block2d, dbcsr_scale, dbcsr_set, dbcsr_set_diag, dbcsr_transposed, &
+        dbcsr_type, dbcsr_type_no_symmetry, dbcsr_work_create
    USE input_constants,                 ONLY: &
         cg_dai_yuan, cg_fletcher, cg_fletcher_reeves, cg_hager_zhang, cg_hestenes_stiefel, &
         cg_liu_storey, cg_polak_ribiere, cg_zero, tensor_orthogonal, tensor_up_down
@@ -57,8 +59,7 @@ CONTAINS
 
       TYPE(ct_step_env_type)                             :: cts_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ct_step_execute', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'ct_step_execute'
 
       INTEGER                                            :: handle, n, preconditioner_type, unit_nr
       REAL(KIND=dp)                                      :: gap_estimate, safety_margin
@@ -79,7 +80,7 @@ CONTAINS
       CALL timeset(routineN, handle)
 
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -267,7 +268,7 @@ CONTAINS
 
             IF (cts_env%calculate_energy_corr) THEN
 
-               CALL dbcsr_trace(matrix_qp, cts_env%matrix_x, cts_env%energy_correction)
+               CALL dbcsr_dot(matrix_qp, cts_env%matrix_x, cts_env%energy_correction)
 
             ENDIF
 
@@ -383,7 +384,7 @@ CONTAINS
 
             IF (cts_env%calculate_energy_corr) THEN
 
-               CALL dbcsr_trace(matrix_qp_save, cts_env%matrix_x, cts_env%energy_correction)
+               CALL dbcsr_dot(matrix_qp_save, cts_env%matrix_x, cts_env%energy_correction)
 
             ENDIF
             CALL dbcsr_release(matrix_qp_save)
@@ -531,8 +532,7 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: use_virt_orbs
       REAL(KIND=dp), INTENT(IN)                          :: eps_filter
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'assemble_ks_qp_blocks', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'assemble_ks_qp_blocks'
 
       INTEGER                                            :: handle
       LOGICAL                                            :: library_fixed
@@ -730,8 +730,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: eps_convergence, eps_filter
       LOGICAL, INTENT(OUT)                               :: converged
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'solve_riccati_equation', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'solve_riccati_equation'
 
       INTEGER                                            :: handle, istep, iteration, nsteps, &
                                                             unit_nr, update_prec_freq
@@ -750,7 +749,7 @@ CONTAINS
       CALL timeset(routineN, handle)
 
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -959,49 +958,49 @@ CONTAINS
                CASE (cg_hestenes_stiefel)
                   CALL dbcsr_add(grad, m, -1.0_dp, 1.0_dp)
                   CALL dbcsr_hadamard_product(prec, grad, n)
-                  CALL dbcsr_trace(n, m, numer)
-                  CALL dbcsr_trace(grad, step, denom)
+                  CALL dbcsr_dot(n, m, numer)
+                  CALL dbcsr_dot(grad, step, denom)
                   beta = numer/denom
                CASE (cg_fletcher_reeves)
                   CALL dbcsr_hadamard_product(prec, grad, n)
-                  CALL dbcsr_trace(grad, n, denom)
+                  CALL dbcsr_dot(grad, n, denom)
                   CALL dbcsr_hadamard_product(prec, m, n)
-                  CALL dbcsr_trace(m, n, numer)
+                  CALL dbcsr_dot(m, n, numer)
                   beta = numer/denom
                CASE (cg_polak_ribiere)
                   CALL dbcsr_hadamard_product(prec, grad, n)
-                  CALL dbcsr_trace(grad, n, denom)
+                  CALL dbcsr_dot(grad, n, denom)
                   CALL dbcsr_add(grad, m, -1.0_dp, 1.0_dp)
                   CALL dbcsr_hadamard_product(prec, grad, n)
-                  CALL dbcsr_trace(n, m, numer)
+                  CALL dbcsr_dot(n, m, numer)
                   beta = numer/denom
                CASE (cg_fletcher)
                   CALL dbcsr_hadamard_product(prec, m, n)
-                  CALL dbcsr_trace(m, n, numer)
-                  CALL dbcsr_trace(grad, step, denom)
+                  CALL dbcsr_dot(m, n, numer)
+                  CALL dbcsr_dot(grad, step, denom)
                   beta = -1.0_dp*numer/denom
                CASE (cg_liu_storey)
-                  CALL dbcsr_trace(grad, step, denom)
+                  CALL dbcsr_dot(grad, step, denom)
                   CALL dbcsr_add(grad, m, -1.0_dp, 1.0_dp)
                   CALL dbcsr_hadamard_product(prec, grad, n)
-                  CALL dbcsr_trace(n, m, numer)
+                  CALL dbcsr_dot(n, m, numer)
                   beta = -1.0_dp*numer/denom
                CASE (cg_dai_yuan)
                   CALL dbcsr_hadamard_product(prec, m, n)
-                  CALL dbcsr_trace(m, n, numer)
+                  CALL dbcsr_dot(m, n, numer)
                   CALL dbcsr_add(grad, m, -1.0_dp, 1.0_dp)
-                  CALL dbcsr_trace(grad, step, denom)
+                  CALL dbcsr_dot(grad, step, denom)
                   beta = numer/denom
                CASE (cg_hager_zhang)
                   CALL dbcsr_add(grad, m, -1.0_dp, 1.0_dp)
-                  CALL dbcsr_trace(grad, step, denom)
+                  CALL dbcsr_dot(grad, step, denom)
                   CALL dbcsr_hadamard_product(prec, grad, n)
-                  CALL dbcsr_trace(n, grad, numer)
+                  CALL dbcsr_dot(n, grad, numer)
                   kappa = 2.0_dp*numer/denom
-                  CALL dbcsr_trace(n, m, numer)
+                  CALL dbcsr_dot(n, m, numer)
                   tau = numer/denom
-                  CALL dbcsr_trace(step, m, numer)
-                  beta = tau-kappa*numer/denom
+                  CALL dbcsr_dot(step, m, numer)
+                  beta = tau - kappa*numer/denom
                CASE (cg_zero)
                   beta = 0.0_dp
                CASE DEFAULT
@@ -1093,13 +1092,13 @@ CONTAINS
             ! calculate coefficients of the cubic eq for alpha - step size
             c0 = 2.0_dp*(dbcsr_frobenius_norm(n))**2
 
-            CALL dbcsr_trace(m, n, c1)
+            CALL dbcsr_dot(m, n, c1)
             c1 = -3.0_dp*c1
 
-            CALL dbcsr_trace(res, n, c2)
-            c2 = -2.0_dp*c2+(dbcsr_frobenius_norm(m))**2
+            CALL dbcsr_dot(res, n, c2)
+            c2 = -2.0_dp*c2 + (dbcsr_frobenius_norm(m))**2
 
-            CALL dbcsr_trace(res, m, c3)
+            CALL dbcsr_dot(res, m, c3)
 
             ! find step size
             CALL analytic_line_search(c0, c1, c2, c3, step_size, nsteps)
@@ -1135,7 +1134,7 @@ CONTAINS
 
          ! evaluate current energy correction
          !change_ecorr=ecorr
-         !CALL dbcsr_trace(qp,x,ecorr,"T","N")
+         !CALL dbcsr_dot(qp,x,ecorr,"T","N")
          !change_ecorr=ecorr-change_ecorr
 
          ! check convergence and other exit criteria
@@ -1148,14 +1147,14 @@ CONTAINS
 
          IF (unit_nr > 0) THEN
             WRITE (unit_nr, '(T6,A,1X,I4,1X,E12.3,F8.3)') &
-               "RICCATI iter ", iteration, best_norm, t2-t1
+               "RICCATI iter ", iteration, best_norm, t2 - t1
             !WRITE(unit_nr,'(T6,A,1X,I4,1X,F15.9,F15.9,E12.3,F8.3)') &
             !   "RICCATI iter ",iteration,ecorr,change_ecorr,best_norm,t2-t1
          ENDIF
 
          t1 = m_walltime()
 
-         iteration = iteration+1
+         iteration = iteration + 1
 
          IF (prepare_to_exit) EXIT
 
@@ -1196,8 +1195,7 @@ CONTAINS
       TYPE(dbcsr_type), INTENT(IN)                       :: pp, qq
       REAL(KIND=dp), INTENT(IN)                          :: eps_filter
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_preconditioner', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'create_preconditioner'
 
       INTEGER                                            :: col, handle, hold, iblock_col, &
                                                             iblock_row, mynode, nblkcols_tot, &
@@ -1369,9 +1367,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(3), INTENT(OUT)           :: minima
       INTEGER, INTENT(OUT)                               :: nmins
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'analytic_line_search', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, nroots
       REAL(KIND=dp)                                      :: DD, der, p, phi, pi, q, temp1, temp2, u, &
                                                             v, y1, y2, y2i, y2r, y3
@@ -1394,11 +1389,11 @@ CONTAINS
             ENDIF
          ELSE
             ! Quadratic equation with max two roots.
-            DD = c*c-4.0_dp*b*d
+            DD = c*c - 4.0_dp*b*d
             IF (DD .GT. 0.0_dp) THEN
                nroots = 2
-               x(1) = (-c+SQRT(DD))/2.0_dp/b
-               x(2) = (-c-SQRT(DD))/2.0_dp/b
+               x(1) = (-c + SQRT(DD))/2.0_dp/b
+               x(2) = (-c - SQRT(DD))/2.0_dp/b
             ELSE IF (DD .LT. 0.0_dp) THEN
                nroots = 0
             ELSE
@@ -1409,38 +1404,38 @@ CONTAINS
       ELSE
          ! Cubic equation with max three roots
          ! Calculate p and q
-         p = c/a-b*b/a/a/3.0_dp
-         q = (2.0_dp*b*b*b/a/a/a-9.0_dp*b*c/a/a+27.0_dp*d/a)/27.0_dp
+         p = c/a - b*b/a/a/3.0_dp
+         q = (2.0_dp*b*b*b/a/a/a - 9.0_dp*b*c/a/a + 27.0_dp*d/a)/27.0_dp
 
          ! Calculate DD
-         DD = p*p*p/27.0_dp+q*q/4.0_dp
+         DD = p*p*p/27.0_dp + q*q/4.0_dp
 
          IF (DD .LT. 0.0_dp) THEN
             ! three real unequal roots -- use the trigonometric formulation
             phi = ACOS(-q/2.0_dp/SQRT(ABS(p*p*p)/27.0_dp))
             temp1 = 2.0_dp*SQRT(ABS(p)/3.0_dp)
             y1 = temp1*COS(phi/3.0_dp)
-            y2 = -temp1*COS((phi+pi)/3.0_dp)
-            y3 = -temp1*COS((phi-pi)/3.0_dp)
+            y2 = -temp1*COS((phi + pi)/3.0_dp)
+            y3 = -temp1*COS((phi - pi)/3.0_dp)
          ELSE
             ! 1 real & 2 conjugate complex roots OR 3 real roots (some are equal)
-            temp1 = -q/2.0_dp+SQRT(DD)
-            temp2 = -q/2.0_dp-SQRT(DD)
+            temp1 = -q/2.0_dp + SQRT(DD)
+            temp2 = -q/2.0_dp - SQRT(DD)
             u = ABS(temp1)**(1.0_dp/3.0_dp)
             v = ABS(temp2)**(1.0_dp/3.0_dp)
             IF (temp1 .LT. 0.0_dp) u = -u
             IF (temp2 .LT. 0.0_dp) v = -v
-            y1 = u+v
-            y2r = -(u+v)/2.0_dp
-            y2i = (u-v)*SQRT(3.0_dp)/2.0_dp
+            y1 = u + v
+            y2r = -(u + v)/2.0_dp
+            y2i = (u - v)*SQRT(3.0_dp)/2.0_dp
          ENDIF
 
          ! Final transformation
          temp1 = b/a/3.0_dp
-         y1 = y1-temp1
-         y2 = y2-temp1
-         y3 = y3-temp1
-         y2r = y2r-temp1
+         y1 = y1 - temp1
+         y2 = y2 - temp1
+         y3 = y3 - temp1
+         y2r = y2r - temp1
 
          ! Assign answers
          IF (DD .LT. 0.0_dp) THEN
@@ -1467,9 +1462,9 @@ CONTAINS
       DO i = 1, nroots
          ! maximum or minimum? use the derivative
          ! 3*a*x**2+2*b*x+c
-         der = 3.0_dp*a*x(i)*x(i)+2.0_dp*b*x(i)+c
+         der = 3.0_dp*a*x(i)*x(i) + 2.0_dp*b*x(i) + c
          IF (der .GT. 0.0_dp) THEN
-            nmins = nmins+1
+            nmins = nmins + 1
             minima(nmins) = x(i)
 !write(*,'(a,i2,a,f10.5)') 'Minimum ', i, ', value: ', x(i)
          ENDIF
@@ -1495,8 +1490,7 @@ CONTAINS
       TYPE(dbcsr_type), INTENT(OUT)                      :: c
       TYPE(dbcsr_type), INTENT(OUT), OPTIONAL            :: e
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'diagonalize_diagonal_blocks', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'diagonalize_diagonal_blocks'
 
       INTEGER                                            :: handle, iblock_col, iblock_row, &
                                                             iblock_size, info, lwork, orbital
@@ -1599,8 +1593,7 @@ CONTAINS
       TYPE(dbcsr_type), INTENT(IN)                       :: u1, u2
       REAL(KIND=dp), INTENT(IN)                          :: eps_filter
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'matrix_forward_transform', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'matrix_forward_transform'
 
       INTEGER                                            :: handle
       TYPE(dbcsr_type)                                   :: tmp
@@ -1635,8 +1628,7 @@ CONTAINS
       TYPE(dbcsr_type), INTENT(IN)                       :: u1, u2
       REAL(KIND=dp), INTENT(IN)                          :: eps_filter
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'matrix_backward_transform', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'matrix_backward_transform'
 
       INTEGER                                            :: handle
       TYPE(dbcsr_type)                                   :: tmp

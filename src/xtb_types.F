@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -69,6 +71,8 @@ MODULE xtb_types
       REAL(KIND=dp), DIMENSION(5)            :: zeta
       ! AO to shell pointer
       INTEGER, DIMENSION(25)                 :: nao, lao
+      ! Upper limit of Mulliken charge
+      REAL(KIND=dp)                          :: chmax
    END TYPE xtb_atom_type
 
 ! *** Public data types ***
@@ -85,9 +89,6 @@ CONTAINS
    SUBROUTINE allocate_xtb_atom_param(xtb_parameter)
 
       TYPE(xtb_atom_type), POINTER                       :: xtb_parameter
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'allocate_xtb_atom_param', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(xtb_parameter)) &
          CALL deallocate_xtb_atom_param(xtb_parameter)
@@ -120,6 +121,7 @@ CONTAINS
       xtb_parameter%zeta = 0.0_dp
       xtb_parameter%nao = 0
       xtb_parameter%lao = 0
+      xtb_parameter%chmax = 0.0_dp
 
    END SUBROUTINE allocate_xtb_atom_param
 
@@ -130,9 +132,6 @@ CONTAINS
    SUBROUTINE deallocate_xtb_atom_param(xtb_parameter)
 
       TYPE(xtb_atom_type), POINTER                       :: xtb_parameter
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'deallocate_xtb_atom_param', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(ASSOCIATED(xtb_parameter))
       DEALLOCATE (xtb_parameter)
@@ -168,10 +167,11 @@ CONTAINS
 !> \param zeta ...
 !> \param occupation ...
 !> \param electronegativity ...
+!> \param chmax ...
 ! **************************************************************************************************
    SUBROUTINE get_xtb_atom_param(xtb_parameter, symbol, aname, typ, defined, z, zeff, natorb, lmax, nao, lao, &
                                  rcut, rcov, kx, eta, xgamma, alpha, zneff, nshell, nval, lval, kpoly, kappa, &
-                                 hen, zeta, occupation, electronegativity)
+                                 hen, zeta, occupation, electronegativity, chmax)
 
       TYPE(xtb_atom_type), POINTER                       :: xtb_parameter
       CHARACTER(LEN=2), INTENT(OUT), OPTIONAL            :: symbol
@@ -187,10 +187,7 @@ CONTAINS
       INTEGER, DIMENSION(5), INTENT(OUT), OPTIONAL       :: nval, lval
       REAL(KIND=dp), DIMENSION(5), INTENT(OUT), OPTIONAL :: kpoly, kappa, hen, zeta
       INTEGER, DIMENSION(5), INTENT(OUT), OPTIONAL       :: occupation
-      REAL(KIND=dp), INTENT(OUT), OPTIONAL               :: electronegativity
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_xtb_atom_param', &
-         routineP = moduleN//':'//routineN
+      REAL(KIND=dp), INTENT(OUT), OPTIONAL               :: electronegativity, chmax
 
       CPASSERT(ASSOCIATED(xtb_parameter))
 
@@ -221,6 +218,7 @@ CONTAINS
       IF (PRESENT(kappa)) kappa = xtb_parameter%kappa
       IF (PRESENT(hen)) hen = xtb_parameter%hen
       IF (PRESENT(zeta)) zeta = xtb_parameter%zeta
+      IF (PRESENT(chmax)) chmax = xtb_parameter%chmax
 
    END SUBROUTINE get_xtb_atom_param
 
@@ -252,10 +250,11 @@ CONTAINS
 !> \param zeta ...
 !> \param electronegativity ...
 !> \param occupation ...
+!> \param chmax ...
 ! **************************************************************************************************
    SUBROUTINE set_xtb_atom_param(xtb_parameter, aname, typ, defined, z, zeff, natorb, lmax, nao, lao, &
                                  rcut, rcov, kx, eta, xgamma, alpha, zneff, nshell, nval, lval, kpoly, kappa, &
-                                 hen, zeta, electronegativity, occupation)
+                                 hen, zeta, electronegativity, occupation, chmax)
 
       TYPE(xtb_atom_type), POINTER                       :: xtb_parameter
       CHARACTER(LEN=default_string_length), INTENT(IN), &
@@ -271,9 +270,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(5), INTENT(IN), OPTIONAL  :: kpoly, kappa, hen, zeta
       REAL(KIND=dp), INTENT(IN), OPTIONAL                :: electronegativity
       INTEGER, DIMENSION(5), INTENT(IN), OPTIONAL        :: occupation
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'set_xtb_atom_param', &
-         routineP = moduleN//':'//routineN
+      REAL(KIND=dp), INTENT(IN), OPTIONAL                :: chmax
 
       CPASSERT(ASSOCIATED(xtb_parameter))
 
@@ -303,6 +300,7 @@ CONTAINS
       IF (PRESENT(kappa)) xtb_parameter%kappa = kappa
       IF (PRESENT(hen)) xtb_parameter%hen = hen
       IF (PRESENT(zeta)) xtb_parameter%zeta = zeta
+      IF (PRESENT(chmax)) xtb_parameter%chmax = chmax
 
    END SUBROUTINE set_xtb_atom_param
 
@@ -315,9 +313,6 @@ CONTAINS
 
       TYPE(xtb_atom_type), POINTER                       :: xtb_parameter
       TYPE(section_vals_type), POINTER                   :: subsys_section
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_xtb_atom_param', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_string_length)               :: aname, bb
       INTEGER                                            :: i, io_unit, m, natorb, nshell
@@ -346,7 +341,7 @@ CONTAINS
             bb = "                                                "
             WRITE (UNIT=io_unit, FMT="(/,A,T67,A14)") " xTB  parameters: ", TRIM(aname)
             IF (defined) THEN
-               m = 5-nshell
+               m = 5 - nshell
                WRITE (UNIT=io_unit, FMT="(T16,A,T71,F10.2)") "Effective core charge:", zeff
                WRITE (UNIT=io_unit, FMT="(T16,A,T71,I10)") "Number of orbitals:", natorb
                WRITE (UNIT=io_unit, FMT="(T16,A,T41,A,5(A4,I1,I2,A1))") "Basis set [nl]", bb(1:8*m), &

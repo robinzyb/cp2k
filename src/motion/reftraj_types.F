@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -87,8 +89,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: reftraj_section
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_reftraj', routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_path_length)                 :: filename
 
       CPASSERT(.NOT. ASSOCIATED(reftraj))
@@ -136,11 +136,9 @@ CONTAINS
 
       TYPE(reftraj_type), POINTER                        :: reftraj
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'retain_reftraj', routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(reftraj)) THEN
          CPASSERT(reftraj%ref_count > 0)
-         reftraj%ref_count = reftraj%ref_count+1
+         reftraj%ref_count = reftraj%ref_count + 1
       END IF
 
    END SUBROUTINE retain_reftraj
@@ -156,12 +154,9 @@ CONTAINS
 
       TYPE(reftraj_type), POINTER                        :: reftraj
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'release_reftraj', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(reftraj)) THEN
          CPASSERT(reftraj%ref_count > 0)
-         reftraj%ref_count = reftraj%ref_count-1
+         reftraj%ref_count = reftraj%ref_count - 1
          IF (reftraj%ref_count < 1) THEN
             CALL parser_release(reftraj%info%traj_parser)
             CALL parser_release(reftraj%info%cell_parser)

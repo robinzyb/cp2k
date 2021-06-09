@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -29,11 +31,9 @@ MODULE pint_piglet
                                               dp
    USE message_passing,                 ONLY: mp_bcast
    USE parallel_rng_types,              ONLY: GAUSSIAN,&
-                                              create_rng_stream,&
-                                              delete_rng_stream,&
-                                              next_random_number,&
-                                              read_rng_stream,&
-                                              rng_record_length
+                                              rng_record_length,&
+                                              rng_stream_type,&
+                                              rng_stream_type_from_record
    USE pint_io,                         ONLY: pint_write_line
    USE pint_types,                      ONLY: piglet_therm_type,&
                                               pint_env_type
@@ -97,9 +97,6 @@ CONTAINS
       TYPE(pint_env_type), POINTER                       :: pint_env
       TYPE(section_vals_type), POINTER                   :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pint_piglet_create', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ndim, p
 
       NULLIFY (piglet_therm)
@@ -108,7 +105,7 @@ CONTAINS
 
       CALL section_vals_val_get(section, "NEXTRA_DOF", i_val=piglet_therm%nsp1)
       !add real degree of freedom to ns to reach nsp1
-      piglet_therm%nsp1 = piglet_therm%nsp1+1
+      piglet_therm%nsp1 = piglet_therm%nsp1 + 1
       p = pint_env%p
       piglet_therm%p = pint_env%p
       ndim = pint_env%ndim
@@ -161,9 +158,6 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: dt
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pint_piglet_init', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(len=20)                                  :: default_format, read_unit
       CHARACTER(len=default_path_length)                 :: matrices_file_name
       CHARACTER(len=default_string_length)               :: msg, temp_input
@@ -181,6 +175,7 @@ CONTAINS
       p = piglet_therm%p
       pint_env%e_piglet = 0.0_dp
       pint_env%piglet_therm%thermostat_energy = 0.0_dp
+      CALL section_vals_val_get(section, "THERMOSTAT_ENERGY", r_val=piglet_therm%thermostat_energy)
       CALL section_vals_val_get(section, "SMATRIX_INIT", i_val=matrix_init)
       !Read the matices
 
@@ -222,8 +217,8 @@ CONTAINS
                                          propagator=pint_env%propagator%prop_kind, &
                                          targettemp=pint_env%kT*pint_env%propagator%temp_sim2phys)
                ELSE IF (INDEX(temp_input, "A MATRIX") /= 0) THEN
-                  obrac = INDEX(temp_input, "(")+1
-                  cbrac = INDEX(temp_input, ")")-1
+                  obrac = INDEX(temp_input, "(") + 1
+                  cbrac = INDEX(temp_input, ")") - 1
                   read_unit = temp_input(obrac:cbrac)
                   DO imode = 1, p
                      READ (input_unit, default_format) temp_input
@@ -231,7 +226,7 @@ CONTAINS
                         READ (input_unit, *, iostat=read_err) &
                            (piglet_therm%a_mat(i, j, imode), j=1, piglet_therm%nsp1)
                         IF (read_err /= 0) THEN
-                           WRITE (UNIT=msg, FMT=*) "Invalid PIGLET A-matrix Nr.", i-1
+                           WRITE (UNIT=msg, FMT=*) "Invalid PIGLET A-matrix Nr.", i - 1
                            CPABORT(msg)
                            EXIT
                         END IF
@@ -243,8 +238,8 @@ CONTAINS
                                         piglet_therm%nsp1, read_unit, msg)
                   END IF
                ELSE IF (INDEX(temp_input, "C MATRIX") /= 0) THEN
-                  obrac = INDEX(temp_input, "(")+1
-                  cbrac = INDEX(temp_input, ")")-1
+                  obrac = INDEX(temp_input, "(") + 1
+                  cbrac = INDEX(temp_input, ")") - 1
                   read_unit = temp_input(obrac:cbrac)
                   DO imode = 1, p
                      READ (input_unit, default_format) temp_input
@@ -252,7 +247,7 @@ CONTAINS
                         READ (input_unit, *, iostat=read_err) &
                            (piglet_therm%c_mat(i, j, imode), j=1, piglet_therm%nsp1)
                         IF (read_err /= 0) THEN
-                           WRITE (UNIT=msg, FMT=*) "Invalid PIGLET C-matrix Nr.", i-1
+                           WRITE (UNIT=msg, FMT=*) "Invalid PIGLET C-matrix Nr.", i - 1
                            CPABORT(msg)
                            EXIT
                         END IF
@@ -277,21 +272,19 @@ CONTAINS
 
       !prepare Random number generator
       NULLIFY (rng_section)
-      NULLIFY (piglet_therm%gaussian_rng_stream)
       rng_section => section_vals_get_subs_vals(section, &
                                                 subsection_name="RNG_INIT")
       CALL section_vals_get(rng_section, explicit=explicit)
       IF (explicit) THEN
          CALL section_vals_val_get(rng_section, "_DEFAULT_KEYWORD_", &
                                    i_rep_val=1, c_val=rng_record)
-         CALL read_rng_stream(rng_stream=piglet_therm%gaussian_rng_stream, &
-                              rng_record=rng_record)
+         piglet_therm%gaussian_rng_stream = rng_stream_type_from_record(rng_record)
       ELSE
          initial_seed(:, :) = REAL(pint_env%thermostat_rng_seed, dp)
-         CALL create_rng_stream(rng_stream=piglet_therm%gaussian_rng_stream, &
-                                name="piglet_rng_gaussian", distribution_type=GAUSSIAN, &
-                                extended_precision=.TRUE., &
-                                seed=initial_seed)
+         piglet_therm%gaussian_rng_stream = rng_stream_type( &
+                                            name="piglet_rng_gaussian", distribution_type=GAUSSIAN, &
+                                            extended_precision=.TRUE., &
+                                            seed=initial_seed)
       END IF
 
       !Compute the T and S matrices on every mpi process
@@ -312,9 +305,9 @@ CONTAINS
                     piglet_therm%nsp1, & ! number of columns of C-matrix
                     piglet_therm%nsp1, & ! number of columns of T-matrix and number of rows of C-matrix
                     1.0D0, & ! scaling factor alpha
-                    piglet_therm%gle_t(1, 1, i), & ! T-matrix
+                    piglet_therm%gle_t(:, :, i), & ! T-matrix
                     piglet_therm%nsp1, & ! leading dimension of T-matrix as declared
-                    piglet_therm%c_mat(1, 1, i), & ! C-matrix
+                    piglet_therm%c_mat(:, :, i), & ! C-matrix
                     piglet_therm%nsp1, & ! leading dimension of C-matrix as declared
                     0.0D0, & ! scaling of tmpmatrix as additive
                     tmpmatrix, & ! result matrix: tmpmatrix
@@ -328,13 +321,13 @@ CONTAINS
                     1.0D0, & ! scaling factor alpha
                     tmpmatrix, & ! tmpmatrix
                     piglet_therm%nsp1, & ! leading dimension of tmpmatrix as declared
-                    piglet_therm%gle_t(1, 1, i), & ! T-matrix
+                    piglet_therm%gle_t(:, :, i), & ! T-matrix
                     piglet_therm%nsp1, & ! leading dimension of T-matrix as declared
                     0.0D0, & ! scaling of Mtmp as additive
                     Mtmp, & ! result matrix: Mtmp
                     piglet_therm%nsp1) ! leading dimension of Mtmp
          ! C - T*C*TRANSPOSE(T):
-         Mtmp(:, :) = piglet_therm%c_mat(:, :, i)-Mtmp(:, :)
+         Mtmp(:, :) = piglet_therm%c_mat(:, :, i) - Mtmp(:, :)
 
          IF (matrix_init == matrix_init_cholesky) THEN
             ! Get S by cholesky decomposition of Mtmp
@@ -367,7 +360,7 @@ CONTAINS
          DO isp = 2, piglet_therm%nsp1
             DO ibead = 1, piglet_therm%p*piglet_therm%ndim
                piglet_therm%smalls(isp, ibead) = smallstmp(i)
-               i = i+1
+               i = i + 1
             END DO
          END DO
       ELSE
@@ -385,7 +378,7 @@ CONTAINS
             ! Fill a vector with random numbers
             DO idim = 1, piglet_therm%ndim
                DO j = 1, piglet_therm%nsp1
-                  piglet_therm%temp2(j, idim) = next_random_number(piglet_therm%gaussian_rng_stream)
+                  piglet_therm%temp2(j, idim) = piglet_therm%gaussian_rng_stream%next()
                   !piglet_therm%temp2(j,idim) = 1.0_dp
                END DO
             END DO
@@ -397,14 +390,14 @@ CONTAINS
                        1.0_dp, & !scaling of Mtmp
                        Mtmp(1, 1), & ! Matrix Mtmp
                        piglet_therm%nsp1, & ! leading dimension of Mtmp
-                       piglet_therm%temp2(1, 1), & ! temp2 matrix
+                       piglet_therm%temp2, & ! temp2 matrix
                        piglet_therm%nsp1, & ! leading dimension of temp2
                        0.0_dp, & ! scaling of added matrix smalls
-                       piglet_therm%temp1(1, 1), & ! firts element of result matrix
+                       piglet_therm%temp1, & ! result matrix
                        piglet_therm%nsp1) ! leading dimension of result matrix
 
             DO idim = 1, piglet_therm%ndim
-               j = (idim-1)*piglet_therm%p+ibead
+               j = (idim - 1)*piglet_therm%p + ibead
                DO i = 1, piglet_therm%nsp1
                   piglet_therm%smalls(i, j) = piglet_therm%temp1(i, idim)
                END DO
@@ -437,8 +430,7 @@ CONTAINS
       REAL(kind=dp), DIMENSION(:, :), INTENT(IN)         :: masses
       TYPE(piglet_therm_type), POINTER                   :: piglet_therm
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pint_piglet_step', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'pint_piglet_step'
 
       INTEGER                                            :: handle, i, ibead, idim, j, ndim, ndimp, &
                                                             nsp1, p
@@ -462,19 +454,19 @@ CONTAINS
          ! copy the extra degrees of freedom to the temp1 matrix
          DO idim = 1, ndim
             DO i = 2, nsp1
-               piglet_therm%temp1(i, idim) = piglet_therm%smalls(i, (ibead-1)*ndim+idim)
+               piglet_therm%temp1(i, idim) = piglet_therm%smalls(i, (ibead - 1)*ndim + idim)
             END DO
          END DO
 
          !fill temp2 with gaussian random noise
          DO j = 1, nsp1
             DO idim = 1, ndim
-               piglet_therm%temp2(j, idim) = next_random_number(piglet_therm%gaussian_rng_stream)
+               piglet_therm%temp2(j, idim) = piglet_therm%gaussian_rng_stream%next()
                !piglet_therm%temp2(j,idim) = 1.0_dp
             END DO
          END DO
 
-         i = (ibead-1)*piglet_therm%ndim+1
+         i = (ibead - 1)*piglet_therm%ndim + 1
          !smalls(:,i) = 1*S*temp2 + 0 * smalls
          CALL DGEMM("N", & ! S-matrix should not be transposed
                     "N", & ! tmp2 matrix shoud not be transposed
@@ -482,12 +474,12 @@ CONTAINS
                     ndim, & ! Number of columns of temp2 vector
                     nsp1, & ! Number of Columns of S-Matrix
                     1.0_dp, & ! Scaling of S-Matrix
-                    piglet_therm%gle_s(1, 1, ibead), & ! First element of S-matrix
+                    piglet_therm%gle_s(:, :, ibead), & ! S-matrix
                     nsp1, & ! Leading dimension of S-matrix
-                    piglet_therm%temp2(1, 1), & ! First element of temp2 vector
+                    piglet_therm%temp2, & ! temp2 vector
                     nsp1, & ! Leading dimension of temp2
                     0.0_dp, & ! scaling factor of added smalls vector
-                    piglet_therm%smalls(1, i), & ! First element of result vector
+                    piglet_therm%smalls(:, i), & ! result vector
                     nsp1) ! Leading dimension of result vector
 
          ! Now add the product of T-matrix * old smalls vectors
@@ -498,12 +490,12 @@ CONTAINS
                     ndim, & ! Number of columns of temp1 vector
                     nsp1, & ! Number of Columns of T-Matrix
                     1.0_dp, & ! Scaling of T-Matrix
-                    piglet_therm%gle_t(1, 1, ibead), & ! First element of T-matrix
+                    piglet_therm%gle_t(:, :, ibead), & ! T-matrix
                     nsp1, & ! Leading dimension of T-matrix
-                    piglet_therm%temp1(1, 1), & ! First element of temp1 vector
+                    piglet_therm%temp1, & ! temp1 vector
                     nsp1, & ! Leading dimension of temp1
                     1.0_dp, & ! scaling factor of added smalls vector
-                    piglet_therm%smalls(1, i), & ! First element of result vector
+                    piglet_therm%smalls(:, i), & ! result vector
                     nsp1) ! Leading dimension of result vector
       END DO
 
@@ -511,15 +503,15 @@ CONTAINS
       delta_ekin = 0.0_dp
       DO idim = 1, ndim
          DO ibead = 1, p
-            vnew(ibead, idim) = piglet_therm%smalls(1, (ibead-1)*ndim+idim)/piglet_therm%sqrtmass(ibead, idim)
-            delta_ekin = delta_ekin+masses(ibead, idim)*( &
-                         vnew(ibead, idim)*vnew(ibead, idim)- &
+            vnew(ibead, idim) = piglet_therm%smalls(1, (ibead - 1)*ndim + idim)/piglet_therm%sqrtmass(ibead, idim)
+            delta_ekin = delta_ekin + masses(ibead, idim)*( &
+                         vnew(ibead, idim)*vnew(ibead, idim) - &
                          vold(ibead, idim)*vold(ibead, idim))
          END DO
       END DO
 
       ! the piglet is such a strong thermostat, that it messes up the "exact" integration. The thermostats energy will rise lineary, because "it will suck up its own mess" (quote from Michele Ceriotti)
-      piglet_therm%thermostat_energy = piglet_therm%thermostat_energy-0.5_dp*delta_ekin
+      piglet_therm%thermostat_energy = piglet_therm%thermostat_energy - 0.5_dp*delta_ekin
 
       CALL timestop(handle)
 
@@ -540,17 +532,13 @@ CONTAINS
 
       TYPE(piglet_therm_type), POINTER                   :: piglet_therm
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pint_piglet_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(piglet_therm)) THEN
-         piglet_therm%ref_count = piglet_therm%ref_count-1
+         piglet_therm%ref_count = piglet_therm%ref_count - 1
          IF (piglet_therm%ref_count == 0) THEN
             DEALLOCATE (piglet_therm%a_mat)
             DEALLOCATE (piglet_therm%c_mat)
             DEALLOCATE (piglet_therm%gle_t)
             DEALLOCATE (piglet_therm%gle_s)
-            CALL delete_rng_stream(piglet_therm%gaussian_rng_stream)
             DEALLOCATE (piglet_therm%smalls)
             DEALLOCATE (piglet_therm%temp1)
             DEALLOCATE (piglet_therm%temp2)
@@ -582,13 +570,11 @@ CONTAINS
       CHARACTER(LEN=20), INTENT(IN)                      :: myunit
       CHARACTER(default_string_length), INTENT(OUT)      :: msg
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'a_mat_to_cp2k', routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=20)                                  :: isunit
       INTEGER                                            :: i, imode, j
 
       msg = ""
-      SELECT CASE (TRIM (myunit))
+      SELECT CASE (TRIM(myunit))
       CASE ("femtoseconds^-1")
          isunit = "fs^-1"
       CASE ("picoseconds^-1")
@@ -630,13 +616,11 @@ CONTAINS
       CHARACTER(LEN=20), INTENT(IN)                      :: myunit
       CHARACTER(default_string_length), INTENT(OUT)      :: msg
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'c_mat_to_cp2k', routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=20)                                  :: isunit
       INTEGER                                            :: i, imode, j
 
       msg = ""
-      SELECT CASE (TRIM (myunit))
+      SELECT CASE (TRIM(myunit))
       CASE ("eV")
          isunit = "eV"
       CASE ("K")
@@ -674,36 +658,33 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: propagator
       REAL(KIND=dp), INTENT(IN)                          :: targettemp
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'check_temperature', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(len=default_string_length)               :: msg
       INTEGER                                            :: posnumber
       REAL(KIND=dp)                                      :: convttemp, deviation, matrixtemp, ttemp
 
       deviation = 100.0d0
-      posnumber = INDEX(line, "T=")+2
+      posnumber = INDEX(line, "T=") + 2
       IF (propagator == propagator_rpmd) ttemp = targettemp
       !Get the matrix temperature
       READ (line(posnumber:), *) matrixtemp
       msg = ""
       IF (INDEX(line, "K") /= 0) THEN
          convttemp = cp_unit_from_cp2k(ttemp, "K")
-         IF (ABS(convttemp-matrixtemp) > convttemp/deviation) THEN
+         IF (ABS(convttemp - matrixtemp) > convttemp/deviation) THEN
             WRITE (UNIT=msg, FMT=*) "PIGLET Simulation temperature (", &
                convttemp, "K) /= matrix temperature (", matrixtemp, "K)"
             CPWARN(msg)
          END IF
       ELSE IF (INDEX(line, "eV") /= 0) THEN
          convttemp = cp_unit_from_cp2k(ttemp, "K")/11604.505_dp
-         IF (ABS(convttemp-matrixtemp) > convttemp/deviation) THEN
+         IF (ABS(convttemp - matrixtemp) > convttemp/deviation) THEN
             WRITE (UNIT=msg, FMT=*) "PIGLET Simulation temperature (", &
                convttemp, "K) /= matrix temperature (", matrixtemp, "K)"
             CPWARN(msg)
          END IF
       ELSE IF (INDEX(line, "atomic energy units") /= 0) THEN
          convttemp = ttemp
-         IF (ABS(convttemp-matrixtemp) > convttemp/deviation) THEN
+         IF (ABS(convttemp - matrixtemp) > convttemp/deviation) THEN
             WRITE (UNIT=msg, FMT=*) "PIGLET Simulation temperature (", &
                convttemp, "K) /= matrix temperature (", matrixtemp, "K)"
             CPWARN(msg)
@@ -712,7 +693,7 @@ CONTAINS
          WRITE (UNIT=msg, FMT=*) "Unknown PIGLET matrix temperature. Assuming a.u."
          CPWARN(msg)
          convttemp = ttemp
-         IF (ABS(convttemp-matrixtemp) > convttemp/deviation) THEN
+         IF (ABS(convttemp - matrixtemp) > convttemp/deviation) THEN
             WRITE (UNIT=msg, FMT=*) "PIGLET Simulation temperature (", &
                convttemp, "K) /= matrix temperature (", matrixtemp, "K)"
             CPWARN(msg)
@@ -733,9 +714,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pint_calc_piglet_energy(pint_env)
       TYPE(pint_env_type), POINTER                       :: pint_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'pint_calc_piglet_energy', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(pint_env%piglet_therm)) THEN
          pint_env%e_piglet = pint_env%piglet_therm%thermostat_energy
@@ -768,12 +746,9 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(n, n), INTENT(IN)         :: SST
       REAL(KIND=dp), DIMENSION(n, n), INTENT(OUT)        :: S
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'sqrt_pos_def_mat', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, info, lwork
-      REAL(KIND=dp)                                      :: tmplwork
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:)           :: work
+      REAL(KIND=dp), DIMENSION(1)                        :: tmplwork
       REAL(KIND=dp), DIMENSION(n)                        :: eigval
       REAL(KIND=dp), DIMENSION(n, n)                     :: A, tmpmatrix
 
@@ -803,7 +778,7 @@ CONTAINS
                  -1, & ! size of temporary real work array
                  info) ! information about success
 
-      lwork = INT(tmplwork+0.5_dp)
+      lwork = INT(tmplwork(1) + 0.5_dp)
       ALLOCATE (work(lwork))
       work(:) = 0.0_dp
 

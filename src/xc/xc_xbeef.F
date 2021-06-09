@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -66,8 +68,6 @@ CONTAINS
       TYPE(xc_rho_cflags_type), INTENT(inout), OPTIONAL  :: needs
       INTEGER, INTENT(out), OPTIONAL                     :: max_deriv
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xbeef_lda_info', routineP = moduleN//':'//routineN
-
       IF (PRESENT(reference)) THEN
          reference = "Wellendorff, J. et al., Phys. Rev. B 85, 235149 (2012) {LDA}"
       END IF
@@ -99,8 +99,6 @@ CONTAINS
       TYPE(xc_rho_cflags_type), INTENT(inout), OPTIONAL  :: needs
       INTEGER, INTENT(out), OPTIONAL                     :: max_deriv
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xbeef_lsd_info', routineP = moduleN//':'//routineN
-
       IF (PRESENT(reference)) THEN
          reference = "Wellendorff, J. et al., Phys. Rev. B 85, 235149 (2012) {LSD}"
       END IF
@@ -121,7 +119,7 @@ CONTAINS
 !> \param rho_set the density where you want to evaluate the functional
 !> \param deriv_set place where to store the functional derivatives (they are
 !>        added to the derivatives)
-!> \param grad_deriv degree of the derivative that should be evalated,
+!> \param grad_deriv degree of the derivative that should be evaluated,
 !>        if positive all the derivatives up to the given degree are evaluated,
 !>        if negative only the given degree is calculated
 !> \param xbeef_params input parameters (scaling)
@@ -135,7 +133,7 @@ CONTAINS
       INTEGER, INTENT(in)                                :: grad_deriv
       TYPE(section_vals_type), POINTER                   :: xbeef_params
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xbeef_lda_eval', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'xbeef_lda_eval'
 
       INTEGER                                            :: handle, npoints
       INTEGER, DIMENSION(:, :), POINTER                  :: bo
@@ -157,7 +155,7 @@ CONTAINS
       CPASSERT(deriv_set%ref_count > 0)
       CALL xc_rho_set_get(rho_set, rho_1_3=rho_1_3, rho=rho, &
                           norm_drho=norm_drho, local_bounds=bo, rho_cutoff=epsilon_rho)
-      npoints = (bo(2, 1)-bo(1, 1)+1)*(bo(2, 2)-bo(1, 2)+1)*(bo(2, 3)-bo(1, 3)+1)
+      npoints = (bo(2, 1) - bo(1, 1) + 1)*(bo(2, 2) - bo(1, 2) + 1)*(bo(2, 3) - bo(1, 3) + 1)
 
       dummy => rho
 
@@ -204,7 +202,7 @@ CONTAINS
 !> \param e_0 ...
 !> \param e_rho ...
 !> \param e_ndrho ...
-!> \param grad_deriv degree of the derivative that should be evalated,
+!> \param grad_deriv degree of the derivative that should be evaluated,
 !>        if positive all the derivatives up to the given degree are evaluated,
 !>        if negative only the given degree is calculated
 !> \param npoints ...
@@ -222,7 +220,6 @@ CONTAINS
       REAL(kind=dp), DIMENSION(1:npoints), INTENT(in)    :: norm_drho, rho_1_3, rho
       REAL(kind=dp), INTENT(in)                          :: epsilon_rho, sx
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xbeef_lda_calc', routineP = moduleN//':'//routineN
       INTEGER, PARAMETER                                 :: m = 30
 
       INTEGER                                            :: i, ii
@@ -254,7 +251,7 @@ CONTAINS
 
             s = norm_drho(ii)/MAX(t3, epsilon_rho43) !reduced gradient finally
             s2 = s**2
-            t = 2.0_dp*s2/(4.0_dp+s2)-1.0_dp
+            t = 2.0_dp*s2/(4.0_dp + s2) - 1.0_dp
 
             IF (grad_deriv >= 0) THEN !asking for pure e evaluation or also derivatives
                e_leg(0) = 1 !first legendre pol
@@ -264,31 +261,31 @@ CONTAINS
             IF ((grad_deriv >= 1) .OR. (grad_deriv == -1)) THEN !asking for first derivative or higher
                de_leg(0) = 0
                de_leg(1) = 1
-               dt = 4.0_dp*s/(4.0_dp+s2)-4.0_dp*s*s2/(4.0_dp+s2)**2
+               dt = 4.0_dp*s/(4.0_dp + s2) - 4.0_dp*s*s2/(4.0_dp + s2)**2
                ds_rho = -(4.0_dp*s)/(3.0_dp*MAX(my_rho, epsilon_rho))
                ds_ndrho = 1.0_dp/(MAX(t3, epsilon_rho43))
             END IF
 
-            DO i = 2, m-1 !LEGENDRE PART
-               e_leg(i) = 2.*(t)*e_leg(i-1)-e_leg(i-2)-((t)*e_leg(i-1)-e_leg(i-2))/(REAL(i, KIND=dp))
+            DO i = 2, m - 1 !LEGENDRE PART
+               e_leg(i) = 2.*(t)*e_leg(i - 1) - e_leg(i - 2) - ((t)*e_leg(i - 1) - e_leg(i - 2))/(REAL(i, KIND=dp))
                !taken from quantum espresso beef library.
 
                IF (ABS(grad_deriv) >= 1) THEN !first derivative
                   !the zero-derivatives need to be available for the first deriv.
-                  de_leg(i) = e_leg(i-1)*i+de_leg(i-1)*(t)
+                  de_leg(i) = e_leg(i - 1)*i + de_leg(i - 1)*(t)
                END IF
             END DO
 
             !NO DERIVATIVE
             IF (grad_deriv >= 0) THEN
                !add the scaled legendre linear combination to e_0
-               e_0(ii) = e_0(ii)+SUM(e_leg*a)*e_ueg*sx
+               e_0(ii) = e_0(ii) + SUM(e_leg*a)*e_ueg*sx
             END IF
 
             !FIRST DERIVATIVE
             IF ((grad_deriv >= 1) .OR. (grad_deriv == -1)) THEN !asking for first derivative or higher
-               e_rho(ii) = e_rho(ii)+(SUM(e_leg*a)*e_ueg_drho+SUM(de_leg*a)*dt*ds_rho*e_ueg)*sx
-               e_ndrho(ii) = e_ndrho(ii)+(SUM(de_leg*a)*dt*ds_ndrho*e_ueg)*sx
+               e_rho(ii) = e_rho(ii) + (SUM(e_leg*a)*e_ueg_drho + SUM(de_leg*a)*dt*ds_rho*e_ueg)*sx
+               e_ndrho(ii) = e_ndrho(ii) + (SUM(de_leg*a)*dt*ds_ndrho*e_ueg)*sx
             END IF
 
          END IF
@@ -314,7 +311,7 @@ CONTAINS
       INTEGER, INTENT(in)                                :: grad_deriv
       TYPE(section_vals_type), POINTER                   :: xbeef_params
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xbeef_lsd_eval', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'xbeef_lsd_eval'
 
       INTEGER                                            :: handle, i, ispin, npoints
       INTEGER, DIMENSION(:, :), POINTER                  :: bo
@@ -342,7 +339,7 @@ CONTAINS
                           rhob=rho(2)%array, norm_drhoa=norm_drho(1)%array, &
                           norm_drhob=norm_drho(2)%array, rho_cutoff=epsilon_rho, &
                           local_bounds=bo)
-      npoints = (bo(2, 1)-bo(1, 1)+1)*(bo(2, 2)-bo(1, 2)+1)*(bo(2, 3)-bo(1, 3)+1)
+      npoints = (bo(2, 1) - bo(1, 1) + 1)*(bo(2, 2) - bo(1, 2) + 1)*(bo(2, 3) - bo(1, 3) + 1)
 
       dummy => rho(1)%array
 
@@ -423,7 +420,6 @@ CONTAINS
       INTEGER, INTENT(in)                                :: grad_deriv, npoints
       REAL(kind=dp), INTENT(in)                          :: epsilon_rho, sx
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xbeef_lsd_calc', routineP = moduleN//':'//routineN
       INTEGER, PARAMETER                                 :: m = 30
 
       INTEGER                                            :: i, ii
@@ -456,7 +452,7 @@ CONTAINS
 
             s = norm_drho_spin(ii)/MAX(t3, epsilon_rho43) !reduced gradient finally
             s2 = s**2
-            t = 2.0_dp*s**2/(4.0_dp+s**2)-1.0_dp
+            t = 2.0_dp*s**2/(4.0_dp + s**2) - 1.0_dp
 
             IF (grad_deriv >= 0) THEN !asking for pure e evaluation or also derivatives
                e_leg(0) = 1 !first legendre pol
@@ -466,18 +462,18 @@ CONTAINS
             IF ((grad_deriv >= 1) .OR. (grad_deriv == -1)) THEN !asking for first derivative or higher
                de_leg(0) = 0
                de_leg(1) = 1
-               dt = 4.0_dp*s/(4.0_dp+s2)-4.0_dp*s*s2/(4.0_dp+s2)**2
+               dt = 4.0_dp*s/(4.0_dp + s2) - 4.0_dp*s*s2/(4.0_dp + s2)**2
                ds_rho = -(4.0_dp*s)/(3.0_dp*MAX(my_rho, epsilon_rho))
                ds_ndrho = 1.0_dp/(MAX(t3, epsilon_rho43))
             END IF
 
-            DO i = 2, m-1 !LEGENDRE PART
-               e_leg(i) = 2.*(t)*e_leg(i-1)-e_leg(i-2)-((t)*e_leg(i-1)-e_leg(i-2))/(REAL(i, KIND=dp))
+            DO i = 2, m - 1 !LEGENDRE PART
+               e_leg(i) = 2.*(t)*e_leg(i - 1) - e_leg(i - 2) - ((t)*e_leg(i - 1) - e_leg(i - 2))/(REAL(i, KIND=dp))
                !taken from quantum espresso beef library.
 
                IF (ABS(grad_deriv) >= 1) THEN !first derivative
                   !the zero-derivatives need to be available for the first deriv.
-                  de_leg(i) = e_leg(i-1)*i+de_leg(i-1)*(t)
+                  de_leg(i) = e_leg(i - 1)*i + de_leg(i - 1)*(t)
                END IF
 
             END DO
@@ -485,13 +481,13 @@ CONTAINS
             !NO DERIVATIVE
             IF (grad_deriv >= 0) THEN
                !add the scaled legendre linear combination to e_0
-               e_0(ii) = e_0(ii)+SUM(e_leg*a)*e_ueg*sx
+               e_0(ii) = e_0(ii) + SUM(e_leg*a)*e_ueg*sx
             END IF
 
             !FIRST DERIVATIVE
             IF ((grad_deriv >= 1) .OR. (grad_deriv == -1)) THEN !asking for first derivative or higher
-               e_rho_spin(ii) = e_rho_spin(ii)+(SUM(e_leg*a)*e_ueg_drho+SUM(de_leg*a)*dt*ds_rho*e_ueg)*sx
-               e_ndrho_spin(ii) = e_ndrho_spin(ii)+(SUM(de_leg*a)*dt*ds_ndrho*e_ueg)*sx
+               e_rho_spin(ii) = e_rho_spin(ii) + (SUM(e_leg*a)*e_ueg_drho + SUM(de_leg*a)*dt*ds_rho*e_ueg)*sx
+               e_ndrho_spin(ii) = e_ndrho_spin(ii) + (SUM(de_leg*a)*dt*ds_ndrho*e_ueg)*sx
             END IF
          END IF
       END DO

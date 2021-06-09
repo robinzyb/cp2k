@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -93,7 +95,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(global_environment_type), POINTER             :: globenv
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'neb', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'neb'
 
       INTEGER                                            :: handle, ierr, iw, iw2, nrep, &
                                                             output_unit, prep, proc_dist_type
@@ -129,7 +131,7 @@ CONTAINS
                       "is not compatible with the number of processors requested per replica ("// &
                       TRIM(ADJUSTL(cp_to_string(prep)))//") and the number of replicas ("// &
                       TRIM(ADJUSTL(cp_to_string(nrep)))//") . ["// &
-                      TRIM(ADJUSTL(cp_to_string(para_env%num_pe-nrep*prep)))//"] processors will be wasted!")
+                      TRIM(ADJUSTL(cp_to_string(para_env%num_pe - nrep*prep)))//"] processors will be wasted!")
       ENDIF
       force_env_section => section_vals_get_subs_vals(input, "FORCE_EVAL")
       ! Create Replica Environments
@@ -153,7 +155,7 @@ CONTAINS
          neb_env%nsize_int = number_of_colvar(f_env%force_env)
          check = (neb_env%nsize_xyz >= neb_env%nsize_int)
          CPASSERT(check)
-         ! Check that teh used colvar are uniquely determined
+         ! Check that the used colvar are uniquely determined
          check = (number_of_colvar(f_env%force_env) == &
                   number_of_colvar(f_env%force_env, unique=.TRUE.))
          CPASSERT(check)
@@ -231,7 +233,7 @@ CONTAINS
       TYPE(cp_logger_type), POINTER                      :: logger
       TYPE(global_environment_type), POINTER             :: globenv
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'neb_md', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'neb_md'
 
       INTEGER                                            :: handle, iatom, ic, is, istep, iw, &
                                                             max_steps, natom, shell_index
@@ -261,21 +263,21 @@ CONTAINS
       CALL neb_var_create(Dcoords, neb_env)
       ALLOCATE (mass(SIZE(coords%wrk, 1), neb_env%number_of_replica))
       ALLOCATE (energies(neb_env%number_of_replica))
-      ALLOCATE (distances(neb_env%number_of_replica-1))
+      ALLOCATE (distances(neb_env%number_of_replica - 1))
       ! Setting up the mass array
       IF (neb_env%use_colvar) THEN
          mass(:, :) = 0.5_dp*dt/massunit
       ELSE
          natom = SIZE(particle_set)
          DO iatom = 1, natom
-            ic = 3*(iatom-1)
+            ic = 3*(iatom - 1)
             shell_index = particle_set(iatom)%shell_index
             IF (shell_index == 0) THEN
-               mass(ic+1:ic+3, :) = 0.5_dp*dt/particle_set(iatom)%atomic_kind%mass
+               mass(ic + 1:ic + 3, :) = 0.5_dp*dt/particle_set(iatom)%atomic_kind%mass
             ELSE
-               is = 3*(natom+shell_index-1)
-               mass(ic+1:ic+3, :) = 0.5_dp*dt/particle_set(iatom)%atomic_kind%shell%mass_core
-               mass(is+1:is+3, :) = 0.5_dp*dt/particle_set(iatom)%atomic_kind%shell%mass_shell
+               is = 3*(natom + shell_index - 1)
+               mass(ic + 1:ic + 3, :) = 0.5_dp*dt/particle_set(iatom)%atomic_kind%shell%mass_core
+               mass(is + 1:is + 3, :) = 0.5_dp*dt/particle_set(iatom)%atomic_kind%shell%mass_shell
             END IF
          END DO
       END IF
@@ -301,13 +303,13 @@ CONTAINS
          ! Save the optimization step counter
          neb_env%istep = istep
          ! Velocity Verlet (first part)
-         vels%wrk(:, :) = vels%wrk(:, :)+mass(:, :)*forces%wrk(:, :)
+         vels%wrk(:, :) = vels%wrk(:, :) + mass(:, :)*forces%wrk(:, :)
          ! Control on velocity - I part [rescale, annealing]
          CALL control_vels_a(vels, particle_set, tc_section, vc_section, output_unit, &
                              istep)
          ! Coordinate step
          Dcoords%wrk(:, :) = dt*vels%wrk(:, :)
-         coords%wrk(:, :) = coords%wrk(:, :)+Dcoords%wrk(:, :)
+         coords%wrk(:, :) = coords%wrk(:, :) + Dcoords%wrk(:, :)
 
          CALL reorient_images(neb_env%rotate_frames, particle_set, coords, vels, &
                               output_unit, distances, neb_env%number_of_replica)
@@ -320,7 +322,7 @@ CONTAINS
          ! Control on velocity - II part [check vels VS forces, Steepest Descent like]
          CALL control_vels_b(vels, forces, vc_section)
          ! Velocity Verlet (second part)
-         vels%wrk(:, :) = vels%wrk(:, :)+mass(:, :)*forces%wrk(:, :)
+         vels%wrk(:, :) = vels%wrk(:, :) + mass(:, :)*forces%wrk(:, :)
          ! Dump Infos
          CALL dump_neb_info(neb_env=neb_env, &
                             coords=coords, &
@@ -371,7 +373,7 @@ CONTAINS
       TYPE(cp_logger_type), POINTER                      :: logger
       TYPE(global_environment_type), POINTER             :: globenv
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'neb_diis', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'neb_diis'
 
       INTEGER                                            :: handle, istep, iw, iw2, max_sd_steps, &
                                                             max_steps, n_diis
@@ -410,7 +412,7 @@ CONTAINS
       ALLOCATE (crr(PRODUCT(coords%size_wrk), n_diis))
       ALLOCATE (set_err(n_diis))
       ALLOCATE (energies(neb_env%number_of_replica))
-      ALLOCATE (distances(neb_env%number_of_replica-1))
+      ALLOCATE (distances(neb_env%number_of_replica - 1))
       ! Initializing forces array
       CALL reorient_images(neb_env%rotate_frames, particle_set, coords, vels, &
                            output_unit, distances, neb_env%number_of_replica)
@@ -468,7 +470,7 @@ CONTAINS
          END IF
          do_ls = .TRUE.
          IF (COUNT(set_err == -1) == 1) do_ls = .FALSE.
-         coords%wrk = coords%wrk+sline%wrk
+         coords%wrk = coords%wrk + sline%wrk
          ! Compute forces
          CALL reorient_images(neb_env%rotate_frames, particle_set, coords, vels, &
                               output_unit, distances, neb_env%number_of_replica)

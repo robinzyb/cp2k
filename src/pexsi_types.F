@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -14,18 +16,18 @@
 ! **************************************************************************************************
 
 MODULE pexsi_types
+   USE ISO_C_BINDING,                   ONLY: C_INTPTR_T
    USE bibliography,                    ONLY: Lin2009,&
                                               Lin2013,&
                                               cite_reference
    USE cp_log_handling,                 ONLY: cp_get_default_logger,&
                                               cp_logger_get_default_unit_nr,&
                                               cp_logger_type
-   USE dbcsr_api,                       ONLY: csr_type,&
+   USE dbcsr_api,                       ONLY: dbcsr_csr_type,&
                                               dbcsr_p_type,&
                                               dbcsr_scale,&
                                               dbcsr_type
-   USE kinds,                           ONLY: dp,&
-                                              int_8
+   USE kinds,                           ONLY: dp
    USE message_passing,                 ONLY: mp_dims_create,&
                                               mp_environ
    USE pexsi_interface,                 ONLY: cp_pexsi_get_options,&
@@ -83,22 +85,20 @@ MODULE pexsi_types
 !> \author Patrick Seewald
 ! **************************************************************************************************
    TYPE lib_pexsi_env
-      TYPE(dbcsr_type)                      :: dbcsr_template_matrix_sym, &
-                                               dbcsr_template_matrix_nonsym
-      TYPE(csr_type)                           :: csr_mat_p, csr_mat_ks, csr_mat_s, &
+      TYPE(dbcsr_type)                         :: dbcsr_template_matrix_sym, &
+                                                  dbcsr_template_matrix_nonsym
+      TYPE(dbcsr_csr_type)                     :: csr_mat_p, csr_mat_ks, csr_mat_s, &
                                                   csr_mat_E, csr_mat_F
       TYPE(cp_pexsi_options)                   :: options
       REAL(KIND=dp), DIMENSION(:), POINTER     :: kTS => NULL()
-
       TYPE(dbcsr_p_type), DIMENSION(:), &
-         POINTER                                :: matrix_w => NULL()
-
-      INTEGER(kind=int_8)                      :: plan
+         POINTER                               :: matrix_w => NULL()
+      INTEGER(KIND=C_INTPTR_T)                 :: plan
       INTEGER                                  :: nspin, num_ranks_per_pole, mp_group
 
       TYPE(dbcsr_type), DIMENSION(:), &
-         POINTER                                :: max_ev_vector
-      TYPE(dbcsr_type)                      :: csr_sparsity
+         POINTER                               :: max_ev_vector
+      TYPE(dbcsr_type)                         :: csr_sparsity
       INTEGER, DIMENSION(2)                    :: mp_dims
 
       LOGICAL                                  :: csr_screening, do_adaptive_tol_nel
@@ -121,14 +121,14 @@ CONTAINS
       TYPE(lib_pexsi_env), INTENT(INOUT)                 :: pexsi_env
       INTEGER, INTENT(IN)                                :: mp_group, nspin
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'lib_pexsi_init', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'lib_pexsi_init'
 
       INTEGER                                            :: handle, ispin, mynode, npSymbFact, &
                                                             numnodes, unit_nr
       TYPE(cp_logger_type), POINTER                      :: logger
 
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -153,7 +153,7 @@ CONTAINS
       ! is the smallest number greater or equal to min_ranks_per_pole that divides
       ! MPI size without remainder.
       DO WHILE (MOD(numnodes, pexsi_env%num_ranks_per_pole) .NE. 0)
-         pexsi_env%num_ranks_per_pole = pexsi_env%num_ranks_per_pole+1
+         pexsi_env%num_ranks_per_pole = pexsi_env%num_ranks_per_pole + 1
       ENDDO
 
       CALL cp_pexsi_get_options(pexsi_env%options, npSymbFact=npSymbFact)
@@ -198,8 +198,7 @@ CONTAINS
    SUBROUTINE lib_pexsi_finalize(pexsi_env)
       TYPE(lib_pexsi_env), INTENT(INOUT)                 :: pexsi_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'lib_pexsi_finalize', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'lib_pexsi_finalize'
 
       INTEGER                                            :: handle, ispin
 
@@ -234,8 +233,7 @@ CONTAINS
       TYPE(dbcsr_p_type), INTENT(INOUT), OPTIONAL        :: matrix_w
       REAL(KIND=dp), INTENT(INOUT), OPTIONAL             :: kTS
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'convert_nspin_cp2k_pexsi', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'convert_nspin_cp2k_pexsi'
 
       INTEGER                                            :: handle
       REAL(KIND=dp)                                      :: scaling

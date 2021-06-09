@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -33,7 +35,7 @@ MODULE xc_derivative_desc
    INTEGER, PARAMETER :: &
       MAX_LABEL_LENGTH = 12, &
       MAX_DERIVATIVE = 4, &
-      MAX_DERIVATIVE_DESC_LENGTH = (MAX_LABEL_LENGTH+2)*MAX_DERIVATIVE
+      MAX_DERIVATIVE_DESC_LENGTH = (MAX_LABEL_LENGTH + 2)*MAX_DERIVATIVE
 
    LOGICAL, PARAMETER :: debug_this_module = .FALSE.
 
@@ -56,9 +58,6 @@ CONTAINS
       CHARACTER(LEN=MAX_DERIVATIVE_DESC_LENGTH), &
          INTENT(OUT)                                     :: res
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'standardize_derivative_desc', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(len=MAX_LABEL_LENGTH)                    :: tmp
       CHARACTER(len=MAX_LABEL_LENGTH), DIMENSION(:), &
          POINTER                                         :: deriv_array
@@ -70,10 +69,10 @@ CONTAINS
       ordered = .FALSE.
       DO WHILE (.NOT. ordered)
          ordered = .TRUE.
-         DO i = 1, SIZE(deriv_array)-1
-            IF (deriv_array(i) > deriv_array(i+1)) THEN
-               tmp = deriv_array(i+1)
-               deriv_array(i+1) = deriv_array(i)
+         DO i = 1, SIZE(deriv_array) - 1
+            IF (deriv_array(i) > deriv_array(i + 1)) THEN
+               tmp = deriv_array(i + 1)
+               deriv_array(i + 1) = deriv_array(i)
                deriv_array(i) = tmp
                ordered = .FALSE.
             END IF
@@ -84,8 +83,8 @@ CONTAINS
       pos = 1
       DO i = 1, SIZE(deriv_array)
          l_label = LEN_TRIM(deriv_array(i))
-         res(pos:pos+l_label+1) = '('//deriv_array(i) (1:l_label)//')'
-         pos = pos+l_label+2
+         res(pos:pos + l_label + 1) = '('//deriv_array(i) (1:l_label)//')'
+         pos = pos + l_label + 2
       END DO
 
       DEALLOCATE (deriv_array)
@@ -102,15 +101,12 @@ CONTAINS
       CHARACTER(len=MAX_LABEL_LENGTH), DIMENSION(:), &
          POINTER                                         :: res
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_split_derivative_desc', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, j, nderiv
 
       nderiv = 0
       DO i = 1, LEN(deriv_desc)
          IF (deriv_desc(i:i) == '(') THEN
-            nderiv = nderiv+1
+            nderiv = nderiv + 1
          END IF
       END DO
 
@@ -119,12 +115,12 @@ CONTAINS
       nderiv = 0
       DO i = 1, LEN(deriv_desc)
          IF (deriv_desc(i:i) == '(') THEN
-            nderiv = nderiv+1
-            DO j = i+1, LEN(deriv_desc)
+            nderiv = nderiv + 1
+            DO j = i + 1, LEN(deriv_desc)
                IF (deriv_desc(j:j) == ')') EXIT
             END DO
 !tc: should we do a check on the derivative descriptions?
-            res(nderiv) = deriv_desc(i+1:j-1)
+            res(nderiv) = deriv_desc(i + 1:j - 1)
          END IF
       END DO
 

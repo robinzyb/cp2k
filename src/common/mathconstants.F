@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -56,7 +58,7 @@ MODULE mathconstants
                                       0.16117375710961183490E-23_dp, 0.64469502843844733962E-25_dp, 0.24795962632247974601E-26_dp, &
                                       0.91836898637955461484E-28_dp, 0.32798892370698379102E-29_dp, 0.11309962886447716932E-30_dp, &
                                                     0.37699876288159056439E-32_dp/)
-   REAL(KIND=dp), PARAMETER, DIMENSION(-1:2*maxfac+1) :: dfac = (/ &
+   REAL(KIND=dp), PARAMETER, DIMENSION(-1:2*maxfac + 1) :: dfac = (/ &
                                       0.10000000000000000000E+01_dp, 0.10000000000000000000E+01_dp, 0.10000000000000000000E+01_dp, &
                                       0.20000000000000000000E+01_dp, 0.30000000000000000000E+01_dp, 0.80000000000000000000E+01_dp, &
                                       0.15000000000000000000E+02_dp, 0.48000000000000000000E+02_dp, 0.10500000000000000000E+03_dp, &
@@ -138,7 +140,7 @@ MODULE mathconstants
                                radians = one/degree ! degree  -> radians
 
    COMPLEX(KIND=dp), PARAMETER :: gaussi = (0.0_dp, 1.0_dp) ! i = SQRT(-1)
-   COMPLEX(kind=dp), PARAMETER :: z_mone = (-1.0_dp, 0.0_dp), &
+   COMPLEX(KIND=dp), PARAMETER :: z_mone = (-1.0_dp, 0.0_dp), &
                                   z_one = (1.0_dp, 0.0_dp), &
                                   z_zero = (0.0_dp, 0.0_dp)
 

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -88,14 +90,13 @@ CONTAINS
       TYPE(particle_type), DIMENSION(:), INTENT(IN)      :: particle_set
       TYPE(cell_type), POINTER                           :: box
       REAL(KIND=dp), DIMENSION(:, :), INTENT(inout)      :: gmcharge
-      REAL(KIND=dp), DIMENSION(:), INTENT(inout)         :: mcharge
+      REAL(KIND=dp), DIMENSION(:), INTENT(in)            :: mcharge
       LOGICAL, INTENT(in)                                :: calculate_forces
       TYPE(virial_type), POINTER                         :: virial
       LOGICAL, INTENT(in)                                :: use_virial
       TYPE(atprop_type), POINTER                         :: atprop
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'tb_spme_evaluate', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'tb_spme_evaluate'
 
       INTEGER                                            :: group, handle, i, ig, ipart, j, n, &
                                                             npart, o_spline, p1
@@ -187,61 +188,63 @@ CONTAINS
       CALL rs_grid_set_box(grid_spme, rs=rpot)
 
       ! Atomic Stress
-      IF (atprop%stress .AND. use_virial) THEN
+      IF (ASSOCIATED(atprop)) THEN
+         IF (atprop%stress .AND. use_virial) THEN
 
-         CALL rs_grid_zero(rpot)
-         rhob_g%cc = phi_g%cc*green%p3m_charge%cr
-         CALL pw_transfer(rhob_g, rhob_r)
-         CALL rs_pw_transfer(rpot, rhob_r, pw2rs)
-         ipart = 0
-         DO
-            CALL set_list(particle_set, npart, center, p1, rden, ipart)
-            IF (p1 == 0) EXIT
-            ! calculate function on small boxes
-            CALL get_patch(particle_set, box, green, npts, p1, rhos, is_core=.FALSE., &
-                           is_shell=.FALSE., unit_charge=.TRUE.)
-            CALL dg_sum_patch_force_1d(rpot, rhos, center(:, p1), fint)
-            atprop%atstress(1, 1, p1) = atprop%atstress(1, 1, p1)+0.5_dp*mcharge(p1)*fint*dvols
-            atprop%atstress(2, 2, p1) = atprop%atstress(2, 2, p1)+0.5_dp*mcharge(p1)*fint*dvols
-            atprop%atstress(3, 3, p1) = atprop%atstress(3, 3, p1)+0.5_dp*mcharge(p1)*fint*dvols
-         END DO
-
-         CALL pw_pool_create_pw(pw_pool, phib_g, &
-                                use_data=COMPLEXDATA1D, in_space=RECIPROCALSPACE)
-         ffa = (0.5_dp/alpha)**2
-         ffb = 1.0_dp/fourpi
-         DO i = 1, 3
-            DO ig = grid_spme%first_gne0, grid_spme%ngpts_cut_local
-               phib_g%cc(ig) = ffb*dphi_g(i)%pw%cc(ig)*(1.0_dp+ffa*grid_spme%gsq(ig))
-               phib_g%cc(ig) = phib_g%cc(ig)*green%influence_fn%cc(ig)
+            CALL rs_grid_zero(rpot)
+            rhob_g%cc = phi_g%cc*green%p3m_charge%cr
+            CALL pw_transfer(rhob_g, rhob_r)
+            CALL rs_pw_transfer(rpot, rhob_r, pw2rs)
+            ipart = 0
+            DO
+               CALL set_list(particle_set, npart, center, p1, rden, ipart)
+               IF (p1 == 0) EXIT
+               ! calculate function on small boxes
+               CALL get_patch(particle_set, box, green, npts, p1, rhos, is_core=.FALSE., &
+                              is_shell=.FALSE., unit_charge=.TRUE.)
+               CALL dg_sum_patch_force_1d(rpot, rhos, center(:, p1), fint)
+               atprop%atstress(1, 1, p1) = atprop%atstress(1, 1, p1) + 0.5_dp*mcharge(p1)*fint*dvols
+               atprop%atstress(2, 2, p1) = atprop%atstress(2, 2, p1) + 0.5_dp*mcharge(p1)*fint*dvols
+               atprop%atstress(3, 3, p1) = atprop%atstress(3, 3, p1) + 0.5_dp*mcharge(p1)*fint*dvols
             END DO
-            IF (grid_spme%have_g0) phib_g%cc(1) = 0.0_dp
-            DO j = 1, i
-               nd = 0
-               nd(j) = 1
-               CALL pw_copy(phib_g, rhob_g)
-               CALL pw_derive(rhob_g, nd)
-               rhob_g%cc = rhob_g%cc*green%p3m_charge%cr
-               CALL pw_transfer(rhob_g, rhob_r)
-               CALL rs_pw_transfer(rpot, rhob_r, pw2rs)
 
-               ipart = 0
-               DO
-                  CALL set_list(particle_set, npart, center, p1, rden, ipart)
-                  IF (p1 == 0) EXIT
-                  ! calculate function on small boxes
-                  CALL get_patch(particle_set, box, green, npts, p1, rhos, &
-                                 is_core=.FALSE., is_shell=.FALSE., unit_charge=.TRUE.)
-                  ! integrate box and potential
-                  CALL dg_sum_patch_force_1d(rpot, rhos, center(:, p1), fint)
-                  atprop%atstress(i, j, p1) = atprop%atstress(i, j, p1)+fint*dvols*mcharge(p1)
-                  IF (i /= j) atprop%atstress(j, i, p1) = atprop%atstress(j, i, p1)+fint*dvols*mcharge(p1)
+            CALL pw_pool_create_pw(pw_pool, phib_g, &
+                                   use_data=COMPLEXDATA1D, in_space=RECIPROCALSPACE)
+            ffa = (0.5_dp/alpha)**2
+            ffb = 1.0_dp/fourpi
+            DO i = 1, 3
+               DO ig = grid_spme%first_gne0, grid_spme%ngpts_cut_local
+                  phib_g%cc(ig) = ffb*dphi_g(i)%pw%cc(ig)*(1.0_dp + ffa*grid_spme%gsq(ig))
+                  phib_g%cc(ig) = phib_g%cc(ig)*green%influence_fn%cc(ig)
                END DO
+               IF (grid_spme%have_g0) phib_g%cc(1) = 0.0_dp
+               DO j = 1, i
+                  nd = 0
+                  nd(j) = 1
+                  CALL pw_copy(phib_g, rhob_g)
+                  CALL pw_derive(rhob_g, nd)
+                  rhob_g%cc = rhob_g%cc*green%p3m_charge%cr
+                  CALL pw_transfer(rhob_g, rhob_r)
+                  CALL rs_pw_transfer(rpot, rhob_r, pw2rs)
 
+                  ipart = 0
+                  DO
+                     CALL set_list(particle_set, npart, center, p1, rden, ipart)
+                     IF (p1 == 0) EXIT
+                     ! calculate function on small boxes
+                     CALL get_patch(particle_set, box, green, npts, p1, rhos, &
+                                    is_core=.FALSE., is_shell=.FALSE., unit_charge=.TRUE.)
+                     ! integrate box and potential
+                     CALL dg_sum_patch_force_1d(rpot, rhos, center(:, p1), fint)
+                     atprop%atstress(i, j, p1) = atprop%atstress(i, j, p1) + fint*dvols*mcharge(p1)
+                     IF (i /= j) atprop%atstress(j, i, p1) = atprop%atstress(j, i, p1) + fint*dvols*mcharge(p1)
+                  END DO
+
+               END DO
             END DO
-         END DO
-         CALL pw_pool_give_back_pw(pw_pool, phib_g)
+            CALL pw_pool_give_back_pw(pw_pool, phib_g)
 
+         END IF
       END IF
 
       CALL pw_pool_give_back_pw(pw_pool, rhob_g)
@@ -264,7 +267,7 @@ CONTAINS
             END DO
          END DO
          ffa = (1.0_dp/fourpi)*(0.5_dp/alpha)**2
-         virial%pv_virial = virial%pv_virial-(ffa*f_stress-h_stress)/REAL(para_env%num_pe, dp)
+         virial%pv_virial = virial%pv_virial - (ffa*f_stress - h_stress)/REAL(para_env%num_pe, dp)
       END IF
 
       !--------END OF STRESS TENSOR CALCULATION -----------
@@ -301,13 +304,13 @@ CONTAINS
                         is_shell=.FALSE., unit_charge=.TRUE.)
 
          CALL dg_sum_patch_force_1d(rpot, rhos, center(:, p1), fint)
-         gmcharge(p1, 1) = gmcharge(p1, 1)+fint*dvols
+         gmcharge(p1, 1) = gmcharge(p1, 1) + fint*dvols
 
          IF (calculate_forces) THEN
             CALL dg_sum_patch_force_3d(drpot, rhos, center(:, p1), fat)
-            gmcharge(p1, 2) = gmcharge(p1, 2)-fat(1)*dvols
-            gmcharge(p1, 3) = gmcharge(p1, 3)-fat(2)*dvols
-            gmcharge(p1, 4) = gmcharge(p1, 4)-fat(3)*dvols
+            gmcharge(p1, 2) = gmcharge(p1, 2) - fat(1)*dvols
+            gmcharge(p1, 3) = gmcharge(p1, 3) - fat(2)*dvols
+            gmcharge(p1, 4) = gmcharge(p1, 4) - fat(3)*dvols
          END IF
 
       END DO
@@ -354,8 +357,7 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: use_virial
       TYPE(atprop_type), POINTER                         :: atprop
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'tb_ewald_overlap', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'tb_ewald_overlap'
 
       INTEGER                                            :: handle, i, iatom, jatom, nmat
       REAL(KIND=dp)                                      :: dfr, dr, fr, pfr, rij(3)
@@ -373,14 +375,14 @@ CONTAINS
          dr = SQRT(SUM(rij(:)**2))
          IF (dr > 1.e-10) THEN
             fr = erfc(alpha*dr)/dr
-            gmcharge(iatom, 1) = gmcharge(iatom, 1)+mcharge(jatom)*fr
-            gmcharge(jatom, 1) = gmcharge(jatom, 1)+mcharge(iatom)*fr
+            gmcharge(iatom, 1) = gmcharge(iatom, 1) + mcharge(jatom)*fr
+            gmcharge(jatom, 1) = gmcharge(jatom, 1) + mcharge(iatom)*fr
             IF (nmat > 1) THEN
-               dfr = -2._dp*alpha*EXP(-alpha*alpha*dr*dr)*oorootpi/dr-fr/dr
+               dfr = -2._dp*alpha*EXP(-alpha*alpha*dr*dr)*oorootpi/dr - fr/dr
                dfr = -dfr/dr
                DO i = 2, nmat
-                  gmcharge(iatom, i) = gmcharge(iatom, i)-rij(i-1)*mcharge(jatom)*dfr
-                  gmcharge(jatom, i) = gmcharge(jatom, i)+rij(i-1)*mcharge(iatom)*dfr
+                  gmcharge(iatom, i) = gmcharge(iatom, i) - rij(i - 1)*mcharge(jatom)*dfr
+                  gmcharge(jatom, i) = gmcharge(jatom, i) + rij(i - 1)*mcharge(iatom)*dfr
                END DO
             END IF
             IF (use_virial) THEN
@@ -390,9 +392,11 @@ CONTAINS
                   pfr = -dfr*mcharge(iatom)*mcharge(jatom)
                END IF
                CALL virial_pair_force(virial%pv_virial, -pfr, rij, rij)
-               IF (atprop%stress) THEN
-                  CALL virial_pair_force(atprop%atstress(:, :, iatom), -0.5_dp*pfr, rij, rij)
-                  CALL virial_pair_force(atprop%atstress(:, :, jatom), -0.5_dp*pfr, rij, rij)
+               IF (ASSOCIATED(atprop)) THEN
+                  IF (atprop%stress) THEN
+                     CALL virial_pair_force(atprop%atstress(:, :, iatom), -0.5_dp*pfr, rij, rij)
+                     CALL virial_pair_force(atprop%atstress(:, :, jatom), -0.5_dp*pfr, rij, rij)
+                  END IF
                END IF
             END IF
          END IF

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -10,9 +12,9 @@
 MODULE pao_optimizer
    USE arnoldi_api,                     ONLY: arnoldi_extremal
    USE dbcsr_api,                       ONLY: &
-        dbcsr_add, dbcsr_add_on_diag, dbcsr_copy, dbcsr_create, dbcsr_frobenius_norm, &
+        dbcsr_add, dbcsr_add_on_diag, dbcsr_copy, dbcsr_create, dbcsr_dot, dbcsr_frobenius_norm, &
         dbcsr_get_info, dbcsr_multiply, dbcsr_release, dbcsr_reserve_diag_blocks, dbcsr_scale, &
-        dbcsr_set, dbcsr_trace, dbcsr_type
+        dbcsr_set, dbcsr_type
    USE kinds,                           ONLY: dp
    USE pao_input,                       ONLY: pao_opt_bfgs,&
                                               pao_opt_cg
@@ -177,11 +179,11 @@ CONTAINS
          IF (pao%iw_opt > 0) WRITE (pao%iw_opt, *) "PAO|CG| warming up with steepest descent"
          beta = 0.0_dp
       ELSE
-         CALL dbcsr_trace(matrix_G, matrix_G, trace_G_new)
-         CALL dbcsr_trace(matrix_G_prev, matrix_G_prev, trace_G_prev)
-         CALL dbcsr_trace(matrix_G, matrix_G_prev, trace_G_mix)
-         CALL dbcsr_trace(matrix_D, matrix_G, trace_D_Gnew)
-         CALL dbcsr_trace(matrix_D, matrix_D, trace_D)
+         CALL dbcsr_dot(matrix_G, matrix_G, trace_G_new)
+         CALL dbcsr_dot(matrix_G_prev, matrix_G_prev, trace_G_prev)
+         CALL dbcsr_dot(matrix_G, matrix_G_prev, trace_G_mix)
+         CALL dbcsr_dot(matrix_D, matrix_G, trace_D_Gnew)
+         CALL dbcsr_dot(matrix_D, matrix_D, trace_D)
          IF (pao%iw_opt > 0) WRITE (pao%iw_opt, *) "PAO|CG| trace_G_new ", trace_G_new
          IF (pao%iw_opt > 0) WRITE (pao%iw_opt, *) "PAO|CG| trace_G_prev ", trace_G_prev
          IF (pao%iw_opt > 0) WRITE (pao%iw_opt, *) "PAO|CG| trace_G_mix ", trace_G_mix
@@ -189,7 +191,7 @@ CONTAINS
          IF (pao%iw_opt > 0) WRITE (pao%iw_opt, *) "PAO|CG| trace_D_Gnew", trace_D_Gnew
 
          IF (trace_G_prev /= 0.0_dp) THEN
-            beta = (trace_G_new-trace_G_mix)/trace_G_prev !Polak-Ribiere
+            beta = (trace_G_new - trace_G_mix)/trace_G_prev !Polak-Ribiere
          ENDIF
 
          IF (beta < 0.0_dp) THEN
@@ -250,11 +252,11 @@ CONTAINS
          CALL dbcsr_scale(matrix_s, pao%linesearch%step_size) ! dX
 
          ! sy = MATMUL(TRANPOSE(s), y)
-         CALL dbcsr_trace(matrix_s, matrix_y, trace_sy)
+         CALL dbcsr_dot(matrix_s, matrix_y, trace_sy)
 
          ! heuristic initialization
          IF (icycle == 2) THEN
-            CALL dbcsr_trace(matrix_Y, matrix_Y, trace_yy)
+            CALL dbcsr_dot(matrix_Y, matrix_Y, trace_yy)
             CALL dbcsr_scale(pao%matrix_BFGS, trace_sy/trace_yy)
             IF (pao%iw_opt > 0) WRITE (pao%iw_opt, *) "PAO|BFGS| Initializing with:", trace_sy/trace_yy
          ENDIF
@@ -264,13 +266,13 @@ CONTAINS
          CALL dbcsr_multiply("N", "N", 1.0_dp, pao%matrix_BFGS, matrix_y, 0.0_dp, matrix_Hy)
 
          ! yHy = MATMUL(TRANPOSE(y), Hy)
-         CALL dbcsr_trace(matrix_y, matrix_Hy, trace_yHy)
+         CALL dbcsr_dot(matrix_y, matrix_Hy, trace_yHy)
 
          ! Use damped BFGS algorithm to ensure H remains positive definite.
          ! See chapter 18 in Nocedal and Wright's book for details.
          ! The formulas were adopted to inverse Hessian algorithm.
          IF (trace_sy < 0.2_dp*trace_yHy) THEN
-            theta = 0.8_dp*trace_yHy/(trace_yHy-trace_sy)
+            theta = 0.8_dp*trace_yHy/(trace_yHy - trace_sy)
             IF (pao%iw_opt > 0) WRITE (pao%iw_opt, *) "PAO|BFGS| Dampening theta:", theta
          ELSE
             theta = 1.0
@@ -278,10 +280,10 @@ CONTAINS
 
          ! r = theta*s + (1-theta)*Hy
          CALL dbcsr_copy(matrix_r, matrix_s)
-         CALL dbcsr_add(matrix_r, matrix_Hy, theta, (1.0_dp-theta))
+         CALL dbcsr_add(matrix_r, matrix_Hy, theta, (1.0_dp - theta))
 
          ! use t instead of y to update B matrix
-         CALL dbcsr_trace(matrix_r, matrix_y, trace_ry)
+         CALL dbcsr_dot(matrix_r, matrix_y, trace_ry)
          CPASSERT(trace_RY > 0.0_dp)
 
          ! yr = MATMUL(y, TRANSPOSE(r))

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -60,8 +62,7 @@ CONTAINS
       TYPE(simpar_type), POINTER                         :: simpar
       TYPE(lnhc_parameters_type), POINTER                :: nhc
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'nhc_to_barostat_mapping', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'nhc_to_barostat_mapping'
 
       INTEGER                                            :: handle, i, number
       TYPE(map_info_type), POINTER                       :: map_info
@@ -141,8 +142,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(global_constraint_type), POINTER              :: gci
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'nhc_to_particle_mapping', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'nhc_to_particle_mapping'
 
       INTEGER                                            :: handle, i, imap, j, natoms_local, &
                                                             sum_of_thermostats
@@ -172,7 +172,7 @@ CONTAINS
          map_info%s_kin = 0.0_dp
          DO i = 1, 3
             DO j = 1, natoms_local
-               map_info%p_kin(i, j)%point = map_info%p_kin(i, j)%point+1
+               map_info%p_kin(i, j)%point = map_info%p_kin(i, j)%point + 1
             END DO
          END DO
 
@@ -182,7 +182,7 @@ CONTAINS
 
          ! We know the total number of system thermostats.
          IF ((sum_of_thermostats == 1) .AND. (map_info%dis_type /= do_thermo_no_communication)) THEN
-            fac = map_info%s_kin(1)-deg_of_freedom(1)-simpar%nfree_rot_transl
+            fac = map_info%s_kin(1) - deg_of_freedom(1) - simpar%nfree_rot_transl
             IF (fac == 0.0_dp) THEN
                CPABORT('Zero degrees of freedom. Nothing to thermalize!')
             END IF
@@ -191,7 +191,7 @@ CONTAINS
          ELSE
             DO i = 1, nhc%loc_num_nhc
                imap = map_info%map_index(i)
-               fac = (map_info%s_kin(imap)-deg_of_freedom(i))
+               fac = (map_info%s_kin(imap) - deg_of_freedom(i))
                nhc%nvt(1, i)%nkt = simpar%temp_ext*fac
                nhc%nvt(1, i)%degrees_of_freedom = FLOOR(fac)
             END DO
@@ -249,8 +249,7 @@ CONTAINS
       TYPE(global_constraint_type), POINTER              :: gci
       LOGICAL, INTENT(IN), OPTIONAL                      :: shell
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'setup_adiabatic_thermostat', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'setup_adiabatic_thermostat'
 
       INTEGER                                            :: handle, nkind, number, region
       LOGICAL                                            :: do_shell
@@ -309,8 +308,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(global_constraint_type), POINTER              :: gci
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'nhc_to_particle_mapping_slow', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'nhc_to_particle_mapping_slow'
 
       INTEGER                                            :: handle, i, imap, j, natoms_local, &
                                                             sum_of_thermostats
@@ -337,7 +335,7 @@ CONTAINS
          DO i = 1, 3
             DO j = 1, natoms_local
                IF (ASSOCIATED(map_info%p_kin(i, j)%point)) &
-                  map_info%p_kin(i, j)%point = map_info%p_kin(i, j)%point+1
+                  map_info%p_kin(i, j)%point = map_info%p_kin(i, j)%point + 1
             END DO
          END DO
 
@@ -347,7 +345,7 @@ CONTAINS
 
          ! We know the total number of system thermostats.
          IF ((sum_of_thermostats == 1) .AND. (map_info%dis_type /= do_thermo_no_communication)) THEN
-            fac = map_info%s_kin(1)-deg_of_freedom(1)-simpar%nfree_rot_transl
+            fac = map_info%s_kin(1) - deg_of_freedom(1) - simpar%nfree_rot_transl
             IF (fac == 0.0_dp) THEN
                CPABORT('Zero degrees of freedom. Nothing to thermalize!')
             END IF
@@ -356,7 +354,7 @@ CONTAINS
          ELSE
             DO i = 1, nhc%loc_num_nhc
                imap = map_info%map_index(i)
-               fac = (map_info%s_kin(imap)-deg_of_freedom(i))
+               fac = (map_info%s_kin(imap) - deg_of_freedom(i))
                nhc%nvt(1, i)%nkt = simpar%temp_slow*fac
                nhc%nvt(1, i)%degrees_of_freedom = FLOOR(fac)
             END DO
@@ -405,8 +403,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(global_constraint_type), POINTER              :: gci
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'nhc_to_particle_mapping_fast', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'nhc_to_particle_mapping_fast'
 
       INTEGER                                            :: handle, i, imap, j, natoms_local, &
                                                             sum_of_thermostats
@@ -433,7 +430,7 @@ CONTAINS
          DO i = 1, 3
             DO j = 1, natoms_local
                IF (ASSOCIATED(map_info%p_kin(i, j)%point)) &
-                  map_info%p_kin(i, j)%point = map_info%p_kin(i, j)%point+1
+                  map_info%p_kin(i, j)%point = map_info%p_kin(i, j)%point + 1
             END DO
          END DO
 
@@ -443,7 +440,7 @@ CONTAINS
 
          ! We know the total number of system thermostats.
          IF ((sum_of_thermostats == 1) .AND. (map_info%dis_type /= do_thermo_no_communication)) THEN
-            fac = map_info%s_kin(1)-deg_of_freedom(1)-simpar%nfree_rot_transl
+            fac = map_info%s_kin(1) - deg_of_freedom(1) - simpar%nfree_rot_transl
             IF (fac == 0.0_dp) THEN
                CPABORT('Zero degrees of freedom. Nothing to thermalize!')
             END IF
@@ -452,7 +449,7 @@ CONTAINS
          ELSE
             DO i = 1, nhc%loc_num_nhc
                imap = map_info%map_index(i)
-               fac = (map_info%s_kin(imap)-deg_of_freedom(i))
+               fac = (map_info%s_kin(imap) - deg_of_freedom(i))
                nhc%nvt(1, i)%nkt = simpar%temp_fast*fac
                nhc%nvt(1, i)%degrees_of_freedom = FLOOR(fac)
             END DO
@@ -510,8 +507,7 @@ CONTAINS
       TYPE(global_constraint_type), POINTER              :: gci
       LOGICAL, INTENT(IN), OPTIONAL                      :: shell
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'setup_nhc_thermostat', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'setup_nhc_thermostat'
 
       INTEGER                                            :: handle, nkind, number, region
       LOGICAL                                            :: do_shell
@@ -569,8 +565,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(global_constraint_type), POINTER              :: gci
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'nhc_to_shell_mapping', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'nhc_to_shell_mapping'
 
       INTEGER                                            :: handle, i, imap, j, nshell_local, &
                                                             sum_of_thermostats
@@ -599,7 +594,7 @@ CONTAINS
          map_info%s_kin = 0.0_dp
          DO j = 1, nshell_local
             DO i = 1, 3
-               map_info%p_kin(i, j)%point = map_info%p_kin(i, j)%point+1
+               map_info%p_kin(i, j)%point = map_info%p_kin(i, j)%point + 1
             END DO
          END DO
 

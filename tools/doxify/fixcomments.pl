@@ -6,7 +6,7 @@ fixcomments.pl
 
 =head1 SYNOPSIS
 
-fixcomments.pl infile outfile [verbosity]
+fixcomments.pl [options] [infile]
 
 =head1 OPTIONS
 
@@ -14,15 +14,15 @@ fixcomments.pl infile outfile [verbosity]
 
 =item B<infile>
 
-Input file to process.
+Input file to process (uses stdin if not specified)
 
-=item B<outfile>
+=item B<--help|-h>
 
-Output file to write after processing.
+A little help
 
-=item B<verbosity>
+=item B<--verbose|-v>
 
-Optional verbosity level: 0=quiet, 1=some info, 2=lots of info
+Output debug messages (to stderr), repeat for even more output
 
 =back
 
@@ -35,34 +35,29 @@ to both FUNCTIONs and SUBROUTINEs.
 
 use strict;
 use warnings;
+use open qw(:std :utf8);
 use FindBin;
 use lib "$FindBin::RealBin/lib";
 use Pod::Usage qw(pod2usage);
+use Getopt::Long;
 
-# Check options
-if ((@ARGV != 2) && (@ARGV != 3)) {
-    pod2usage(-verbose => 1, -message => "$0: Wrong number of arguments given.\n");
+my $verbose = 0;
+my $help = 0;
+
+GetOptions(
+    'verbose+' => \$verbose,
+    'help|?' => \$help) or pod2usage(2);
+pod2usage(1) if $help;
+
+sub print_debug {
+    print(STDERR "DEBUG: @_\n") if ($verbose > 0);
 }
-
-my $DBG=0;
-if (defined($ARGV[2])) {
-    $DBG = $ARGV[2];
-}
-
-sub print_debug{
-    if($DBG>0){ print "DEBUG: @_\n";}
-}
-
-print_debug("fixcomments.pl running with");
-print_debug("Input:  $ARGV[0]");
-print_debug("Output: $ARGV[1]");
 
 # Regular expressions for matching
 my $DOXYGEN_HEADER = "^!>";
 
 # The empty string
-my ($EMPTY);
-$EMPTY=q{};
+my $EMPTY = q{};
 
 # Toggle variables to keep track of which doxygen item is being processed
 # in the current header.
@@ -125,11 +120,8 @@ my $isFunction;
 
 initVariables();
 
-open (my $INPUT , "<" , $ARGV[0]) or die("Cant open $ARGV[0] $!");
-open (my $OUTPUT , ">" , $ARGV[1]) or die("Cant create $ARGV[1] $!");
-
 # While there are still lines to read in our INPUT file
-while (<$INPUT>) {
+while (<>) {
     # Get the line we've just read in
     my $currline = $_;
 
@@ -151,7 +143,7 @@ while (<$INPUT>) {
     }
 
     # Look for procedure (SUBROUTINE/FUNCTION definitions)
-    # These can be the initial definiton line, or a continuation line
+    # These can be the initial definition line, or a continuation line
     # We don't add comments to code inside an interface block
     if ((matchSubroutineDefinition($currline) || $hasAmpersand)
         && !($insideInterface)) {
@@ -163,7 +155,7 @@ while (<$INPUT>) {
             # No header remaining so just print out line as read
             print_debug("Empty old header, writing out line:");
             print_debug($currline);
-            print $OUTPUT $currline;
+            print $currline;
         } else {
             # Header has been processed, need to do something with remaining lines
             print_debug("Non-empty old header for line:");
@@ -181,18 +173,15 @@ while (<$INPUT>) {
                 # If it was a MODULE or TYPE header we still need to write
                 # it back out to file.
                 print_debug("Writing existing non FUNCTION/SUBROUTINE header to file");
-                print $OUTPUT $oldheader;
-                print $OUTPUT $leftoverlines;
-                print $OUTPUT $currline;
+                print $oldheader;
+                print $leftoverlines;
+                print $currline;
                 # Reset variables after output
                 initVariables();
             }
         }
     } # End of the if (($currline is SUBROUTINE or FUNCTION ) block
 } # End of main while loop
-
-close $OUTPUT;
-close $INPUT;
 
 # Perhaps do a second pass to remove any double occurrences of !> *** type lines
 
@@ -478,7 +467,7 @@ sub processDoxygenHeader {
             }
         }
         # Get the next line in the header block
-        $currline = <$INPUT>;
+        $currline = <>;
     } while ($currline =~ m/^\s*!/xms); # Rule as to when you have finished a header. Currently Anything beginning with !
     return $currline;
 } # End of header processing subroutine
@@ -493,7 +482,7 @@ sub processSubroutineDefinition {
     # unrequired text stripped off, $currline will still contain the actual code
     my $functionLine = $EMPTY;
     if (!($hasAmpersand)) {
-        # Remove anything preceeding the SUBROUTINE or FUNCTION definition
+        # Remove anything preceding the SUBROUTINE or FUNCTION definition
         # e.g. RECURSIVE, REAL, INTEGER, (KIND=dp), ELEMENTAL etc etc.
         $currline =~ /((\bFUNCTION\b|\bSUBROUTINE\b).+)/x;
         # $1 contains whatever remains after removing anything before the
@@ -516,14 +505,20 @@ sub processSubroutineDefinition {
 
     # Split the subroutine or function definition by space or comma
     my @string = split(/([,\(\)\s+]+)/x, $functionLine);
-    foreach (@string) {
-        if (defined) {
-        my $p = $_;
+
+    while (my ($idx, $p) = each @string) {
+        defined $p or next;  # continue with the next item if $p is undefined
+
         $p =~ s/^\s+|\s+$//gx;
-        if (($p ne $EMPTY) && ($p ne ",")) {
+
+        $p ne $EMPTY or next;  # continue with the next item if empty
+        $p ne "," or next;  # or simply the ','
+
         print_debug("Processing item $p");
         if ($p eq "&") {
-            # If we encounter an & then it spans multiple lines
+            # If we encounter an & as the last element in this line it starts a line continuation,
+            # otherwise it is the continuation point of a previous one and we can ignore it
+            $idx == $#string or next;
             print_debug("Got & line continuation");
             $hasAmpersand = 1;
             # Buffer the line details as we can't print out yet
@@ -562,13 +557,13 @@ sub processSubroutineDefinition {
                         # If the entry for this parameter is missing we use
                         # the standard text for a missing entry
                         print_debug("Missing entry for parameter $p, creating blank");
-                        print $OUTPUT "!> \\param $p ...\n";
+                        print "!> \\param $p ...\n";
                     } else {
                         print_debug("Using existing entry for parameter $p");
                         if ($params{$p} !~ m/\\param\s*(\w+|\[.*\]\s+\w+)\s*\n/xms ) {
                             # Entry must contain some text after the parameter name
                             print_debug("Using entry unchanged");
-                            print $OUTPUT $params{$p};
+                            print $params{$p};
                         } else {
                             if ($params{$p} =~ m/!>\s*\n$/x) {
                                 # We need to guard against \param entries which have
@@ -581,11 +576,11 @@ sub processSubroutineDefinition {
                                 $tmpString[0] = $tmpString[0] . " ...";
                                 for (my $i = 0; $i < $tmpLen; $i++) {
                                     # Re-add the carriage return to each line
-                                    print $OUTPUT "$tmpString[$i]\n";
+                                    print "$tmpString[$i]\n";
                                 }
                             } else {
                                 chomp($params{$p});
-                                print $OUTPUT $params{$p}," ...\n";
+                                print $params{$p}," ...\n";
                             }
                         }
                     }
@@ -601,11 +596,11 @@ sub processSubroutineDefinition {
                     }
                     if (($briefs eq $EMPTY) or ($briefs eq "!> \\brief\n")) {
                         # \brief does not exist or is present but empty - add text
-                        print $OUTPUT "! **************************************************************************************************\n";
-                        print $OUTPUT "!> \\brief ...\n";
+                        print "! **************************************************************************************************\n";
+                        print "!> \\brief ...\n";
                     } else {
                         # \brief exists and contains text
-                        print $OUTPUT $briefs;
+                        print $briefs;
                     }
                 } elsif ($p =~ m/RESULT/ixms) {
                     # Check to see if parameter is RESULT for a FUNCTION
@@ -614,8 +609,6 @@ sub processSubroutineDefinition {
                 }
             }
             $lelement = $p; # Take a note of the array element for comparison, ignoring & and ()
-        } # End of if $p eq "&" conditional
-    }
         }
     } # End of for loop over @string
 
@@ -636,9 +629,9 @@ sub processSubroutineDefinition {
                 # Must protect against updating an existing comment
                 # Get rid of \n so UNMATCHED* text can be appended on.
                 chomp($params{$paramName});
-                print $OUTPUT $params{$paramName} . " UNMATCHED_PROCEDURE_ARGUMENT: please check \n";
+                print $params{$paramName} . " UNMATCHED_PROCEDURE_ARGUMENT: please check \n";
             } else {
-                print $OUTPUT $params{$paramName};
+                print $params{$paramName};
             }
         }
     }
@@ -648,54 +641,54 @@ sub processSubroutineDefinition {
     if (!($hasAmpersand)) {
         if ($returns ne $EMPTY) {
             # Print RESULT value first so that it should come straight after the \param definitions
-            print $OUTPUT $returns;
+            print $returns;
         } else {
             # Get return value from function name
             if ($isFunction) {
-                print $OUTPUT "!> \\return ...\n";
+                print "!> \\return ...\n";
             }
         }
         if ($retVals ne $EMPTY) {
             # Print return values definitions second so that they come after any \return definitions
-            print $OUTPUT $retVals;
+            print $retVals;
         }
         if (($dates eq $EMPTY) || ($dates eq "!> \\date\n")) {
             # dates entry empty or exists and contains no text
-###            print $OUTPUT "!> \\date MISSING_COMMENT: Unknown\n";  # Use this line if you want to add text to the entry
-            print $OUTPUT $dates;
+###            print "!> \\date MISSING_COMMENT: Unknown\n";  # Use this line if you want to add text to the entry
+            print $dates;
         } else {
-            print $OUTPUT $dates;
+            print $dates;
         }
         if (($pars eq $EMPTY) || ($pars eq "!> \\par History\n")) {
             # pars entry empty or exists but contains no text
-###            print $OUTPUT "!> \\par History\n"; # Use this line if you want to add text to the entry
-###            print $OUTPUT "!>     MISSING_COMMENT: Unknown\n"; # Use this line if you want to add text to the entry
-            print $OUTPUT $pars;
+###            print "!> \\par History\n"; # Use this line if you want to add text to the entry
+###            print "!>     MISSING_COMMENT: Unknown\n"; # Use this line if you want to add text to the entry
+            print $pars;
         } else {
-            print $OUTPUT $pars;
+            print $pars;
         }
         if (($authors eq $EMPTY) || ($authors eq "!> \\author\n")) {
             # authors empty or exists but contains no text
-###            print $OUTPUT "!> \\author MISSING_COMMENT: Unknown\n"; # Use this line if you want to add text to the entry
-            print $OUTPUT $authors;
+###            print "!> \\author MISSING_COMMENT: Unknown\n"; # Use this line if you want to add text to the entry
+            print $authors;
         } else {
-            print $OUTPUT $authors;
+            print $authors;
         }
         if ($versions ne $EMPTY) {
-            print $OUTPUT $versions;
+            print $versions;
         }
         if ($randoms ne $EMPTY) {
-            print $OUTPUT $randoms;
+            print $randoms;
         }
         if ($notes ne $EMPTY){
-            print $OUTPUT $notes;
+            print $notes;
         }
         if ($remainders ne $EMPTY) {
-            # Dumps out whatever else remainded in the header (e.g. stuff begining !> without a \ or stuff beginning with just a !) for the SUBROUTINE/FUNCTION at the end
-            print $OUTPUT $remainders;
+            # Dumps out whatever else remainded in the header (e.g. stuff beginning !> without a \ or stuff beginning with just a !) for the SUBROUTINE/FUNCTION at the end
+            print $remainders;
         }
-        print $OUTPUT "! **************************************************************************************************\n";
-        print $OUTPUT "$leftoverlines$buffer$currline";
+        print "! **************************************************************************************************\n";
+        print "$leftoverlines$buffer$currline";
         # Reset all the variables after writing out the header
         initVariables();
         return;

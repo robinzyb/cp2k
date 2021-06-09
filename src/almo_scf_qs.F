@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -120,15 +122,13 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: spin_key
       LOGICAL, INTENT(IN)                                :: init_domains
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'matrix_almo_create', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'matrix_almo_create'
 
       INTEGER                                            :: dimen, handle, hold, iatom, iblock_col, &
                                                             iblock_row, imol, mynode, natoms, &
                                                             nblkrows_tot, nlength, nmols, row
-      INTEGER, DIMENSION(:), POINTER :: blk_distr, blk_sizes, block_sizes_new, cluster_distr, &
-         cluster_distr_new, col_cluster_new, col_distr_new, col_sizes_new, distr_new_array, &
-         row_cluster_new, row_distr_new, row_sizes_new
+      INTEGER, DIMENSION(:), POINTER :: blk_distr, blk_sizes, block_sizes_new, col_distr_new, &
+         col_sizes_new, distr_new_array, row_distr_new, row_sizes_new
       LOGICAL                                            :: active, one_dim_is_mo, tr
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: p_new_block
       TYPE(dbcsr_distribution_type)                      :: dist_new, dist_qs
@@ -149,7 +149,7 @@ CONTAINS
 
       ! RZK-warning The structure of the matrices can be optimized:
       ! 1. Diagonal matrices must be distributed evenly over the processes.
-      !    This can be achived by distributing cpus: 012012-rows and 001122-cols
+      !    This can be achieved by distributing cpus: 012012-rows and 001122-cols
       !    block_diagonal_flag is introduced but not used
       ! 2. Multiplication of diagonally dominant matrices will be faster
       !    if the diagonal blocks are local to the same processes.
@@ -167,12 +167,10 @@ CONTAINS
 
          ! distribution pattern is the same for all matrix types (ao, occ, virt)
          IF (dimen == 1) THEN !rows
-            CALL dbcsr_distribution_get(dist_qs, row_dist=blk_distr, row_cluster=cluster_distr)
+            CALL dbcsr_distribution_get(dist_qs, row_dist=blk_distr)
          ELSE !columns
-            CALL dbcsr_distribution_get(dist_qs, col_dist=blk_distr, col_cluster=cluster_distr)
+            CALL dbcsr_distribution_get(dist_qs, col_dist=blk_distr)
          ENDIF
-
-         NULLIFY (cluster_distr_new)
 
          IF (size_keys(dimen) == almo_mat_dim_aobasis) THEN ! this dimension is AO
 
@@ -184,30 +182,19 @@ CONTAINS
                ALLOCATE (block_sizes_new(natoms), distr_new_array(natoms))
                block_sizes_new(:) = blk_sizes(:)
                distr_new_array(:) = blk_distr(:)
-               IF (ASSOCIATED(cluster_distr)) THEN
-                  ALLOCATE (cluster_distr_new(natoms))
-                  cluster_distr_new(:) = cluster_distr(:)
-               END IF
                ! molecular clustering of AOs
             ELSE IF (almo_scf_env%mat_distr_aos == almo_mat_distr_molecular) THEN
                ALLOCATE (block_sizes_new(nmols), distr_new_array(nmols))
                block_sizes_new(:) = 0
                DO iatom = 1, natoms
                   block_sizes_new(almo_scf_env%domain_index_of_atom(iatom)) = &
-                     block_sizes_new(almo_scf_env%domain_index_of_atom(iatom))+ &
+                     block_sizes_new(almo_scf_env%domain_index_of_atom(iatom)) + &
                      blk_sizes(iatom)
                ENDDO
                DO imol = 1, nmols
                   distr_new_array(imol) = &
                      blk_distr(almo_scf_env%first_atom_of_domain(imol))
                ENDDO
-               IF (ASSOCIATED(cluster_distr)) THEN
-                  ALLOCATE (cluster_distr_new(nmols))
-                  DO imol = 1, nmols
-                     cluster_distr_new(imol) = &
-                        cluster_distr(almo_scf_env%first_atom_of_domain(imol))
-                  ENDDO
-               END IF
             ELSE
                CPABORT("Illegal distribution")
             ENDIF
@@ -259,27 +246,15 @@ CONTAINS
 
             ! distribution for MOs is copied from AOs
             ALLOCATE (distr_new_array(nlength))
-            IF (ASSOCIATED(cluster_distr)) THEN
-               ALLOCATE (cluster_distr_new(nlength))
-            END IF
             ! atomic clustering
             IF (almo_scf_env%mat_distr_mos == almo_mat_distr_atomic) THEN
                distr_new_array(:) = blk_distr(:)
-               IF (ASSOCIATED(cluster_distr)) THEN
-                  cluster_distr_new(:) = cluster_distr(:)
-               ENDIF
                ! molecular clustering
             ELSE IF (almo_scf_env%mat_distr_mos == almo_mat_distr_molecular) THEN
                DO imol = 1, nmols
                   distr_new_array(imol) = &
                      blk_distr(almo_scf_env%first_atom_of_domain(imol))
                ENDDO
-               IF (ASSOCIATED(cluster_distr)) THEN
-                  DO imol = 1, nmols
-                     cluster_distr_new(imol) = &
-                        cluster_distr(almo_scf_env%first_atom_of_domain(imol))
-                  ENDDO
-               END IF
             ENDIF
          ENDIF ! end choosing dimension size (AOs vs .NOT.AOs)
 
@@ -287,18 +262,15 @@ CONTAINS
          IF (dimen == 1) THEN !rows
             row_sizes_new => block_sizes_new
             row_distr_new => distr_new_array
-            row_cluster_new => cluster_distr_new
          ELSE !columns
             col_sizes_new => block_sizes_new
             col_distr_new => distr_new_array
-            col_cluster_new => cluster_distr_new
          ENDIF
       ENDDO ! both rows and columns are done
 
       ! Create the distribution
       CALL dbcsr_distribution_new(dist_new, template=dist_qs, &
                                   row_dist=row_distr_new, col_dist=col_distr_new, &
-                                  row_cluster=row_cluster_new, col_cluster=col_cluster_new, &
                                   reuse_arrays=.TRUE.)
 
       ! Create the matrix
@@ -452,8 +424,7 @@ CONTAINS
       INTEGER                                            :: mat_distr_aos
       LOGICAL, INTENT(IN)                                :: keep_sparsity
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'matrix_qs_to_almo', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'matrix_qs_to_almo'
 
       INTEGER                                            :: handle
       TYPE(dbcsr_type)                                   :: matrix_qs_nosym
@@ -505,8 +476,7 @@ CONTAINS
       TYPE(dbcsr_type)                                   :: matrix_almo, matrix_qs
       INTEGER, INTENT(IN)                                :: mat_distr_aos
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'matrix_almo_to_qs', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'matrix_almo_to_qs'
 
       INTEGER                                            :: handle
 
@@ -544,8 +514,7 @@ CONTAINS
       INTEGER                                            :: mat_distr_aos
       REAL(KIND=dp)                                      :: eps_filter
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_almo_ks_matrix_via_qs', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'init_almo_ks_matrix_via_qs'
 
       INTEGER                                            :: handle, ispin, nspin
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: matrix_qs_ks, matrix_qs_s
@@ -605,8 +574,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(almo_scf_env_type), INTENT(INOUT)             :: almo_scf_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'construct_qs_mos', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'construct_qs_mos'
 
       INTEGER                                            :: handle, ispin, ncol_fm, nrow_fm
       TYPE(cp_fm_struct_type), POINTER                   :: fm_struct_tmp
@@ -672,8 +640,7 @@ CONTAINS
       TYPE(dbcsr_type), DIMENSION(:)                     :: matrix_p
       INTEGER, INTENT(IN)                                :: mat_distr_aos
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'almo_dm_to_qs_env', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'almo_dm_to_qs_env'
 
       INTEGER                                            :: handle, ispin, nspins
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: rho_ao
@@ -721,8 +688,7 @@ CONTAINS
       LOGICAL, INTENT(IN), OPTIONAL                      :: smear
       REAL(KIND=dp), INTENT(IN), OPTIONAL                :: kTS_sum
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'almo_dm_to_qs_ks', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'almo_dm_to_qs_ks'
 
       INTEGER                                            :: handle
       LOGICAL                                            :: smearing
@@ -752,7 +718,7 @@ CONTAINS
       !! Add electronic entropy contribution if smearing is requested
       !! Previous QS entropy is replaced by the sum of the entropy for each spin
       IF (smearing) THEN
-         energy%total = energy%total-energy%kTS+entropic_term
+         energy%total = energy%total - energy%kTS + entropic_term
       END IF
 
       energy_total = energy%total
@@ -787,8 +753,7 @@ CONTAINS
       LOGICAL, INTENT(IN), OPTIONAL                      :: smear
       REAL(KIND=dp), INTENT(IN), OPTIONAL                :: kTS_sum
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'almo_dm_to_almo_ks', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'almo_dm_to_almo_ks'
 
       INTEGER                                            :: handle, ispin, nspins
       LOGICAL                                            :: smearing
@@ -843,9 +808,6 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       REAL(KIND=dp), INTENT(IN), OPTIONAL                :: energy, energy_singles_corr
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'almo_scf_update_ks_energy', &
-         routineP = moduleN//':'//routineN
-
       TYPE(qs_energy_type), POINTER                      :: qs_energy
 
       CALL get_qs_env(qs_env, energy=qs_energy)
@@ -860,7 +822,7 @@ CONTAINS
          qs_energy%total = energy
       ENDIF
 
-      qs_energy%total = qs_energy%total+qs_energy%singles_corr
+      qs_energy%total = qs_energy%total + qs_energy%singles_corr
 
    END SUBROUTINE almo_scf_update_ks_energy
 
@@ -877,8 +839,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(almo_scf_env_type), INTENT(INOUT)             :: almo_scf_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'almo_scf_construct_quencher', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'almo_scf_construct_quencher'
 
       CHARACTER                                          :: sym
       INTEGER :: col, contact_atom_1, contact_atom_2, domain_col, domain_map_local_entries, &
@@ -916,7 +877,7 @@ CONTAINS
 
       ! get a useful output_unit
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -991,7 +952,7 @@ CONTAINS
                                 iatom=iatom2, jatom=jatom2, inode=inode2, nnode=nnode2)
          !WRITE(*,*) "GET INFO: ",iatom2, jatom2, inode2, nnode2
          IF (inode2 == 1) THEN
-            local_list_length = local_list_length+nnode2
+            local_list_length = local_list_length + nnode2
          END IF
       END DO
       CALL neighbor_list_iterator_release(nl_iterator)
@@ -1004,9 +965,9 @@ CONTAINS
       DO WHILE (neighbor_list_iterate(nl_iterator2) == 0)
          CALL get_iterator_info(nl_iterator2, &
                                 iatom=iatom2, jatom=jatom2)
-         local_list(2*local_list_length+1) = iatom2
-         local_list(2*local_list_length+2) = jatom2
-         local_list_length = local_list_length+1
+         local_list(2*local_list_length + 1) = iatom2
+         local_list(2*local_list_length + 2) = jatom2
+         local_list_length = local_list_length + 1
       ENDDO ! end loop over pairs of atoms
       CALL neighbor_list_iterator_release(nl_iterator2)
 
@@ -1017,10 +978,10 @@ CONTAINS
       ! fourth, create a global list
       list_offset_cpu(1) = 0
       DO iNode = 2, nNodes
-         list_offset_cpu(iNode) = list_offset_cpu(iNode-1)+ &
-                                  list_length_cpu(iNode-1)
+         list_offset_cpu(iNode) = list_offset_cpu(iNode - 1) + &
+                                  list_length_cpu(iNode - 1)
       ENDDO
-      global_list_length = list_offset_cpu(nNodes)+list_length_cpu(nNodes)
+      global_list_length = list_offset_cpu(nNodes) + list_length_cpu(nNodes)
 
       ! fifth, communicate all list data
       ALLOCATE (global_list(global_list_length))
@@ -1034,15 +995,15 @@ CONTAINS
       current_number_neighbors(:) = 0
       global_list_length = global_list_length/2
       DO ipair = 1, global_list_length
-         iatom2 = global_list(2*(ipair-1)+1)
-         jatom2 = global_list(2*(ipair-1)+2)
+         iatom2 = global_list(2*(ipair - 1) + 1)
+         jatom2 = global_list(2*(ipair - 1) + 2)
          idomain2 = almo_scf_env%domain_index_of_atom(iatom2)
          jdomain2 = almo_scf_env%domain_index_of_atom(jatom2)
          ! add to the list
-         current_number_neighbors(idomain2) = current_number_neighbors(idomain2)+1
+         current_number_neighbors(idomain2) = current_number_neighbors(idomain2) + 1
          ! add j,i with i,j
          IF (idomain2 .NE. jdomain2) THEN
-            current_number_neighbors(jdomain2) = current_number_neighbors(jdomain2)+1
+            current_number_neighbors(jdomain2) = current_number_neighbors(jdomain2) + 1
          ENDIF
       ENDDO
       max_domain_neighbors = MAXVAL(current_number_neighbors)
@@ -1054,8 +1015,8 @@ CONTAINS
          domain_neighbor_list_excessive(ipair, 1) = ipair
       ENDDO
       DO ipair = 1, global_list_length
-         iatom2 = global_list(2*(ipair-1)+1)
-         jatom2 = global_list(2*(ipair-1)+2)
+         iatom2 = global_list(2*(ipair - 1) + 1)
+         jatom2 = global_list(2*(ipair - 1) + 2)
          idomain2 = almo_scf_env%domain_index_of_atom(iatom2)
          jdomain2 = almo_scf_env%domain_index_of_atom(jatom2)
          already_listed = .FALSE.
@@ -1067,11 +1028,11 @@ CONTAINS
          ENDDO
          IF (.NOT. already_listed) THEN
             ! add to the list
-            current_number_neighbors(idomain2) = current_number_neighbors(idomain2)+1
+            current_number_neighbors(idomain2) = current_number_neighbors(idomain2) + 1
             domain_neighbor_list_excessive(idomain2, current_number_neighbors(idomain2)) = jdomain2
             ! add j,i with i,j
             IF (idomain2 .NE. jdomain2) THEN
-               current_number_neighbors(jdomain2) = current_number_neighbors(jdomain2)+1
+               current_number_neighbors(jdomain2) = current_number_neighbors(jdomain2) + 1
                domain_neighbor_list_excessive(jdomain2, current_number_neighbors(jdomain2)) = idomain2
             ENDIF
          ENDIF
@@ -1162,9 +1123,9 @@ CONTAINS
                      IF (domain_map_local_entries .GE. max_domain_neighbors*almo_scf_env%ndomains) THEN
                         CPABORT("weird... max_domain_neighbors is exceeded")
                      ENDIF
-                     almo_scf_env%domain_map(ispin)%pairs(domain_map_local_entries+1, 1) = iblock_row
-                     almo_scf_env%domain_map(ispin)%pairs(domain_map_local_entries+1, 2) = iblock_col
-                     domain_map_local_entries = domain_map_local_entries+1
+                     almo_scf_env%domain_map(ispin)%pairs(domain_map_local_entries + 1, 1) = iblock_row
+                     almo_scf_env%domain_map(ispin)%pairs(domain_map_local_entries + 1, 2) = iblock_col
+                     domain_map_local_entries = domain_map_local_entries + 1
 
                   ENDIF
 
@@ -1227,7 +1188,7 @@ CONTAINS
                   s0 = -LOG10(ABS(almo_scf_env%quencher_s0))
                   s1 = -LOG10(ABS(almo_scf_env%quencher_s1))
                   IF (overlap .EQ. 0.0_dp) THEN
-                     overlap = -LOG10(ABS(almo_scf_env%eps_filter))+100.0_dp
+                     overlap = -LOG10(ABS(almo_scf_env%eps_filter)) + 100.0_dp
                   ELSE
                      overlap = -LOG10(overlap)
                   ENDIF
@@ -1252,7 +1213,7 @@ CONTAINS
                         !WRITE(*,'(A15,2I7,3F8.3,E11.3)') "INTRA-BLOCKS: ",&
                         !   iblock_col, iblock_row, s0, s1, overlap, p_new_block(1,1)
                      ELSE
-                        p_new_block(:, :) = 1.0_dp/(1.0_dp+EXP(-(s0-s1)/(s0-overlap)-(s0-s1)/(overlap-s1)))
+                        p_new_block(:, :) = 1.0_dp/(1.0_dp + EXP(-(s0 - s1)/(s0 - overlap) - (s0 - s1)/(overlap - s1)))
                         !WRITE(*,'(A15,2I7,3F8.3,E11.3)') "INTER-BLOCKS: ",&
                         !   iblock_col, iblock_row, s0, s1, overlap, p_new_block(1,1)
                      ENDIF
@@ -1261,9 +1222,9 @@ CONTAINS
                         IF (domain_map_local_entries .GE. max_domain_neighbors*almo_scf_env%ndomains) THEN
                            CPABORT("weird... max_domain_neighbors is exceeded")
                         ENDIF
-                        almo_scf_env%domain_map(ispin)%pairs(domain_map_local_entries+1, 1) = iblock_row
-                        almo_scf_env%domain_map(ispin)%pairs(domain_map_local_entries+1, 2) = iblock_col
-                        domain_map_local_entries = domain_map_local_entries+1
+                        almo_scf_env%domain_map(ispin)%pairs(domain_map_local_entries + 1, 1) = iblock_row
+                        almo_scf_env%domain_map(ispin)%pairs(domain_map_local_entries + 1, 2) = iblock_col
+                        domain_map_local_entries = domain_map_local_entries + 1
                      ENDIF
 
                   ENDIF
@@ -1292,7 +1253,7 @@ CONTAINS
                            DO iatom = first_atom_of_molecule(domain_row), last_atom_of_molecule(domain_row)
                               DO jatom = first_atom_of_molecule(domain_col), last_atom_of_molecule(domain_col)
                                  rab(:) = pbc(particle_set(iatom)%r(:), particle_set(jatom)%r(:), cell)
-                                 trial_distance_squared = rab(1)*rab(1)+rab(2)*rab(2)+rab(3)*rab(3)
+                                 trial_distance_squared = rab(1)*rab(1) + rab(2)*rab(2) + rab(3)*rab(3)
                                  IF (trial_distance_squared .LT. distance_squared) THEN
                                     distance_squared = trial_distance_squared
                                     contact_atom_1 = iatom
@@ -1326,7 +1287,7 @@ CONTAINS
                         ! ao domains are atomic / electron groups are atomic
                         ! compute distance between atoms: domain_row and domain_col
                         rab(:) = pbc(particle_set(domain_row)%r(:), particle_set(domain_col)%r(:), cell)
-                        distance = SQRT(rab(1)*rab(1)+rab(2)*rab(2)+rab(3)*rab(3))
+                        distance = SQRT(rab(1)*rab(1) + rab(2)*rab(2) + rab(3)*rab(3))
                         contact_atom_1 = domain_row
                         contact_atom_2 = domain_col
 
@@ -1356,9 +1317,9 @@ CONTAINS
                   ! the element specific radii
 
                   ! compute inner and outer cutoff radii
-                  r0 = almo_scf_env%quencher_r0_factor*(contact1_radius+contact2_radius)
+                  r0 = almo_scf_env%quencher_r0_factor*(contact1_radius + contact2_radius)
                   !+almo_scf_env%quencher_r0_shift
-                  r1 = almo_scf_env%quencher_r1_factor*(contact1_radius+contact2_radius)
+                  r1 = almo_scf_env%quencher_r1_factor*(contact1_radius + contact2_radius)
                   !+almo_scf_env%quencher_r1_shift
 
                   IF (r0 .LT. 0.0_dp) THEN
@@ -1385,7 +1346,7 @@ CONTAINS
                      ELSE
                         ! remove the intermediate values from the quencher temporarily
                         CPABORT("")
-                        p_new_block(:, :) = 1.0_dp/(1.0_dp+EXP((r1-r0)/(r0-distance)+(r1-r0)/(r1-distance)))
+                        p_new_block(:, :) = 1.0_dp/(1.0_dp + EXP((r1 - r0)/(r0 - distance) + (r1 - r0)/(r1 - distance)))
                         !WRITE(*,'(A15,2I7,5F8.3,E11.3)') "INTER-BLOCKS: ",&
                         !   iblock_col, iblock_row, contact1_radius,&
                         !   contact2_radius, r0, r1, distance, p_new_block(1,1)
@@ -1395,9 +1356,9 @@ CONTAINS
                         IF (domain_map_local_entries .GE. max_domain_neighbors*almo_scf_env%ndomains) THEN
                            CPABORT("weird... max_domain_neighbors is exceeded")
                         ENDIF
-                        almo_scf_env%domain_map(ispin)%pairs(domain_map_local_entries+1, 1) = iblock_row
-                        almo_scf_env%domain_map(ispin)%pairs(domain_map_local_entries+1, 2) = iblock_col
-                        domain_map_local_entries = domain_map_local_entries+1
+                        almo_scf_env%domain_map(ispin)%pairs(domain_map_local_entries + 1, 1) = iblock_row
+                        almo_scf_env%domain_map(ispin)%pairs(domain_map_local_entries + 1, 2) = iblock_col
+                        domain_map_local_entries = domain_map_local_entries + 1
                      ENDIF
 
                   ENDIF
@@ -1433,16 +1394,16 @@ CONTAINS
       ! second, create
       offset_for_cpu(1) = 0
       DO iNode = 2, nNodes
-         offset_for_cpu(iNode) = offset_for_cpu(iNode-1)+ &
-                                 domain_entries_cpu(iNode-1)
+         offset_for_cpu(iNode) = offset_for_cpu(iNode - 1) + &
+                                 domain_entries_cpu(iNode - 1)
       ENDDO
-      global_entries = offset_for_cpu(nNodes)+domain_entries_cpu(nNodes)
+      global_entries = offset_for_cpu(nNodes) + domain_entries_cpu(nNodes)
 
       ! communicate all entries
       ALLOCATE (domain_map_global(global_entries))
       ALLOCATE (domain_map_local(2*domain_map_local_entries))
       DO ientry = 1, domain_map_local_entries
-         domain_map_local(2*(ientry-1)+1) = almo_scf_env%domain_map(ispin)%pairs(ientry, 1)
+         domain_map_local(2*(ientry - 1) + 1) = almo_scf_env%domain_map(ispin)%pairs(ientry, 1)
          domain_map_local(2*ientry) = almo_scf_env%domain_map(ispin)%pairs(ientry, 2)
       ENDDO
       CALL mp_allgather(domain_map_local, domain_map_global, &
@@ -1474,11 +1435,11 @@ CONTAINS
             ! get the center
             grid1 = domain_map_global(2*ientry)
             ! get the neighbor
-            ineig = domain_map_global(2*(ientry-1)+1)
+            ineig = domain_map_global(2*(ientry - 1) + 1)
             ! check boundaries
             IF (domain_grid(grid1, 0) .GT. max_neig) THEN
                ! this neighbor will overstep the boundaries
-               ! stop the trial and increase the max number of neigbors
+               ! stop the trial and increase the max number of neighbors
                DEALLOCATE (domain_grid)
                max_neig = max_neig*2
                CYCLE max_neig_loop
@@ -1504,7 +1465,7 @@ CONTAINS
                ENDIF
             ENDDO
             IF (delayed_increment) THEN
-               domain_grid(grid1, 0) = domain_grid(grid1, 0)+1
+               domain_grid(grid1, 0) = domain_grid(grid1, 0) + 1
             ELSE
                ! should not be here - all records must be inserted
                CPABORT("all records must be inserted")
@@ -1516,10 +1477,10 @@ CONTAINS
 
       ientry = 1
       DO idomain = 1, almo_scf_env%ndomains
-         DO ineig = 1, domain_grid(idomain, 0)-1
+         DO ineig = 1, domain_grid(idomain, 0) - 1
             almo_scf_env%domain_map(ispin)%pairs(ientry, 1) = domain_grid(idomain, ineig)
             almo_scf_env%domain_map(ispin)%pairs(ientry, 2) = idomain
-            ientry = ientry+1
+            ientry = ientry + 1
          ENDDO
          almo_scf_env%domain_map(ispin)%index1(idomain) = ientry
       ENDDO
@@ -1577,8 +1538,7 @@ CONTAINS
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: matrix_w
       TYPE(almo_scf_env_type)                            :: almo_scf_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_w_matrix_almo', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_w_matrix_almo'
 
       INTEGER                                            :: handle, ispin
       REAL(KIND=dp)                                      :: scaling

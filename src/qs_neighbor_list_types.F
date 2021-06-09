@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -63,7 +65,11 @@ MODULE qs_neighbor_list_types
 
 ! **************************************************************************************************
    TYPE neighbor_list_set_p_type
-      TYPE(neighbor_list_set_type), POINTER :: neighbor_list_set
+      TYPE(neighbor_list_set_type), POINTER                :: neighbor_list_set
+      INTEGER                                              :: nl_size
+      INTEGER                                              :: nl_start
+      INTEGER                                              :: nl_end
+      TYPE(neighbor_list_task_type), DIMENSION(:), POINTER :: nlist_task
    END TYPE neighbor_list_set_p_type
 
 ! **************************************************************************************************
@@ -86,6 +92,11 @@ MODULE qs_neighbor_list_types
       TYPE(neighbor_list_task_type), &
          POINTER                            :: next ! Pointer for forming a linked list of tasks
    END TYPE neighbor_list_task_type
+
+   INTERFACE nl_sub_iterate
+      MODULE PROCEDURE nl_sub_iterate
+      MODULE PROCEDURE nl_sub_iterate_ref
+   END INTERFACE
 
 ! **************************************************************************************************
 ! Neighbor List Iterator
@@ -123,6 +134,7 @@ MODULE qs_neighbor_list_types
              add_neighbor_node, &
              allocate_neighbor_list_set, &
              deallocate_neighbor_list_set, &
+             release_neighbor_list_sets, &
              get_iterator_task, &
              get_neighbor_list_set, &
              get_neighbor_list_set_p
@@ -157,9 +169,6 @@ CONTAINS
       LOGICAL, INTENT(IN), OPTIONAL                      :: search
       INTEGER, INTENT(IN), OPTIONAL                      :: nthread
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'neighbor_list_iterator_create', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iatom, il, ilist, mthread, nlist
       TYPE(list_search_type), DIMENSION(:), POINTER      :: list_search
       TYPE(neighbor_list_iterator_type), POINTER         :: iterator
@@ -168,9 +177,9 @@ CONTAINS
       mthread = 1
       IF (PRESENT(nthread)) mthread = nthread
 
-      ALLOCATE (iterator_set(0:mthread-1))
+      ALLOCATE (iterator_set(0:mthread - 1))
 
-      DO il = 0, mthread-1
+      DO il = 0, mthread - 1
          ALLOCATE (iterator_set(il)%neighbor_list_iterator)
 
          iterator => iterator_set(il)%neighbor_list_iterator
@@ -225,7 +234,7 @@ CONTAINS
                   NULLIFY (list_search(il)%atom_list, list_search(il)%atom_index, list_search(il)%neighbor_list)
                END IF
             END DO
-            DO il = 0, mthread-1
+            DO il = 0, mthread - 1
                iterator => iterator_set(il)%neighbor_list_iterator
                iterator%list_search => list_search
             END DO
@@ -241,9 +250,6 @@ CONTAINS
    SUBROUTINE neighbor_list_iterator_release(iterator_set)
       TYPE(neighbor_list_iterator_p_type), &
          DIMENSION(:), POINTER                           :: iterator_set
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'neighbor_list_iterator_release', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: il, mthread
       TYPE(neighbor_list_iterator_type), POINTER         :: iterator
@@ -263,7 +269,7 @@ CONTAINS
       END IF
 
       mthread = SIZE(iterator_set)
-      DO il = 0, mthread-1
+      DO il = 0, mthread - 1
          DEALLOCATE (iterator_set(il)%neighbor_list_iterator)
       END DO
       DEALLOCATE (iterator_set)
@@ -284,9 +290,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: ikind, jkind, iatom
       INTEGER, INTENT(IN), OPTIONAL                      :: mepos
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'nl_set_sub_iterator', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, ij, ilist, me, nlist, nnode
       TYPE(list_search_type), POINTER                    :: list_search
       TYPE(neighbor_list_iterator_type), POINTER         :: iterator
@@ -301,7 +304,7 @@ CONTAINS
       ! Set up my thread-local iterator for the list of iatom / jkind nodes
 
       iterator => iterator_set(me)%neighbor_list_iterator
-      ij = ikind+iterator%nkind*(jkind-1)
+      ij = ikind + iterator%nkind*(jkind - 1)
       IF (ASSOCIATED(iterator%list_search)) THEN
          list_search => iterator%list_search(ij)
          nlist = list_search%nlist
@@ -350,9 +353,6 @@ CONTAINS
       INTEGER, OPTIONAL                                  :: mepos
       INTEGER                                            :: istat
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'neighbor_list_iterate', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iab, last, me
       TYPE(neighbor_list_iterator_type), POINTER         :: iterator
       TYPE(neighbor_list_set_p_type), DIMENSION(:), &
@@ -379,14 +379,14 @@ CONTAINS
 
       IF (iterator%inode < iterator%nnode) THEN
          ! we can be sure that there is another node in this list
-         iterator%inode = iterator%inode+1
+         iterator%inode = iterator%inode + 1
          iterator%neighbor_node => iterator%neighbor_node%next_neighbor_node
       ELSE
-         iab = MAX(iterator%ikind+iterator%nkind*(iterator%jkind-1), 0)
+         iab = MAX(iterator%ikind + iterator%nkind*(iterator%jkind - 1), 0)
          kindloop: DO ! look for the next list with nnode /= 0
             listloop: DO
                IF (iterator%ilist >= iterator%nlist) EXIT listloop
-               iterator%ilist = iterator%ilist+1
+               iterator%ilist = iterator%ilist + 1
                IF (ASSOCIATED(iterator%neighbor_list)) THEN
                   iterator%neighbor_list => iterator%neighbor_list%next_neighbor_list
                ELSE
@@ -400,9 +400,9 @@ CONTAINS
                istat = 1
                EXIT kindloop
             ELSE
-               iab = iab+1
-               iterator%jkind = (iab-1)/iterator%nkind+1
-               iterator%ikind = iab-iterator%nkind*(iterator%jkind-1)
+               iab = iab + 1
+               iterator%jkind = (iab - 1)/iterator%nkind + 1
+               iterator%ikind = iab - iterator%nkind*(iterator%jkind - 1)
                iterator%ilist = 0
                IF (.NOT. ASSOCIATED(nl(iab)%neighbor_list_set)) THEN
                   iterator%ilist = 0
@@ -442,8 +442,6 @@ CONTAINS
       INTEGER, INTENT(IN), OPTIONAL                      :: mepos
       INTEGER                                            :: istat
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'nl_sub_iterate', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: me
       TYPE(neighbor_list_iterator_type), POINTER         :: iterator
 
@@ -468,7 +466,7 @@ CONTAINS
             iterator%neighbor_node => first_node(iterator%neighbor_list)
          ELSEIF (iterator%inode > 0) THEN
             ! we can be sure that there is another node in this list
-            iterator%inode = iterator%inode+1
+            iterator%inode = iterator%inode + 1
             iterator%neighbor_node => iterator%neighbor_node%next_neighbor_node
          ELSE
             CPABORT("wrong")
@@ -482,6 +480,53 @@ CONTAINS
       END IF
 
    END FUNCTION nl_sub_iterate
+
+! **************************************************************************************************
+!> \brief wrap nl_sub_iterate s.t. external loop over kinds and calls to nl_set_sub_iterator
+!> are no longer needed. This fixes first atom of iter_sub to second atom of iter_ref.
+!> \param iter_sub ...
+!> \param iter_ref ...
+!> \param mepos ...
+!> \return ...
+! **************************************************************************************************
+   RECURSIVE FUNCTION nl_sub_iterate_ref(iter_sub, iter_ref, mepos) RESULT(iter_stat)
+      TYPE(neighbor_list_iterator_p_type), &
+         DIMENSION(:), POINTER                           :: iter_sub, iter_ref
+      INTEGER, INTENT(IN), OPTIONAL                      :: mepos
+      INTEGER                                            :: iter_stat
+
+      INTEGER                                            :: atom_ref, kind_ref, kind_sub, me, nkind
+      TYPE(neighbor_list_iterator_type), POINTER         :: iterator
+
+      IF (PRESENT(mepos)) THEN
+         me = mepos
+      ELSE
+         me = 0
+      END IF
+
+      iterator => iter_sub(me)%neighbor_list_iterator
+      kind_sub = iterator%jkind
+
+      CALL get_iterator_info(iter_ref, jatom=atom_ref, jkind=kind_ref)
+
+      IF (iterator%inode == 0) THEN
+         CALL nl_set_sub_iterator(iter_sub, kind_ref, MAX(kind_sub, 1), atom_ref)
+      ENDIF
+      iter_stat = nl_sub_iterate(iter_sub)
+      IF (iter_stat == 0) RETURN
+
+      nkind = iterator%nkind
+
+      IF (kind_sub == nkind) THEN
+         CALL nl_set_sub_iterator(iter_sub, kind_ref, 1, atom_ref)
+         RETURN
+      ELSE
+         kind_sub = kind_sub + 1
+         CALL nl_set_sub_iterator(iter_sub, kind_ref, kind_sub, atom_ref)
+         iter_stat = nl_sub_iterate_ref(iter_sub, iter_ref)
+      ENDIF
+
+   END FUNCTION
 
 ! **************************************************************************************************
 !> \brief ...
@@ -507,9 +552,6 @@ CONTAINS
                                                             nlist, inode, nnode, iatom, jatom
       REAL(dp), DIMENSION(3), OPTIONAL                   :: r
       INTEGER, DIMENSION(3), OPTIONAL                    :: cell
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_iterator_info', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: me
       TYPE(neighbor_list_iterator_type), POINTER         :: iterator
@@ -589,9 +631,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: atom
       TYPE(neighbor_list_type), POINTER                  :: neighbor_list
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'add_neighbor_list', &
-         routineP = moduleN//':'//routineN
-
       TYPE(neighbor_list_type), POINTER                  :: new_neighbor_list
 
       IF (ASSOCIATED(neighbor_list_set)) THEN
@@ -650,7 +689,7 @@ CONTAINS
 
 !     *** Increment the neighbor list counter ***
 
-         neighbor_list_set%nlist = neighbor_list_set%nlist+1
+         neighbor_list_set%nlist = neighbor_list_set%nlist + 1
 
 !     *** Return a pointer to the new neighbor list ***
 
@@ -684,9 +723,6 @@ CONTAINS
       REAL(dp), DIMENSION(3), INTENT(IN)                 :: r
       INTEGER, DIMENSION(:), OPTIONAL, POINTER           :: exclusion_list
       INTEGER, INTENT(IN), OPTIONAL                      :: nkind
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'add_neighbor_node', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: iatom, my_nkind
       TYPE(neighbor_node_type), POINTER                  :: new_neighbor_node
@@ -757,7 +793,7 @@ CONTAINS
 
 !     *** Increment the neighbor node counter ***
 
-         neighbor_list%nnode = neighbor_list%nnode+1
+         neighbor_list%nnode = neighbor_list%nnode + 1
 
       ELSE
 
@@ -779,9 +815,6 @@ CONTAINS
 
       TYPE(neighbor_list_set_type), POINTER              :: neighbor_list_set
       LOGICAL, INTENT(IN)                                :: symmetric
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_neighbor_list_set', &
-         routineP = moduleN//':'//routineN
 
 !   *** Deallocate the old neighbor list set ***
 
@@ -812,9 +845,6 @@ CONTAINS
 
       TYPE(neighbor_list_type), POINTER                  :: neighbor_list
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_neighbor_list', &
-         routineP = moduleN//':'//routineN
-
       TYPE(neighbor_node_type), POINTER                  :: neighbor_node, next_neighbor_node
 
       IF (ASSOCIATED(neighbor_list)) THEN
@@ -842,9 +872,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE deallocate_neighbor_list_set(neighbor_list_set)
       TYPE(neighbor_list_set_type), POINTER              :: neighbor_list_set
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_neighbor_list_set', &
-         routineP = moduleN//':'//routineN
 
       TYPE(neighbor_list_type), POINTER                  :: neighbor_list, next_neighbor_list
 
@@ -899,7 +926,7 @@ CONTAINS
    END FUNCTION first_node
 
 ! **************************************************************************************************
-!> \brief   Return the reqested data of a neighbor list.
+!> \brief   Return the requested data of a neighbor list.
 !> \param neighbor_list ...
 !> \param atom ...
 !> \param nnode ...
@@ -911,9 +938,6 @@ CONTAINS
 
       TYPE(neighbor_list_type), POINTER                  :: neighbor_list
       INTEGER, INTENT(OUT), OPTIONAL                     :: atom, nnode
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_neighbor_list', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(neighbor_list)) THEN
 
@@ -942,9 +966,6 @@ CONTAINS
       TYPE(neighbor_list_set_type), POINTER              :: neighbor_list_set
       INTEGER, INTENT(OUT), OPTIONAL                     :: nlist
       LOGICAL, INTENT(OUT), OPTIONAL                     :: symmetric
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_neighbor_list_set', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(neighbor_list_set)) THEN
 
@@ -975,9 +996,6 @@ CONTAINS
       INTEGER, INTENT(OUT), OPTIONAL                     :: nlist
       LOGICAL, INTENT(OUT), OPTIONAL                     :: symmetric
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_neighbor_list_set_p', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
       TYPE(neighbor_list_set_type), POINTER              :: neighbor_list_set
 
@@ -1006,7 +1024,7 @@ CONTAINS
    END SUBROUTINE get_neighbor_list_set_p
 
 ! **************************************************************************************************
-!> \brief   Return the reqested data of a neighbor node.
+!> \brief   Return the requested data of a neighbor node.
 !> \param neighbor_node ...
 !> \param neighbor ...
 !> \param cell ...
@@ -1021,9 +1039,6 @@ CONTAINS
       INTEGER, INTENT(OUT), OPTIONAL                     :: neighbor
       INTEGER, DIMENSION(3), INTENT(OUT), OPTIONAL       :: cell
       REAL(dp), DIMENSION(3), INTENT(OUT), OPTIONAL      :: r
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_neighbor_node', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(neighbor_node)) THEN
 
@@ -1054,9 +1069,6 @@ CONTAINS
       TYPE(neighbor_list_set_type), POINTER              :: neighbor_list_set
       LOGICAL, INTENT(IN)                                :: symmetric
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_neighbor_list_set', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(neighbor_list_set)) THEN
 
          ! *** Initialize the pointers to the last neighbor list ***
@@ -1075,5 +1087,27 @@ CONTAINS
       END IF
 
    END SUBROUTINE init_neighbor_list_set
+
+! **************************************************************************************************
+!> \brief releases an array of neighbor_list_sets
+!> \param nlists ...
+!> \author Ole Schuett
+! **************************************************************************************************
+   SUBROUTINE release_neighbor_list_sets(nlists)
+      TYPE(neighbor_list_set_p_type), DIMENSION(:), &
+         POINTER                                         :: nlists
+
+      INTEGER                                            :: i
+
+      IF (ASSOCIATED(nlists)) THEN
+         DO i = 1, SIZE(nlists)
+            CALL deallocate_neighbor_list_set(nlists(i)%neighbor_list_set)
+         END DO
+         IF (ASSOCIATED(nlists(1)%nlist_task)) THEN
+            DEALLOCATE (nlists(1)%nlist_task)
+         END IF
+         DEALLOCATE (nlists)
+      END IF
+   END SUBROUTINE release_neighbor_list_sets
 
 END MODULE qs_neighbor_list_types

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -65,8 +67,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       INTEGER, INTENT(IN), OPTIONAL                      :: output_unit
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'check_cp2k_input', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'check_cp2k_input'
 
       INTEGER                                            :: handle, iforce_eval, nforce_eval, &
                                                             run_type
@@ -141,9 +142,6 @@ CONTAINS
    SUBROUTINE xc_functionals_expand(functionals, xc_section)
       TYPE(section_vals_type), POINTER                   :: functionals, xc_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xc_functionals_expand', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: shortcut
 
       CALL section_vals_val_get(functionals, "_SECTION_PARAMETERS_", &
@@ -175,11 +173,9 @@ CONTAINS
          !The cp2k-native PW92 gives disagreeing results (in the 0.01E_H
          !decimal) and yields inconsistent forces in a DEBUG run.
          !(rk, 6.3.2014)
-         CALL section_vals_val_set(functionals, "LIBXC%_SECTION_PARAMETERS_", & !60%LDA
+         CALL section_vals_val_set(functionals, "LDA_C_PW%_SECTION_PARAMETERS_", & !60%LDA
                                    l_val=.TRUE.)
-         CALL section_vals_val_set(functionals, "LIBXC%FUNCTIONAL", &
-                                   c_val="LDA_C_PW")
-         CALL section_vals_val_set(functionals, "LIBXC%SCALE", &
+         CALL section_vals_val_set(functionals, "LDA_C_PW%SCALE", &
                                    r_val=0.6001664769_dp)
 
          CALL section_vals_val_set(functionals, "BEEF%_SECTION_PARAMETERS_", & !BEEF exchange
@@ -284,8 +280,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       INTEGER, INTENT(IN)                                :: output_unit
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'handle_ext_restart', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'handle_ext_restart'
 
       CHARACTER(default_path_length)                     :: binary_restart_file, r_file_path
       CHARACTER(default_string_length)                   :: path
@@ -623,7 +618,7 @@ CONTAINS
          CALL section_vals_val_get(r_section, "RESTART_TEMPERATURE_ANNEALING", l_val=flag)
          IF (flag .AND. check_restart(input_file, restart_file, "MOTION%MD")) THEN
             CALL section_vals_val_get(input_file, "MOTION%MD%TEMPERATURE_ANNEALING", r_val=myt, explicit=explicit1)
-            IF ((.NOT. explicit1) .OR. (ABS(1._dp-myt) <= 1.E-10_dp)) THEN
+            IF ((.NOT. explicit1) .OR. (ABS(1._dp - myt) <= 1.E-10_dp)) THEN
                CALL cp_warn(__LOCATION__, &
                             "I'm about to override the input temperature "// &
                             "with the temperature found in external restart "// &
@@ -796,14 +791,11 @@ CONTAINS
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: restarted_infos
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_restart_info', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: isize
 
       isize = 0
       IF (ASSOCIATED(restarted_infos)) isize = SIZE(restarted_infos)
-      isize = isize+1
+      isize = isize + 1
       CALL reallocate(restarted_infos, 1, isize)
       restarted_infos(isize) = TRIM(label)
 
@@ -824,9 +816,6 @@ CONTAINS
       CHARACTER(LEN=*), INTENT(IN)                       :: r_file_path, binary_restart_file
       INTEGER, INTENT(IN)                                :: output_unit
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'release_restart_info', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, j
 
       IF (output_unit > 0 .AND. ASSOCIATED(restarted_infos)) THEN
@@ -836,23 +825,23 @@ CONTAINS
          WRITE (output_unit, '(1X,"*",T80,"*")')
          i = 1
          WRITE (output_unit, '(1X,"*",A,T26,A,T80,"*")') "    RESTART FILE NAME:  ", &
-            r_file_path(53*(i-1)+1:53*i)
+            r_file_path(53*(i - 1) + 1:53*i)
          DO i = 2, CEILING(REAL(LEN_TRIM(r_file_path), KIND=dp)/53.0_dp)
-            WRITE (output_unit, '(T1,1X,"*",T26,A,T80,"*")') r_file_path(53*(i-1)+1:53*i)
+            WRITE (output_unit, '(T1,1X,"*",T26,A,T80,"*")') r_file_path(53*(i - 1) + 1:53*i)
          END DO
          IF (LEN_TRIM(binary_restart_file) > 0) THEN
             i = 1
             WRITE (output_unit, '(1X,"*",A,T26,A,T80,"*")') "  BINARY RESTART FILE:  ", &
-               binary_restart_file(53*(i-1)+1:53*i)
+               binary_restart_file(53*(i - 1) + 1:53*i)
             DO i = 2, CEILING(REAL(LEN_TRIM(binary_restart_file), KIND=dp)/53.0_dp)
-               WRITE (output_unit, '(T1,1X,"*",T26,A,T80,"*")') binary_restart_file(53*(i-1)+1:53*i)
+               WRITE (output_unit, '(T1,1X,"*",T26,A,T80,"*")') binary_restart_file(53*(i - 1) + 1:53*i)
             END DO
          END IF
          WRITE (output_unit, '(1X,"*",T80,"*")')
          WRITE (output_unit, '(1X,"*", A,T80,"*")') " RESTARTED QUANTITIES:  "
          DO j = 1, SIZE(restarted_infos)
             DO i = 1, CEILING(REAL(LEN_TRIM(restarted_infos(j)), KIND=dp)/53.0_dp)
-               WRITE (output_unit, '(T1,1X,"*",T26,A,T80,"*")') restarted_infos(j) (53*(i-1)+1:53*i)
+               WRITE (output_unit, '(T1,1X,"*",T26,A,T80,"*")') restarted_infos(j) (53*(i - 1) + 1:53*i)
             END DO
          END DO
          WRITE (output_unit, '(1X,79("*"),/)')
@@ -876,9 +865,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: input_file, restart_file
       CHARACTER(LEN=*), INTENT(IN)                       :: path
       LOGICAL, INTENT(IN), OPTIONAL                      :: check
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'restart_thermostat', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: input_region, input_type, &
                                                             restart_region, restart_type
@@ -969,7 +955,7 @@ CONTAINS
       CHARACTER(LEN=*), INTENT(IN)                       :: tag_section
       LOGICAL                                            :: do_restart
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'check_restart', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'check_restart'
 
       INTEGER                                            :: handle
       LOGICAL                                            :: explicit1, explicit2
@@ -995,8 +981,7 @@ CONTAINS
    SUBROUTINE remove_restart_info(input_file)
       TYPE(section_vals_type), POINTER                   :: input_file
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'remove_restart_info', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'remove_restart_info'
 
       INTEGER                                            :: handle, iforce_eval, nforce_eval1
       LOGICAL                                            :: explicit1
@@ -1099,8 +1084,7 @@ CONTAINS
    SUBROUTINE handle_defaults_restart(r_section)
       TYPE(section_vals_type), POINTER                   :: r_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'handle_defaults_restart', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'handle_defaults_restart'
 
       INTEGER                                            :: handle, ik, nval
       LOGICAL                                            :: restart_default

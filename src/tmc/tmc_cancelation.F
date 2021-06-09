@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -10,8 +12,8 @@
 !>          global tree element refers to it anymore
 !>        - then also the ongoing calculation of these elements is not needed
 !>          anymore => can be canceled
-!>        - MODULE: creates and hande a list of tree nodes
-!>                    wich can be canceled
+!>        - MODULE: creates and handles a list of tree nodes
+!>                    which can be canceled
 !>                  these elements are collected and canceled all in one
 !>                    from the master routine
 !>        - the actual cancelation routine is implemented in master module and
@@ -53,8 +55,7 @@ CONTAINS
       TYPE(tree_type), POINTER                           :: elem
       TYPE(tmc_env_type), POINTER                        :: tmc_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'add_to_canceling_list', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'add_to_canceling_list'
 
       INTEGER                                            :: handle
       LOGICAL                                            :: need_to_cancel
@@ -74,14 +75,14 @@ CONTAINS
          CASE (status_calculate_energy)
             elem%stat = status_cancel_ener
             need_to_cancel = .TRUE.
-            tmc_env%m_env%count_cancel_ener = tmc_env%m_env%count_cancel_ener+1
+            tmc_env%m_env%count_cancel_ener = tmc_env%m_env%count_cancel_ener + 1
          CASE (status_calc_approx_ener) !TODO maybe elem status for approx ener cancel
             !elem%stat = status_cancel_ener
             !need_to_cancel = .TRUE.
          CASE (status_calculate_NMC_steps, status_calculate_MD)
             elem%stat = status_cancel_nmc
             need_to_cancel = .TRUE.
-            tmc_env%m_env%count_cancel_NMC = tmc_env%m_env%count_cancel_NMC+1
+            tmc_env%m_env%count_cancel_NMC = tmc_env%m_env%count_cancel_NMC + 1
          CASE (status_accepted, status_accepted_result, status_rejected, &
                status_rejected_result, status_calculated, status_created, &
                status_cancel_nmc, status_cancel_ener, status_canceled_nmc, &
@@ -116,9 +117,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE free_cancelation_list(cancel_list)
       TYPE(elem_list_type), POINTER                      :: cancel_list
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'free_cancelation_list', &
-         routineP = moduleN//':'//routineN
 
       TYPE(elem_list_type), POINTER                      :: tmp_element
 

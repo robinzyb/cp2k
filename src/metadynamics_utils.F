@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -86,7 +88,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(section_vals_type), OPTIONAL, POINTER         :: fe_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'metadyn_read', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'metadyn_read'
 
       CHARACTER(LEN=default_path_length)                 :: walkers_file_name
       INTEGER                                            :: handle, i, id_method, n_colvar, n_rep, &
@@ -207,7 +209,7 @@ CONTAINS
             check = (meta_env%metavar(i)%icolvar <= number_allocated_colvars)
             IF (.NOT. check) &
                CALL cp_abort(__LOCATION__, &
-                             "An error occured in the specification of COLVAR for METAVAR. "// &
+                             "An error occurred in the specification of COLVAR for METAVAR. "// &
                              "Specified COLVAR #("//TRIM(ADJUSTL(cp_to_string(meta_env%metavar(i)%icolvar)))//") "// &
                              "is larger than the maximum number of COLVARS defined in the SUBSYS ("// &
                              TRIM(ADJUSTL(cp_to_string(number_allocated_colvars)))//") !")
@@ -282,8 +284,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: n_colvar
       TYPE(section_vals_type), POINTER                   :: metadyn_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'print_metadyn_info', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'print_metadyn_info'
 
       CHARACTER(LEN=10)                                  :: my_id, my_tag
       INTEGER                                            :: handle, i, iw, j
@@ -379,7 +380,7 @@ CONTAINS
                   WRITE (iw, '(/,A,5X,I10,T50,A,T70,A11)') ' METAVARS| Wall Number:', j, 'Type of Wall:', &
                      ADJUSTR(TRIM(enum_i2c(enum, meta_env%metavar(i)%walls(j)%id_type)))
                   ! Type of wall IO
-                  SELECT CASE (meta_env%metavar (i)%walls (j)%id_type)
+                  SELECT CASE (meta_env%metavar(i)%walls(j)%id_type)
                   CASE (do_wall_none)
                      ! Do Nothing
                      CYCLE
@@ -435,7 +436,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: icol
       TYPE(section_vals_type), OPTIONAL, POINTER         :: metavar_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'metavar_read', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'metavar_read'
 
       INTEGER                                            :: handle, i, n_walls
       TYPE(section_vals_type), POINTER                   :: wall_section, work_section
@@ -453,7 +454,7 @@ CONTAINS
          DO i = 1, n_walls
             CALL section_vals_val_get(wall_section, "TYPE", i_rep_section=i, i_val=metavar%walls(i)%id_type)
             CALL section_vals_val_get(wall_section, "POSITION", i_rep_section=i, r_val=metavar%walls(i)%pos)
-            SELECT CASE (metavar%walls (i)%id_type)
+            SELECT CASE (metavar%walls(i)%id_type)
             CASE (do_wall_none)
                ! Just cycle..
                CYCLE
@@ -468,11 +469,11 @@ CONTAINS
                work_section => section_vals_get_subs_vals(wall_section, "QUARTIC", i_rep_section=i)
                CALL section_vals_val_get(work_section, "DIRECTION", i_val=metavar%walls(i)%id_direction)
                CALL section_vals_val_get(work_section, "K", r_val=metavar%walls(i)%k_quartic)
-               SELECT CASE (metavar%walls (i)%id_direction)
+               SELECT CASE (metavar%walls(i)%id_direction)
                CASE (do_wall_m)
-                  metavar%walls(i)%pos0 = metavar%walls(i)%pos+(0.05_dp/metavar%walls(i)%k_quartic**(0.25_dp))
+                  metavar%walls(i)%pos0 = metavar%walls(i)%pos + (0.05_dp/metavar%walls(i)%k_quartic**(0.25_dp))
                CASE (do_wall_p)
-                  metavar%walls(i)%pos0 = metavar%walls(i)%pos-(0.05_dp/metavar%walls(i)%k_quartic**(0.25_dp))
+                  metavar%walls(i)%pos0 = metavar%walls(i)%pos - (0.05_dp/metavar%walls(i)%k_quartic**(0.25_dp))
                END SELECT
             CASE (do_wall_gaussian)
                work_section => section_vals_get_subs_vals(wall_section, "GAUSSIAN", i_rep_section=i)
@@ -511,8 +512,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: n_colvar
       TYPE(section_vals_type), POINTER                   :: metadyn_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'synchronize_multiple_walkers', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'synchronize_multiple_walkers'
 
       CHARACTER(LEN=default_path_length)                 :: filename, tmpname
       INTEGER                                            :: delta_hills, handle, i, i_hills, ih, iw, &
@@ -530,7 +530,7 @@ CONTAINS
       para_env => logger%para_env
 
       ! Locally dump information on file..
-      IF (para_env%mepos == para_env%source) THEN
+      IF (para_env%ionode) THEN
          ! Generate file name for the specific Hill
          i = multiple_walkers%walker_id
          filename = TRIM(multiple_walkers%walkers_file_name(i))//"_"// &
@@ -568,11 +568,11 @@ CONTAINS
                CYCLE
             END IF
 
-            i_hills = multiple_walkers%walkers_status(i)+1
+            i_hills = multiple_walkers%walkers_status(i) + 1
             filename = TRIM(multiple_walkers%walkers_file_name(i))//"_"// &
                        TRIM(ADJUSTL(cp_to_string(i_hills)))
 
-            IF (para_env%mepos == para_env%source) THEN
+            IF (para_env%ionode) THEN
                INQUIRE (FILE=TRIM(filename), EXIST=exist)
             ENDIF
             CALL mp_bcast(exist, para_env%source, para_env%group)
@@ -580,7 +580,7 @@ CONTAINS
                ! Read information from the walker's file
                ! We shouldn't care too much about the concurrency of these I/O instructions..
                ! In case, they can be fixed in the future..
-               IF (para_env%mepos == para_env%source) THEN
+               IF (para_env%ionode) THEN
                   CALL open_file(file_name=filename, file_status="OLD", &
                                  file_form="FORMATTED", file_action="READ", &
                                  file_position="REWIND", unit_number=unit_nr)
@@ -607,17 +607,17 @@ CONTAINS
                   CALL add_hill_single(hills_env, colvars, ww, hills_env%n_hills, n_colvar)
                END IF
 
-               i_hills = i_hills+1
+               i_hills = i_hills + 1
                filename = TRIM(multiple_walkers%walkers_file_name(i))//"_"// &
                           TRIM(ADJUSTL(cp_to_string(i_hills)))
-               IF (para_env%mepos == para_env%source) THEN
+               IF (para_env%ionode) THEN
                   INQUIRE (FILE=TRIM(filename), EXIST=exist)
                ENDIF
                CALL mp_bcast(exist, para_env%source, para_env%group)
             END DO
 
-            delta_hills = i_hills-1-multiple_walkers%walkers_status(i)
-            multiple_walkers%walkers_status(i) = i_hills-1
+            delta_hills = i_hills - 1 - multiple_walkers%walkers_status(i)
+            multiple_walkers%walkers_status(i) = i_hills - 1
             iw = cp_print_key_unit_nr(logger, metadyn_section, "PRINT%PROGRAM_RUN_INFO", &
                                       extension=".metadynLog")
             IF (iw > 0) THEN
@@ -659,8 +659,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: n_colvar
       REAL(KIND=dp), INTENT(IN), OPTIONAL                :: invdt
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'add_hill_single', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'add_hill_single'
 
       INTEGER                                            :: handle, i
       LOGICAL                                            :: wtcontrol
@@ -671,41 +670,41 @@ CONTAINS
 
       wtcontrol = PRESENT(invdt)
       NULLIFY (tmp, tnp)
-      IF (SIZE(hills_env%ss_history, 2) < n_hills+1) THEN
-         ALLOCATE (tmp(n_colvar, n_hills+100))
+      IF (SIZE(hills_env%ss_history, 2) < n_hills + 1) THEN
+         ALLOCATE (tmp(n_colvar, n_hills + 100))
          tmp(:, :n_hills) = hills_env%ss_history
-         tmp(:, n_hills+1:) = 0.0_dp
+         tmp(:, n_hills + 1:) = 0.0_dp
          DEALLOCATE (hills_env%ss_history)
          hills_env%ss_history => tmp
          NULLIFY (tmp)
       ENDIF
-      IF (SIZE(hills_env%delta_s_history, 2) < n_hills+1) THEN
-         ALLOCATE (tmp(n_colvar, n_hills+100))
+      IF (SIZE(hills_env%delta_s_history, 2) < n_hills + 1) THEN
+         ALLOCATE (tmp(n_colvar, n_hills + 100))
          tmp(:, :n_hills) = hills_env%delta_s_history
-         tmp(:, n_hills+1:) = 0.0_dp
+         tmp(:, n_hills + 1:) = 0.0_dp
          DEALLOCATE (hills_env%delta_s_history)
          hills_env%delta_s_history => tmp
          NULLIFY (tmp)
       ENDIF
-      IF (SIZE(hills_env%ww_history) < n_hills+1) THEN
-         ALLOCATE (tnp(n_hills+100))
+      IF (SIZE(hills_env%ww_history) < n_hills + 1) THEN
+         ALLOCATE (tnp(n_hills + 100))
          tnp(1:n_hills) = hills_env%ww_history
-         tnp(n_hills+1:) = 0.0_dp
+         tnp(n_hills + 1:) = 0.0_dp
          DEALLOCATE (hills_env%ww_history)
          hills_env%ww_history => tnp
          NULLIFY (tnp)
       ENDIF
       IF (wtcontrol) THEN
-         IF (SIZE(hills_env%invdt_history) < n_hills+1) THEN
-            ALLOCATE (tnp(n_hills+100))
+         IF (SIZE(hills_env%invdt_history) < n_hills + 1) THEN
+            ALLOCATE (tnp(n_hills + 100))
             tnp(1:n_hills) = hills_env%invdt_history
-            tnp(n_hills+1:) = 0.0_dp
+            tnp(n_hills + 1:) = 0.0_dp
             DEALLOCATE (hills_env%invdt_history)
             hills_env%invdt_history => tnp
             NULLIFY (tnp)
          ENDIF
       ENDIF
-      n_hills = n_hills+1
+      n_hills = n_hills + 1
       ! Now add the hill
       DO i = 1, n_colvar
          hills_env%ss_history(i, n_hills) = colvars(i)%ss0
@@ -741,7 +740,7 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: metadyn_section
       REAL(KIND=dp), DIMENSION(:), OPTIONAL, POINTER     :: invdt_history
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'restart_hills', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'restart_hills'
 
       INTEGER                                            :: handle, i, j, ndum
       LOGICAL                                            :: explicit, wtcontrol
@@ -866,9 +865,6 @@ CONTAINS
       TYPE(meta_env_type), POINTER                       :: meta_env
       INTEGER, INTENT(OUT)                               :: iter_nr
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_meta_iter_level', &
-         routineP = moduleN//':'//routineN
-
       IF (meta_env%do_multiple_walkers) THEN
          iter_nr = meta_env%multiple_walkers%n_hills_local
       ELSE
@@ -887,8 +883,6 @@ CONTAINS
    SUBROUTINE meta_walls(meta_env)
       TYPE(meta_env_type), POINTER                       :: meta_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'meta_walls', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ih, iwall
       REAL(dp)                                           :: ddp, delta_s, dfunc, diff_ss, dp2, &
                                                             efunc, ww
@@ -901,52 +895,52 @@ CONTAINS
             colvars(ih)%epot_walls = 0.0_dp
             colvars(ih)%ff_walls = 0.0_dp
             DO iwall = 1, SIZE(colvars(ih)%walls)
-               SELECT CASE (colvars (ih)%walls (iwall)%id_type)
+               SELECT CASE (colvars(ih)%walls(iwall)%id_type)
                CASE (do_wall_reflective, do_wall_none)
                   ! Do Nothing.. treated in the main metadyn function
                   CYCLE
                CASE (do_wall_quadratic)
-                  diff_ss = colvars(ih)%ss0-colvars(ih)%walls(iwall)%pos
+                  diff_ss = colvars(ih)%ss0 - colvars(ih)%walls(iwall)%pos
                   IF (colvars(ih)%periodic) THEN
                      ! The difference of a periodic COLVAR is always within [-pi,pi]
                      diff_ss = SIGN(1.0_dp, ASIN(SIN(diff_ss)))*ACOS(COS(diff_ss))
                   END IF
                   efunc = colvars(ih)%walls(iwall)%k_quadratic*diff_ss**2
                   dfunc = 2.0_dp*colvars(ih)%walls(iwall)%k_quadratic*diff_ss
-                  SELECT CASE (colvars (ih)%walls (iwall)%id_direction)
+                  SELECT CASE (colvars(ih)%walls(iwall)%id_direction)
                   CASE (do_wall_p)
                      IF (diff_ss > 0.0_dp) THEN
-                        colvars(ih)%ff_walls = colvars(ih)%ff_walls-dfunc
-                        colvars(ih)%epot_walls = colvars(ih)%epot_walls+efunc
+                        colvars(ih)%ff_walls = colvars(ih)%ff_walls - dfunc
+                        colvars(ih)%epot_walls = colvars(ih)%epot_walls + efunc
                      END IF
                   CASE (do_wall_m)
                      IF (diff_ss < 0.0_dp) THEN
-                        colvars(ih)%ff_walls = colvars(ih)%ff_walls-dfunc
-                        colvars(ih)%epot_walls = colvars(ih)%epot_walls+efunc
+                        colvars(ih)%ff_walls = colvars(ih)%ff_walls - dfunc
+                        colvars(ih)%epot_walls = colvars(ih)%epot_walls + efunc
                      END IF
                   END SELECT
                CASE (do_wall_quartic)
-                  diff_ss = colvars(ih)%ss0-colvars(ih)%walls(iwall)%pos0
+                  diff_ss = colvars(ih)%ss0 - colvars(ih)%walls(iwall)%pos0
                   IF (colvars(ih)%periodic) THEN
                      ! The difference of a periodic COLVAR is always within [-pi,pi]
                      diff_ss = SIGN(1.0_dp, ASIN(SIN(diff_ss)))*ACOS(COS(diff_ss))
                   END IF
                   efunc = colvars(ih)%walls(iwall)%k_quartic*diff_ss*diff_ss**4
                   dfunc = 4.0_dp*colvars(ih)%walls(iwall)%k_quartic*diff_ss**3
-                  SELECT CASE (colvars (ih)%walls (iwall)%id_direction)
+                  SELECT CASE (colvars(ih)%walls(iwall)%id_direction)
                   CASE (do_wall_p)
                      IF (diff_ss > 0.0_dp) THEN
-                        colvars(ih)%ff_walls = colvars(ih)%ff_walls-dfunc
-                        colvars(ih)%epot_walls = colvars(ih)%epot_walls+efunc
+                        colvars(ih)%ff_walls = colvars(ih)%ff_walls - dfunc
+                        colvars(ih)%epot_walls = colvars(ih)%epot_walls + efunc
                      END IF
                   CASE (do_wall_m)
                      IF (diff_ss < 0.0_dp) THEN
-                        colvars(ih)%ff_walls = colvars(ih)%ff_walls-dfunc
-                        colvars(ih)%epot_walls = colvars(ih)%epot_walls+efunc
+                        colvars(ih)%ff_walls = colvars(ih)%ff_walls - dfunc
+                        colvars(ih)%epot_walls = colvars(ih)%epot_walls + efunc
                      END IF
                   END SELECT
                CASE (do_wall_gaussian)
-                  diff_ss = colvars(ih)%ss0-colvars(ih)%walls(iwall)%pos
+                  diff_ss = colvars(ih)%ss0 - colvars(ih)%walls(iwall)%pos
                   IF (colvars(ih)%periodic) THEN
                      ! The difference of a periodic COLVAR is always within [-pi,pi]
                      diff_ss = SIGN(1.0_dp, ASIN(SIN(diff_ss)))*ACOS(COS(diff_ss))
@@ -957,8 +951,8 @@ CONTAINS
                   dp2 = ddp**2
                   efunc = ww*EXP(-0.5_dp*dp2)
                   dfunc = -efunc*ddp/delta_s
-                  colvars(ih)%ff_walls = colvars(ih)%ff_walls-dfunc
-                  colvars(ih)%epot_walls = colvars(ih)%epot_walls+efunc
+                  colvars(ih)%ff_walls = colvars(ih)%ff_walls - dfunc
+                  colvars(ih)%epot_walls = colvars(ih)%epot_walls + efunc
                END SELECT
             END DO
          END IF

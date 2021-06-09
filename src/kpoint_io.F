@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -80,8 +82,7 @@ CONTAINS
       TYPE(particle_type), DIMENSION(:), POINTER         :: particle_set
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_kpoints_restart', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_kpoints_restart'
       CHARACTER(LEN=30), DIMENSION(2), PARAMETER :: &
          keys = (/"SCF%PRINT%RESTART_HISTORY", "SCF%PRINT%RESTART        "/)
 
@@ -187,8 +188,7 @@ CONTAINS
       TYPE(particle_type), DIMENSION(:), POINTER         :: particle_set
       INTEGER                                            :: ires
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_kpoints_file_header', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_kpoints_file_header'
 
       INTEGER                                            :: handle, iatom, ikind, iset, ishell, &
                                                             lmax, lshell, nao, natom, nset, &
@@ -224,7 +224,7 @@ CONTAINS
             ELSEIF (ASSOCIATED(dftb_parameter)) THEN
                CALL get_dftb_atom_param(dftb_parameter, lmax=lmax)
                nset_max = MAX(nset_max, 1)
-               nshell_max = MAX(nshell_max, lmax+1)
+               nshell_max = MAX(nshell_max, lmax + 1)
             ELSE
                CPABORT("Unknown basis type.")
             END IF
@@ -247,7 +247,7 @@ CONTAINS
                              basis_set=orb_basis_set, dftb_parameter=dftb_parameter)
             IF (ASSOCIATED(orb_basis_set)) THEN
                CALL get_gto_basis_set(gto_basis_set=orb_basis_set, nsgf=nsgf, nset=nset, nshell=nshell, l=l)
-               nao = nao+nsgf
+               nao = nao + nsgf
                nset_info(iatom) = nset
                DO iset = 1, nset
                   nshell_info(iset, iatom) = nshell(iset)
@@ -259,12 +259,12 @@ CONTAINS
             ELSEIF (ASSOCIATED(dftb_parameter)) THEN
                CALL get_dftb_atom_param(dftb_parameter, lmax=lmax)
                nset_info(iatom) = 1
-               nshell_info(1, iatom) = lmax+1
-               DO ishell = 1, lmax+1
-                  lshell = ishell-1
+               nshell_info(1, iatom) = lmax + 1
+               DO ishell = 1, lmax + 1
+                  lshell = ishell - 1
                   nso_info(ishell, 1, iatom) = nso(lshell)
                END DO
-               nao = nao+(lmax+1)**2
+               nao = nao + (lmax + 1)**2
             ELSE
                CPABORT("Unknown basis set type.")
             END IF
@@ -306,8 +306,7 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: dft_section
       LOGICAL, INTENT(OUT)                               :: natom_mismatch
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_kpoints_restart', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_kpoints_restart'
 
       CHARACTER(LEN=default_path_length)                 :: file_name
       INTEGER                                            :: group, handle, restart_unit, source
@@ -376,9 +375,6 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       INTEGER, INTENT(IN)                                :: natom, rst_unit
       LOGICAL, INTENT(OUT)                               :: natom_mismatch
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_kpoints_restart_low', &
-         routineP = moduleN//':'//routineN
 
       INTEGER :: group, ic, image, ispin, nao, nao_read, natom_read, ni, nimages, nset_max, &
          nshell_max, nspin, nspin_read, source, version_read

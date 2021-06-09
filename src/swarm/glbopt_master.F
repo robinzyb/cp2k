@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -96,9 +98,6 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(section_vals_type), POINTER                   :: root_section
       INTEGER, INTENT(IN)                                :: n_walkers, iw
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'glbopt_master_init', &
-         routineP = moduleN//':'//routineN
 
       TYPE(cp_logger_type), POINTER                      :: logger
 
@@ -196,9 +195,6 @@ CONTAINS
       TYPE(swarm_message_type)                           :: report, cmd
       LOGICAL, INTENT(INOUT)                             :: should_stop
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'glbopt_master_steer', &
-         routineP = moduleN//':'//routineN
-
       CALL progress_report(this, report)
 
       SELECT CASE (this%method)
@@ -231,7 +227,7 @@ CONTAINS
       INTEGER                                            :: gopt_steps, md_steps, report_worker_id
       REAL(KIND=dp)                                      :: report_Epot
 
-      this%i_iteration = this%i_iteration+1
+      this%i_iteration = this%i_iteration + 1
 
       CALL swarm_message_get(report, "worker_id", report_worker_id)
       CALL swarm_message_get(report, "status", status)
@@ -240,9 +236,9 @@ CONTAINS
          CALL swarm_message_get(report, "Epot", report_Epot)
          CALL swarm_message_get(report, "md_steps", md_steps)
          CALL swarm_message_get(report, "gopt_steps", gopt_steps)
-         this%total_md_steps = this%total_md_steps+md_steps
-         this%total_gopt_steps = this%total_gopt_steps+gopt_steps
-         this%count_reports = this%count_reports+1
+         this%total_md_steps = this%total_md_steps + md_steps
+         this%total_gopt_steps = this%total_gopt_steps + gopt_steps
+         this%count_reports = this%count_reports + 1
 
          IF (report_Epot < this%E_lowest) THEN
             this%E_lowest = report_Epot
@@ -311,9 +307,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE glbopt_master_finalize(this)
       TYPE(glbopt_master_type), INTENT(INOUT)            :: this
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'glbopt_master_finalize', &
-         routineP = moduleN//':'//routineN
 
       TYPE(cp_logger_type), POINTER                      :: logger
 

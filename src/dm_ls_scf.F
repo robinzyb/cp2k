@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -13,6 +15,7 @@
 MODULE dm_ls_scf
    USE arnoldi_api,                     ONLY: arnoldi_extremal
    USE bibliography,                    ONLY: Kolafa2004,&
+                                              Kuhne2007,&
                                               cite_reference
    USE cp_control_types,                ONLY: dft_control_type
    USE cp_external_control,             ONLY: external_control
@@ -103,7 +106,7 @@ CONTAINS
    SUBROUTINE ls_scf(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ls_scf', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'ls_scf'
 
       INTEGER                                            :: handle
       LOGICAL                                            :: pao_is_done
@@ -140,8 +143,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(ls_scf_env_type)                              :: ls_scf_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ls_scf_init_scf', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'ls_scf_init_scf'
 
       INTEGER                                            :: handle, ispin, nspin, unit_nr
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -155,7 +157,7 @@ CONTAINS
 
       ! get a useful output_unit
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -237,8 +239,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(ls_scf_env_type)                              :: ls_scf_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ls_scf_initial_guess', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'ls_scf_initial_guess'
       INTEGER, PARAMETER                                 :: aspc_guess = 2, atomic_guess = 1, &
                                                             restart_guess = 3
 
@@ -256,7 +257,7 @@ CONTAINS
 
       ! get a useful output_unit
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -294,14 +295,15 @@ CONTAINS
          CALL ls_scf_dm_to_ks(qs_env, ls_scf_env, ls_scf_env%energy_init, iscf=0)
       CASE (aspc_guess)
          CALL cite_reference(Kolafa2004)
+         CALL cite_reference(Kuhne2007)
          naspc = MIN(ls_scf_env%scf_history%istore, ls_scf_env%scf_history%nstore)
          DO ispin = 1, SIZE(ls_scf_env%matrix_p)
             ! actual extrapolation
             CALL dbcsr_set(ls_scf_env%matrix_p(ispin), 0.0_dp)
             DO iaspc = 1, naspc
-               alpha = (-1.0_dp)**(iaspc+1)*REAL(iaspc, KIND=dp)* &
-                       binomial(2*naspc, naspc-iaspc)/binomial(2*naspc-2, naspc-1)
-               istore = MOD(ls_scf_env%scf_history%istore-iaspc, ls_scf_env%scf_history%nstore)+1
+               alpha = (-1.0_dp)**(iaspc + 1)*REAL(iaspc, KIND=dp)* &
+                       binomial(2*naspc, naspc - iaspc)/binomial(2*naspc - 2, naspc - 1)
+               istore = MOD(ls_scf_env%scf_history%istore - iaspc, ls_scf_env%scf_history%nstore) + 1
                CALL dbcsr_add(ls_scf_env%matrix_p(ispin), ls_scf_env%scf_history%matrix(ispin, istore), 1.0_dp, alpha)
             ENDDO
          ENDDO
@@ -365,8 +367,7 @@ CONTAINS
    SUBROUTINE ls_scf_store_result(ls_scf_env)
       TYPE(ls_scf_env_type)                              :: ls_scf_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ls_scf_store_result', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'ls_scf_store_result'
 
       CHARACTER(LEN=default_path_length)                 :: file_name, project_name
       INTEGER                                            :: handle, ispin, istore, unit_nr
@@ -378,7 +379,7 @@ CONTAINS
 
       ! get a useful output_unit
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -403,9 +404,9 @@ CONTAINS
       END IF
 
       IF (ls_scf_env%scf_history%nstore > 0) THEN
-         ls_scf_env%scf_history%istore = ls_scf_env%scf_history%istore+1
+         ls_scf_env%scf_history%istore = ls_scf_env%scf_history%istore + 1
          DO ispin = 1, SIZE(ls_scf_env%matrix_p)
-            istore = MOD(ls_scf_env%scf_history%istore-1, ls_scf_env%scf_history%nstore)+1
+            istore = MOD(ls_scf_env%scf_history%istore - 1, ls_scf_env%scf_history%nstore) + 1
             CALL dbcsr_copy(ls_scf_env%scf_history%matrix(ispin, istore), ls_scf_env%matrix_p(ispin))
 
             ! if we have the sqrt around, we use it to go to the orthogonal basis
@@ -446,7 +447,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(ls_scf_env_type)                              :: ls_scf_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ls_scf_main', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'ls_scf_main'
 
       INTEGER                                            :: handle, iscf, ispin, &
                                                             nelectron_spin_real, nmixing, nspin, &
@@ -465,7 +466,7 @@ CONTAINS
 
       ! get a useful output_unit
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -534,7 +535,7 @@ CONTAINS
          END IF
 
          t1 = m_walltime()
-         iscf = iscf+1
+         iscf = iscf + 1
 
          ! first get a copy of the current KS matrix
          CALL get_qs_env(qs_env, matrix_ks=matrix_ks)
@@ -561,7 +562,7 @@ CONTAINS
                      CALL dbcsr_copy(matrix_mixing_old(ispin), ls_scf_env%matrix_ks(ispin))
                   ELSE
                      IF (ls_scf_env%ls_diis) THEN ! ------- IF-DIIS+MIX--- START
-                        IF (diis_step .AND. (iscf-1) .GE. ls_scf_env%iter_ini_diis) THEN
+                        IF (diis_step .AND. (iscf - 1) .GE. ls_scf_env%iter_ini_diis) THEN
                            IF (unit_nr > 0) THEN
                               WRITE (unit_nr, '(A61)') &
                                  '*************************************************************'
@@ -584,14 +585,14 @@ CONTAINS
                                  " to mix KS matrix:  iscf=", iscf
                               WRITE (unit_nr, '(A7,F5.3,A6,F5.3,A7)') &
                                  " KS_nw=", ls_scf_env%mixing_fraction, "*KS + ", &
-                                 1.0_dp-ls_scf_env%mixing_fraction, "*KS_old"
+                                 1.0_dp - ls_scf_env%mixing_fraction, "*KS_old"
                               WRITE (unit_nr, '(A57)') &
                                  "*********************************************************"
                            ENDIF
                            ! perform the mixing of ks matrices
                            CALL dbcsr_add(matrix_mixing_old(ispin), &
                                           ls_scf_env%matrix_ks(ispin), &
-                                          1.0_dp-ls_scf_env%mixing_fraction, &
+                                          1.0_dp - ls_scf_env%mixing_fraction, &
                                           ls_scf_env%mixing_fraction)
                         ENDIF
                      ELSE ! otherwise
@@ -603,14 +604,14 @@ CONTAINS
                               " to mix KS matrix:  iscf=", iscf
                            WRITE (unit_nr, '(A7,F5.3,A6,F5.3,A7)') &
                               " KS_nw=", ls_scf_env%mixing_fraction, "*KS + ", &
-                              1.0_dp-ls_scf_env%mixing_fraction, "*KS_old"
+                              1.0_dp - ls_scf_env%mixing_fraction, "*KS_old"
                            WRITE (unit_nr, '(A57)') &
                               "*********************************************************"
                         ENDIF
                         ! perform the mixing of ks matrices
                         CALL dbcsr_add(matrix_mixing_old(ispin), &
                                        ls_scf_env%matrix_ks(ispin), &
-                                       1.0_dp-ls_scf_env%mixing_fraction, &
+                                       1.0_dp - ls_scf_env%mixing_fraction, &
                                        ls_scf_env%mixing_fraction)
                      ENDIF ! ------- IF-DIIS+MIX--- END
                   ENDIF
@@ -639,7 +640,8 @@ CONTAINS
                      CALL density_matrix_sign(ls_scf_env%matrix_p(ispin), ls_scf_env%mu_spin(ispin), ls_scf_env%fixed_mu, &
                                               ls_scf_env%sign_method, ls_scf_env%sign_order, matrix_mixing_old(ispin), &
                                               ls_scf_env%matrix_s, ls_scf_env%matrix_s_inv, nelectron_spin_real, &
-                                              ls_scf_env%eps_filter)
+                                              ls_scf_env%eps_filter, ls_scf_env%sign_symmetric, ls_scf_env%submatrix_sign_method, &
+                                              ls_scf_env%matrix_s_sqrt_inv)
                   CASE (ls_scf_tc2)
                      CALL density_matrix_tc2(ls_scf_env%matrix_p(ispin), matrix_mixing_old(ispin), ls_scf_env%matrix_s_sqrt_inv, &
                                              nelectron_spin_real, ls_scf_env%eps_filter, ls_scf_env%homo_spin(ispin), &
@@ -685,13 +687,13 @@ CONTAINS
          ENDIF
 
          ! report current SCF loop
-         energy_diff = energy_new-energy_old
+         energy_diff = energy_new - energy_old
          energy_old = energy_new
 
          t2 = m_walltime()
          IF (unit_nr > 0) THEN
             WRITE (unit_nr, *)
-            WRITE (unit_nr, '(T2,A,I6,F20.9,F20.9,F12.6)') "SCF", iscf, energy_new, energy_diff, t2-t1
+            WRITE (unit_nr, '(T2,A,I6,F20.9,F20.9,F12.6)') "SCF", iscf, energy_new, energy_diff, t2 - t1
             WRITE (unit_nr, *)
             CALL m_flush(unit_nr)
          ENDIF
@@ -756,7 +758,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(ls_scf_env_type)                              :: ls_scf_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ls_scf_post', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'ls_scf_post'
 
       INTEGER                                            :: handle, ispin, unit_nr
       REAL(KIND=dp)                                      :: occ
@@ -770,7 +772,7 @@ CONTAINS
 
       ! get a useful output_unit
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -868,20 +870,19 @@ CONTAINS
    SUBROUTINE post_scf_homo_lumo(ls_scf_env)
       TYPE(ls_scf_env_type)                              :: ls_scf_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'post_scf_homo_lumo', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'post_scf_homo_lumo'
 
       INTEGER                                            :: handle, ispin, nspin, unit_nr
       LOGICAL                                            :: converged
       REAL(KIND=dp)                                      :: eps_max, eps_min, homo, lumo
       TYPE(cp_logger_type), POINTER                      :: logger
-      TYPE(dbcsr_type)                                   :: matrix_k, matrix_p
+      TYPE(dbcsr_type)                                   :: matrix_k, matrix_p, matrix_tmp
 
       CALL timeset(routineN, handle)
 
       ! get a useful output_unit
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -899,11 +900,13 @@ CONTAINS
 
       CALL dbcsr_create(matrix_k, template=ls_scf_env%matrix_p(1), matrix_type=dbcsr_type_no_symmetry)
 
+      CALL dbcsr_create(matrix_tmp, template=ls_scf_env%matrix_p(1), matrix_type=dbcsr_type_no_symmetry)
+
       DO ispin = 1, nspin
          ! ortho basis ks
          CALL dbcsr_multiply("N", "N", 1.0_dp, ls_scf_env%matrix_s_sqrt_inv, ls_scf_env%matrix_ks(ispin), &
-                             0.0_dp, matrix_k, filter_eps=ls_scf_env%eps_filter)
-         CALL dbcsr_multiply("N", "N", 1.0_dp, matrix_k, ls_scf_env%matrix_s_sqrt_inv, &
+                             0.0_dp, matrix_tmp, filter_eps=ls_scf_env%eps_filter)
+         CALL dbcsr_multiply("N", "N", 1.0_dp, matrix_tmp, ls_scf_env%matrix_s_sqrt_inv, &
                              0.0_dp, matrix_k, filter_eps=ls_scf_env%eps_filter)
 
          ! extremal eigenvalues ks
@@ -912,8 +915,8 @@ CONTAINS
 
          ! ortho basis p
          CALL dbcsr_multiply("N", "N", 1.0_dp, ls_scf_env%matrix_s_sqrt, ls_scf_env%matrix_p(ispin), &
-                             0.0_dp, matrix_p, filter_eps=ls_scf_env%eps_filter)
-         CALL dbcsr_multiply("N", "N", 1.0_dp, matrix_p, ls_scf_env%matrix_s_sqrt, &
+                             0.0_dp, matrix_tmp, filter_eps=ls_scf_env%eps_filter)
+         CALL dbcsr_multiply("N", "N", 1.0_dp, matrix_tmp, ls_scf_env%matrix_s_sqrt, &
                              0.0_dp, matrix_p, filter_eps=ls_scf_env%eps_filter)
          IF (nspin == 1) CALL dbcsr_scale(matrix_p, 0.5_dp)
 
@@ -925,6 +928,7 @@ CONTAINS
 
       CALL dbcsr_release(matrix_p)
       CALL dbcsr_release(matrix_k)
+      CALL dbcsr_release(matrix_tmp)
 
       CALL timestop(handle)
 
@@ -940,8 +944,7 @@ CONTAINS
    SUBROUTINE post_scf_mu_scan(ls_scf_env)
       TYPE(ls_scf_env_type)                              :: ls_scf_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'post_scf_mu_scan', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'post_scf_mu_scan'
 
       INTEGER                                            :: handle, imu, ispin, nelectron_spin_real, &
                                                             nmu, nspin, unit_nr
@@ -953,7 +956,7 @@ CONTAINS
 
       ! get a useful output_unit
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -968,7 +971,7 @@ CONTAINS
 
          t1 = m_walltime()
 
-         mu = -0.4_dp+imu*(0.1_dp+0.4_dp)/nmu
+         mu = -0.4_dp + imu*(0.1_dp + 0.4_dp)/nmu
 
          IF (unit_nr > 0) WRITE (unit_nr, *) "------- starting with mu ", mu
 
@@ -980,12 +983,13 @@ CONTAINS
             CALL density_matrix_sign_fixed_mu(matrix_p, trace, mu, ls_scf_env%sign_method, &
                                               ls_scf_env%sign_order, ls_scf_env%matrix_ks(ispin), &
                                               ls_scf_env%matrix_s, ls_scf_env%matrix_s_inv, &
-                                              ls_scf_env%eps_filter)
+                                              ls_scf_env%eps_filter, ls_scf_env%sign_symmetric, &
+                                              ls_scf_env%submatrix_sign_method, ls_scf_env%matrix_s_sqrt_inv)
          ENDDO
 
          t2 = m_walltime()
 
-         IF (unit_nr > 0) WRITE (unit_nr, *) " obtained ", mu, trace, t2-t1
+         IF (unit_nr > 0) WRITE (unit_nr, *) " obtained ", mu, trace, t2 - t1
 
       ENDDO
 
@@ -1006,8 +1010,7 @@ CONTAINS
    SUBROUTINE post_scf_sparsities(ls_scf_env)
       TYPE(ls_scf_env_type)                              :: ls_scf_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'post_scf_sparsities', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'post_scf_sparsities'
 
       CHARACTER(LEN=default_string_length)               :: title
       INTEGER                                            :: handle, ispin, nspin, unit_nr
@@ -1018,7 +1021,7 @@ CONTAINS
 
       ! get a useful output_unit
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -1124,8 +1127,7 @@ CONTAINS
       CHARACTER(LEN=*)                                   :: title
       REAL(KIND=dp)                                      :: eps
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'report_matrix_sparsity', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'report_matrix_sparsity'
 
       INTEGER                                            :: handle
       REAL(KIND=dp)                                      :: eps_local, occ
@@ -1166,8 +1168,7 @@ CONTAINS
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: matrix_w
       TYPE(ls_scf_env_type)                              :: ls_scf_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_w_matrix', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_w_matrix'
 
       INTEGER                                            :: handle, ispin
       REAL(KIND=dp)                                      :: scaling
@@ -1217,8 +1218,7 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE post_scf_experiment()
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'post_scf_experiment', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'post_scf_experiment'
 
       INTEGER                                            :: handle, unit_nr
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -1227,7 +1227,7 @@ CONTAINS
 
       ! get a useful output_unit
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1

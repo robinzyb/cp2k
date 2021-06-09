@@ -25,12 +25,10 @@
          USE_FINER_GRID
       &END XC_GRID
       &XC_FUNCTIONAL
-        &LIBXC
-          FUNCTIONAL XC_GGA_X_RPW86
-        &END LIBXC
-        &LIBXC
-          FUNCTIONAL XC_GGA_C_PBE
-        &END LIBXC
+        &GGA_X_RPW86
+        &END GGA_X_RPW86
+        &GGA_C_PBE
+        &END GGA_C_PBE
       &END XC_FUNCTIONAL
       &vdW_POTENTIAL
          DISPERSION_FUNCTIONAL NON_LOCAL
@@ -39,7 +37,7 @@
            PARAMETERS 6.3 0.0093
            VERBOSE_OUTPUT
            KERNEL_FILE_NAME rVV10_kernel_table.dat
-           CUTOFF  80
+           CUTOFF 40
          &END NON_LOCAL
       &END vdW_POTENTIAL
     &END XC

@@ -9,7 +9,6 @@
     &QS
       METHOD GAPW
       EPS_DEFAULT 1.0E-08
-      MAP_CONSISTENT
       ALPHA0_H 10.0
       EPSFIT 1.0E-4
       EPSISO 1.0E-12
@@ -35,7 +34,7 @@
        SCHEME  MONKHORST-PACK  2 2 2
        SYMMETRY ON
        EPS_GEO 1.e-8
-       FULL_GRID ON 
+       FULL_GRID ON
        VERBOSE F
        PARALLEL_GROUP_SIZE  0
     &END KPOINTS

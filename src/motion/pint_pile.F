@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -17,11 +19,9 @@ MODULE pint_pile
                                               section_vals_val_get
    USE kinds,                           ONLY: dp
    USE parallel_rng_types,              ONLY: GAUSSIAN,&
-                                              create_rng_stream,&
-                                              delete_rng_stream,&
-                                              next_random_number,&
-                                              read_rng_stream,&
-                                              rng_record_length
+                                              rng_record_length,&
+                                              rng_stream_type,&
+                                              rng_stream_type_from_record
    USE pint_types,                      ONLY: normalmode_env_type,&
                                               pile_therm_type,&
                                               pint_env_type
@@ -57,8 +57,6 @@ CONTAINS
       TYPE(normalmode_env_type), POINTER                 :: normalmode_env
       TYPE(section_vals_type), POINTER                   :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pint_pile_init', routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=rng_record_length)                   :: rng_record
       INTEGER                                            :: i, j, p
       LOGICAL                                            :: explicit
@@ -73,6 +71,7 @@ CONTAINS
       !Get input parameter
       CALL section_vals_val_get(section, "TAU", r_val=pile_therm%tau)
       CALL section_vals_val_get(section, "LAMBDA", r_val=pile_therm%lamb)
+      CALL section_vals_val_get(section, "THERMOSTAT_ENERGY", r_val=pile_therm%thermostat_energy)
 
       p = pint_env%p
       dti2 = 0.5_dp*pint_env%dt
@@ -95,7 +94,7 @@ CONTAINS
          ex = -dti2*pile_therm%g_fric(i)
          pile_therm%c1(i) = EXP(ex)
          ex = pile_therm%c1(i)*pile_therm%c1(i)
-         pile_therm%c2(i) = SQRT(1.0_dp-ex)
+         pile_therm%c2(i) = SQRT(1.0_dp - ex)
       END DO
       DO j = 1, pint_env%ndim
          DO i = 1, pint_env%p
@@ -105,21 +104,20 @@ CONTAINS
 
       !prepare Random number generator
       NULLIFY (rng_section)
-      NULLIFY (pile_therm%gaussian_rng_stream)
       rng_section => section_vals_get_subs_vals(section, &
                                                 subsection_name="RNG_INIT")
       CALL section_vals_get(rng_section, explicit=explicit)
       IF (explicit) THEN
          CALL section_vals_val_get(rng_section, "_DEFAULT_KEYWORD_", &
                                    i_rep_val=1, c_val=rng_record)
-         CALL read_rng_stream(rng_stream=pile_therm%gaussian_rng_stream, &
-                              rng_record=rng_record)
+
+         pile_therm%gaussian_rng_stream = rng_stream_type_from_record(rng_record)
       ELSE
          initial_seed(:, :) = REAL(pint_env%thermostat_rng_seed, dp)
-         CALL create_rng_stream(rng_stream=pile_therm%gaussian_rng_stream, &
-                                name="pile_rng_gaussian", distribution_type=GAUSSIAN, &
-                                extended_precision=.TRUE., &
-                                seed=initial_seed)
+         pile_therm%gaussian_rng_stream = rng_stream_type( &
+                                          name="pile_rng_gaussian", distribution_type=GAUSSIAN, &
+                                          extended_precision=.TRUE., &
+                                          seed=initial_seed)
       END IF
 
    END SUBROUTINE pint_pile_init
@@ -140,7 +138,7 @@ CONTAINS
       REAL(kind=dp), DIMENSION(:, :), INTENT(IN)         :: masses
       TYPE(pile_therm_type), POINTER                     :: pile_therm
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pint_pile_step', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'pint_pile_step'
 
       INTEGER                                            :: handle, ibead, idim
       REAL(KIND=dp)                                      :: delta_ekin
@@ -149,15 +147,15 @@ CONTAINS
       delta_ekin = 0.0_dp
       DO idim = 1, ndim
          DO ibead = first_mode, p
-            vnew(ibead, idim) = pile_therm%c1(ibead)*vold(ibead, idim)+ &
+            vnew(ibead, idim) = pile_therm%c1(ibead)*vold(ibead, idim) + &
                                 pile_therm%massfact(ibead, idim)*pile_therm%c2(ibead)* &
-                                next_random_number(pile_therm%gaussian_rng_stream)
-            delta_ekin = delta_ekin+masses(ibead, idim)*( &
-                         vnew(ibead, idim)*vnew(ibead, idim)- &
+                                pile_therm%gaussian_rng_stream%next()
+            delta_ekin = delta_ekin + masses(ibead, idim)*( &
+                         vnew(ibead, idim)*vnew(ibead, idim) - &
                          vold(ibead, idim)*vold(ibead, idim))
          END DO
       END DO
-      pile_therm%thermostat_energy = pile_therm%thermostat_energy-0.5_dp*delta_ekin
+      pile_therm%thermostat_energy = pile_therm%thermostat_energy - 0.5_dp*delta_ekin
 
       CALL timestop(handle)
    END SUBROUTINE pint_pile_step
@@ -175,17 +173,13 @@ CONTAINS
 
       TYPE(pile_therm_type), POINTER                     :: pile_therm
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pint_pile_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(pile_therm)) THEN
-         pile_therm%ref_count = pile_therm%ref_count-1
+         pile_therm%ref_count = pile_therm%ref_count - 1
          IF (pile_therm%ref_count == 0) THEN
             DEALLOCATE (pile_therm%c1)
             DEALLOCATE (pile_therm%c2)
             DEALLOCATE (pile_therm%g_fric)
             DEALLOCATE (pile_therm%massfact)
-            CALL delete_rng_stream(pile_therm%gaussian_rng_stream)
             DEALLOCATE (pile_therm)
          END IF
       END IF
@@ -204,9 +198,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pint_calc_pile_energy(pint_env)
       TYPE(pint_env_type), POINTER                       :: pint_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'pint_calc_pile_energy', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(pint_env%pile_therm)) THEN
          pint_env%e_pile = pint_env%pile_therm%thermostat_energy

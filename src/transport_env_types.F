@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -17,8 +19,8 @@ MODULE transport_env_types
    USE ISO_C_BINDING,                   ONLY: &
         C_ASSOCIATED, C_BOOL, C_DOUBLE, C_FUNPTR, C_F_POINTER, C_INT, C_NULL_FUNPTR, C_NULL_PTR, &
         C_PTR
-   USE dbcsr_api,                       ONLY: csr_destroy,&
-                                              csr_type,&
+   USE dbcsr_api,                       ONLY: dbcsr_csr_destroy,&
+                                              dbcsr_csr_type,&
                                               dbcsr_deallocate_matrix,&
                                               dbcsr_release,&
                                               dbcsr_type
@@ -97,10 +99,10 @@ MODULE transport_env_types
       TYPE(dbcsr_type)              :: template_matrix_nosym
       TYPE(dbcsr_type)              :: csr_sparsity
       TYPE(dbcsr_type), POINTER        :: dm_imag => NULL()
-      TYPE(csr_type)                   :: s_matrix
-      TYPE(csr_type)                   :: ks_matrix
-      TYPE(csr_type)                   :: p_matrix
-      TYPE(csr_type)                   :: imagp_matrix
+      TYPE(dbcsr_csr_type)                   :: s_matrix
+      TYPE(dbcsr_csr_type)                   :: ks_matrix
+      TYPE(dbcsr_csr_type)                   :: p_matrix
+      TYPE(dbcsr_csr_type)                   :: imagp_matrix
       LOGICAL                          :: csr_screening
       INTEGER, DIMENSION(:), POINTER   :: contacts_data => NULL()
       INTEGER, DIMENSION(:), POINTER   :: nsgf => NULL()
@@ -136,8 +138,7 @@ CONTAINS
    SUBROUTINE transport_env_release(transport_env)
       TYPE(transport_env_type), POINTER                  :: transport_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'transport_env_release', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'transport_env_release'
 
       INTEGER                                            :: handle
 
@@ -146,10 +147,10 @@ CONTAINS
       CPASSERT(ASSOCIATED(transport_env))
 
       IF (C_ASSOCIATED(transport_env%ext_c_method_ptr)) THEN
-         CALL csr_destroy(transport_env%s_matrix)
-         CALL csr_destroy(transport_env%ks_matrix)
-         CALL csr_destroy(transport_env%p_matrix)
-         CALL csr_destroy(transport_env%imagp_matrix)
+         CALL dbcsr_csr_destroy(transport_env%s_matrix)
+         CALL dbcsr_csr_destroy(transport_env%ks_matrix)
+         CALL dbcsr_csr_destroy(transport_env%p_matrix)
+         CALL dbcsr_csr_destroy(transport_env%imagp_matrix)
          CALL dbcsr_release(transport_env%template_matrix_sym)
          CALL dbcsr_release(transport_env%template_matrix_nosym)
          CALL dbcsr_release(transport_env%csr_sparsity)
@@ -177,8 +178,7 @@ CONTAINS
 
       TYPE(cp2k_csr_interop_type), INTENT(INOUT)         :: csr_interop_mat
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'csr_interop_nullify', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'csr_interop_nullify'
 
       INTEGER                                            :: handle
 
@@ -229,8 +229,7 @@ CONTAINS
       REAL(dp), DIMENSION(:), INTENT(OUT), OPTIONAL, &
          POINTER                                         :: nzvals_local
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'csr_interop_matrix_get_info', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'csr_interop_matrix_get_info'
 
       INTEGER                                            :: handle
 
@@ -244,7 +243,7 @@ CONTAINS
       IF (PRESENT(data_type)) data_type = csr_interop_mat%data_type
       IF (PRESENT(first_row)) first_row = csr_interop_mat%first_row
 
-      IF (PRESENT(rowptr_local)) CALL C_F_POINTER(csr_interop_mat%rowptr_local, rowptr_local, [nrows_local+1])
+      IF (PRESENT(rowptr_local)) CALL C_F_POINTER(csr_interop_mat%rowptr_local, rowptr_local, [nrows_local + 1])
       IF (PRESENT(colind_local)) CALL C_F_POINTER(csr_interop_mat%colind_local, colind_local, [nze_local])
       IF (PRESENT(nzerow_local)) CALL C_F_POINTER(csr_interop_mat%nzerow_local, nzerow_local, [nrows_local])
       IF (PRESENT(nzvals_local)) CALL C_F_POINTER(csr_interop_mat%nzvals_local, nzvals_local, [nze_local])

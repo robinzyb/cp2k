@@ -1,4 +1,4 @@
-&GLOBAL                                                                                           
+&GLOBAL
   PROJECT  H2O_allelec
   PRINT_LEVEL MEDIUM
   RUN_TYPE ENERGY
@@ -12,7 +12,7 @@
     BASIS_SET_FILE_NAME  EMSL_BASIS_SETS
     POTENTIAL_FILE_NAME  POTENTIAL
     &MGRID
-      CUTOFF  200
+      CUTOFF  100
     &END MGRID
     &POISSON
       PERIODIC NONE
@@ -44,12 +44,12 @@
         FRACTION   0.53
         &SCREENING
           EPS_SCHWARZ 1.0E-8
-          SCREEN_ON_INITIAL_P FALSE 
+          SCREEN_ON_INITIAL_P FALSE
         &END SCREENING
       &END HF
       &WF_CORRELATION
-        METHOD DIRECT_CANONICAL
-        &DIRECT_CANONICAL
+        &MP2
+          METHOD DIRECT_CANONICAL
           BIG_SEND
         &END
         SCALE_T  0.27
@@ -74,11 +74,11 @@
       PERIODIC NONE
     &END CELL
     &KIND H
-      BASIS_SET aug-cc-pVTZ
+      BASIS_SET aug-cc-pVDZ
       POTENTIAL ALL
     &END KIND
     &KIND O
-      BASIS_SET aug-cc-pVTZ
+      BASIS_SET aug-cc-pVDZ
       POTENTIAL ALL
     &END KIND
     &TOPOLOGY

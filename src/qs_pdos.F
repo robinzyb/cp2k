@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -128,9 +130,10 @@ CONTAINS
 !> \param dft_section ...
 !> \param ispin ...
 !> \param xas_mittle ...
+!> \param external_matrix_shalf ...
 !> \date    26.02.2008
 !> \par History:
-!>       -
+!>       - Added optional external matrix_shalf to avoid recomputing it (A. Bussy, 09.2019)
 !> \par Variables
 !>       -
 !>       -
@@ -138,7 +141,7 @@ CONTAINS
 !> \version 1.0
 ! **************************************************************************************************
    SUBROUTINE calculate_projected_dos(mo_set, atomic_kind_set, qs_kind_set, particle_set, qs_env, &
-                                      dft_section, ispin, xas_mittle)
+                                      dft_section, ispin, xas_mittle, external_matrix_shalf)
 
       TYPE(mo_set_type), POINTER                         :: mo_set
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
@@ -149,9 +152,9 @@ CONTAINS
       INTEGER, INTENT(IN), OPTIONAL                      :: ispin
       CHARACTER(LEN=default_string_length), INTENT(IN), &
          OPTIONAL                                        :: xas_mittle
+      TYPE(cp_fm_type), OPTIONAL, POINTER                :: external_matrix_shalf
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_projected_dos', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_projected_dos'
 
       CHARACTER(LEN=16)                                  :: fmtstr2
       CHARACTER(LEN=27)                                  :: fmtstr1
@@ -167,8 +170,8 @@ CONTAINS
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: firstrow
       INTEGER, DIMENSION(:), POINTER                     :: list, nshell
       INTEGER, DIMENSION(:, :), POINTER                  :: bo, l
-      LOGICAL                                            :: append, do_ldos, do_r_ldos, do_virt, &
-                                                            ionode, separate_components, &
+      LOGICAL                                            :: append, calc_matsh, do_ldos, do_r_ldos, &
+                                                            do_virt, ionode, separate_components, &
                                                             should_output
       LOGICAL, DIMENSION(:, :), POINTER                  :: read_r
       REAL(KIND=dp)                                      :: dh(3, 3), dvol, e_fermi, r(3), r_vec(3), &
@@ -197,7 +200,7 @@ CONTAINS
 
       NULLIFY (logger)
       logger => cp_get_default_logger()
-      ionode = logger%para_env%mepos == logger%para_env%source
+      ionode = logger%para_env%ionode
       should_output = BTEST(cp_print_key_should_output(logger%iter_info, dft_section, &
                                                        "PRINT%PDOS"), cp_p_file)
       output_unit = cp_logger_get_default_io_unit(logger)
@@ -231,11 +234,11 @@ CONTAINS
                           ncol_global=ncol_global)
 
       CALL section_vals_val_get(dft_section, "PRINT%PDOS%OUT_EACH_MO", i_val=out_each)
-      IF (out_each == -1) out_each = nao+1
+      IF (out_each == -1) out_each = nao + 1
       CALL section_vals_val_get(dft_section, "PRINT%PDOS%NLUMO", i_val=nlumo)
-      IF (nlumo == -1) nlumo = nao-homo
-      do_virt = (nlumo > (nmo-homo))
-      nvirt = nlumo-(nmo-homo)
+      IF (nlumo == -1) nlumo = nao - homo
+      do_virt = (nlumo > (nmo - homo))
+      nvirt = nlumo - (nmo - homo)
       ! Generate virtual orbitals
       IF (do_virt) THEN
          IF (PRESENT(ispin)) THEN
@@ -250,15 +253,22 @@ CONTAINS
          nvirt = 0
       END IF
 
-      ! Create S^1/2 : from sparse to full matrix
-      CALL cp_fm_struct_create(fm_struct_tmp, para_env=para_env, context=context, &
-                               nrow_global=nrow_global, ncol_global=nrow_global)
-      CALL cp_fm_create(matrix_shalf, fm_struct_tmp, name="matrix_shalf")
-      CALL cp_fm_create(matrix_work, fm_struct_tmp, name="matrix_work")
-      CALL cp_fm_struct_release(fm_struct_tmp)
-      CALL copy_dbcsr_to_fm(s_matrix(1)%matrix, matrix_shalf)
-      CALL cp_fm_power(matrix_shalf, matrix_work, 0.5_dp, EPSILON(0.0_dp), n_dependent)
-      CALL cp_fm_release(matrix_work)
+      calc_matsh = .TRUE.
+      IF (PRESENT(external_matrix_shalf)) calc_matsh = .FALSE.
+
+      ! Create S^1/2 : from sparse to full matrix, if no external available
+      IF (calc_matsh) THEN
+         CALL cp_fm_struct_create(fm_struct_tmp, para_env=para_env, context=context, &
+                                  nrow_global=nrow_global, ncol_global=nrow_global)
+         CALL cp_fm_create(matrix_shalf, fm_struct_tmp, name="matrix_shalf")
+         CALL cp_fm_create(matrix_work, fm_struct_tmp, name="matrix_work")
+         CALL cp_fm_struct_release(fm_struct_tmp)
+         CALL copy_dbcsr_to_fm(s_matrix(1)%matrix, matrix_shalf)
+         CALL cp_fm_power(matrix_shalf, matrix_work, 0.5_dp, EPSILON(0.0_dp), n_dependent)
+         CALL cp_fm_release(matrix_work)
+      ELSE
+         matrix_shalf => external_matrix_shalf
+      END IF
 
       ! Multiply S^(1/2) time the mOS coefficients to get orthonormalized MOS
       CALL cp_fm_struct_create(fm_struct_tmp, para_env=para_env, context=context, &
@@ -279,7 +289,7 @@ CONTAINS
          CALL cp_fm_struct_release(fm_struct_tmp)
       END IF
 
-      CALL cp_fm_release(matrix_shalf)
+      IF (calc_matsh) CALL cp_fm_release(matrix_shalf)
       ! Array to store the PDOS per kind and angular momentum
       do_ldos = .FALSE.
       ldos_section => section_vals_get_subs_vals(dft_section, "PRINT%PDOS%LDOS")
@@ -305,11 +315,11 @@ CONTAINS
                   CALL section_vals_val_get(ldos_section, "LIST", i_rep_section=ildos, i_rep_val=ir, &
                                             i_vals=list)
                   IF (ASSOCIATED(list)) THEN
-                     CALL reallocate(ldos_p(ildos)%ldos%list_index, 1, ldos_p(ildos)%ldos%nlist+SIZE(list))
+                     CALL reallocate(ldos_p(ildos)%ldos%list_index, 1, ldos_p(ildos)%ldos%nlist + SIZE(list))
                      DO i = 1, SIZE(list)
-                        ldos_p(ildos)%ldos%list_index(i+ldos_p(ildos)%ldos%nlist) = list(i)
+                        ldos_p(ildos)%ldos%list_index(i + ldos_p(ildos)%ldos%nlist) = list(i)
                      END DO
-                     ldos_p(ildos)%ldos%nlist = ldos_p(ildos)%ldos%nlist+SIZE(list)
+                     ldos_p(ildos)%ldos%nlist = ldos_p(ildos)%ldos%nlist + SIZE(list)
                   END IF
                END DO
             ELSE
@@ -321,9 +331,9 @@ CONTAINS
             CALL section_vals_val_get(ldos_section, "COMPONENTS", i_rep_section=ildos, &
                                       l_val=ldos_p(ildos)%ldos%separate_components)
             IF (ldos_p(ildos)%ldos%separate_components) THEN
-               ALLOCATE (ldos_p(ildos)%ldos%pdos_array(nsoset(maxlgto), nmo+nvirt))
+               ALLOCATE (ldos_p(ildos)%ldos%pdos_array(nsoset(maxlgto), nmo + nvirt))
             ELSE
-               ALLOCATE (ldos_p(ildos)%ldos%pdos_array(0:maxlgto, nmo+nvirt))
+               ALLOCATE (ldos_p(ildos)%ldos%pdos_array(0:maxlgto, nmo + nvirt))
             END IF
             ldos_p(ildos)%ldos%pdos_array = 0.0_dp
             ldos_p(ildos)%ldos%maxl = -1
@@ -368,18 +378,18 @@ CONTAINS
                   CALL section_vals_val_get(ldos_section, "LIST", i_rep_section=ildos, i_rep_val=ir, &
                                             i_vals=list)
                   IF (ASSOCIATED(list)) THEN
-                     CALL reallocate(r_ldos_p(ildos)%ldos%list_index, 1, r_ldos_p(ildos)%ldos%nlist+SIZE(list))
+                     CALL reallocate(r_ldos_p(ildos)%ldos%list_index, 1, r_ldos_p(ildos)%ldos%nlist + SIZE(list))
                      DO i = 1, SIZE(list)
-                        r_ldos_p(ildos)%ldos%list_index(i+r_ldos_p(ildos)%ldos%nlist) = list(i)
+                        r_ldos_p(ildos)%ldos%list_index(i + r_ldos_p(ildos)%ldos%nlist) = list(i)
                      END DO
-                     r_ldos_p(ildos)%ldos%nlist = r_ldos_p(ildos)%ldos%nlist+SIZE(list)
+                     r_ldos_p(ildos)%ldos%nlist = r_ldos_p(ildos)%ldos%nlist + SIZE(list)
                   END IF
                END DO
             ELSE
                ! stop, LDOS without list of atoms is not implemented
             END IF
 
-            ALLOCATE (r_ldos_p(ildos)%ldos%pdos_array(nmo+nvirt))
+            ALLOCATE (r_ldos_p(ildos)%ldos%pdos_array(nmo + nvirt))
             r_ldos_p(ildos)%ldos%pdos_array = 0.0_dp
             read_r(1:3, ildos) = .FALSE.
             CALL section_vals_val_get(ldos_section, "XRANGE", i_rep_section=ildos, explicit=read_r(1, ildos))
@@ -428,12 +438,12 @@ CONTAINS
             DO jy = bo(1, 2), bo(2, 2)
             DO jx = bo(1, 1), bo(2, 1)
                !compute the position of the grid point
-               i = jx-wf_r%pw%pw_grid%bounds(1, 1)
-               j = jy-wf_r%pw%pw_grid%bounds(1, 2)
-               k = jz-wf_r%pw%pw_grid%bounds(1, 3)
-               r(3) = k*dh(3, 3)+j*dh(3, 2)+i*dh(3, 1)
-               r(2) = k*dh(2, 3)+j*dh(2, 2)+i*dh(2, 1)
-               r(1) = k*dh(1, 3)+j*dh(1, 2)+i*dh(1, 1)
+               i = jx - wf_r%pw%pw_grid%bounds(1, 1)
+               j = jy - wf_r%pw%pw_grid%bounds(1, 2)
+               k = jz - wf_r%pw%pw_grid%bounds(1, 3)
+               r(3) = k*dh(3, 3) + j*dh(3, 2) + i*dh(3, 1)
+               r(2) = k*dh(2, 3) + j*dh(2, 2) + i*dh(2, 1)
+               r(1) = k*dh(1, 3) + j*dh(1, 2) + i*dh(1, 1)
 
                DO il = 1, r_ldos_p(ildos)%ldos%nlist
                   iatom = r_ldos_p(ildos)%ldos%list_index(il)
@@ -473,7 +483,7 @@ CONTAINS
                      in_z = 1
                   END IF
                   IF (in_x*in_y*in_z > 0) THEN
-                     r_ldos_p(ildos)%ldos%npoints = r_ldos_p(ildos)%ldos%npoints+1
+                     r_ldos_p(ildos)%ldos%npoints = r_ldos_p(ildos)%ldos%npoints + 1
                      r_ldos_p(ildos)%ldos%index_grid_local(1, r_ldos_p(ildos)%ldos%npoints) = jx
                      r_ldos_p(ildos)%ldos%index_grid_local(2, r_ldos_p(ildos)%ldos%npoints) = jy
                      r_ldos_p(ildos)%ldos%index_grid_local(3, r_ldos_p(ildos)%ldos%npoints) = jz
@@ -493,15 +503,15 @@ CONTAINS
 
       CALL section_vals_val_get(dft_section, "PRINT%PDOS%COMPONENTS", l_val=separate_components)
       IF (separate_components) THEN
-         ALLOCATE (pdos_array(nsoset(maxlgto), nkind, nmo+nvirt))
+         ALLOCATE (pdos_array(nsoset(maxlgto), nkind, nmo + nvirt))
       ELSE
-         ALLOCATE (pdos_array(0:maxlgto, nkind, nmo+nvirt))
+         ALLOCATE (pdos_array(0:maxlgto, nkind, nmo + nvirt))
       END IF
       IF (do_virt) THEN
-         ALLOCATE (eigenvalues(nmo+nvirt))
+         ALLOCATE (eigenvalues(nmo + nvirt))
          eigenvalues(1:nmo) = mo_set%eigenvalues(1:nmo)
-         eigenvalues(nmo+1:nmo+nvirt) = evals_virt(1:nvirt)
-         ALLOCATE (occupation_numbers(nmo+nvirt))
+         eigenvalues(nmo + 1:nmo + nvirt) = evals_virt(1:nvirt)
+         ALLOCATE (occupation_numbers(nmo + nvirt))
          occupation_numbers(:) = 0.0_dp
          occupation_numbers(1:nmo) = mo_set%occupation_numbers(1:nmo)
       ELSE
@@ -520,20 +530,20 @@ CONTAINS
       DO ildos = 1, n_r_ldos
          IF (eigenvalues(1) > r_ldos_p(ildos)%ldos%eval_range(1)) &
             r_ldos_p(ildos)%ldos%eval_range(1) = eigenvalues(1)
-         IF (eigenvalues(nmo+nvirt) < r_ldos_p(ildos)%ldos%eval_range(2)) &
-            r_ldos_p(ildos)%ldos%eval_range(2) = eigenvalues(nmo+nvirt)
+         IF (eigenvalues(nmo + nvirt) < r_ldos_p(ildos)%ldos%eval_range(2)) &
+            r_ldos_p(ildos)%ldos%eval_range(2) = eigenvalues(nmo + nvirt)
       END DO
 
       IF (output_unit > 0) WRITE (UNIT=output_unit, FMT='(/,(T15,A))') &
          "---- PDOS: start iteration on the KS states --- "
 
-      DO imo = 1, nmo+nvirt
+      DO imo = 1, nmo + nvirt
 
          IF (output_unit > 0 .AND. MOD(imo, out_each) == 0) WRITE (UNIT=output_unit, FMT='((T20,A,I10))') &
             " KS state index : ", imo
          ! Extract the eigenvector from the distributed full matrix
          IF (imo > nmo) THEN
-            CALL cp_fm_get_submatrix(matrix_work, vecbuffer, 1, imo-nmo, &
+            CALL cp_fm_get_submatrix(matrix_work, vecbuffer, 1, imo - nmo, &
                                      nao, 1, transpose=.TRUE.)
          ELSE
             CALL cp_fm_get_submatrix(matrix_shalfc, vecbuffer, 1, imo, &
@@ -557,11 +567,11 @@ CONTAINS
                   DO ishell = 1, nshell(iset)
                      lshell = l(ishell, iset)
                      DO iso = 1, nso(lshell)
-                        lcomponent = nsoset(lshell-1)+iso
+                        lcomponent = nsoset(lshell - 1) + iso
                         pdos_array(lcomponent, ikind, imo) = &
-                           pdos_array(lcomponent, ikind, imo)+ &
+                           pdos_array(lcomponent, ikind, imo) + &
                            vecbuffer(1, irow)*vecbuffer(1, irow)
-                        irow = irow+1
+                        irow = irow + 1
                      END DO ! iso
                   END DO ! ishell
                END DO ! iset
@@ -572,9 +582,9 @@ CONTAINS
                      lshell = l(ishell, iset)
                      DO iso = 1, nso(lshell)
                         pdos_array(lshell, ikind, imo) = &
-                           pdos_array(lshell, ikind, imo)+ &
+                           pdos_array(lshell, ikind, imo) + &
                            vecbuffer(1, irow)*vecbuffer(1, irow)
-                        irow = irow+1
+                        irow = irow + 1
                      END DO ! iso
                   END DO ! ishell
                END DO ! iset
@@ -602,11 +612,11 @@ CONTAINS
                      DO ishell = 1, nshell(iset)
                         lshell = l(ishell, iset)
                         DO iso = 1, nso(lshell)
-                           lcomponent = nsoset(lshell-1)+iso
+                           lcomponent = nsoset(lshell - 1) + iso
                            ldos_p(ildos)%ldos%pdos_array(lcomponent, imo) = &
-                              ldos_p(ildos)%ldos%pdos_array(lcomponent, imo)+ &
+                              ldos_p(ildos)%ldos%pdos_array(lcomponent, imo) + &
                               vecbuffer(1, irow)*vecbuffer(1, irow)
-                           irow = irow+1
+                           irow = irow + 1
                         END DO ! iso
                      END DO ! ishell
                   END DO ! iset
@@ -617,9 +627,9 @@ CONTAINS
                         lshell = l(ishell, iset)
                         DO iso = 1, nso(lshell)
                            ldos_p(ildos)%ldos%pdos_array(lshell, imo) = &
-                              ldos_p(ildos)%ldos%pdos_array(lshell, imo)+ &
+                              ldos_p(ildos)%ldos%pdos_array(lshell, imo) + &
                               vecbuffer(1, irow)*vecbuffer(1, irow)
-                           irow = irow+1
+                           irow = irow + 1
                         END DO ! iso
                      END DO ! ishell
                   END DO ! iset
@@ -633,7 +643,7 @@ CONTAINS
                 r_ldos_p(ildos)%ldos%eval_range(2) >= eigenvalues(imo)) THEN
 
                IF (imo > nmo) THEN
-                  CALL calculate_wavefunction(mo_virt, imo-nmo, &
+                  CALL calculate_wavefunction(mo_virt, imo - nmo, &
                                               wf_r, wf_g, atomic_kind_set, qs_kind_set, cell, dft_control, particle_set, &
                                               pw_env)
                ELSE
@@ -643,11 +653,11 @@ CONTAINS
                END IF
                r_ldos_p(ildos)%ldos%pdos_array(imo) = 0.0_dp
                DO il = 1, r_ldos_p(ildos)%ldos%npoints
-                  j = j+1
+                  j = j + 1
                   jx = r_ldos_p(ildos)%ldos%index_grid_local(1, il)
                   jy = r_ldos_p(ildos)%ldos%index_grid_local(2, il)
                   jz = r_ldos_p(ildos)%ldos%index_grid_local(3, il)
-                  r_ldos_p(ildos)%ldos%pdos_array(imo) = r_ldos_p(ildos)%ldos%pdos_array(imo)+ &
+                  r_ldos_p(ildos)%ldos%pdos_array(imo) = r_ldos_p(ildos)%ldos%pdos_array(imo) + &
                                                          wf_r%pw%cr3d(jx, jy, jz)*wf_r%pw%cr3d(jx, jy, jz)
                END DO
                r_ldos_p(ildos)%ldos%pdos_array(imo) = r_ldos_p(ildos)%ldos%pdos_array(imo)*dvol
@@ -698,8 +708,8 @@ CONTAINS
                WRITE (UNIT=fmtstr1(15:16), FMT="(I2)") nsoset(maxl)
                WRITE (UNIT=fmtstr2(6:7), FMT="(I2)") nsoset(maxl)
             ELSE
-               WRITE (UNIT=fmtstr1(15:16), FMT="(I2)") maxl+1
-               WRITE (UNIT=fmtstr2(6:7), FMT="(I2)") maxl+1
+               WRITE (UNIT=fmtstr1(15:16), FMT="(I2)") maxl + 1
+               WRITE (UNIT=fmtstr2(6:7), FMT="(I2)") maxl + 1
             END IF
 
             WRITE (UNIT=iw, FMT="(A,I0,A,F12.6,A)") &
@@ -717,7 +727,7 @@ CONTAINS
                WRITE (UNIT=iw, FMT=fmtstr2) &
                   "#     MO Eigenvalue [a.u.]      Occupation", &
                   ((TRIM(tmp_str(0, il, im)), im=-il, il), il=0, maxl)
-               DO imo = 1, nmo+nvirt
+               DO imo = 1, nmo + nvirt
                   WRITE (UNIT=iw, FMT=fmtstr1) imo, eigenvalues(imo), occupation_numbers(imo), &
                      (pdos_array(lshell, ikind, imo), lshell=1, nsoset(maxl))
                END DO
@@ -726,7 +736,7 @@ CONTAINS
                WRITE (UNIT=iw, FMT=fmtstr2) &
                   "#     MO Eigenvalue [a.u.]      Occupation", &
                   (TRIM(l_sym(il)), il=0, maxl)
-               DO imo = 1, nmo+nvirt
+               DO imo = 1, nmo + nvirt
                   WRITE (UNIT=iw, FMT=fmtstr1) imo, eigenvalues(imo), occupation_numbers(imo), &
                      (pdos_array(lshell, ikind, imo), lshell=0, maxl)
                END DO
@@ -766,8 +776,8 @@ CONTAINS
                   WRITE (UNIT=fmtstr1(15:16), FMT="(I2)") nsoset(ldos_p(ildos)%ldos%maxl)
                   WRITE (UNIT=fmtstr2(6:7), FMT="(I2)") nsoset(ldos_p(ildos)%ldos%maxl)
                ELSE
-                  WRITE (UNIT=fmtstr1(15:16), FMT="(I2)") ldos_p(ildos)%ldos%maxl+1
-                  WRITE (UNIT=fmtstr2(6:7), FMT="(I2)") ldos_p(ildos)%ldos%maxl+1
+                  WRITE (UNIT=fmtstr1(15:16), FMT="(I2)") ldos_p(ildos)%ldos%maxl + 1
+                  WRITE (UNIT=fmtstr2(6:7), FMT="(I2)") ldos_p(ildos)%ldos%maxl + 1
                END IF
 
                WRITE (UNIT=iw, FMT="(A,I0,A,I0,A,I0,A,F12.6,A)") &
@@ -786,7 +796,7 @@ CONTAINS
                   WRITE (UNIT=iw, FMT=fmtstr2) &
                      "#     MO Eigenvalue [a.u.]      Occupation", &
                      ((TRIM(tmp_str(0, il, im)), im=-il, il), il=0, ldos_p(ildos)%ldos%maxl)
-                  DO imo = 1, nmo+nvirt
+                  DO imo = 1, nmo + nvirt
                      WRITE (UNIT=iw, FMT=fmtstr1) imo, eigenvalues(imo), occupation_numbers(imo), &
                         (ldos_p(ildos)%ldos%pdos_array(lshell, imo), lshell=1, nsoset(ldos_p(ildos)%ldos%maxl))
                   END DO
@@ -795,7 +805,7 @@ CONTAINS
                   WRITE (UNIT=iw, FMT=fmtstr2) &
                      "#     MO Eigenvalue [a.u.]      Occupation", &
                      (TRIM(l_sym(il)), il=0, ldos_p(ildos)%ldos%maxl)
-                  DO imo = 1, nmo+nvirt
+                  DO imo = 1, nmo + nvirt
                      WRITE (UNIT=iw, FMT=fmtstr1) imo, eigenvalues(imo), occupation_numbers(imo), &
                         (ldos_p(ildos)%ldos%pdos_array(lshell, imo), lshell=0, ldos_p(ildos)%ldos%maxl)
                   END DO
@@ -839,7 +849,7 @@ CONTAINS
                " Hartree, E(Fermi) = ", e_fermi, " a.u."
             WRITE (UNIT=iw, FMT="(A)") &
                "#     MO Eigenvalue [a.u.]      Occupation      LDOS"
-            DO imo = 1, nmo+nvirt
+            DO imo = 1, nmo + nvirt
                IF (r_ldos_p(ildos)%ldos%eval_range(1) <= eigenvalues(imo) .AND. &
                    r_ldos_p(ildos)%ldos%eval_range(2) >= eigenvalues(imo)) THEN
                   WRITE (UNIT=iw, FMT="(I8,2X,2F16.6,E20.10,E20.10)") imo, eigenvalues(imo), occupation_numbers(imo), &
@@ -927,9 +937,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:), POINTER               :: evals_virt
       TYPE(cp_fm_type), POINTER                          :: mo_virt
       INTEGER, INTENT(IN)                                :: nvirt, ispin
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'generate_virtual_mo', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: nmo, nrow_global
       TYPE(cp_blacs_env_type), POINTER                   :: context

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -107,12 +109,12 @@ CONTAINS
       k = SIZE(aw)/2
       numerr = 0.0_dp
       DO np = 1, npoints
-         x = 1.0_dp+(Rc-1.0_dp)*(npoints-np)/(npoints-1)
+         x = 1.0_dp + (Rc - 1.0_dp)*(npoints - np)/(npoints - 1)
          mm = 0.0_dp
          DO j = 1, k
-            mm = mm+aw(j+k)*EXP(-aw(j)*x)
+            mm = mm + aw(j + k)*EXP(-aw(j)*x)
          ENDDO
-         numerr = MAX(numerr, ABS(mm-1.0_dp/x))
+         numerr = MAX(numerr, ABS(mm - 1.0_dp/x))
       ENDDO
 
    END FUNCTION get_minimax_numerical_error
@@ -133,8 +135,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(2*k), INTENT(OUT)         :: aw
       REAL(KIND=dp), INTENT(OUT), OPTIONAL               :: mm_error
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_minimax_coeff_k15', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_minimax_coeff_k15'
 
       INTEGER                                            :: handle, icoef, kkk
       REAL(KIND=dp)                                      :: L_b, R_max, R_min, R_transf, U_b
@@ -586,11 +587,11 @@ CONTAINS
 
       IF (Rc < R_max .AND. Rc >= R_min) THEN
          R_transf = SQRT(L_b/Rc)
-         R_transf = SQRT(R_transf)*(SQRT(U_b/(U_b-L_b))-SQRT(Rc/(U_b-L_b)))
+         R_transf = SQRT(R_transf)*(SQRT(U_b/(U_b - L_b)) - SQRT(Rc/(U_b - L_b)))
          DO kkk = 1, 2*k
             aw(kkk) = fit_coef(0, kkk)
             DO icoef = 1, 12
-               aw(kkk) = aw(kkk)+fit_coef(icoef, kkk)*R_transf**icoef
+               aw(kkk) = aw(kkk) + fit_coef(icoef, kkk)*R_transf**icoef
             END DO
          END DO
       END IF

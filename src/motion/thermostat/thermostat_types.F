@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -109,9 +111,6 @@ CONTAINS
    SUBROUTINE allocate_thermostats(thermostats)
       TYPE(thermostats_type), POINTER                    :: thermostats
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_thermostats', &
-         routineP = moduleN//':'//routineN
-
       LOGICAL                                            :: check
 
       check = .NOT. ASSOCIATED(thermostats)
@@ -119,7 +118,7 @@ CONTAINS
 
       ! Preliminary allocation for thermostats
       ALLOCATE (thermostats)
-      last_thermostats_id_nr = last_thermostats_id_nr+1
+      last_thermostats_id_nr = last_thermostats_id_nr + 1
       thermostats%id_nr = last_thermostats_id_nr
       thermostats%ref_count = 1
 
@@ -156,12 +155,9 @@ CONTAINS
    SUBROUTINE retain_thermostats(thermostats)
       TYPE(thermostats_type), POINTER                    :: thermostats
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'retain_thermostats', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(thermostats)) THEN
          CPASSERT(thermostats%ref_count > 0)
-         thermostats%ref_count = thermostats%ref_count+1
+         thermostats%ref_count = thermostats%ref_count + 1
       END IF
 
    END SUBROUTINE retain_thermostats
@@ -176,16 +172,13 @@ CONTAINS
    SUBROUTINE release_thermostats(thermostats)
       TYPE(thermostats_type), POINTER                    :: thermostats
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'release_thermostats', &
-         routineP = moduleN//':'//routineN
-
       LOGICAL                                            :: check
 
       check = ASSOCIATED(thermostats)
       IF (check) THEN
          check = thermostats%ref_count > 0
          CPASSERT(check)
-         thermostats%ref_count = thermostats%ref_count-1
+         thermostats%ref_count = thermostats%ref_count - 1
          IF (thermostats%ref_count < 1) THEN
             CALL release_thermostat_info(thermostats%thermostat_info_part)
             CALL release_thermostat_info(thermostats%thermostat_info_shell)
@@ -234,9 +227,6 @@ CONTAINS
       LOGICAL, INTENT(IN), OPTIONAL                      :: skip_region
       CHARACTER(LEN=*), INTENT(IN)                       :: label
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_thermostat_type', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: region
       LOGICAL                                            :: skip_region_loc
       TYPE(section_vals_type), POINTER                   :: al_section, csvr_section, gle_section, &
@@ -245,7 +235,7 @@ CONTAINS
       skip_region_loc = .FALSE.
       IF (PRESENT(skip_region)) skip_region_loc = skip_region
       ALLOCATE (thermostat)
-      last_thermostat_id_nr = last_thermostat_id_nr+1
+      last_thermostat_id_nr = last_thermostat_id_nr + 1
       thermostat%id_nr = last_thermostat_id_nr
       thermostat%ref_count = 1
       thermostat%section => section
@@ -294,9 +284,6 @@ CONTAINS
    SUBROUTINE release_thermostat_info(thermostat_info)
       TYPE(thermostat_info_type), POINTER                :: thermostat_info
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'release_thermostat_info', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(thermostat_info)) THEN
          IF (ASSOCIATED(thermostat_info%map_loc_thermo_gen)) THEN
             DEALLOCATE (thermostat_info%map_loc_thermo_gen)
@@ -315,16 +302,13 @@ CONTAINS
    SUBROUTINE release_thermostat_type(thermostat)
       TYPE(thermostat_type), POINTER                     :: thermostat
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'release_thermostat_type', &
-         routineP = moduleN//':'//routineN
-
       LOGICAL                                            :: check
 
       check = ASSOCIATED(thermostat)
       IF (check) THEN
          check = thermostat%ref_count > 0
          CPASSERT(check)
-         thermostat%ref_count = thermostat%ref_count-1
+         thermostat%ref_count = thermostat%ref_count - 1
          IF (thermostat%ref_count < 1) THEN
             NULLIFY (thermostat%section)
             IF (ASSOCIATED(thermostat%nhc)) THEN
@@ -355,9 +339,6 @@ CONTAINS
    SUBROUTINE set_thermostats(thermostats, dt_fact)
       TYPE(thermostats_type), POINTER                    :: thermostats
       REAL(KIND=dp), INTENT(IN), OPTIONAL                :: dt_fact
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_thermostats', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(thermostats)) THEN
          IF (PRESENT(dt_fact)) THEN

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -95,12 +97,8 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE cell_clone(cell_in, cell_out)
 
-      TYPE(cell_type), POINTER                           :: cell_in, cell_out
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'cell_clone', routineP = moduleN//':'//routineN
-
-      CPASSERT(ASSOCIATED(cell_in))
-      CPASSERT(ASSOCIATED(cell_out))
+      TYPE(cell_type), INTENT(IN)                        :: cell_in
+      TYPE(cell_type), INTENT(OUT)                       :: cell_out
 
       cell_out%deth = cell_in%deth
       cell_out%perd = cell_in%perd
@@ -109,7 +107,7 @@ CONTAINS
       cell_out%orthorhombic = cell_in%orthorhombic
       cell_out%symmetry_id = cell_in%symmetry_id
       cell_out%ref_count = 1
-      last_cell_id = last_cell_id+1
+      last_cell_id = last_cell_id + 1
       cell_out%id_nr = last_cell_id
 
    END SUBROUTINE cell_clone
@@ -121,12 +119,8 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE cell_copy(cell_in, cell_out)
 
-      TYPE(cell_type), POINTER                           :: cell_in, cell_out
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'cell_copy', routineP = moduleN//':'//routineN
-
-      CPASSERT(ASSOCIATED(cell_in))
-      CPASSERT(ASSOCIATED(cell_out))
+      TYPE(cell_type), INTENT(IN)                        :: cell_in
+      TYPE(cell_type), INTENT(INOUT)                     :: cell_out
 
       cell_out%deth = cell_in%deth
       cell_out%perd = cell_in%perd
@@ -154,9 +148,6 @@ CONTAINS
       REAL(KIND=dp), INTENT(OUT)                         :: cell_time
       REAL(KIND=dp), DIMENSION(3, 3), INTENT(OUT)        :: h
       REAL(KIND=dp), INTENT(OUT)                         :: vol
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'parse_cell_line', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, j
 
@@ -191,14 +182,14 @@ CONTAINS
    SUBROUTINE get_cell(cell, alpha, beta, gamma, deth, orthorhombic, abc, periodic, &
                        h, h_inv, id_nr, symmetry_id)
 
-      TYPE(cell_type), POINTER                           :: cell
+      TYPE(cell_type), INTENT(IN)                        :: cell
       REAL(KIND=dp), INTENT(OUT), OPTIONAL               :: alpha, beta, gamma, deth
       LOGICAL, INTENT(OUT), OPTIONAL                     :: orthorhombic
       REAL(KIND=dp), DIMENSION(3), INTENT(OUT), OPTIONAL :: abc
       INTEGER, DIMENSION(3), INTENT(OUT), OPTIONAL       :: periodic
       REAL(KIND=dp), DIMENSION(3, 3), INTENT(OUT), &
          OPTIONAL                                        :: h, h_inv
-      INTEGER, INTENT(out), OPTIONAL                     :: id_nr, symmetry_id
+      INTEGER, INTENT(OUT), OPTIONAL                     :: id_nr, symmetry_id
 
       IF (PRESENT(deth)) deth = cell%deth ! the volume
       IF (PRESENT(orthorhombic)) orthorhombic = cell%orthorhombic
@@ -208,14 +199,14 @@ CONTAINS
 
       ! Calculate the lengths of the cell vectors a, b, and c
       IF (PRESENT(abc)) THEN
-         abc(1) = SQRT(cell%hmat(1, 1)*cell%hmat(1, 1)+ &
-                       cell%hmat(2, 1)*cell%hmat(2, 1)+ &
+         abc(1) = SQRT(cell%hmat(1, 1)*cell%hmat(1, 1) + &
+                       cell%hmat(2, 1)*cell%hmat(2, 1) + &
                        cell%hmat(3, 1)*cell%hmat(3, 1))
-         abc(2) = SQRT(cell%hmat(1, 2)*cell%hmat(1, 2)+ &
-                       cell%hmat(2, 2)*cell%hmat(2, 2)+ &
+         abc(2) = SQRT(cell%hmat(1, 2)*cell%hmat(1, 2) + &
+                       cell%hmat(2, 2)*cell%hmat(2, 2) + &
                        cell%hmat(3, 2)*cell%hmat(3, 2))
-         abc(3) = SQRT(cell%hmat(1, 3)*cell%hmat(1, 3)+ &
-                       cell%hmat(2, 3)*cell%hmat(2, 3)+ &
+         abc(3) = SQRT(cell%hmat(1, 3)*cell%hmat(1, 3) + &
+                       cell%hmat(2, 3)*cell%hmat(2, 3) + &
                        cell%hmat(3, 3)*cell%hmat(3, 3))
       END IF
 
@@ -244,13 +235,11 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE get_cell_param(cell, cell_length, cell_angle, units_angle, periodic)
 
-      TYPE(cell_type), POINTER                           :: cell
+      TYPE(cell_type), INTENT(IN)                        :: cell
       REAL(KIND=dp), DIMENSION(3), INTENT(OUT)           :: cell_length
       REAL(KIND=dp), DIMENSION(3), INTENT(OUT), OPTIONAL :: cell_angle
       INTEGER, INTENT(IN), OPTIONAL                      :: units_angle
       INTEGER, DIMENSION(3), INTENT(OUT), OPTIONAL       :: periodic
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_cell_param', routineP = moduleN//':'//routineN
 
       REAL(KIND=dp)                                      :: alpha, beta, gamma
 
@@ -283,12 +272,10 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE set_cell_param(cell, cell_length, cell_angle, periodic, do_init_cell)
 
-      TYPE(cell_type), POINTER                           :: cell
+      TYPE(cell_type), INTENT(INOUT)                     :: cell
       REAL(KIND=dp), DIMENSION(3), INTENT(IN)            :: cell_length, cell_angle
       INTEGER, DIMENSION(3), INTENT(IN), OPTIONAL        :: periodic
       LOGICAL, INTENT(IN)                                :: do_init_cell
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_cell_param', routineP = moduleN//':'//routineN
 
       REAL(KIND=dp)                                      :: cos_alpha, cos_beta, cos_gamma, eps, &
                                                             sin_gamma
@@ -296,18 +283,18 @@ CONTAINS
       CPASSERT(ALL(cell_angle /= 0.0_dp))
       eps = EPSILON(0.0_dp)
       cos_gamma = COS(cell_angle(3)); IF (ABS(cos_gamma) < eps) cos_gamma = 0.0_dp
-      IF (ABS(ABS(cos_gamma)-1.0_dp) < eps) cos_gamma = SIGN(1.0_dp, cos_gamma)
+      IF (ABS(ABS(cos_gamma) - 1.0_dp) < eps) cos_gamma = SIGN(1.0_dp, cos_gamma)
       sin_gamma = SIN(cell_angle(3)); IF (ABS(sin_gamma) < eps) sin_gamma = 0.0_dp
-      IF (ABS(ABS(sin_gamma)-1.0_dp) < eps) sin_gamma = SIGN(1.0_dp, sin_gamma)
+      IF (ABS(ABS(sin_gamma) - 1.0_dp) < eps) sin_gamma = SIGN(1.0_dp, sin_gamma)
       cos_beta = COS(cell_angle(2)); IF (ABS(cos_beta) < eps) cos_beta = 0.0_dp
-      IF (ABS(ABS(cos_beta)-1.0_dp) < eps) cos_beta = SIGN(1.0_dp, cos_beta)
+      IF (ABS(ABS(cos_beta) - 1.0_dp) < eps) cos_beta = SIGN(1.0_dp, cos_beta)
       cos_alpha = COS(cell_angle(1)); IF (ABS(cos_alpha) < eps) cos_alpha = 0.0_dp
-      IF (ABS(ABS(cos_alpha)-1.0_dp) < eps) cos_alpha = SIGN(1.0_dp, cos_alpha)
+      IF (ABS(ABS(cos_alpha) - 1.0_dp) < eps) cos_alpha = SIGN(1.0_dp, cos_alpha)
 
       cell%hmat(:, 1) = (/1.0_dp, 0.0_dp, 0.0_dp/)
       cell%hmat(:, 2) = (/cos_gamma, sin_gamma, 0.0_dp/)
-      cell%hmat(:, 3) = (/cos_beta, (cos_alpha-cos_gamma*cos_beta)/sin_gamma, 0.0_dp/)
-      cell%hmat(3, 3) = SQRT(1.0_dp-cell%hmat(1, 3)**2-cell%hmat(2, 3)**2)
+      cell%hmat(:, 3) = (/cos_beta, (cos_alpha - cos_gamma*cos_beta)/sin_gamma, 0.0_dp/)
+      cell%hmat(3, 3) = SQRT(1.0_dp - cell%hmat(1, 3)**2 - cell%hmat(2, 3)**2)
 
       cell%hmat(:, 1) = cell%hmat(:, 1)*cell_length(1)
       cell%hmat(:, 2) = cell%hmat(:, 2)*cell_length(2)
@@ -334,12 +321,11 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE init_cell(cell, hmat, periodic)
 
-      TYPE(cell_type), POINTER                           :: cell
+      TYPE(cell_type), INTENT(INOUT)                     :: cell
       REAL(KIND=dp), DIMENSION(3, 3), INTENT(IN), &
          OPTIONAL                                        :: hmat
       INTEGER, DIMENSION(3), INTENT(IN), OPTIONAL        :: periodic
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_cell', routineP = moduleN//':'//routineN
       REAL(KIND=dp), PARAMETER                           :: eps_hmat = 1.0E-14_dp
 
       INTEGER                                            :: dim
@@ -376,15 +362,15 @@ CONTAINS
                cell_sym_tetragonal_bc)
             SELECT CASE (cell%symmetry_id)
             CASE (cell_sym_tetragonal_ab)
-               a = 0.5_dp*(abc(1)+abc(2))
+               a = 0.5_dp*(abc(1) + abc(2))
                abc(1) = a
                abc(2) = a
             CASE (cell_sym_tetragonal_ac)
-               a = 0.5_dp*(abc(1)+abc(3))
+               a = 0.5_dp*(abc(1) + abc(3))
                abc(1) = a
                abc(3) = a
             CASE (cell_sym_tetragonal_bc)
-               a = 0.5_dp*(abc(2)+abc(3))
+               a = 0.5_dp*(abc(2) + abc(3))
                abc(2) = a
                abc(3) = a
             END SELECT
@@ -394,7 +380,7 @@ CONTAINS
          cell%hmat(3, 1) = 0.0_dp; cell%hmat(3, 2) = 0.0_dp; cell%hmat(3, 3) = abc(3)
       CASE (cell_sym_hexagonal)
          CALL get_cell(cell=cell, abc=abc)
-         a = 0.5_dp*(abc(1)+abc(2))
+         a = 0.5_dp*(abc(1) + abc(2))
          acosa = 0.5_dp*a
          asina = sqrt3*acosa
          cell%hmat(1, 1) = a; cell%hmat(1, 2) = acosa; cell%hmat(1, 3) = 0.0_dp
@@ -403,15 +389,15 @@ CONTAINS
       CASE (cell_sym_rhombohedral)
          CALL get_cell(cell=cell, abc=abc)
          a = SUM(abc(1:3))/3.0_dp
-         alpha = (angle(cell%hmat(:, 3), cell%hmat(:, 2))+ &
-                  angle(cell%hmat(:, 1), cell%hmat(:, 3))+ &
+         alpha = (angle(cell%hmat(:, 3), cell%hmat(:, 2)) + &
+                  angle(cell%hmat(:, 1), cell%hmat(:, 3)) + &
                   angle(cell%hmat(:, 1), cell%hmat(:, 2)))/3.0_dp
          acosa = a*COS(alpha)
          asina = a*SIN(alpha)
          acosah = a*COS(0.5_dp*alpha)
          asinah = a*SIN(0.5_dp*alpha)
          norm = acosa/acosah
-         norm_c = SQRT(1.0_dp-norm*norm)
+         norm_c = SQRT(1.0_dp - norm*norm)
          cell%hmat(1, 1) = a; cell%hmat(1, 2) = acosa; cell%hmat(1, 3) = acosah*norm
          cell%hmat(2, 1) = 0.0_dp; cell%hmat(2, 2) = asina; cell%hmat(2, 3) = asinah*norm
          cell%hmat(3, 1) = 0.0_dp; cell%hmat(3, 2) = 0.0_dp; cell%hmat(3, 3) = a*norm_c
@@ -424,7 +410,7 @@ CONTAINS
       CASE (cell_sym_monoclinic_gamma_ab)
          ! Cell symmetry with a=b, alpha=beta=90deg and gammma unequal 90deg
          CALL get_cell(cell=cell, abc=abc)
-         a = 0.5_dp*(abc(1)+abc(2))
+         a = 0.5_dp*(abc(1) + abc(2))
          gamma = angle(cell%hmat(:, 1), cell%hmat(:, 2))
          acosgamma = a*COS(gamma)
          asingamma = a*SIN(gamma)
@@ -486,7 +472,7 @@ CONTAINS
    FUNCTION plane_distance(h, k, l, cell) RESULT(distance)
 
       INTEGER, INTENT(IN)                                :: h, k, l
-      TYPE(cell_type), POINTER                           :: cell
+      TYPE(cell_type), INTENT(IN)                        :: cell
       REAL(KIND=dp)                                      :: distance
 
       REAL(KIND=dp)                                      :: a, alpha, b, beta, c, cosa, cosb, cosg, &
@@ -505,7 +491,7 @@ CONTAINS
 
       IF (cell%orthorhombic) THEN
 
-         d = (x/a)**2+(y/b)**2+(z/c)**2
+         d = (x/a)**2 + (y/b)**2 + (z/c)**2
 
       ELSE
 
@@ -522,13 +508,13 @@ CONTAINS
          cosb = COS(beta)
          cosg = COS(gamma)
 
-         d = ((x*b*c*SIN(alpha))**2+ &
-              (y*c*a*SIN(beta))**2+ &
-              (z*a*b*SIN(gamma))**2+ &
-              2.0_dp*a*b*c*(x*y*c*(cosa*cosb-cosg)+ &
-                            z*x*b*(cosg*cosa-cosb)+ &
-                            y*z*a*(cosb*cosg-cosa)))/ &
-             ((a*b*c)**2*(1.0_dp-cosa**2-cosb**2-cosg**2+ &
+         d = ((x*b*c*SIN(alpha))**2 + &
+              (y*c*a*SIN(beta))**2 + &
+              (z*a*b*SIN(gamma))**2 + &
+              2.0_dp*a*b*c*(x*y*c*(cosa*cosb - cosg) + &
+                            z*x*b*(cosg*cosa - cosb) + &
+                            y*z*a*(cosb*cosg - cosa)))/ &
+             ((a*b*c)**2*(1.0_dp - cosa**2 - cosb**2 - cosg**2 + &
                           2.0_dp*cosa*cosb*cosg))
 
       END IF
@@ -550,25 +536,25 @@ CONTAINS
    FUNCTION pbc1(r, cell) RESULT(r_pbc)
 
       REAL(KIND=dp), DIMENSION(3), INTENT(IN)            :: r
-      TYPE(cell_type), POINTER                           :: cell
+      TYPE(cell_type), INTENT(IN)                        :: cell
       REAL(KIND=dp), DIMENSION(3)                        :: r_pbc
 
       REAL(KIND=dp), DIMENSION(3)                        :: s
 
       IF (cell%orthorhombic) THEN
-         r_pbc(1) = r(1)-cell%hmat(1, 1)*cell%perd(1)*ANINT(cell%h_inv(1, 1)*r(1))
-         r_pbc(2) = r(2)-cell%hmat(2, 2)*cell%perd(2)*ANINT(cell%h_inv(2, 2)*r(2))
-         r_pbc(3) = r(3)-cell%hmat(3, 3)*cell%perd(3)*ANINT(cell%h_inv(3, 3)*r(3))
+         r_pbc(1) = r(1) - cell%hmat(1, 1)*cell%perd(1)*ANINT(cell%h_inv(1, 1)*r(1))
+         r_pbc(2) = r(2) - cell%hmat(2, 2)*cell%perd(2)*ANINT(cell%h_inv(2, 2)*r(2))
+         r_pbc(3) = r(3) - cell%hmat(3, 3)*cell%perd(3)*ANINT(cell%h_inv(3, 3)*r(3))
       ELSE
-         s(1) = cell%h_inv(1, 1)*r(1)+cell%h_inv(1, 2)*r(2)+cell%h_inv(1, 3)*r(3)
-         s(2) = cell%h_inv(2, 1)*r(1)+cell%h_inv(2, 2)*r(2)+cell%h_inv(2, 3)*r(3)
-         s(3) = cell%h_inv(3, 1)*r(1)+cell%h_inv(3, 2)*r(2)+cell%h_inv(3, 3)*r(3)
-         s(1) = s(1)-cell%perd(1)*ANINT(s(1))
-         s(2) = s(2)-cell%perd(2)*ANINT(s(2))
-         s(3) = s(3)-cell%perd(3)*ANINT(s(3))
-         r_pbc(1) = cell%hmat(1, 1)*s(1)+cell%hmat(1, 2)*s(2)+cell%hmat(1, 3)*s(3)
-         r_pbc(2) = cell%hmat(2, 1)*s(1)+cell%hmat(2, 2)*s(2)+cell%hmat(2, 3)*s(3)
-         r_pbc(3) = cell%hmat(3, 1)*s(1)+cell%hmat(3, 2)*s(2)+cell%hmat(3, 3)*s(3)
+         s(1) = cell%h_inv(1, 1)*r(1) + cell%h_inv(1, 2)*r(2) + cell%h_inv(1, 3)*r(3)
+         s(2) = cell%h_inv(2, 1)*r(1) + cell%h_inv(2, 2)*r(2) + cell%h_inv(2, 3)*r(3)
+         s(3) = cell%h_inv(3, 1)*r(1) + cell%h_inv(3, 2)*r(2) + cell%h_inv(3, 3)*r(3)
+         s(1) = s(1) - cell%perd(1)*ANINT(s(1))
+         s(2) = s(2) - cell%perd(2)*ANINT(s(2))
+         s(3) = s(3) - cell%perd(3)*ANINT(s(3))
+         r_pbc(1) = cell%hmat(1, 1)*s(1) + cell%hmat(1, 2)*s(2) + cell%hmat(1, 3)*s(3)
+         r_pbc(2) = cell%hmat(2, 1)*s(1) + cell%hmat(2, 2)*s(2) + cell%hmat(2, 3)*s(3)
+         r_pbc(3) = cell%hmat(3, 1)*s(1) + cell%hmat(3, 2)*s(2) + cell%hmat(3, 3)*s(3)
       END IF
 
    END FUNCTION pbc1
@@ -587,29 +573,29 @@ CONTAINS
    FUNCTION pbc2(r, cell, nl) RESULT(r_pbc)
 
       REAL(KIND=dp), DIMENSION(3), INTENT(IN)            :: r
-      TYPE(cell_type), POINTER                           :: cell
+      TYPE(cell_type), INTENT(IN)                        :: cell
       INTEGER, DIMENSION(3), INTENT(IN)                  :: nl
       REAL(KIND=dp), DIMENSION(3)                        :: r_pbc
 
       REAL(KIND=dp), DIMENSION(3)                        :: s
 
       IF (cell%orthorhombic) THEN
-         r_pbc(1) = r(1)-cell%hmat(1, 1)*cell%perd(1)* &
-                    REAL(NINT(cell%h_inv(1, 1)*r(1))-nl(1), dp)
-         r_pbc(2) = r(2)-cell%hmat(2, 2)*cell%perd(2)* &
-                    REAL(NINT(cell%h_inv(2, 2)*r(2))-nl(2), dp)
-         r_pbc(3) = r(3)-cell%hmat(3, 3)*cell%perd(3)* &
-                    REAL(NINT(cell%h_inv(3, 3)*r(3))-nl(3), dp)
+         r_pbc(1) = r(1) - cell%hmat(1, 1)*cell%perd(1)* &
+                    REAL(NINT(cell%h_inv(1, 1)*r(1)) - nl(1), dp)
+         r_pbc(2) = r(2) - cell%hmat(2, 2)*cell%perd(2)* &
+                    REAL(NINT(cell%h_inv(2, 2)*r(2)) - nl(2), dp)
+         r_pbc(3) = r(3) - cell%hmat(3, 3)*cell%perd(3)* &
+                    REAL(NINT(cell%h_inv(3, 3)*r(3)) - nl(3), dp)
       ELSE
-         s(1) = cell%h_inv(1, 1)*r(1)+cell%h_inv(1, 2)*r(2)+cell%h_inv(1, 3)*r(3)
-         s(2) = cell%h_inv(2, 1)*r(1)+cell%h_inv(2, 2)*r(2)+cell%h_inv(2, 3)*r(3)
-         s(3) = cell%h_inv(3, 1)*r(1)+cell%h_inv(3, 2)*r(2)+cell%h_inv(3, 3)*r(3)
-         s(1) = s(1)-cell%perd(1)*REAL(NINT(s(1))-nl(1), dp)
-         s(2) = s(2)-cell%perd(2)*REAL(NINT(s(2))-nl(2), dp)
-         s(3) = s(3)-cell%perd(3)*REAL(NINT(s(3))-nl(3), dp)
-         r_pbc(1) = cell%hmat(1, 1)*s(1)+cell%hmat(1, 2)*s(2)+cell%hmat(1, 3)*s(3)
-         r_pbc(2) = cell%hmat(2, 1)*s(1)+cell%hmat(2, 2)*s(2)+cell%hmat(2, 3)*s(3)
-         r_pbc(3) = cell%hmat(3, 1)*s(1)+cell%hmat(3, 2)*s(2)+cell%hmat(3, 3)*s(3)
+         s(1) = cell%h_inv(1, 1)*r(1) + cell%h_inv(1, 2)*r(2) + cell%h_inv(1, 3)*r(3)
+         s(2) = cell%h_inv(2, 1)*r(1) + cell%h_inv(2, 2)*r(2) + cell%h_inv(2, 3)*r(3)
+         s(3) = cell%h_inv(3, 1)*r(1) + cell%h_inv(3, 2)*r(2) + cell%h_inv(3, 3)*r(3)
+         s(1) = s(1) - cell%perd(1)*REAL(NINT(s(1)) - nl(1), dp)
+         s(2) = s(2) - cell%perd(2)*REAL(NINT(s(2)) - nl(2), dp)
+         s(3) = s(3) - cell%perd(3)*REAL(NINT(s(3)) - nl(3), dp)
+         r_pbc(1) = cell%hmat(1, 1)*s(1) + cell%hmat(1, 2)*s(2) + cell%hmat(1, 3)*s(3)
+         r_pbc(2) = cell%hmat(2, 1)*s(1) + cell%hmat(2, 2)*s(2) + cell%hmat(2, 3)*s(3)
+         r_pbc(3) = cell%hmat(3, 1)*s(1) + cell%hmat(3, 2)*s(2) + cell%hmat(3, 3)*s(3)
       END IF
 
    END FUNCTION pbc2
@@ -628,7 +614,7 @@ CONTAINS
    FUNCTION pbc3(ra, rb, cell) RESULT(rab_pbc)
 
       REAL(KIND=dp), DIMENSION(3), INTENT(IN)            :: ra, rb
-      TYPE(cell_type), POINTER                           :: cell
+      TYPE(cell_type), INTENT(IN)                        :: cell
       REAL(KIND=dp), DIMENSION(3)                        :: rab_pbc
 
       INTEGER                                            :: icell, jcell, kcell
@@ -648,9 +634,9 @@ CONTAINS
             DO kcell = -periodic(3), periodic(3)
                r = REAL((/icell, jcell, kcell/), dp)
                CALL scaled_to_real(s2r, r, cell)
-               rb_image(:) = rb_pbc(:)+s2r
-               rab(:) = rb_image(:)-ra_pbc(:)
-               rab2 = rab(1)*rab(1)+rab(2)*rab(2)+rab(3)*rab(3)
+               rb_image(:) = rb_pbc(:) + s2r
+               rab(:) = rb_image(:) - ra_pbc(:)
+               rab2 = rab(1)*rab(1) + rab(2)*rab(2) + rab(3)*rab(3)
                IF (rab2 < rab2_pbc) THEN
                   rab2_pbc = rab2
                   rab_pbc(:) = rab(:)
@@ -673,7 +659,7 @@ CONTAINS
    FUNCTION pbc4(r, cell, positive_range) RESULT(r_pbc)
 
       REAL(KIND=dp), DIMENSION(3), INTENT(IN)            :: r
-      TYPE(cell_type), POINTER                           :: cell
+      TYPE(cell_type), INTENT(IN)                        :: cell
       LOGICAL                                            :: positive_range
       REAL(KIND=dp), DIMENSION(3)                        :: r_pbc
 
@@ -681,19 +667,19 @@ CONTAINS
 
       IF (positive_range) THEN
          IF (cell%orthorhombic) THEN
-            r_pbc(1) = r(1)-cell%hmat(1, 1)*cell%perd(1)*FLOOR(cell%h_inv(1, 1)*r(1))
-            r_pbc(2) = r(2)-cell%hmat(2, 2)*cell%perd(2)*FLOOR(cell%h_inv(2, 2)*r(2))
-            r_pbc(3) = r(3)-cell%hmat(3, 3)*cell%perd(3)*FLOOR(cell%h_inv(3, 3)*r(3))
+            r_pbc(1) = r(1) - cell%hmat(1, 1)*cell%perd(1)*FLOOR(cell%h_inv(1, 1)*r(1))
+            r_pbc(2) = r(2) - cell%hmat(2, 2)*cell%perd(2)*FLOOR(cell%h_inv(2, 2)*r(2))
+            r_pbc(3) = r(3) - cell%hmat(3, 3)*cell%perd(3)*FLOOR(cell%h_inv(3, 3)*r(3))
          ELSE
-            s(1) = cell%h_inv(1, 1)*r(1)+cell%h_inv(1, 2)*r(2)+cell%h_inv(1, 3)*r(3)
-            s(2) = cell%h_inv(2, 1)*r(1)+cell%h_inv(2, 2)*r(2)+cell%h_inv(2, 3)*r(3)
-            s(3) = cell%h_inv(3, 1)*r(1)+cell%h_inv(3, 2)*r(2)+cell%h_inv(3, 3)*r(3)
-            s(1) = s(1)-cell%perd(1)*FLOOR(s(1))
-            s(2) = s(2)-cell%perd(2)*FLOOR(s(2))
-            s(3) = s(3)-cell%perd(3)*FLOOR(s(3))
-            r_pbc(1) = cell%hmat(1, 1)*s(1)+cell%hmat(1, 2)*s(2)+cell%hmat(1, 3)*s(3)
-            r_pbc(2) = cell%hmat(2, 1)*s(1)+cell%hmat(2, 2)*s(2)+cell%hmat(2, 3)*s(3)
-            r_pbc(3) = cell%hmat(3, 1)*s(1)+cell%hmat(3, 2)*s(2)+cell%hmat(3, 3)*s(3)
+            s(1) = cell%h_inv(1, 1)*r(1) + cell%h_inv(1, 2)*r(2) + cell%h_inv(1, 3)*r(3)
+            s(2) = cell%h_inv(2, 1)*r(1) + cell%h_inv(2, 2)*r(2) + cell%h_inv(2, 3)*r(3)
+            s(3) = cell%h_inv(3, 1)*r(1) + cell%h_inv(3, 2)*r(2) + cell%h_inv(3, 3)*r(3)
+            s(1) = s(1) - cell%perd(1)*FLOOR(s(1))
+            s(2) = s(2) - cell%perd(2)*FLOOR(s(2))
+            s(3) = s(3) - cell%perd(3)*FLOOR(s(3))
+            r_pbc(1) = cell%hmat(1, 1)*s(1) + cell%hmat(1, 2)*s(2) + cell%hmat(1, 3)*s(3)
+            r_pbc(2) = cell%hmat(2, 1)*s(1) + cell%hmat(2, 2)*s(2) + cell%hmat(2, 3)*s(3)
+            r_pbc(3) = cell%hmat(3, 1)*s(1) + cell%hmat(3, 2)*s(2) + cell%hmat(3, 3)*s(3)
          END IF
       ELSE
          r_pbc = pbc1(r, cell)
@@ -715,16 +701,16 @@ CONTAINS
 
       REAL(KIND=dp), DIMENSION(3), INTENT(OUT)           :: s
       REAL(KIND=dp), DIMENSION(3), INTENT(IN)            :: r
-      TYPE(cell_type), POINTER                           :: cell
+      TYPE(cell_type), INTENT(IN)                        :: cell
 
       IF (cell%orthorhombic) THEN
          s(1) = cell%h_inv(1, 1)*r(1)
          s(2) = cell%h_inv(2, 2)*r(2)
          s(3) = cell%h_inv(3, 3)*r(3)
       ELSE
-         s(1) = cell%h_inv(1, 1)*r(1)+cell%h_inv(1, 2)*r(2)+cell%h_inv(1, 3)*r(3)
-         s(2) = cell%h_inv(2, 1)*r(1)+cell%h_inv(2, 2)*r(2)+cell%h_inv(2, 3)*r(3)
-         s(3) = cell%h_inv(3, 1)*r(1)+cell%h_inv(3, 2)*r(2)+cell%h_inv(3, 3)*r(3)
+         s(1) = cell%h_inv(1, 1)*r(1) + cell%h_inv(1, 2)*r(2) + cell%h_inv(1, 3)*r(3)
+         s(2) = cell%h_inv(2, 1)*r(1) + cell%h_inv(2, 2)*r(2) + cell%h_inv(2, 3)*r(3)
+         s(3) = cell%h_inv(3, 1)*r(1) + cell%h_inv(3, 2)*r(2) + cell%h_inv(3, 3)*r(3)
       END IF
 
    END SUBROUTINE real_to_scaled
@@ -743,16 +729,16 @@ CONTAINS
 
       REAL(KIND=dp), DIMENSION(3), INTENT(OUT)           :: r
       REAL(KIND=dp), DIMENSION(3), INTENT(IN)            :: s
-      TYPE(cell_type), POINTER                           :: cell
+      TYPE(cell_type), INTENT(IN)                        :: cell
 
       IF (cell%orthorhombic) THEN
          r(1) = cell%hmat(1, 1)*s(1)
          r(2) = cell%hmat(2, 2)*s(2)
          r(3) = cell%hmat(3, 3)*s(3)
       ELSE
-         r(1) = cell%hmat(1, 1)*s(1)+cell%hmat(1, 2)*s(2)+cell%hmat(1, 3)*s(3)
-         r(2) = cell%hmat(2, 1)*s(1)+cell%hmat(2, 2)*s(2)+cell%hmat(2, 3)*s(3)
-         r(3) = cell%hmat(3, 1)*s(1)+cell%hmat(3, 2)*s(2)+cell%hmat(3, 3)*s(3)
+         r(1) = cell%hmat(1, 1)*s(1) + cell%hmat(1, 2)*s(2) + cell%hmat(1, 3)*s(3)
+         r(2) = cell%hmat(2, 1)*s(1) + cell%hmat(2, 2)*s(2) + cell%hmat(2, 3)*s(3)
+         r(3) = cell%hmat(3, 1)*s(1) + cell%hmat(3, 2)*s(2) + cell%hmat(3, 3)*s(3)
       END IF
 
    END SUBROUTINE scaled_to_real
@@ -773,11 +759,9 @@ CONTAINS
          OPTIONAL                                        :: hmat
       INTEGER, DIMENSION(3), INTENT(IN), OPTIONAL        :: periodic
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cell_create', routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(cell))
       ALLOCATE (cell)
-      last_cell_id = last_cell_id+1
+      last_cell_id = last_cell_id + 1
       cell%id_nr = last_cell_id
       cell%ref_count = 1
       IF (PRESENT(periodic)) THEN
@@ -802,11 +786,9 @@ CONTAINS
 
       TYPE(cell_type), POINTER                           :: cell
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cell_retain', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(cell))
       CPASSERT(cell%ref_count > 0)
-      cell%ref_count = cell%ref_count+1
+      cell%ref_count = cell%ref_count + 1
 
    END SUBROUTINE cell_retain
 
@@ -821,11 +803,9 @@ CONTAINS
 
       TYPE(cell_type), POINTER                           :: cell
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cell_release', routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(cell)) THEN
          CPASSERT(cell%ref_count > 0)
-         cell%ref_count = cell%ref_count-1
+         cell%ref_count = cell%ref_count - 1
          IF (cell%ref_count == 0) THEN
             DEALLOCATE (cell)
          END IF

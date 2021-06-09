@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 !--------------------------------------------------------------------------------------------------!
@@ -28,16 +30,18 @@ MODULE libcp2k
    USE f77_interface,                   ONLY: &
         calc_energy_force, create_force_env, destroy_force_env, f_env_add_defaults, &
         f_env_rm_defaults, f_env_type, finalize_cp2k, get_energy, get_force, get_natom, &
-        get_nparticle, get_pos, get_result_r1, init_cp2k, set_pos, set_vel
+        get_nparticle, get_pos, get_result_r1, init_cp2k, set_cell, set_pos, set_vel
    USE force_env_types,                 ONLY: force_env_get,&
                                               use_qs_force
    USE input_cp2k,                      ONLY: create_cp2k_root_section
+   USE input_cp2k_read,                 ONLY: empty_initial_variables
    USE input_section_types,             ONLY: section_release,&
                                               section_type
    USE kinds,                           ONLY: default_path_length,&
                                               default_string_length,&
                                               dp
    USE qs_active_space_types,           ONLY: eri_type_eri_element_func
+   USE string_utilities,                ONLY: strlcpy_c2f
 #include "../base/base_uses.f90"
 
    IMPLICIT NONE
@@ -66,13 +70,14 @@ CONTAINS
       INTEGER                                            :: i, n
 
       n = LEN_TRIM(cp2k_version)
-      CPASSERT(str_length >= n+1)
+      CPASSERT(str_length >= n + 1)
+      MARK_USED(str_length)
 
       ! copy string
       DO i = 1, n
          version_str(i) = cp2k_version(i:i)
       ENDDO
-      version_str(n+1) = C_NULL_CHAR
+      version_str(n + 1) = C_NULL_CHAR
    END SUBROUTINE cp2k_get_version
 
 ! **************************************************************************************************
@@ -126,12 +131,12 @@ CONTAINS
       CHARACTER(LEN=1, KIND=C_CHAR), INTENT(IN)          :: input_file_path(*), output_file_path(*)
 
       CHARACTER(LEN=default_path_length)                 :: ifp, ofp
-      INTEGER                                            :: ierr
+      INTEGER                                            :: ierr, ncopied
       TYPE(section_type), POINTER                        :: input_declaration
 
       ifp = " "; ofp = " "
-      CALL strncpy_c2f(ifp, input_file_path)
-      CALL strncpy_c2f(ofp, output_file_path)
+      ncopied = strlcpy_c2f(ifp, input_file_path)
+      ncopied = strlcpy_c2f(ofp, output_file_path)
 
       NULLIFY (input_declaration)
       CALL create_cp2k_root_section(input_declaration)
@@ -153,12 +158,12 @@ CONTAINS
       INTEGER(C_INT), VALUE                              :: mpi_comm
 
       CHARACTER(LEN=default_path_length)                 :: ifp, ofp
-      INTEGER                                            :: ierr
+      INTEGER                                            :: ierr, ncopied
       TYPE(section_type), POINTER                        :: input_declaration
 
       ifp = " "; ofp = " "
-      CALL strncpy_c2f(ifp, input_file_path)
-      CALL strncpy_c2f(ofp, output_file_path)
+      ncopied = strlcpy_c2f(ifp, input_file_path)
+      ncopied = strlcpy_c2f(ofp, output_file_path)
 
       NULLIFY (input_declaration)
       CALL create_cp2k_root_section(input_declaration)
@@ -215,6 +220,21 @@ CONTAINS
 ! **************************************************************************************************
 !> \brief ...
 !> \param env_id ...
+!> \param new_cell ...
+! **************************************************************************************************
+   SUBROUTINE cp2k_set_cell(env_id, new_cell) BIND(C)
+      INTEGER(C_INT), VALUE                              :: env_id
+      REAL(C_DOUBLE), DIMENSION(3, 3), INTENT(IN)        :: new_cell
+
+      INTEGER                                            :: ierr
+
+      CALL set_cell(env_id, new_cell, ierr)
+      CPASSERT(ierr == 0)
+   END SUBROUTINE cp2k_set_cell
+
+! **************************************************************************************************
+!> \brief ...
+!> \param env_id ...
 !> \param description ...
 !> \param RESULT ...
 !> \param n_el ...
@@ -226,10 +246,10 @@ CONTAINS
       REAL(C_DOUBLE), DIMENSION(1:n_el), INTENT(OUT)     :: RESULT
 
       CHARACTER(LEN=default_string_length)               :: desc_low
-      INTEGER                                            :: ierr
+      INTEGER                                            :: ierr, ncopied
 
       desc_low = " "
-      CALL strncpy_c2f(desc_low, description)
+      ncopied = strlcpy_c2f(desc_low, description)
 
       CALL get_result_r1(env_id, desc_low, n_el, RESULT, ierr=ierr)
       CPASSERT(ierr == 0)
@@ -347,18 +367,17 @@ CONTAINS
       CHARACTER(LEN=1, KIND=C_CHAR), INTENT(IN)          :: input_file_path(*), output_file_path(*)
 
       CHARACTER(LEN=default_path_length)                 :: ifp, ofp
-      INTEGER                                            :: ierr
+      INTEGER                                            :: ncopied
       TYPE(section_type), POINTER                        :: input_declaration
 
       ifp = " "; ofp = " "
-      CALL strncpy_c2f(ifp, input_file_path)
-      CALL strncpy_c2f(ofp, output_file_path)
+      ncopied = strlcpy_c2f(ifp, input_file_path)
+      ncopied = strlcpy_c2f(ofp, output_file_path)
 
       NULLIFY (input_declaration)
       CALL create_cp2k_root_section(input_declaration)
-      CALL run_input(input_declaration, ifp, ofp, ierr=ierr)
+      CALL run_input(input_declaration, ifp, ofp, empty_initial_variables)
       CALL section_release(input_declaration)
-      CPASSERT(ierr == 0)
    END SUBROUTINE cp2k_run_input
 
 ! **************************************************************************************************
@@ -372,18 +391,17 @@ CONTAINS
       INTEGER(C_INT), VALUE                              :: mpi_comm
 
       CHARACTER(LEN=default_path_length)                 :: ifp, ofp
-      INTEGER                                            :: ierr
+      INTEGER                                            :: ncopied
       TYPE(section_type), POINTER                        :: input_declaration
 
       ifp = " "; ofp = " "
-      CALL strncpy_c2f(ifp, input_file_path)
-      CALL strncpy_c2f(ofp, output_file_path)
+      ncopied = strlcpy_c2f(ifp, input_file_path)
+      ncopied = strlcpy_c2f(ofp, output_file_path)
 
       NULLIFY (input_declaration)
       CALL create_cp2k_root_section(input_declaration)
-      CALL run_input(input_declaration, ifp, ofp, ierr, mpi_comm)
+      CALL run_input(input_declaration, ifp, ofp, empty_initial_variables, mpi_comm)
       CALL section_release(input_declaration)
-      CPASSERT(ierr == 0)
    END SUBROUTINE cp2k_run_input_comm
 
 ! **************************************************************************************************
@@ -430,16 +448,19 @@ CONTAINS
 
       nmo = -1
       NULLIFY (f_env)
+
       CALL f_env_add_defaults(f_env_id, f_env)
 
-      CALL get_qs_env(f_env%force_env%qs_env, active_space=active_space_env)
-      IF (.NOT. ASSOCIATED(active_space_env)) THEN
-         GOTO 999
-      END IF
+      try: BLOCK
+         CALL get_qs_env(f_env%force_env%qs_env, active_space=active_space_env)
 
-      CALL get_mo_set(active_space_env%mos_active(1)%mo_set, nmo=nmo)
+         IF (.NOT. ASSOCIATED(active_space_env)) &
+            EXIT try
 
-999   CALL f_env_rm_defaults(f_env, ierr)
+         CALL get_mo_set(active_space_env%mos_active(1)%mo_set, nmo=nmo)
+      END BLOCK try
+
+      CALL f_env_rm_defaults(f_env, ierr)
       CPASSERT(ierr == 0)
    END FUNCTION cp2k_active_space_get_mo_count
 
@@ -469,30 +490,31 @@ CONTAINS
       NULLIFY (f_env)
 
       CALL f_env_add_defaults(f_env_id, f_env)
-      CALL get_qs_env(f_env%force_env%qs_env, active_space=active_space_env)
 
-      IF (.NOT. ASSOCIATED(active_space_env)) THEN
-         GOTO 999
-      END IF
+      try: BLOCK
+         CALL get_qs_env(f_env%force_env%qs_env, active_space=active_space_env)
 
-      CALL get_mo_set(active_space_env%mos_active(1)%mo_set, nmo=norb)
+         IF (.NOT. ASSOCIATED(active_space_env)) &
+            EXIT try
 
-      IF (buf_len < norb*norb) THEN
-         GOTO 999
-      END IF
+         CALL get_mo_set(active_space_env%mos_active(1)%mo_set, nmo=norb)
 
-      DO i = 0, norb-1
-         DO j = 0, norb-1
-            CALL cp_fm_get_element(active_space_env%fock_sub(1)%matrix, i+1, j+1, mval)
-            buf(norb*i+j) = mval
-            buf(norb*j+i) = mval
+         IF (buf_len < norb*norb) &
+            EXIT try
+
+         DO i = 0, norb - 1
+            DO j = 0, norb - 1
+               CALL cp_fm_get_element(active_space_env%fock_sub(1)%matrix, i + 1, j + 1, mval)
+               buf(norb*i + j) = mval
+               buf(norb*j + i) = mval
+            END DO
          END DO
-      END DO
 
-      ! finished successfully, set number of written elements
-      nelem = norb**norb
+         ! finished successfully, set number of written elements
+         nelem = norb**norb
+      END BLOCK try
 
-999   CALL f_env_rm_defaults(f_env, ierr)
+      CALL f_env_rm_defaults(f_env, ierr)
       CPASSERT(ierr == 0)
    END FUNCTION cp2k_active_space_get_fock_sub
 
@@ -515,15 +537,17 @@ CONTAINS
       NULLIFY (f_env)
 
       CALL f_env_add_defaults(f_env_id, f_env)
-      CALL get_qs_env(f_env%force_env%qs_env, active_space=active_space_env)
 
-      IF (.NOT. ASSOCIATED(active_space_env)) THEN
-         GOTO 999
-      END IF
+      try: BLOCK
+         CALL get_qs_env(f_env%force_env%qs_env, active_space=active_space_env)
 
-      nze_count = active_space_env%eri%eri(1)%csr_mat%nze_total
+         IF (.NOT. ASSOCIATED(active_space_env)) &
+            EXIT try
 
-999   CALL f_env_rm_defaults(f_env, ierr)
+         nze_count = INT(active_space_env%eri%eri(1)%csr_mat%nze_total, KIND(nze_count))
+      END BLOCK try
+
+      CALL f_env_rm_defaults(f_env, ierr)
       CPASSERT(ierr == 0)
    END FUNCTION cp2k_active_space_get_eri_nze_count
 
@@ -557,46 +581,26 @@ CONTAINS
       NULLIFY (f_env)
 
       CALL f_env_add_defaults(f_env_id, f_env)
-      CALL get_qs_env(f_env%force_env%qs_env, active_space=active_space_env)
 
-      IF (.NOT. ASSOCIATED(active_space_env)) THEN
-         GOTO 999
-      END IF
+      try: BLOCK
+         CALL get_qs_env(f_env%force_env%qs_env, active_space=active_space_env)
 
-      ASSOCIATE (nze=>active_space_env%eri%eri(1)%csr_mat%nze_total)
-         IF (buf_coords_len < 4*nze .OR. buf_values_len < nze) THEN
-            GOTO 999
-         END IF
+         IF (.NOT. ASSOCIATED(active_space_env)) &
+            EXIT try
 
-         CALL active_space_env%eri%eri_foreach(1, eri2array(buf_coords, buf_values))
+         ASSOCIATE (nze=>active_space_env%eri%eri(1)%csr_mat%nze_total)
+            IF (buf_coords_len < 4*nze .OR. buf_values_len < nze) &
+               EXIT try
 
-         nelem = nze
-      END ASSOCIATE
+            CALL active_space_env%eri%eri_foreach(1, eri2array(buf_coords, buf_values))
 
-999   CALL f_env_rm_defaults(f_env, ierr)
+            nelem = INT(nze, KIND(nelem))
+         END ASSOCIATE
+      END BLOCK try
+
+      CALL f_env_rm_defaults(f_env, ierr)
       CPASSERT(ierr == 0)
    END FUNCTION cp2k_active_space_get_eri
-
-! **************************************************************************************************
-!> \brief Copy the content of a \0-terminated C-string to a finite-length Fortran string
-!>
-!> The content of the new string may be truncated if the number of characters before the '\0'
-!> in the source string exceed the length of the destination string.
-!> \param fstring destination string
-!> \param cstring source string
-!> \author Tiziano Mueller
-! **************************************************************************************************
-   SUBROUTINE strncpy_c2f(fstring, cstring)
-      CHARACTER(LEN=*), INTENT(OUT)                      :: fstring
-      CHARACTER(LEN=1, KIND=C_CHAR), INTENT(IN)          :: cstring(*)
-
-      INTEGER                                            :: i
-
-      DO i = 1, LEN(fstring)
-         IF (cstring(i) == C_NULL_CHAR) EXIT
-         fstring(i:i) = cstring(i)
-      END DO
-   END SUBROUTINE strncpy_c2f
 
 ! **************************************************************************************************
 !> \brief Copy the active space ERI to C buffers
@@ -614,13 +618,13 @@ CONTAINS
       INTEGER, INTENT(in)             :: i, j, k, l
       REAL(KIND=dp), INTENT(in)       :: val
 
-      this%coords(4*(this%idx-1)+1) = i
-      this%coords(4*(this%idx-1)+2) = j
-      this%coords(4*(this%idx-1)+3) = k
-      this%coords(4*(this%idx-1)+4) = l
+      this%coords(4*(this%idx - 1) + 1) = i
+      this%coords(4*(this%idx - 1) + 2) = j
+      this%coords(4*(this%idx - 1) + 3) = k
+      this%coords(4*(this%idx - 1) + 4) = l
       this%values(this%idx) = val
 
-      this%idx = this%idx+1
+      this%idx = this%idx + 1
 
       cont = .TRUE.
    END FUNCTION eri2array_func

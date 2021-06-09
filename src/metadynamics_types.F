@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -16,8 +18,7 @@ MODULE metadynamics_types
                                               section_vals_val_get
    USE kinds,                           ONLY: default_path_length,&
                                               dp
-   USE parallel_rng_types,              ONLY: delete_rng_stream,&
-                                              rng_stream_p_type
+   USE parallel_rng_types,              ONLY: rng_stream_type
 #include "./base/base_uses.f90"
 
    IMPLICIT NONE
@@ -118,8 +119,8 @@ MODULE metadynamics_types
       TYPE(multiple_walkers_type), POINTER      :: multiple_walkers
       TYPE(cp_para_env_type), POINTER           :: para_env
       TYPE(section_vals_type), POINTER          :: metadyn_section
-      TYPE(rng_stream_p_type), DIMENSION(:), &
-         POINTER :: rng
+      TYPE(rng_stream_type), DIMENSION(:), &
+         ALLOCATABLE :: rng
       INTEGER                                   :: TAMCSteps
       REAL(kind=dp)                             :: zdt
    END TYPE meta_env_type
@@ -150,8 +151,6 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(section_vals_type), POINTER                   :: metadyn_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'metadyn_create', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
       LOGICAL                                            :: do_langevin
 
@@ -160,7 +159,6 @@ CONTAINS
       NULLIFY (meta_env%multiple_walkers, &
                meta_env%metadyn_section, &
                meta_env%time, &
-               meta_env%rng, &
                meta_env%hills_env)
 
       meta_env%use_plumed = .FALSE.
@@ -168,7 +166,7 @@ CONTAINS
       meta_env%metadyn_section => metadyn_section
       meta_env%ref_count = 1
       meta_env%restart = .TRUE.
-      last_meta_env_id = last_meta_env_id+1
+      last_meta_env_id = last_meta_env_id + 1
       meta_env%id_nr = last_meta_env_id
       meta_env%n_colvar = n_colvar
       meta_env%para_env => para_env
@@ -227,9 +225,6 @@ CONTAINS
       CALL section_vals_val_get(metadyn_section, "LANGEVIN", l_val=do_langevin)
       IF (do_langevin) THEN
          ALLOCATE (meta_env%rng(meta_env%n_colvar))
-         DO i = 1, meta_env%n_colvar
-            NULLIFY (meta_env%rng(meta_env%n_colvar)%stream)
-         END DO
       ENDIF
    END SUBROUTINE metadyn_create
 
@@ -242,8 +237,6 @@ CONTAINS
    SUBROUTINE set_meta_env(meta_env, time)
       TYPE(meta_env_type), POINTER                       :: meta_env
       REAL(KIND=dp), OPTIONAL, POINTER                   :: time
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_meta_env', routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(meta_env)) THEN
          IF (PRESENT(time)) THEN
@@ -261,12 +254,9 @@ CONTAINS
    SUBROUTINE meta_env_retain(meta_env)
       TYPE(meta_env_type), POINTER                       :: meta_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'meta_env_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(meta_env))
       CPASSERT(meta_env%ref_count > 0)
-      meta_env%ref_count = meta_env%ref_count+1
+      meta_env%ref_count = meta_env%ref_count + 1
    END SUBROUTINE meta_env_retain
 
 ! **************************************************************************************************
@@ -277,14 +267,11 @@ CONTAINS
    SUBROUTINE meta_env_release(meta_env)
       TYPE(meta_env_type), POINTER                       :: meta_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'meta_env_release', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
 
       IF (ASSOCIATED(meta_env)) THEN
          CPASSERT(meta_env%ref_count > 0)
-         meta_env%ref_count = meta_env%ref_count-1
+         meta_env%ref_count = meta_env%ref_count - 1
          IF (meta_env%ref_count == 0) THEN
             CALL cp_para_env_release(meta_env%para_env)
             IF (ASSOCIATED(meta_env%metavar)) THEN
@@ -310,14 +297,9 @@ CONTAINS
             END IF
 
             ! Langevin on COLVARS
-            IF (meta_env%langevin) THEN
-               DO i = 1, SIZE(meta_env%rng)
-                  IF (ASSOCIATED(meta_env%rng(i)%stream)) THEN
-                     CALL delete_rng_stream(meta_env%rng(i)%stream)
-                  END IF
-               END DO
+            IF (meta_env%langevin) &
                DEALLOCATE (meta_env%rng)
-            ENDIF
+
             NULLIFY (meta_env%time)
             NULLIFY (meta_env%metadyn_section)
             DEALLOCATE (meta_env)
@@ -332,9 +314,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE hills_env_release(hills_env)
       TYPE(hills_env_type), POINTER                      :: hills_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'hills_env_release', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(hills_env)) THEN
          IF (ASSOCIATED(hills_env%ss_history)) THEN

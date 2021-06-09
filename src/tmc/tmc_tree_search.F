@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -58,7 +60,7 @@ CONTAINS
 !> \param n_acc drection of branch the next tree node should extend
 !> \param search_energy_node ...
 !> \parma search_energy_node flag if configuration for calculating exact
-!>        energy sould be searched
+!>        energy should be searched
 !> \author Mandes 12.2012
 ! **************************************************************************************************
    RECURSIVE SUBROUTINE most_prob_end(global_tree_elem, prob, n_acc, &
@@ -68,7 +70,7 @@ CONTAINS
       LOGICAL, INTENT(INOUT)                             :: n_acc
       LOGICAL, OPTIONAL                                  :: search_energy_node
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'most_prob_end', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'most_prob_end'
 
       INTEGER                                            :: handle
       LOGICAL                                            :: check_accepted, check_rejected, keep_on, &
@@ -161,8 +163,8 @@ CONTAINS
                                      n_acc=tmp_acc)
                END IF
                !-- do probability multiplication
-               !    (in logscale because of realy small probabilities)
-               prob_n_acc = prob_n_acc+LOG(global_tree_elem%prob_acc)
+               !    (in logscale because of really small probabilities)
+               prob_n_acc = prob_n_acc + LOG(global_tree_elem%prob_acc)
             ELSE
                ! prob of going in acc or rej direction is
                !   calculated in parent element
@@ -187,18 +189,18 @@ CONTAINS
                                      n_acc=tmp_nacc)
                END IF
                !-- do probability multiplication
-               !     (in logscale because of realy small probabilities)
-               prob_n_nacc = prob_n_nacc+LOG(1-global_tree_elem%prob_acc)
+               !     (in logscale because of really small probabilities)
+               prob_n_nacc = prob_n_nacc + LOG(1 - global_tree_elem%prob_acc)
             ELSE
                ! prob of going in acc or rej direction is
                !   calculated in parent element
-               prob_n_nacc = LOG(1-global_tree_elem%prob_acc)
+               prob_n_nacc = LOG(1 - global_tree_elem%prob_acc)
                IF (PRESENT(search_energy_node)) prob_n_nacc = -100000
                ptr_nacc => global_tree_elem
                tmp_nacc = .FALSE.
             END IF
          END IF
-         ! test wich direction is more likely
+         ! test which direction is more likely
          !   and set result pointer and probability,
          ! remembering the direction
          IF (prob_n_acc .GE. prob_n_nacc) THEN
@@ -227,8 +229,7 @@ CONTAINS
       TYPE(global_tree_type), POINTER                    :: gt_head, new_gt_elem
       INTEGER                                            :: stat, react_count
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'search_next_energy_calc', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'search_next_energy_calc'
 
       INTEGER                                            :: handle
       LOGICAL                                            :: flag
@@ -248,7 +249,7 @@ CONTAINS
 
       stat = status_created
       ! set status for master
-      !   (if TMC_STATUS_WAIT_FOR_NEW_TASK, no calculation neccessary)
+      !   (if TMC_STATUS_WAIT_FOR_NEW_TASK, no calculation necessary)
       IF (.NOT. ASSOCIATED(new_gt_elem) .OR. (EXP(prob) .LT. 1.0E-10)) THEN
          stat = TMC_STATUS_WAIT_FOR_NEW_TASK
       ELSE
@@ -256,7 +257,7 @@ CONTAINS
          IF (new_gt_elem%conf(new_gt_elem%mv_conf)%elem%stat .EQ. &
              status_canceled_ener) THEN
             CALL add_to_references(gt_elem=new_gt_elem)
-            react_count = react_count+1
+            react_count = react_count + 1
             new_gt_elem%conf(new_gt_elem%mv_conf)%elem%stat = status_created
          END IF
          ! if elem status is not status_created
@@ -278,8 +279,7 @@ CONTAINS
    RECURSIVE FUNCTION search_parent_element(current) RESULT(parent)
       TYPE(tree_type), POINTER                           :: current, parent
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'search_parent_element', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'search_parent_element'
 
       INTEGER                                            :: handle
 
@@ -313,8 +313,7 @@ CONTAINS
       TYPE(global_tree_type), POINTER                    :: ptr
       LOGICAL                                            :: found
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'search_next_gt_element_to_check', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'search_next_gt_element_to_check'
 
       INTEGER                                            :: handle
 
@@ -368,8 +367,7 @@ CONTAINS
       TYPE(global_tree_type), POINTER                    :: gt_act_elem
       TYPE(tree_type), INTENT(OUT), POINTER              :: elem1, elem2
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_subtree_elements_to_check', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_subtree_elements_to_check'
 
       INTEGER                                            :: handle
 
@@ -388,10 +386,10 @@ CONTAINS
             elem1 => search_parent_element(gt_act_elem%conf(gt_act_elem%mv_conf)%elem)
          END IF
          ! second element
-         IF (gt_act_elem%conf_n_acc(gt_act_elem%conf(gt_act_elem%mv_conf+1)%elem%sub_tree_nr)) THEN
-            elem2 => gt_act_elem%conf(gt_act_elem%mv_conf+1)%elem
+         IF (gt_act_elem%conf_n_acc(gt_act_elem%conf(gt_act_elem%mv_conf + 1)%elem%sub_tree_nr)) THEN
+            elem2 => gt_act_elem%conf(gt_act_elem%mv_conf + 1)%elem
          ELSE
-            elem2 => search_parent_element(gt_act_elem%conf(gt_act_elem%mv_conf+1)%elem)
+            elem2 => search_parent_element(gt_act_elem%conf(gt_act_elem%mv_conf + 1)%elem)
          END IF
       ELSE
          elem1 => gt_act_elem%conf(gt_act_elem%mv_conf)%elem
@@ -417,8 +415,7 @@ CONTAINS
    RECURSIVE SUBROUTINE search_end_of_clean_g_tree(last_acc, tree_ptr)
       TYPE(global_tree_type), POINTER                    :: last_acc, tree_ptr
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'search_end_of_clean_g_tree', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'search_end_of_clean_g_tree'
 
       INTEGER                                            :: handle
 
@@ -470,8 +467,7 @@ CONTAINS
       TYPE(tree_type), POINTER                           :: tree_ptr
       TYPE(tree_type), INTENT(IN), POINTER               :: last_acc
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'search_end_of_clean_tree', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'search_end_of_clean_tree'
 
       INTEGER                                            :: handle
 
@@ -511,8 +507,7 @@ CONTAINS
       REAL(KIND=dp), OPTIONAL                            :: prob
       TYPE(tmc_env_type), POINTER                        :: tmc_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'search_canceling_elements', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'search_canceling_elements'
 
       INTEGER                                            :: handle
       LOGICAL                                            :: ready
@@ -530,7 +525,7 @@ CONTAINS
       IF (PRESENT(prob)) THEN
          IF (prob .LT. 1.0E-10 .AND. ASSOCIATED(pt_elem_in%acc)) THEN
             pt_elem => pt_elem_in%acc
-         ELSE IF (prob .GT. (1.0_dp-1.0E-10) .AND. ASSOCIATED(pt_elem_in%nacc)) THEN
+         ELSE IF (prob .GT. (1.0_dp - 1.0E-10) .AND. ASSOCIATED(pt_elem_in%nacc)) THEN
             pt_elem => pt_elem_in%nacc
          ELSE
             ready = .FALSE.
@@ -541,7 +536,7 @@ CONTAINS
 
       IF (ready) THEN
          IF (ASSOCIATED(pt_elem%conf(pt_elem%mv_conf)%elem)) THEN
-            SELECT CASE (pt_elem%conf (pt_elem%mv_conf)%elem%stat)
+            SELECT CASE (pt_elem%conf(pt_elem%mv_conf)%elem%stat)
             CASE (status_accepted_result, status_accepted, status_rejected_result, &
                   status_rejected, status_created, status_cancel_nmc, &
                   status_cancel_ener, status_canceled_nmc, status_canceled_ener, &
@@ -584,8 +579,7 @@ CONTAINS
       TYPE(global_tree_type), INTENT(IN), POINTER        :: global_tree_ptr
       INTEGER, DIMENSION(:), POINTER                     :: counters
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'count_prepared_nodes_in_trees', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'count_prepared_nodes_in_trees'
 
       INTEGER                                            :: handle, i
       TYPE(tree_type), POINTER                           :: begin_ptr
@@ -621,9 +615,6 @@ CONTAINS
       TYPE(tree_type), POINTER                           :: tree_ptr
       INTEGER                                            :: counter
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'count_prepared_nodes_in_subtree', &
-         routineP = moduleN//':'//routineN
-
       TYPE(tree_type), POINTER                           :: tmp_ptr
 
       NULLIFY (tmp_ptr)
@@ -643,7 +634,7 @@ CONTAINS
          END IF
       CASE (status_created, status_calculate_MD, status_calculate_NMC_steps, &
             status_calc_approx_ener, status_calculated, status_calculate_energy)
-         IF (tree_ptr%stat .EQ. status_created) counter = counter+1
+         IF (tree_ptr%stat .EQ. status_created) counter = counter + 1
          IF (ASSOCIATED(tree_ptr%acc)) THEN
             tmp_ptr => tree_ptr%acc
             CALL count_prepared_nodes_in_subtree(tmp_ptr, counter)
@@ -678,8 +669,7 @@ CONTAINS
       TYPE(elem_array_type), DIMENSION(:), POINTER       :: end_of_clean_trees
       INTEGER, DIMENSION(:), POINTER                     :: counters, head_elements_nr
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'count_nodes_in_trees', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'count_nodes_in_trees'
 
       INTEGER                                            :: handle, i
       TYPE(global_tree_type), POINTER                    :: begin_gt_ptr
@@ -727,12 +717,9 @@ CONTAINS
       TYPE(global_tree_type), INTENT(IN), POINTER        :: ptr
       INTEGER, INTENT(INOUT)                             :: counter
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'count_nodes_in_global_tree', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(ptr))
 
-      counter = counter+1
+      counter = counter + 1
 
       IF (ASSOCIATED(ptr%acc)) &
          CALL count_nodes_in_global_tree(ptr%acc, counter)
@@ -750,12 +737,9 @@ CONTAINS
       TYPE(tree_type), POINTER                           :: ptr
       INTEGER                                            :: counter
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'count_nodes_in_tree', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(ptr))
 
-      counter = counter+1
+      counter = counter + 1
 
       IF (ASSOCIATED(ptr%acc)) &
          CALL count_nodes_in_tree(ptr%acc, counter)

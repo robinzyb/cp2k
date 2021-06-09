@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -85,8 +87,6 @@ CONTAINS
       TYPE(pao_env_type), POINTER                        :: pao
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pao_ml_init', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
       TYPE(cp_para_env_type), POINTER                    :: para_env
@@ -119,7 +119,7 @@ CONTAINS
       ! turns linked lists into matrices and syncs them across ranks
       CALL training_list2matrix(training_lists, pao%ml_training_matrices, para_env)
 
-      ! calculate and substract prior
+      ! calculate and subtract prior
       CALL pao_ml_substract_prior(pao%ml_prior, pao%ml_training_matrices)
 
       ! print some statistics about the training set and dump it upon request
@@ -131,7 +131,7 @@ CONTAINS
    END SUBROUTINE pao_ml_init
 
 ! **************************************************************************************************
-!> \brief Reads the given file and adds it's training points to linked lists.
+!> \brief Reads the given file and adds its training points to linked lists.
 !> \param pao ...
 !> \param qs_env ...
 !> \param training_lists ...
@@ -142,9 +142,6 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(training_list_type), DIMENSION(:)             :: training_lists
       CHARACTER(LEN=default_path_length)                 :: filename
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'add_to_training_list', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_string_length)               :: param
       INTEGER                                            :: iatom, ikind, natoms, nkinds, nparams
@@ -167,7 +164,7 @@ CONTAINS
       CALL get_qs_env(qs_env, para_env=para_env)
 
       ! parse training data on first rank
-      IF (para_env%mepos == para_env%source) THEN
+      IF (para_env%ionode) THEN
          CALL pao_read_raw(filename, param, hmat, kinds, atom2kind, positions, xblocks, ml_range)
 
          ! check parametrization
@@ -219,7 +216,7 @@ CONTAINS
          ALLOCATE (new_point)
 
          ! training-point input, calculate descriptor only on one rank
-         IF (MOD(iatom-1, para_env%num_pe) == para_env%mepos) THEN
+         IF (MOD(iatom - 1, para_env%num_pe) == para_env%mepos) THEN
             CALL pao_ml_calc_descriptor(pao, &
                                         my_particle_set, &
                                         qs_kind_set, &
@@ -229,7 +226,7 @@ CONTAINS
          ENDIF
 
          ! copy training-point output on first rank
-         IF (para_env%mepos == para_env%source) THEN
+         IF (para_env%ionode) THEN
             nparams = SIZE(xblocks(iatom)%p, 1)
             ALLOCATE (new_point%output(nparams))
             new_point%output(:) = xblocks(iatom)%p(:, 1)
@@ -237,7 +234,7 @@ CONTAINS
 
          ! add to linked list
          ikind = kindsmap(atom2kind(iatom))
-         training_lists(ikind)%npoints = training_lists(ikind)%npoints+1
+         training_lists(ikind)%npoints = training_lists(ikind)%npoints + 1
          new_point%next => training_lists(ikind)%head
          training_lists(ikind)%head => new_point
       ENDDO
@@ -367,11 +364,11 @@ CONTAINS
          DO i = 1, npoints
             IF (ALLOCATED(cur_point%input)) THEN
                training_matrix%inputs(:, i) = cur_point%input(:)
-               ninputs = ninputs+1
+               ninputs = ninputs + 1
             ENDIF
             IF (ALLOCATED(cur_point%output)) THEN
                training_matrix%outputs(:, i) = cur_point%output(:)
-               noutputs = noutputs+1
+               noutputs = noutputs + 1
             ENDIF
             ! advance to next entry and deallocate the current one
             prev_point => cur_point
@@ -421,9 +418,9 @@ CONTAINS
             CPABORT("PAO: unknown prior")
          END SELECT
 
-         ! substract prior from all training points
+         ! subtract prior from all training points
          DO i = 1, npoints
-            training_matrix%outputs(:, i) = training_matrix%outputs(:, i)-training_matrix%prior
+            training_matrix%outputs(:, i) = training_matrix%outputs(:, i) - training_matrix%prior
          ENDDO
       ENDDO
 
@@ -473,7 +470,7 @@ CONTAINS
    END SUBROUTINE pao_ml_print
 
 ! **************************************************************************************************
-!> \brief Calls the actuall learning algorthim to traing on the given matrices
+!> \brief Calls the actual learning algorthim to traing on the given matrices
 !> \param pao ...
 ! **************************************************************************************************
    SUBROUTINE pao_ml_train(pao)
@@ -493,7 +490,7 @@ CONTAINS
       CASE (pao_ml_lazy)
          ! nothing to do
       CASE DEFAULT
-         CPABORT("PAO: unkown machine learning scheme")
+         CPABORT("PAO: unknown machine learning scheme")
       END SELECT
 
       CALL timestop(handle)
@@ -543,7 +540,7 @@ CONTAINS
          CALL get_atomic_kind(particle_set(iatom)%atomic_kind, kind_number=ikind)
          IF (SIZE(block_X) == 0) CYCLE ! pao disabled for iatom
 
-         ! calculate decriptor
+         ! calculate descriptor
          CALL pao_ml_calc_descriptor(pao, &
                                      particle_set, &
                                      qs_kind_set, &
@@ -560,7 +557,7 @@ CONTAINS
          DEALLOCATE (descriptor)
 
          !add prior
-         block_X(:, 1) = block_X(:, 1)+pao%ml_training_matrices(ikind)%prior
+         block_X(:, 1) = block_X(:, 1) + pao%ml_training_matrices(ikind)%prior
       ENDDO
       CALL dbcsr_iterator_stop(iter)
 !$OMP END PARALLEL
@@ -588,7 +585,7 @@ CONTAINS
    END SUBROUTINE pao_ml_predict
 
 ! **************************************************************************************************
-!> \brief Queries the actuall learning algorthim to make a prediction
+!> \brief Queries the actual learning algorthim to make a prediction
 !> \param pao ...
 !> \param ikind ...
 !> \param descriptor ...
@@ -611,7 +608,7 @@ CONTAINS
          output = 0.0_dp ! let's be really lazy and just rely on the prior
          variance = 0
       CASE DEFAULT
-         CPABORT("PAO: unkown machine learning scheme")
+         CPABORT("PAO: unknown machine learning scheme")
       END SELECT
 
    END SUBROUTINE pao_ml_predict_low
@@ -660,7 +657,7 @@ CONTAINS
          CALL get_atomic_kind(particle_set(iatom)%atomic_kind, kind_number=ikind)
          IF (SIZE(block_G) == 0) CYCLE ! pao disabled for iatom
 
-         ! calculate decriptor
+         ! calculate descriptor
          CALL pao_ml_calc_descriptor(pao, &
                                      particle_set, &
                                      qs_kind_set, &
@@ -716,7 +713,7 @@ CONTAINS
       CASE (pao_ml_lazy)
          gradient = 0.0_dp
       CASE DEFAULT
-         CPABORT("PAO: unkown machine learning scheme")
+         CPABORT("PAO: unknown machine learning scheme")
       END SELECT
 
    END SUBROUTINE pao_ml_gradient_low

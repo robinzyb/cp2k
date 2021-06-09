@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -80,9 +82,6 @@ CONTAINS
       TYPE(global_environment_type), POINTER             :: globenv
       TYPE(force_env_type), POINTER                      :: force_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'loop_over_molecules', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: nmols
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: charge_of_frag, first_atom_of_frag, &
                                                             last_atom_of_frag, multip_of_frag
@@ -141,8 +140,7 @@ CONTAINS
       INTEGER, DIMENSION(:), INTENT(IN)                  :: first_atom_of_frag, last_atom_of_frag, &
                                                             charge_of_frag, multip_of_frag
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calcs_on_isolated_molecules', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calcs_on_isolated_molecules'
 
       CHARACTER(LEN=default_string_length)               :: name
       CHARACTER(LEN=default_string_length), &
@@ -197,7 +195,7 @@ CONTAINS
          IF (smear_almo_scf) THEN
             scf_section => section_vals_get_subs_vals(dft_section, "SCF")
             CALL section_vals_val_get(scf_section, "added_mos", i_val=tot_added_mos) !! Get total number of added MOs
-            tot_isize = last_atom_of_frag(nfrags)-first_atom_of_frag(1)+1 !! Get total number of atoms (assume consecutive atoms)
+            tot_isize = last_atom_of_frag(nfrags) - first_atom_of_frag(1) + 1 !! Get total number of atoms (assume consecutive atoms)
             !! Check that number of added MOs matches the number of atoms
             !! (to ensure compatibility, since each fragment will be computed with such parameters)
             IF (tot_isize .NE. tot_added_mos) THEN
@@ -258,7 +256,7 @@ CONTAINS
          ! It is important to have a linear scaling procedure here
          first_atom = first_atom_of_frag(ifrag)
          last_atom = last_atom_of_frag(ifrag)
-         isize = last_atom-first_atom+1
+         isize = last_atom - first_atom + 1
          ALLOCATE (atom_index(isize))
          atom_index(1:isize) = (/(i, i=first_atom, last_atom)/)
          !
@@ -324,10 +322,10 @@ CONTAINS
                IF (smear_almo_scf) THEN
                   !! Store MOs energies for ALMO smearing purpose
                   nmo_of_frag = SIZE(mos_of_frag(imo)%mo_set%eigenvalues)
-                  almo_scf_env%mo_energies(nb_eigenval_stored+1:nb_eigenval_stored+nmo_of_frag, imo) &
+                  almo_scf_env%mo_energies(nb_eigenval_stored + 1:nb_eigenval_stored + nmo_of_frag, imo) &
                      = mos_of_frag(imo)%mo_set%eigenvalues(:)
                   !! update stored energies offset. Assumes nmosets_of_frag == 1 (general smearing ALMO assumption)
-                  nb_eigenval_stored = nb_eigenval_stored+nmo_of_frag
+                  nb_eigenval_stored = nb_eigenval_stored + nmo_of_frag
                END IF
             END IF !! ALMO
 
@@ -377,16 +375,13 @@ CONTAINS
          DIMENSION(:), POINTER                           :: atom_type
       INTEGER, INTENT(IN)                                :: frag, nfrags, charge, multpl
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'print_frag_info', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(len=11)                                  :: charI
       INTEGER                                            :: i, iw
       TYPE(cp_logger_type), POINTER                      :: logger
 
       NULLIFY (logger)
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          iw = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          iw = -1
@@ -425,8 +420,6 @@ CONTAINS
       TYPE(force_env_type), POINTER                      :: force_env
       LOGICAL                                            :: do_mol_loop
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'do_mol_loop', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: almo_guess_type, frz_term_type, &
                                                             method_name_id, scf_guess_type
       LOGICAL                                            :: almo_scf_is_on, is_crystal, is_fast_dirty
@@ -455,7 +448,7 @@ CONTAINS
          !!!! RZK-warning: All decisions are based on the values of input keywords
          !!!! The real danger is that many of these keywords might not be even
          !!!! in control of the job. They might be simply present in the input
-         !!!! This section must be re-writen more accurately
+         !!!! This section must be re-written more accurately
 
          ! check ALMO SCF guess option
          NULLIFY (subsection)

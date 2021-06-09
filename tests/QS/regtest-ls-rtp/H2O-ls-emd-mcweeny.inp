@@ -3,7 +3,7 @@
   METHOD QUICKSTEP
   &DFT
     &REAL_TIME_PROPAGATION
-       MAX_ITER 7 
+       MAX_ITER 7
        MAT_EXP TAYLOR
        PROPAGATOR ETRS
        EXP_ACCURACY 1.0E-11
@@ -31,7 +31,6 @@
     &END MGRID
     &QS
       EPS_DEFAULT 1.0E-10
-      MAP_CONSISTENT
     &END QS
     &SCF
       MAX_SCF 20
@@ -55,7 +54,7 @@
       &XC_FUNCTIONAL PADE
       &END XC_FUNCTIONAL
     &END XC
-    &PRINT 
+    &PRINT
        &ENERGY_WINDOWS
          &EACH
            MD 2

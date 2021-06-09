@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -19,8 +21,8 @@ MODULE qs_ot_scf
    USE cp_output_handling,              ONLY: cp_print_key_finished_output,&
                                               cp_print_key_unit_nr
    USE dbcsr_api,                       ONLY: &
-        dbcsr_copy, dbcsr_get_diag, dbcsr_get_info, dbcsr_init_p, dbcsr_multiply, dbcsr_p_type, &
-        dbcsr_release, dbcsr_scale_by_vector, dbcsr_set, dbcsr_set_diag, dbcsr_trace, dbcsr_type, &
+        dbcsr_copy, dbcsr_dot, dbcsr_get_diag, dbcsr_get_info, dbcsr_init_p, dbcsr_multiply, &
+        dbcsr_p_type, dbcsr_release, dbcsr_scale_by_vector, dbcsr_set, dbcsr_set_diag, dbcsr_type, &
         dbcsr_type_no_symmetry
    USE input_section_types,             ONLY: section_vals_get,&
                                               section_vals_get_subs_vals,&
@@ -66,8 +68,7 @@ CONTAINS
       TYPE(qs_ot_type), DIMENSION(:), POINTER            :: qs_ot_env
       TYPE(section_vals_type), POINTER                   :: scf_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ot_scf_read_input', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'ot_scf_read_input'
 
       INTEGER                                            :: handle, ispin, nspin, output_unit
       LOGICAL                                            :: explicit
@@ -132,7 +133,7 @@ CONTAINS
       REAL(KIND=dp)                                      :: delta
       TYPE(qs_ot_type), DIMENSION(:), POINTER            :: qs_ot_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ot_scf_mini', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'ot_scf_mini'
 
       INTEGER                                            :: handle, ispin, k, n, nspin
       REAL(KIND=dp)                                      :: ener_nondiag, trace
@@ -230,17 +231,17 @@ CONTAINS
 
             ! subtract the current ener_x from the diagonal
             CALL dbcsr_get_diag(qs_ot_env(ispin)%matrix_buf2, expectation_values(ispin)%array)
-            expectation_values(ispin)%array = expectation_values(ispin)%array-qs_ot_env(ispin)%ener_x
+            expectation_values(ispin)%array = expectation_values(ispin)%array - qs_ot_env(ispin)%ener_x
             CALL dbcsr_set_diag(qs_ot_env(ispin)%matrix_buf2, expectation_values(ispin)%array)
 
             ! get nondiag energy trace (D^T D)
-            CALL dbcsr_trace(qs_ot_env(ispin)%matrix_buf2, qs_ot_env(ispin)%matrix_buf2, trace)
-            ener_nondiag = ener_nondiag+0.5_dp*qs_ot_env(1)%settings%nondiag_energy_strength*trace
+            CALL dbcsr_dot(qs_ot_env(ispin)%matrix_buf2, qs_ot_env(ispin)%matrix_buf2, trace)
+            ener_nondiag = ener_nondiag + 0.5_dp*qs_ot_env(1)%settings%nondiag_energy_strength*trace
 
             ! get gradient (again ignoring dependencies of H)
             IF (.NOT. energy_only) THEN
                ! first for the ener_x (-2*(diag(C^T H C)-ener_x))
-               qs_ot_env(ispin)%ener_gx = qs_ot_env(ispin)%ener_gx- &
+               qs_ot_env(ispin)%ener_gx = qs_ot_env(ispin)%ener_gx - &
                                           qs_ot_env(1)%settings%nondiag_energy_strength*expectation_values(ispin)%array
 
                ! next for the rot_mat_u derivative (2 * k * \tilde H U D)
@@ -270,7 +271,7 @@ CONTAINS
       ENDDO
 
       ! notice we use qs_ot_env(1) for driving all output and the minimization in case of LSD
-      qs_ot_env(1)%etotal = energy+ener_nondiag
+      qs_ot_env(1)%etotal = energy + ener_nondiag
 
       CALL ot_mini(qs_ot_env, matrix_dedc_scaled)
 
@@ -281,7 +282,7 @@ CONTAINS
       DO ispin = 1, SIZE(qs_ot_env)
          CALL get_mo_set(mo_set=mo_array(ispin)%mo_set, mo_coeff_b=mo_coeff)
          CALL dbcsr_get_info(mo_coeff, nfullrows_total=n, nfullcols_total=k)
-         SELECT CASE (qs_ot_env (1)%settings%ot_algorithm)
+         SELECT CASE (qs_ot_env(1)%settings%ot_algorithm)
          CASE ("TOD")
             IF (ASSOCIATED(matrix_s)) THEN
                CALL dbcsr_multiply('N', 'N', 1.0_dp, matrix_s, qs_ot_env(ispin)%matrix_x, &
@@ -355,7 +356,7 @@ CONTAINS
       TYPE(dbcsr_type), POINTER                          :: matrix_ks
       REAL(KIND=dp)                                      :: broyden_adaptive_sigma
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ot_scf_init', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'ot_scf_init'
 
       INTEGER                                            :: handle, ispin, k, n, nspin
       LOGICAL                                            :: is_equal
@@ -423,7 +424,7 @@ CONTAINS
             qs_ot_env(ispin)%ener_x = mo_array(ispin)%mo_set%eigenvalues
          ENDIF
 
-         SELECT CASE (qs_ot_env (1)%settings%ot_algorithm)
+         SELECT CASE (qs_ot_env(1)%settings%ot_algorithm)
          CASE ("TOD")
             ! get c
             CALL qs_ot_get_p(qs_ot_env(ispin)%matrix_x, qs_ot_env(ispin)%matrix_sx, qs_ot_env(ispin))

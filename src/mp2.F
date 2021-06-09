@@ -1,10 +1,12 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
-!> \brief Rountines to calculate MP2 energy
+!> \brief Routines to calculate MP2 energy
 !> \par History
 !>      05.2011 created [Mauro Del Ben]
 !> \author Mauro Del Ben
@@ -16,10 +18,6 @@ MODULE mp2
                                               admm_uncorrect_for_eigenvalues
    USE atomic_kind_types,               ONLY: atomic_kind_type,&
                                               get_atomic_kind_set
-   USE auto_basis,                      ONLY: create_ri_aux_basis_set
-   USE basis_set_container_types,       ONLY: add_basis_set_to_container
-   USE basis_set_types,                 ONLY: gto_basis_set_type,&
-                                              init_orb_basis_set
    USE bibliography,                    ONLY: DelBen2012,&
                                               DelBen2015b,&
                                               Rybkin2016,&
@@ -41,6 +39,7 @@ MODULE mp2
                                               open_file
    USE cp_fm_basic_linalg,              ONLY: cp_fm_triangular_invert
    USE cp_fm_cholesky,                  ONLY: cp_fm_cholesky_decompose
+   USE cp_fm_diag,                      ONLY: cp_fm_power
    USE cp_fm_struct,                    ONLY: cp_fm_struct_create,&
                                               cp_fm_struct_release,&
                                               cp_fm_struct_type
@@ -67,8 +66,8 @@ MODULE mp2
         hfx_container_type, hfx_create_basis_types, hfx_init_container, hfx_release_basis_types, &
         hfx_type
    USE input_constants,                 ONLY: &
-        cholesky_inverse, do_admm_basis_projection, do_admm_purify_none, do_eri_gpw, do_eri_mme, &
-        do_mp2_potential_TShPSC, gw_print_exx, gw_read_exx, hfx_do_eval_energy, xc_none
+        cholesky_inverse, cholesky_off, do_admm_basis_projection, do_admm_purify_none, do_eri_gpw, &
+        do_eri_mme, do_potential_TShPSC, gw_print_exx, gw_read_exx, xc_none
    USE input_section_types,             ONLY: section_vals_get,&
                                               section_vals_get_subs_vals,&
                                               section_vals_type,&
@@ -93,17 +92,20 @@ MODULE mp2
    USE mp2_direct_method,               ONLY: mp2_canonical_direct_single_batch
    USE mp2_gpw,                         ONLY: mp2_gpw_main
    USE mp2_optimize_ri_basis,           ONLY: optimize_ri_basis_main
-   USE mp2_types,                       ONLY: &
-        mp2_biel_type, mp2_method_direct, mp2_method_gpw, mp2_method_laplace, &
-        mp2_ri_optimize_basis, mp2_type, ri_mp2_laplace, ri_mp2_method_gpw, ri_rpa_method_gpw
+   USE mp2_types,                       ONLY: mp2_biel_type,&
+                                              mp2_method_direct,&
+                                              mp2_method_gpw,&
+                                              mp2_ri_optimize_basis,&
+                                              mp2_type,&
+                                              ri_mp2_laplace,&
+                                              ri_mp2_method_gpw,&
+                                              ri_rpa_method_gpw
    USE particle_types,                  ONLY: particle_type
    USE physcon,                         ONLY: evolt
    USE qs_energy_types,                 ONLY: qs_energy_type
    USE qs_environment_types,            ONLY: get_qs_env,&
                                               qs_environment_type
-   USE qs_interactions,                 ONLY: init_interaction_radii_orb_basis
-   USE qs_kind_types,                   ONLY: get_qs_kind,&
-                                              qs_kind_type
+   USE qs_kind_types,                   ONLY: qs_kind_type
    USE qs_ks_methods,                   ONLY: qs_ks_build_kohn_sham_matrix
    USE qs_ks_types,                     ONLY: qs_ks_env_type
    USE qs_matrix_pools,                 ONLY: mpools_create,&
@@ -119,8 +121,10 @@ MODULE mp2
    USE qs_neighbor_list_types,          ONLY: neighbor_list_set_p_type
    USE qs_rho_types,                    ONLY: qs_rho_get,&
                                               qs_rho_type
-   USE qs_scf_methods,                  ONLY: eigensolver
+   USE qs_scf_methods,                  ONLY: eigensolver,&
+                                              eigensolver_symm
    USE qs_scf_types,                    ONLY: qs_scf_env_type
+   USE scf_control_types,               ONLY: scf_control_type
    USE virial_types,                    ONLY: virial_type
 
 !$ USE OMP_LIB, ONLY: omp_get_max_threads, omp_get_thread_num, omp_get_num_threads
@@ -147,16 +151,16 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       LOGICAL, INTENT(IN)                                :: calc_forces
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mp2_main', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'mp2_main'
 
       INTEGER :: bin, cholesky_method, dimen, handle, handle2, i, i_thread, iatom, ikind, irep, &
-         ispin, max_nset, my_bin_size, n_rep_hf, n_threads, nao, natom, ncol_block, nelec_alpha, &
-         nelec_beta, nelectron, nfullcols_total, nfullrows_total, nkind, nrow_block, nspins, &
-         unit_nr
+         ispin, max_nset, my_bin_size, n_rep_hf, n_threads, nao, natom, ncol_block, ndep, &
+         nelec_alpha, nelec_beta, nelectron, nfullcols_total, nfullrows_total, nkind, nrow_block, &
+         nspins, unit_nr
       INTEGER(KIND=int_8)                                :: mem
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: kind_of
       LOGICAL :: calc_ex, do_admm, do_admm_rpa_exx, do_dynamic_load_balancing, do_exx, do_gw, &
-         do_kpoints_cubic_RPA, free_hfx_buffer
+         do_kpoints_cubic_RPA, free_hfx_buffer, update_xc_energy
       REAL(KIND=dp) :: E_ex_from_GW, Emp2, Emp2_AA, Emp2_AA_Cou, Emp2_AA_ex, Emp2_AB, Emp2_AB_Cou, &
          Emp2_AB_ex, Emp2_BB, Emp2_BB_Cou, Emp2_BB_ex, Emp2_Cou, Emp2_ex, Emp2_S, Emp2_T, maxocc, &
          mem_real, t1, t2, t3
@@ -174,7 +178,6 @@ CONTAINS
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: matrix_ks, matrix_ks_aux, matrix_s
       TYPE(dbcsr_p_type), DIMENSION(:, :), POINTER       :: matrix_ks_transl, matrix_s_kp
       TYPE(dft_control_type), POINTER                    :: dft_control
-      TYPE(gto_basis_set_type), POINTER                  :: ri_aux_basis_set
       TYPE(hfx_basis_info_type)                          :: basis_info
       TYPE(hfx_basis_type), DIMENSION(:), POINTER        :: basis_parameter
       TYPE(hfx_container_type), DIMENSION(:), POINTER    :: integral_containers
@@ -187,10 +190,9 @@ CONTAINS
       TYPE(particle_type), DIMENSION(:), POINTER         :: particle_set
       TYPE(qs_energy_type), POINTER                      :: energy
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
-      TYPE(qs_kind_type), POINTER                        :: qs_kind
       TYPE(qs_matrix_pools_type), POINTER                :: my_mpools
-      TYPE(qs_rho_type), POINTER                         :: rho
       TYPE(qs_scf_env_type), POINTER                     :: scf_env
+      TYPE(scf_control_type), POINTER                    :: scf_control
       TYPE(section_vals_type), POINTER                   :: hfx_sections, input
       TYPE(virial_type), POINTER                         :: virial
 
@@ -220,9 +222,9 @@ CONTAINS
                          para_env=para_env, &
                          blacs_env=blacs_env, &
                          energy=energy, &
-                         rho=rho, &
                          kpoints=kpoints, &
                          scf_env=scf_env, &
+                         scf_control=scf_control, &
                          matrix_ks_kp=matrix_ks_transl, &
                          matrix_s_kp=matrix_s_kp, &
                          mp2_env=mp2_env)
@@ -241,9 +243,10 @@ CONTAINS
                          para_env=para_env, &
                          blacs_env=blacs_env, &
                          energy=energy, &
-                         rho=rho, &
                          mos=mos, &
-                         scf_env=scf_env, virial=virial, &
+                         scf_env=scf_env, &
+                         scf_control=scf_control, &
+                         virial=virial, &
                          matrix_ks=matrix_ks, &
                          matrix_s=matrix_s, &
                          matrix_ks_aux_fit=matrix_ks_aux, &
@@ -252,7 +255,7 @@ CONTAINS
 
       END IF
 
-      unit_nr = cp_print_key_unit_nr(logger, input, "DFT%XC%WF_CORRELATION%MP2_INFO", &
+      unit_nr = cp_print_key_unit_nr(logger, input, "DFT%XC%WF_CORRELATION%MP2%MP2_INFO", &
                                      extension=".mp2Log")
 
       IF (unit_nr > 0) THEN
@@ -295,36 +298,25 @@ CONTAINS
             WRITE (unit_nr, '(T3,A,T76,I5)') 'Requested number of processes per group:', mp2_env%mp2_num_proc
          mp2_env%mp2_num_proc = para_env%num_pe
       ENDIF
-      IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T76,I5)') 'Used number of processes per group:', mp2_env%mp2_num_proc
-      IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T68,F9.2,A4)') 'Maximum allowed memory usage per MPI processes:', &
-         mp2_env%mp2_memory, ' MiB'
+      IF (.NOT. mp2_env%do_im_time) THEN
+         IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T76,I5)') 'Used number of processes per group:', mp2_env%mp2_num_proc
+         IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T68,F9.2,A4)') 'Maximum allowed memory usage per MPI process:', &
+            mp2_env%mp2_memory, ' MiB'
+      END IF
 
       IF ((mp2_env%method .NE. mp2_method_gpw) .AND. &
           (mp2_env%method .NE. ri_mp2_method_gpw) .AND. &
           (mp2_env%method .NE. ri_rpa_method_gpw) .AND. &
           (mp2_env%method .NE. ri_mp2_laplace)) THEN
          CALL m_memory(mem)
-         mem_real = (mem+1024*1024-1)/(1024*1024)
+         mem_real = (mem + 1024*1024 - 1)/(1024*1024)
          CALL mp_max(mem_real, para_env%group)
-         mp2_env%mp2_memory = mp2_env%mp2_memory-mem_real
+         mp2_env%mp2_memory = mp2_env%mp2_memory - mem_real
          IF (mp2_env%mp2_memory < 0.0_dp) mp2_env%mp2_memory = 1.0_dp
 
-         IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T68,F9.2,A4)') 'Available memory per MPI processes for MP2:', &
+         IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T68,F9.2,A4)') 'Available memory per MPI process for MP2:', &
             mp2_env%mp2_memory, ' MiB'
       END IF
-
-      ! just check that GW is used correctly
-
-      ! 1. cubic-scaling GW may not be used together with normal N^4 GW
-      CPASSERT(.NOT. (mp2_env%ri_rpa%do_ri_g0w0 .AND. mp2_env%ri_rpa_im_time%do_gw_im_time))
-
-      ! 2. cubic-scaling GW can only be used if cubic-scaling RPA is switched on
-      IF (mp2_env%ri_rpa_im_time%do_gw_im_time) THEN
-         CPASSERT(mp2_env%do_im_time)
-      END IF
-
-      ! 3. N^4 GW cannot be used together with cubic-scaling RPA
-      CPASSERT(.NOT. (mp2_env%ri_rpa%do_ri_g0w0 .AND. mp2_env%do_im_time))
 
       IF (unit_nr > 0) CALL m_flush(unit_nr)
 
@@ -336,28 +328,6 @@ CONTAINS
       CALL get_atomic_kind_set(atomic_kind_set, kind_of=kind_of)
       nkind = SIZE(atomic_kind_set, 1)
 
-      ! check for RI basis sets
-      IF ((mp2_env%method == ri_mp2_method_gpw) .OR. &
-          (mp2_env%method == ri_rpa_method_gpw) .OR. &
-          (mp2_env%method == ri_mp2_laplace)) THEN
-         DO ikind = 1, nkind
-            NULLIFY (ri_aux_basis_set)
-            qs_kind => qs_kind_set(ikind)
-            CALL get_qs_kind(qs_kind=qs_kind, basis_set=ri_aux_basis_set, &
-                             basis_type="RI_AUX")
-            IF (.NOT. (ASSOCIATED(ri_aux_basis_set))) THEN
-               ! RI_AUX basis set is not yet loaded
-               CALL cp_warn(__LOCATION__, "Automatic Generation of RI_AUX basis. "// &
-                            "This is experimental code.")
-               ! Generate a default basis
-               CALL create_ri_aux_basis_set(ri_aux_basis_set, qs_kind, dft_control%auto_basis_ri_aux)
-               CALL init_orb_basis_set(ri_aux_basis_set)
-               CALL init_interaction_radii_orb_basis(ri_aux_basis_set, dft_control%qs_control%eps_pgf_orb)
-               CALL add_basis_set_to_container(qs_kind%basis_sets, ri_aux_basis_set, "RI_AUX")
-            END IF
-         END DO
-      END IF
-
       do_admm_rpa_exx = mp2_env%ri_rpa%do_admm
       CALL hfx_create_basis_types(basis_parameter, basis_info, qs_kind_set, do_admm_rpa_exx)
 
@@ -365,7 +335,7 @@ CONTAINS
       max_nset = 0
       DO iatom = 1, natom
          ikind = kind_of(iatom)
-         dimen = dimen+SUM(basis_parameter(ikind)%nsgf)
+         dimen = dimen + SUM(basis_parameter(ikind)%nsgf)
          max_nset = MAX(max_nset, basis_parameter(ikind)%nset)
       END DO
 
@@ -393,9 +363,15 @@ CONTAINS
 
       CALL cp_fm_get_info(matrix=fm_matrix_ks, nrow_block=nrow_block, ncol_block=ncol_block)
 
-      ! calculate S^(-1/2) (cholesky decomposition)
-      CALL cp_fm_cholesky_decompose(fm_matrix_s)
-      CALL cp_fm_triangular_invert(fm_matrix_s)
+      IF (scf_env%cholesky_method == cholesky_off) THEN
+         CALL cp_fm_power(fm_matrix_s, fm_matrix_work, -0.5_dp, scf_control%eps_eigval, ndep)
+         cholesky_method = cholesky_off
+      ELSE
+         ! calculate S^(-1/2) (cholesky decomposition)
+         CALL cp_fm_cholesky_decompose(fm_matrix_s)
+         CALL cp_fm_triangular_invert(fm_matrix_s)
+         cholesky_method = cholesky_inverse
+      END IF
 
       NULLIFY (mos_mp2)
       ALLOCATE (mos_mp2(nspins))
@@ -436,17 +412,33 @@ CONTAINS
                           fm_pool=my_mpools%ao_mo_fm_pools(ispin)%pool, &
                           name="mp2_mos")
 
-         ! diagonalize KS matrix
-         cholesky_method = cholesky_inverse
-         CALL eigensolver(matrix_ks_fm=fm_matrix_ks, &
-                          mo_set=mos_mp2(ispin)%mo_set, &
-                          ortho=fm_matrix_s, &
-                          work=fm_matrix_work, &
-                          cholesky_method=cholesky_method, &
-                          do_level_shift=.FALSE., &
-                          level_shift=0.0_dp, &
-                          matrix_u_fm=null(), &
-                          use_jacobi=.FALSE.)
+         IF (cholesky_method == cholesky_inverse) THEN
+
+            ! diagonalize KS matrix
+            CALL eigensolver(matrix_ks_fm=fm_matrix_ks, &
+                             mo_set=mos_mp2(ispin)%mo_set, &
+                             ortho=fm_matrix_s, &
+                             work=fm_matrix_work, &
+                             cholesky_method=cholesky_method, &
+                             do_level_shift=.FALSE., &
+                             level_shift=0.0_dp, &
+                             matrix_u_fm=null(), &
+                             use_jacobi=.FALSE.)
+
+         ELSE IF (cholesky_method == cholesky_off) THEN
+
+            CALL eigensolver_symm(matrix_ks_fm=fm_matrix_ks, &
+                                  mo_set=mos_mp2(ispin)%mo_set, &
+                                  ortho=fm_matrix_s, &
+                                  work=fm_matrix_work, &
+                                  do_level_shift=.FALSE., &
+                                  level_shift=0.0_dp, &
+                                  matrix_u_fm=null(), &
+                                  use_jacobi=.FALSE., &
+                                  jacobi_threshold=0.0_dp)
+
+         END IF
+
       END DO
 
       CALL cp_fm_release(fm_matrix_s)
@@ -479,9 +471,10 @@ CONTAINS
 
       ! calculate the matrix sigma_x - vxc for G0W0
       t3 = 0
-      IF (mp2_env%ri_rpa%do_ri_g0w0 .OR. mp2_env%ri_rpa_im_time%do_gw_im_time) THEN
+      IF (mp2_env%ri_rpa%do_ri_g0w0) THEN
          CALL compute_vec_Sigma_x_minus_vxc_gw(qs_env, mp2_env, mos_mp2, E_ex_from_GW, t3, unit_nr)
       END IF
+
       IF (free_hfx_buffer) THEN
          CALL timeset(routineN//"_free_hfx", handle2)
          CALL section_vals_get(hfx_sections, n_repetition=n_rep_hf)
@@ -489,8 +482,8 @@ CONTAINS
 !$       n_threads = omp_get_max_threads()
 
          DO irep = 1, n_rep_hf
-            DO i_thread = 0, n_threads-1
-               actual_x_data => qs_env%x_data(irep, i_thread+1)
+            DO i_thread = 0, n_threads - 1
+               actual_x_data => qs_env%x_data(irep, i_thread + 1)
 
                do_dynamic_load_balancing = .TRUE.
                IF (n_threads == 1 .OR. actual_x_data%memory_parameter%do_disk_storage) do_dynamic_load_balancing = .FALSE.
@@ -502,7 +495,7 @@ CONTAINS
                END IF
 
                IF (.NOT. actual_x_data%memory_parameter%do_all_on_the_fly) THEN
-                  CALL dealloc_containers(actual_x_data, hfx_do_eval_energy)
+                  CALL dealloc_containers(actual_x_data%store_ints, actual_x_data%memory_parameter%actual_memory_usage)
                   !  CALL alloc_containers(actual_x_data, my_bin_size, hfx_do_eval_energy)
                   !
                   !  DO bin=1, my_bin_size
@@ -527,8 +520,6 @@ CONTAINS
 
       t1 = m_walltime()
       SELECT CASE (mp2_env%method)
-      CASE (mp2_method_laplace)
-         CPABORT("laplace not implemented")
       CASE (mp2_method_direct)
          IF (unit_nr > 0) WRITE (unit_nr, *)
 
@@ -566,8 +557,7 @@ CONTAINS
             Emp2_AA_ex = 0.0_dp
             CALL mp2_direct_energy(dimen, nelec_alpha, nelec_alpha, mp2_biel, &
                                    mp2_env, C_alpha, Auto_alpha, Emp2_AA, Emp2_AA_Cou, Emp2_AA_ex, &
-                                   qs_env, rho, para_env, &
-                                   unit_nr)
+                                   qs_env, para_env, unit_nr)
             IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T56,F25.14)') 'MP2 Energy Alpha-Alpha = ', Emp2_AA
             IF (unit_nr > 0) WRITE (unit_nr, *)
 
@@ -576,8 +566,7 @@ CONTAINS
             Emp2_BB_ex = 0.0_dp
             CALL mp2_direct_energy(dimen, nelec_beta, nelec_beta, mp2_biel, mp2_env, &
                                    C_beta, Auto_beta, Emp2_BB, Emp2_BB_Cou, Emp2_BB_ex, &
-                                   qs_env, rho, para_env, &
-                                   unit_nr)
+                                   qs_env, para_env, unit_nr)
             IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T56,F25.14)') 'MP2 Energy Beta-Beta= ', Emp2_BB
             IF (unit_nr > 0) WRITE (unit_nr, *)
 
@@ -586,17 +575,16 @@ CONTAINS
             Emp2_AB_ex = 0.0_dp
             CALL mp2_direct_energy(dimen, nelec_alpha, nelec_beta, mp2_biel, mp2_env, C_alpha, &
                                    Auto_alpha, Emp2_AB, Emp2_AB_Cou, Emp2_AB_ex, &
-                                   qs_env, rho, para_env, &
-                                   unit_nr, C_beta, Auto_beta)
+                                   qs_env, para_env, unit_nr, C_beta, Auto_beta)
             IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T56,F25.14)') 'MP2 Energy Alpha-Beta= ', Emp2_AB
             IF (unit_nr > 0) WRITE (unit_nr, *)
 
-            Emp2 = Emp2_AA+Emp2_BB+Emp2_AB*2.0_dp !+Emp2_BA
-            Emp2_Cou = Emp2_AA_Cou+Emp2_BB_Cou+Emp2_AB_Cou*2.0_dp !+Emp2_BA
-            Emp2_ex = Emp2_AA_ex+Emp2_BB_ex+Emp2_AB_ex*2.0_dp !+Emp2_BA
+            Emp2 = Emp2_AA + Emp2_BB + Emp2_AB*2.0_dp !+Emp2_BA
+            Emp2_Cou = Emp2_AA_Cou + Emp2_BB_Cou + Emp2_AB_Cou*2.0_dp !+Emp2_BA
+            Emp2_ex = Emp2_AA_ex + Emp2_BB_ex + Emp2_AB_ex*2.0_dp !+Emp2_BA
 
             Emp2_S = Emp2_AB*2.0_dp
-            Emp2_T = Emp2_AA+Emp2_BB
+            Emp2_T = Emp2_AA + Emp2_BB
 
          ELSE
 
@@ -613,8 +601,7 @@ CONTAINS
             Auto(:) = mo_eigenvalues(:)
 
             CALL mp2_direct_energy(dimen, nelectron/2, nelectron/2, mp2_biel, mp2_env, C, Auto, Emp2, Emp2_Cou, Emp2_ex, &
-                                   qs_env, rho, para_env, &
-                                   unit_nr)
+                                   qs_env, para_env, unit_nr)
 
          END IF
 
@@ -652,16 +639,14 @@ CONTAINS
             ! optimize basis
             CALL optimize_ri_basis_main(Emp2, Emp2_Cou, Emp2_ex, Emp2_S, Emp2_T, dimen, natom, nelectron, &
                                         mp2_biel, mp2_env, C, Auto, &
-                                        kind_of, qs_env, rho, para_env, &
-                                        unit_nr, &
+                                        kind_of, qs_env, para_env, unit_nr, &
                                         nelec_beta, C_beta, Auto_beta)
 
          ELSE
             ! optimize basis
             CALL optimize_ri_basis_main(Emp2, Emp2_Cou, Emp2_ex, Emp2_S, Emp2_T, dimen, natom, nelectron/2, &
                                         mp2_biel, mp2_env, C, Auto, &
-                                        kind_of, qs_env, rho, para_env, &
-                                        unit_nr)
+                                        kind_of, qs_env, para_env, unit_nr)
          END IF
 
       CASE (mp2_method_gpw)
@@ -691,6 +676,10 @@ CONTAINS
          CALL mp2_gpw_main(qs_env, mp2_env, Emp2, Emp2_Cou, Emp2_EX, Emp2_S, Emp2_T, &
                            mos_mp2, para_env, unit_nr, calc_forces, calc_ex, do_ri_rpa=.TRUE.)
 
+         ! Scale energy contributions
+         Emp2 = Emp2*mp2_env%ri_rpa%scale_rpa
+         mp2_env%ri_rpa%ener_axk = mp2_env%ri_rpa%ener_axk*mp2_env%ri_rpa%scale_rpa
+
       CASE (ri_mp2_laplace)
          ! perform RI-SOS-Laplace-MP2 energy calculation, most part of the code in common
          ! with the RI-RPA part
@@ -705,10 +694,11 @@ CONTAINS
       CASE DEFAULT
          CPABORT("")
       END SELECT
+
       t2 = m_walltime()
       IF (unit_nr > 0) WRITE (unit_nr, *)
       IF (mp2_env%method .NE. ri_rpa_method_gpw) THEN
-         IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T56,F25.6)') 'Total MP2 Time=', t2-t1
+         IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T56,F25.6)') 'Total MP2 Time=', t2 - t1
          IF (mp2_env%method == ri_mp2_laplace) THEN
             Emp2_S = Emp2
             Emp2_T = 0.0_dp
@@ -721,7 +711,7 @@ CONTAINS
                ! valid only in the closed shell case
                Emp2_S = Emp2_Cou/2.0_dp
                IF (calc_ex) THEN
-                  Emp2_T = Emp2_ex+Emp2_Cou/2.0_dp
+                  Emp2_T = Emp2_ex + Emp2_Cou/2.0_dp
                ELSE
                   ! unknown if Emp2_ex is not computed
                   Emp2_T = 0.0_dp
@@ -734,23 +724,37 @@ CONTAINS
          END IF
          Emp2_S = Emp2_S*mp2_env%scale_S
          Emp2_T = Emp2_T*mp2_env%scale_T
-         Emp2 = Emp2_S+Emp2_T
+         Emp2 = Emp2_S + Emp2_T
          IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T56,F25.14)') 'Second order perturbation energy  =   ', Emp2
       ELSE
-         IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T56,F25.6)') 'Total RI-RPA Time=', t2-t1
-         IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T56,F25.14)') 'RI-RPA energy  =   ', Emp2
+         IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T56,F25.6)') 'Total RI-RPA Time=', t2 - t1
+
+         update_xc_energy = .TRUE.
+         IF (mp2_env%ri_rpa%do_ri_g0w0 .AND. .NOT. mp2_env%ri_g0w0%update_xc_energy) update_xc_energy = .FALSE.
+         IF (.NOT. update_xc_energy) Emp2 = 0.0_dp
+
+         IF (unit_nr > 0 .AND. update_xc_energy) WRITE (unit_nr, '(T3,A,T56,F25.14)') 'RI-RPA energy  =   ', Emp2
          IF (mp2_env%ri_rpa%do_ri_axk) THEN
             IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T56,F25.14)') 'RI-RPA-AXK energy=', mp2_env%ri_rpa%ener_axk
+         ENDIF
+         IF (mp2_env%ri_rpa%do_rse) THEN
+            IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T56,F25.14)') 'Diagonal singles correction (dRSE) = ', &
+               mp2_env%ri_rpa%rse_corr_diag
+            IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T56,F25.14)') 'Full singles correction (RSE) =', &
+               mp2_env%ri_rpa%rse_corr
          ENDIF
       END IF
       IF (unit_nr > 0) WRITE (unit_nr, *)
 
       ! we have it !!!!
       IF (mp2_env%ri_rpa%do_ri_axk) THEN
-         Emp2 = Emp2+mp2_env%ri_rpa%ener_axk
+         Emp2 = Emp2 + mp2_env%ri_rpa%ener_axk
+      ENDIF
+      IF (mp2_env%ri_rpa%do_rse) THEN
+         Emp2 = Emp2 + mp2_env%ri_rpa%rse_corr
       ENDIF
       energy%mp2 = Emp2
-      energy%total = energy%total+Emp2
+      energy%total = energy%total + Emp2
 
       DO ispin = 1, nspins
          CALL deallocate_mo_set(mo_set=mos_mp2(ispin)%mo_set)
@@ -761,8 +765,8 @@ CONTAINS
       IF (free_hfx_buffer .AND. (.NOT. calc_forces)) THEN
          CALL timeset(routineN//"_alloc_hfx", handle2)
          DO irep = 1, n_rep_hf
-            DO i_thread = 0, n_threads-1
-               actual_x_data => qs_env%x_data(irep, i_thread+1)
+            DO i_thread = 0, n_threads - 1
+               actual_x_data => qs_env%x_data(irep, i_thread + 1)
 
                do_dynamic_load_balancing = .TRUE.
                IF (n_threads == 1 .OR. actual_x_data%memory_parameter%do_disk_storage) do_dynamic_load_balancing = .FALSE.
@@ -775,11 +779,11 @@ CONTAINS
 
                IF (.NOT. actual_x_data%memory_parameter%do_all_on_the_fly) THEN
                   ! CALL dealloc_containers(actual_x_data, hfx_do_eval_energy)
-                  CALL alloc_containers(actual_x_data, my_bin_size, hfx_do_eval_energy)
+                  CALL alloc_containers(actual_x_data%store_ints, my_bin_size)
 
                   DO bin = 1, my_bin_size
-                     maxval_container => actual_x_data%maxval_container(bin)
-                     integral_containers => actual_x_data%integral_containers(:, bin)
+                     maxval_container => actual_x_data%store_ints%maxval_container(bin)
+                     integral_containers => actual_x_data%store_ints%integral_containers(:, bin)
                      CALL hfx_init_container(maxval_container, actual_x_data%memory_parameter%actual_memory_usage, .FALSE.)
                      DO i = 1, 64
                         CALL hfx_init_container(integral_containers(i), actual_x_data%memory_parameter%actual_memory_usage, .FALSE.)
@@ -799,14 +803,14 @@ CONTAINS
          hfx_sections => section_vals_get_subs_vals(input, "DFT%XC%WF_CORRELATION%RI_RPA%HF")
          CALL section_vals_get(hfx_sections, explicit=do_exx)
          IF (do_exx) THEN
-            do_gw = mp2_env%ri_rpa%do_ri_g0w0 .OR. mp2_env%ri_rpa_im_time%do_gw_im_time
+            do_gw = mp2_env%ri_rpa%do_ri_g0w0
             do_admm = mp2_env%ri_rpa%do_admm
             CALL calculate_exx(qs_env, unit_nr, do_gw, do_admm, E_ex_from_GW, t3)
          END IF
       END IF
 
       CALL cp_print_key_finished_output(unit_nr, logger, input, &
-                                        "DFT%XC%WF_CORRELATION%MP2_INFO")
+                                        "DFT%XC%WF_CORRELATION%MP2%MP2_INFO")
 
       CALL timestop(handle)
 
@@ -834,8 +838,8 @@ CONTAINS
          ikind = kind_of(iatom)
          nset = basis_parameter(ikind)%nset
          DO iset = 1, nset
-            index_table(iatom, iset) = counter+1
-            counter = counter+basis_parameter(ikind)%nsgf(iset)
+            index_table(iatom, iset) = counter + 1
+            counter = counter + basis_parameter(ikind)%nsgf(iset)
          END DO
       END DO
 
@@ -854,14 +858,13 @@ CONTAINS
 !> \param Emp2_Cou ...
 !> \param Emp2_ex ...
 !> \param qs_env ...
-!> \param rho ...
 !> \param para_env ...
 !> \param unit_nr ...
 !> \param C_j ...
 !> \param Auto_j ...
 ! **************************************************************************************************
    SUBROUTINE mp2_direct_energy(dimen, occ_i, occ_j, mp2_biel, mp2_env, C_i, Auto_i, Emp2, Emp2_Cou, Emp2_ex, &
-                                qs_env, rho, para_env, &
+                                qs_env, para_env, &
                                 unit_nr, C_j, Auto_j)
       INTEGER, INTENT(IN)                                :: dimen, occ_i, occ_j
       TYPE(mp2_biel_type), INTENT(IN)                    :: mp2_biel
@@ -870,7 +873,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(dimen), INTENT(IN)        :: Auto_i
       REAL(KIND=dp), INTENT(OUT)                         :: Emp2, Emp2_Cou, Emp2_ex
       TYPE(qs_environment_type), POINTER                 :: qs_env
-      TYPE(qs_rho_type), POINTER                         :: rho
       TYPE(cp_para_env_type), POINTER                    :: para_env
       INTEGER, INTENT(IN)                                :: unit_nr
       REAL(KIND=dp), DIMENSION(dimen, dimen), &
@@ -878,8 +880,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(dimen), INTENT(IN), &
          OPTIONAL                                        :: Auto_j
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'mp2_direct_energy', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'mp2_direct_energy'
       REAL(KIND=dp), PARAMETER                           :: zero = 0.D+00
 
       INTEGER :: batch_number, color_sub, comm_sub, counter, elements_ij_proc, group_counter, &
@@ -902,9 +903,9 @@ CONTAINS
       alpha_beta_case = .FALSE.
       IF (PRESENT(C_j) .AND. PRESENT(Auto_j)) alpha_beta_case = .TRUE.
 
-      IF (unit_nr > 0 .AND. mp2_env%potential_parameter%potential_type == do_mp2_potential_TShPSC) THEN
+      IF (unit_nr > 0 .AND. mp2_env%potential_parameter%potential_type == do_potential_TShPSC) THEN
          IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T64,F12.6,A5)') 'Truncated MP2 method, Rt=', &
-            mp2_env%potential_parameter%truncation_radius, ' Bohr'
+            mp2_env%potential_parameter%cutoff_radius, ' Bohr'
       END IF
 
       ! create the local para env
@@ -929,7 +930,7 @@ CONTAINS
       max_set = SIZE(mp2_biel%index_table, 2)
       minimum_memory_needed = (8*(max_set**4))/1024**2
       IF (minimum_memory_needed > mp2_env%mp2_memory) THEN
-         IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T66,F12.6,A3)') 'Memory required below the minimum, new memory:', &
+         IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T66,I12,A3)') 'Memory required below the minimum, new memory:', &
             minimum_memory_needed, 'MiB'
          mp2_env%mp2_memory = minimum_memory_needed
       END IF
@@ -956,10 +957,10 @@ CONTAINS
       ! Distribute the I index and the J index over groups
       total_I_size_batch_group = occ_i/number_i_subset
       IF (total_I_size_batch_group < 1) total_I_size_batch_group = 1
-      ALLOCATE (vector_batch_I_size_group(0:number_i_subset-1))
+      ALLOCATE (vector_batch_I_size_group(0:number_i_subset - 1))
 
       vector_batch_I_size_group = 0
-      DO i = 0, number_i_subset-1
+      DO i = 0, number_i_subset - 1
          vector_batch_I_size_group(i) = total_I_size_batch_group
       END DO
       IF (SUM(vector_batch_I_size_group) /= occ_i) THEN
@@ -967,19 +968,19 @@ CONTAINS
          IF (SUM(vector_batch_I_size_group) > occ_i) one = -1
          i = -1
          DO
-            i = i+1
-            vector_batch_I_size_group(i) = vector_batch_I_size_group(i)+one
+            i = i + 1
+            vector_batch_I_size_group(i) = vector_batch_I_size_group(i) + one
             IF (SUM(vector_batch_I_size_group) == occ_i) EXIT
-            IF (i == number_i_subset-1) i = -1
+            IF (i == number_i_subset - 1) i = -1
          END DO
       END IF
 
       total_J_size_batch_group = occ_j/number_j_subset
       IF (total_J_size_batch_group < 1) total_J_size_batch_group = 1
-      ALLOCATE (vector_batch_J_size_group(0:number_j_subset-1))
+      ALLOCATE (vector_batch_J_size_group(0:number_j_subset - 1))
 
       vector_batch_J_size_group = 0
-      DO i = 0, number_J_subset-1
+      DO i = 0, number_J_subset - 1
          vector_batch_J_size_group(i) = total_J_size_batch_group
       END DO
       IF (SUM(vector_batch_J_size_group) /= occ_j) THEN
@@ -987,10 +988,10 @@ CONTAINS
          IF (SUM(vector_batch_J_size_group) > occ_j) one = -1
          i = -1
          DO
-            i = i+1
-            vector_batch_J_size_group(i) = vector_batch_J_size_group(i)+one
+            i = i + 1
+            vector_batch_J_size_group(i) = vector_batch_J_size_group(i) + one
             IF (SUM(vector_batch_J_size_group) == occ_j) EXIT
-            IF (i == number_J_subset-1) i = -1
+            IF (i == number_J_subset - 1) i = -1
          END DO
       END IF
 
@@ -998,22 +999,22 @@ CONTAINS
       group_counter = 0
       i_group_counter = 0
       my_I_occupied_start = 1
-      DO i = 0, number_i_subset-1
+      DO i = 0, number_i_subset - 1
          my_J_occupied_start = 1
          j_group_counter = 0
-         DO j = 0, number_j_subset-1
-            group_counter = group_counter+1
-            IF (color_sub == group_counter-1) EXIT
-            my_J_occupied_start = my_J_occupied_start+vector_batch_J_size_group(j)
-            j_group_counter = j_group_counter+1
+         DO j = 0, number_j_subset - 1
+            group_counter = group_counter + 1
+            IF (color_sub == group_counter - 1) EXIT
+            my_J_occupied_start = my_J_occupied_start + vector_batch_J_size_group(j)
+            j_group_counter = j_group_counter + 1
          END DO
-         IF (color_sub == group_counter-1) EXIT
-         my_I_occupied_start = my_I_occupied_start+vector_batch_I_size_group(i)
-         i_group_counter = i_group_counter+1
+         IF (color_sub == group_counter - 1) EXIT
+         my_I_occupied_start = my_I_occupied_start + vector_batch_I_size_group(i)
+         i_group_counter = i_group_counter + 1
       END DO
-      my_I_occupied_end = my_I_occupied_start+vector_batch_I_size_group(i_group_counter)-1
+      my_I_occupied_end = my_I_occupied_start + vector_batch_I_size_group(i_group_counter) - 1
       my_I_batch_size = vector_batch_I_size_group(i_group_counter)
-      my_J_occupied_end = my_J_occupied_start+vector_batch_J_size_group(j_group_counter)-1
+      my_J_occupied_end = my_J_occupied_start + vector_batch_J_size_group(j_group_counter) - 1
       my_J_batch_size = vector_batch_J_size_group(j_group_counter)
 
       DEALLOCATE (vector_batch_I_size_group)
@@ -1022,10 +1023,10 @@ CONTAINS
       max_batch_size = MIN( &
                        MAX(1, &
                            INT(mp2_env%mp2_memory*INT(1024, KIND=int_8)**2/ &
-                               (8*(2*dimen-occ_i)*INT(dimen, KIND=int_8)*my_J_batch_size/para_env_sub%num_pe))) &
+                               (8*(2*dimen - occ_i)*INT(dimen, KIND=int_8)*my_J_batch_size/para_env_sub%num_pe))) &
                        , my_I_batch_size)
       IF (max_batch_size < 1) THEN
-         max_batch_size = INT((8*(occ_i+1)*INT(dimen, KIND=int_8)**2/para_env%num_pe)/1024**2)
+         max_batch_size = INT((8*(occ_i + 1)*INT(dimen, KIND=int_8)**2/para_env%num_pe)/1024**2)
          IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T72,I6,A3)') 'More memory required, at least:', max_batch_size, 'MiB'
          max_batch_size = 1
       END IF
@@ -1038,12 +1039,12 @@ CONTAINS
       batch_number = 0
       DO i = 1, my_batch_size
          IF (i*max_batch_size > my_batch_size) EXIT
-         batch_number = batch_number+1
+         batch_number = batch_number + 1
          batch_sizes(i) = max_batch_size
       END DO
-      last_batch = my_batch_size-max_batch_size*batch_number
+      last_batch = my_batch_size - max_batch_size*batch_number
       IF (last_batch > 0) THEN
-         batch_number = batch_number+1
+         batch_number = batch_number + 1
          batch_sizes(batch_number) = last_batch
       END IF
 
@@ -1067,16 +1068,16 @@ CONTAINS
       ! Batches sizes exceed the occupied orbitals allocated for group
       CPASSERT(SUM(batch_sizes) <= my_batch_size)
 
-      virt_i = dimen-occ_i
-      virt_j = dimen-occ_j
+      virt_i = dimen - occ_i
+      virt_j = dimen - occ_j
       natom = SIZE(mp2_biel%index_table, 1)
 
       CALL mp_sync(para_env%group)
       Emp2 = zero
       Emp2_Cou = zero
       Emp2_ex = zero
-      i_batch_start = my_I_occupied_start-1
-      j_batch_start = my_J_occupied_start-1
+      i_batch_start = my_I_occupied_start - 1
+      j_batch_start = my_J_occupied_start - 1
       Nj_occupied = my_J_batch_size
       DO i_batch = 1, batch_number
 
@@ -1088,9 +1089,9 @@ CONTAINS
          ij_matrix = 0
          DO i = 1, Ni_occupied
             DO j = 1, Nj_occupied
-               counter = counter+1
+               counter = counter + 1
                IF (MOD(counter, para_env_sub%num_pe) == para_env_sub%mepos) THEN
-                  ij_matrix(i, j) = ij_matrix(i, j)+1
+                  ij_matrix(i, j) = ij_matrix(i, j) + 1
                END IF
             END DO
          END DO
@@ -1101,7 +1102,7 @@ CONTAINS
          DO i = 1, Ni_occupied
             DO j = 1, Nj_occupied
                IF (ij_matrix(i, j) == 0) CYCLE
-               elements_ij_proc = elements_ij_proc+1
+               elements_ij_proc = elements_ij_proc + 1
                ij_list_proc_temp(elements_ij_proc, 1) = i
                ij_list_proc_temp(elements_ij_proc, 2) = j
             END DO
@@ -1116,17 +1117,17 @@ CONTAINS
          DEALLOCATE (ij_list_proc_temp)
 
          IF (.NOT. alpha_beta_case) THEN
-            CALL mp2_canonical_direct_single_batch(Emp2, Emp2_Cou, Emp2_ex, mp2_env, qs_env, rho, para_env_sub, &
+            CALL mp2_canonical_direct_single_batch(Emp2, Emp2_Cou, Emp2_ex, mp2_env, qs_env, para_env_sub, &
                                                    mp2_biel, dimen, C_i, Auto_i, i_batch_start, Ni_occupied, occ_i, &
                                                    elements_ij_proc, ij_list_proc, Nj_occupied, j_batch_start)
          ELSE
-            CALL mp2_canonical_direct_single_batch(Emp2, Emp2_Cou, Emp2_ex, mp2_env, qs_env, rho, para_env_sub, &
+            CALL mp2_canonical_direct_single_batch(Emp2, Emp2_Cou, Emp2_ex, mp2_env, qs_env, para_env_sub, &
                                                    mp2_biel, dimen, C_i, Auto_i, i_batch_start, Ni_occupied, occ_i, &
                                                    elements_ij_proc, ij_list_proc, Nj_occupied, j_batch_start, &
                                                    occ_j, C_j, Auto_j)
          END IF
 
-         i_batch_start = i_batch_start+Ni_occupied
+         i_batch_start = i_batch_start + Ni_occupied
 
          DEALLOCATE (ij_list_proc)
 
@@ -1157,7 +1158,7 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: do_gw, do_admm
       REAL(KIND=dp), INTENT(IN)                          :: E_ex_from_GW, t3
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_exx', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'calculate_exx'
 
       INTEGER                                            :: handle, i, irep, n_rep_hf, ns
       REAL(KIND=dp)                                      :: eh1, ehfx, t1, t2
@@ -1207,19 +1208,22 @@ CONTAINS
          END IF
       END DO
 
-      ! Remove the Exchange-correlation energy contributions from the total energy
-      energy%total = energy%total-(energy%exc+energy%exc1+energy%ex+energy%exc_aux_fit)
-
-      energy%exc = 0.0_dp
-      energy%exc1 = 0.0_dp
-      energy%exc_aux_fit = 0.0_dp
-      energy%ex = 0.0_dp
-
       ! take the exact exchange energy from GW or calculate it
       IF (do_gw) THEN
-         energy%total = energy%total+E_ex_from_GW
-         energy%ex = E_ex_from_GW
+
+         IF (qs_env%mp2_env%ri_g0w0%update_xc_energy) THEN
+            CALL remove_exc_energy(energy)
+            energy%total = energy%total + E_ex_from_GW
+            energy%ex = E_ex_from_GW
+            t2 = m_walltime()
+
+            IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T56,F25.6)') 'Total EXX Time=', t2 - t1 + t3
+            IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T56,F25.14)') 'EXX energy  =   ', energy%ex
+         END IF
+
       ELSE
+
+         CALL remove_exc_energy(energy)
 
          ehfx = 0.0_dp
          DO irep = 1, n_rep_hf
@@ -1231,21 +1235,23 @@ CONTAINS
             ELSE
                matrix_ks_2d(1:ns, 1:1) => matrix_ks(1:ns)
             END IF
-            CALL integrate_four_center(qs_env, matrix_ks_2d, eh1, rho_ao_2d, hfx_sections, &
+            CALL integrate_four_center(qs_env, qs_env%mp2_env%ri_rpa%x_data, matrix_ks_2d, eh1, &
+                                       rho_ao_2d, hfx_sections, &
                                        para_env, .TRUE., irep, .TRUE., &
-                                       ispin=1, do_exx=.TRUE.)
-            ehfx = ehfx+eh1
+                                       ispin=1)
+            ehfx = ehfx + eh1
          END DO
 
          ! include the EXX contribution to the total energy
          energy%ex = ehfx
-         energy%total = energy%total+energy%ex
+         energy%total = energy%total + energy%ex
+
+         t2 = m_walltime()
+
+         IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T56,F25.6)') 'Total EXX Time=', t2 - t1 + t3
+         IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T56,F25.14)') 'EXX energy  =   ', energy%ex
+
       END IF
-
-      t2 = m_walltime()
-
-      IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T56,F25.6)') 'Total EXX Time=', t2-t1+t3
-      IF (unit_nr > 0) WRITE (unit_nr, '(T3,A,T56,F25.14)') 'EXX energy  =   ', energy%ex
 
       ! reset to zero the Hartree-Fock energy
       energy%ex = 0.0_dp
@@ -1253,6 +1259,33 @@ CONTAINS
       CALL timestop(handle)
 
    END SUBROUTINE calculate_exx
+
+! **************************************************************************************************
+!> \brief ...
+!> \param energy ...
+! **************************************************************************************************
+   SUBROUTINE remove_exc_energy(energy)
+      TYPE(qs_energy_type), POINTER                      :: energy
+
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'remove_exc_energy'
+
+      INTEGER                                            :: handle
+
+      CALL timeset(routineN, handle)
+
+      ! Remove the Exchange-correlation energy contributions from the total energy
+      energy%total = energy%total - (energy%exc + energy%exc1 + energy%ex + &
+                                     energy%exc_aux_fit + energy%exc1_aux_fit)
+
+      energy%exc = 0.0_dp
+      energy%exc1 = 0.0_dp
+      energy%exc_aux_fit = 0.0_dp
+      energy%exc1_aux_fit = 0.0_dp
+      energy%ex = 0.0_dp
+
+      CALL timestop(handle)
+
+   END SUBROUTINE
 
 ! **************************************************************************************************
 !> \brief ...
@@ -1273,8 +1306,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(OUT)                         :: energy_ex, t3
       INTEGER, INTENT(IN)                                :: unit_nr
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'compute_vec_Sigma_x_minus_vxc_gw', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'compute_vec_Sigma_x_minus_vxc_gw'
 
       CHARACTER(4)                                       :: occ_virt
       CHARACTER(LEN=40)                                  :: line
@@ -1284,8 +1316,8 @@ CONTAINS
       LOGICAL                                            :: charge_constrain_tmp, do_admm_rpa, &
                                                             do_hfx, do_kpoints_cubic_RPA, &
                                                             do_ri_Sigma_x, really_read_line
-      REAL(KIND=dp)                                      :: eh1, ehfx, exx_minus_vxc, hfx_fraction, &
-                                                            t1, t2, tmp
+      REAL(KIND=dp) :: eh1, ehfx, energy_exc, energy_exc1, energy_exc1_aux_fit, &
+         energy_exc_aux_fit, energy_total, exx_minus_vxc, hfx_fraction, t1, t2, tmp
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :, :)     :: vec_Sigma_x_minus_vxc_gw, &
                                                             vec_Sigma_x_minus_vxc_gw_im
       TYPE(admm_type), POINTER                           :: admm_env
@@ -1298,6 +1330,7 @@ CONTAINS
       TYPE(dbcsr_type)                                   :: matrix_tmp, matrix_tmp_2, mo_coeff_b
       TYPE(dft_control_type), POINTER                    :: dft_control
       TYPE(kpoint_type), POINTER                         :: kpoints
+      TYPE(qs_energy_type), POINTER                      :: energy
       TYPE(qs_ks_env_type), POINTER                      :: ks_env
       TYPE(qs_rho_type), POINTER                         :: rho
       TYPE(section_vals_type), POINTER                   :: hfx_sections, input, xc_section, &
@@ -1331,7 +1364,8 @@ CONTAINS
                          input=input, &
                          dft_control=dft_control, &
                          para_env=para_env, &
-                         ks_env=ks_env)
+                         ks_env=ks_env, &
+                         energy=energy)
 
          ! RPA/GW with ADMM for EXX or the exchange self-energy only implemented for
          ! ADMM_PURIFICATION_METHOD  NONE
@@ -1345,25 +1379,29 @@ CONTAINS
          IF (do_kpoints_cubic_RPA) THEN
 
             CALL get_qs_env(qs_env, &
+                            admm_env=admm_env, &
                             matrix_ks_kp=matrix_ks_transl, &
                             rho=rho, &
                             input=input, &
                             dft_control=dft_control, &
                             para_env=para_env, &
                             kpoints=kpoints, &
-                            ks_env=ks_env)
+                            ks_env=ks_env, &
+                            energy=energy)
 
             nkp = kpoints%nkp
 
          ELSE
 
             CALL get_qs_env(qs_env, &
+                            admm_env=admm_env, &
                             matrix_ks=matrix_ks, &
                             rho=rho, &
                             input=input, &
                             dft_control=dft_control, &
                             para_env=para_env, &
-                            ks_env=ks_env)
+                            ks_env=ks_env, &
+                            energy=energy)
 
             nkp = 1
 
@@ -1379,9 +1417,10 @@ CONTAINS
 
       ! If ADMM we should make the ks matrix up-to-date
       IF (dft_control%do_admm) THEN
-      DO ispin = 1, SIZE(matrix_ks)
-         CALL admm_correct_for_eigenvalues(ispin, admm_env, matrix_ks(ispin)%matrix)
-      END DO
+         CPASSERT(ASSOCIATED(admm_env))
+         DO ispin = 1, SIZE(matrix_ks)
+            CALL admm_correct_for_eigenvalues(ispin, admm_env, matrix_ks(ispin)%matrix)
+         END DO
       END IF
 
       IF (do_kpoints_cubic_RPA) THEN
@@ -1489,9 +1528,31 @@ CONTAINS
          END DO
       END IF
 
+      IF (.NOT. mp2_env%ri_g0w0%update_xc_energy) THEN
+         energy_total = energy%total
+         energy_exc = energy%exc
+         energy_exc1 = energy%exc1
+         energy_exc_aux_fit = energy%ex
+         energy_exc1_aux_fit = energy%exc_aux_fit
+         energy_ex = energy%exc1_aux_fit
+      END IF
+
+      ! Remove the Exchange-correlation energy contributions from the total energy
+      energy%total = energy%total - (energy%exc + energy%exc1 + energy%ex + &
+                                     energy%exc_aux_fit + energy%exc1_aux_fit)
+
       ! calculate KS-matrix without XC and without HF
       CALL qs_ks_build_kohn_sham_matrix(qs_env=qs_env, calculate_forces=.FALSE., &
                                         just_energy=.FALSE.)
+
+      IF (.NOT. mp2_env%ri_g0w0%update_xc_energy) THEN
+         energy%exc = energy_exc
+         energy%exc1 = energy_exc1
+         energy%exc_aux_fit = energy_ex
+         energy%exc1_aux_fit = energy_exc_aux_fit
+         energy%ex = energy_exc1_aux_fit
+         energy%total = energy_total
+      END IF
 
       ! set the DFT functional and HF fraction back
       CALL section_vals_val_set(xc_section, "XC_FUNCTIONAL%_SECTION_PARAMETERS_", &
@@ -1568,10 +1629,11 @@ CONTAINS
                   matrix_ks_2d(1:ns, 1:1) => matrix_ks(1:ns)
                END IF
 
-               CALL integrate_four_center(qs_env, matrix_ks_2d, eh1, rho_ao_2d, hfx_sections, &
+               CALL integrate_four_center(qs_env, qs_env%mp2_env%ri_rpa%x_data, matrix_ks_2d, eh1, &
+                                          rho_ao_2d, hfx_sections, &
                                           para_env, .TRUE., irep, .TRUE., &
-                                          ispin=1, do_exx=.TRUE.)
-               ehfx = ehfx+eh1
+                                          ispin=1)
+               ehfx = ehfx + eh1
             END DO
          END IF
          energy_ex = ehfx
@@ -1623,16 +1685,16 @@ CONTAINS
             ! if corrected occ/virt levels exceed the number of occ/virt levels,
             ! correct all occ/virt level energies
             IF (gw_corr_lev_occ > homo) gw_corr_lev_occ = homo
-            IF (gw_corr_lev_virt > dimen-homo) gw_corr_lev_virt = dimen-homo
+            IF (gw_corr_lev_virt > dimen - homo) gw_corr_lev_virt = dimen - homo
             IF (ispin == 1) THEN
                mp2_env%ri_g0w0%corr_mos_occ = gw_corr_lev_occ
                mp2_env%ri_g0w0%corr_mos_virt = gw_corr_lev_virt
             ELSE IF (ispin == 2) THEN
                ! ensure that the total number of corrected MOs is the same for alpha and beta, important
                ! for parallelization
-               IF (mp2_env%ri_g0w0%corr_mos_occ+mp2_env%ri_g0w0%corr_mos_virt /= &
-                   gw_corr_lev_occ+gw_corr_lev_virt) THEN
-                  gw_corr_lev_virt = mp2_env%ri_g0w0%corr_mos_occ+mp2_env%ri_g0w0%corr_mos_virt-gw_corr_lev_occ
+               IF (mp2_env%ri_g0w0%corr_mos_occ + mp2_env%ri_g0w0%corr_mos_virt /= &
+                   gw_corr_lev_occ + gw_corr_lev_virt) THEN
+                  gw_corr_lev_virt = mp2_env%ri_g0w0%corr_mos_occ + mp2_env%ri_g0w0%corr_mos_virt - gw_corr_lev_occ
                END IF
                mp2_env%ri_g0w0%corr_mos_occ_beta = gw_corr_lev_occ
                mp2_env%ri_g0w0%corr_mos_virt_beta = gw_corr_lev_virt
@@ -1640,12 +1702,12 @@ CONTAINS
             END IF
 
             CALL dbcsr_multiply('N', 'N', 1.0_dp, matrix_sigma_x_minus_vxc(ispin, 1)%matrix, &
-                                mo_coeff_b, 0.0_dp, matrix_tmp, first_column=homo+1-gw_corr_lev_occ, &
-                                last_column=homo+gw_corr_lev_virt)
+                                mo_coeff_b, 0.0_dp, matrix_tmp, first_column=homo + 1 - gw_corr_lev_occ, &
+                                last_column=homo + gw_corr_lev_virt)
 
             CALL dbcsr_multiply('T', 'N', 1.0_dp, mo_coeff_b, &
-                                matrix_tmp, 0.0_dp, matrix_tmp_2, first_row=homo+1-gw_corr_lev_occ, &
-                                last_row=homo+gw_corr_lev_virt)
+                                matrix_tmp, 0.0_dp, matrix_tmp_2, first_row=homo + 1 - gw_corr_lev_occ, &
+                                last_row=homo + gw_corr_lev_virt)
 
             CALL dbcsr_get_diag(matrix_tmp_2, vec_Sigma_x_minus_vxc_gw(:, ispin, 1))
 
@@ -1687,9 +1749,9 @@ CONTAINS
             WRITE (unit_nr, '(T3,A)') '-----------------'
             WRITE (unit_nr, '(T3,A)') ''
             WRITE (unit_nr, '(T6,2A)') 'MO                    Sigma_x-vxc'
-            DO n_level_gw = 1, gw_corr_lev_occ+gw_corr_lev_virt
+            DO n_level_gw = 1, gw_corr_lev_occ + gw_corr_lev_virt
 
-               n_level_gw_ref = n_level_gw+homo-gw_corr_lev_occ
+               n_level_gw_ref = n_level_gw + homo - gw_corr_lev_occ
                IF (n_level_gw <= gw_corr_lev_occ) THEN
                   occ_virt = 'occ'
                ELSE
@@ -1751,7 +1813,7 @@ CONTAINS
 
       t2 = m_walltime()
 
-      t3 = t2-t1
+      t3 = t2 - t1
 
       CALL timestop(handle)
 
@@ -1781,8 +1843,7 @@ CONTAINS
       INTEGER                                            :: nmo
       TYPE(mp2_type), POINTER                            :: mp2_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'transform_sigma_x_minus_vxc_to_MO_basis', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'transform_sigma_x_minus_vxc_to_MO_basis'
 
       INTEGER :: dimen, gw_corr_lev_occ, gw_corr_lev_virt, handle, homo, i_global, iiB, ikp, &
          ispin, j_global, jjB, ncol_local, nkp, nrow_local, nspins
@@ -1897,16 +1958,16 @@ CONTAINS
          ! if corrected occ/virt levels exceed the number of occ/virt levels,
          ! correct all occ/virt level energies
          IF (gw_corr_lev_occ > homo) gw_corr_lev_occ = homo
-         IF (gw_corr_lev_virt > dimen-homo) gw_corr_lev_virt = dimen-homo
+         IF (gw_corr_lev_virt > dimen - homo) gw_corr_lev_virt = dimen - homo
          IF (ispin == 1) THEN
             mp2_env%ri_g0w0%corr_mos_occ = gw_corr_lev_occ
             mp2_env%ri_g0w0%corr_mos_virt = gw_corr_lev_virt
          ELSE IF (ispin == 2) THEN
             ! ensure that the total number of corrected MOs is the same for alpha and beta, important
             ! for parallelization
-            IF (mp2_env%ri_g0w0%corr_mos_occ+mp2_env%ri_g0w0%corr_mos_virt /= &
-                gw_corr_lev_occ+gw_corr_lev_virt) THEN
-               gw_corr_lev_virt = mp2_env%ri_g0w0%corr_mos_occ+mp2_env%ri_g0w0%corr_mos_virt-gw_corr_lev_occ
+            IF (mp2_env%ri_g0w0%corr_mos_occ + mp2_env%ri_g0w0%corr_mos_virt /= &
+                gw_corr_lev_occ + gw_corr_lev_virt) THEN
+               gw_corr_lev_virt = mp2_env%ri_g0w0%corr_mos_occ + mp2_env%ri_g0w0%corr_mos_virt - gw_corr_lev_occ
             END IF
             mp2_env%ri_g0w0%corr_mos_occ_beta = gw_corr_lev_occ
             mp2_env%ri_g0w0%corr_mos_virt_beta = gw_corr_lev_virt
@@ -1963,8 +2024,7 @@ CONTAINS
                                                             matrix_ks_kp_im
       TYPE(kpoint_type), POINTER                         :: kpoints
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'transform_matrix_ks_to_kp', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'transform_matrix_ks_to_kp'
 
       INTEGER                                            :: handle, ikp, ispin, nkp, nspin
       INTEGER, DIMENSION(:, :, :), POINTER               :: cell_to_index
@@ -2011,8 +2071,7 @@ CONTAINS
                                                             matrix_ks_kp_im
       TYPE(kpoint_type), POINTER                         :: kpoints
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_matrix_ks_kp', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_matrix_ks_kp'
 
       INTEGER                                            :: handle, ikp, ispin, nkp, nspin
       INTEGER, DIMENSION(:, :, :), POINTER               :: cell_to_index

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -42,14 +44,12 @@ CONTAINS
       TYPE(taper_type), POINTER                          :: taper
       REAL(KIND=dp), INTENT(IN)                          :: rc, range
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'taper_create', routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(taper))
       ALLOCATE (taper)
       IF (range > EPSILON(0.0_dp)) THEN
          taper%apply_taper = .TRUE.
          CPASSERT(range > 0.0_dp)
-         taper%r0 = 2.0_dp*rc-20.0_dp*range
+         taper%r0 = 2.0_dp*rc - 20.0_dp*range
          taper%rscale = 1.0_dp/range
       ELSE
          taper%apply_taper = .FALSE.
@@ -63,8 +63,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE taper_release(taper)
       TYPE(taper_type), POINTER                          :: taper
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'taper_release', routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(taper)) THEN
          DEALLOCATE (taper)
@@ -82,14 +80,12 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: rij
       REAL(KIND=dp)                                      :: ft
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'taper_eval', routineP = moduleN//':'//routineN
-
       REAL(KIND=dp)                                      :: dr
 
       ft = 1._dp
       IF (taper%apply_taper) THEN
-         dr = taper%rscale*(rij-taper%r0)
-         ft = 0.5_dp*(1.0_dp-TANH(dr))
+         dr = taper%rscale*(rij - taper%r0)
+         ft = 0.5_dp*(1.0_dp - TANH(dr))
       END IF
    END FUNCTION taper_eval
 
@@ -104,14 +100,12 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: rij
       REAL(KIND=dp)                                      :: dft
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'dtaper_eval', routineP = moduleN//':'//routineN
-
       REAL(KIND=dp)                                      :: dr
 
       dft = 0.0_dp
       IF (taper%apply_taper) THEN
-         dr = taper%rscale*(rij-taper%r0)
-         dft = -0.5_dp*(1.0_dp-TANH(dr)**2)*taper%rscale
+         dr = taper%rscale*(rij - taper%r0)
+         dft = -0.5_dp*(1.0_dp - TANH(dr)**2)*taper%rscale
       END IF
    END FUNCTION dtaper_eval
 

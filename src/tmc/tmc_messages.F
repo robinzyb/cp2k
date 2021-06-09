@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -87,9 +89,6 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       LOGICAL                                            :: master
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'check_if_group_master', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(para_env))
 
       master = .FALSE.
@@ -128,8 +127,6 @@ CONTAINS
       TYPE(elem_list_type), OPTIONAL, POINTER            :: list_elem
       INTEGER, DIMENSION(:), OPTIONAL, POINTER           :: result_count
       LOGICAL, OPTIONAL                                  :: wait_for_message, success
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'tmc_message', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, message_tag, tmp_tag
       LOGICAL                                            :: act_send_recv, flag
@@ -268,7 +265,7 @@ CONTAINS
             CALL mp_probe(dest, para_env%group, tmp_tag)
             flag = .TRUE.
          ELSE
-            participant_loop: DO i = 0, para_env%num_pe-1
+            participant_loop: DO i = 0, para_env%num_pe - 1
                IF (i .NE. para_env%mepos) THEN
                   dest = i
                   CALL mp_probe(dest, para_env%group, tmp_tag)
@@ -319,7 +316,7 @@ CONTAINS
          END IF
       END IF
 
-      ! handling recived message
+      ! handling received message
       IF (act_send_recv .EQV. recv_msg) THEN
          ! if the element is supposed to be canceled but received message is not canceling receipt do not handle element
          ! (because element could be already deallocated, and hence a new element would be created -> not necessary)
@@ -337,7 +334,7 @@ CONTAINS
          END IF
 
          msg_type = m_send%info(1)
-         SELECT CASE (m_send%info (1))
+         SELECT CASE (m_send%info(1))
          CASE (TMC_STAT_START_CONF_REQUEST, TMC_CANCELING_MESSAGE, &
                TMC_CANCELING_RECEIPT, TMC_STATUS_WAIT_FOR_NEW_TASK, &
                TMC_STATUS_CALCULATING, TMC_STAT_ANALYSIS_RESULT)
@@ -395,15 +392,13 @@ CONTAINS
    SUBROUTINE create_status_message(m_send)
       TYPE(message_send), POINTER                        :: m_send
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'create_status_message', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(m_send))
 
       ! nothing to do, send just the message tag
 
       CPASSERT(.NOT. ALLOCATED(m_send%task_int))
       CPASSERT(.NOT. ALLOCATED(m_send%task_real))
+      MARK_USED(m_send)
 
    END SUBROUTINE create_status_message
 
@@ -501,9 +496,6 @@ CONTAINS
       TYPE(tmc_param_type), POINTER                      :: tmc_params
       TYPE(message_send), POINTER                        :: m_send
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'create_worker_init_message', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: counter, msg_size_int, msg_size_real
 
       CPASSERT(ASSOCIATED(tmc_params))
@@ -514,28 +506,28 @@ CONTAINS
       CPASSERT(ASSOCIATED(tmc_params%cell))
 
       counter = 1
-      msg_size_int = 1+SIZE(tmc_params%cell%perd)+1+1+1+1
+      msg_size_int = 1 + SIZE(tmc_params%cell%perd) + 1 + 1 + 1 + 1
       ALLOCATE (m_send%task_int(msg_size_int))
       m_send%task_int(counter) = SIZE(tmc_params%cell%perd) ! periodicity of the cell
-      counter = counter+1+m_send%task_int(counter)
-      m_send%task_int(2:counter-1) = tmc_params%cell%perd(:)
+      counter = counter + 1 + m_send%task_int(counter)
+      m_send%task_int(2:counter - 1) = tmc_params%cell%perd(:)
       m_send%task_int(counter) = 1
-      m_send%task_int(counter+1) = tmc_params%cell%symmetry_id
-      m_send%task_int(counter+2) = 0
-      IF (tmc_params%cell%orthorhombic) m_send%task_int(counter+2) = 1
-      counter = counter+3
+      m_send%task_int(counter + 1) = tmc_params%cell%symmetry_id
+      m_send%task_int(counter + 2) = 0
+      IF (tmc_params%cell%orthorhombic) m_send%task_int(counter + 2) = 1
+      counter = counter + 3
       m_send%task_int(counter) = message_end_flag
       CPASSERT(counter .EQ. SIZE(m_send%task_int))
 
       !float array with cell vectors
-      msg_size_real = 1+SIZE(tmc_params%cell%hmat)+1
+      msg_size_real = 1 + SIZE(tmc_params%cell%hmat) + 1
       ALLOCATE (m_send%task_real(msg_size_real))
       counter = 1
       m_send%task_real(counter) = SIZE(tmc_params%cell%hmat) ! cell vectors for cell size
-      m_send%task_real(counter+1:counter+SIZE(tmc_params%cell%hmat)) = &
+      m_send%task_real(counter + 1:counter + SIZE(tmc_params%cell%hmat)) = &
          RESHAPE(tmc_params%cell%hmat(:, :), &
                  (/SIZE(tmc_params%cell%hmat)/))
-      counter = counter+1+INT(m_send%task_real(counter))
+      counter = counter + 1 + INT(m_send%task_real(counter))
       m_send%task_real(counter) = REAL(message_end_flag, KIND=dp) !message end
       CPASSERT(SIZE(m_send%task_real) .EQ. msg_size_real)
       CPASSERT(INT(m_send%task_real(msg_size_real)) .EQ. message_end_flag)
@@ -551,9 +543,6 @@ CONTAINS
       TYPE(tmc_param_type), POINTER                      :: tmc_params
       TYPE(message_send), POINTER                        :: m_send
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_worker_init_message', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: counter
       LOGICAL                                            :: flag
 
@@ -566,12 +555,12 @@ CONTAINS
       !int array
       flag = INT(m_send%task_int(1)) .EQ. SIZE(tmc_params%cell%perd)
       CPASSERT(flag)
-      counter = 1+m_send%task_int(1)+1
-      tmc_params%cell%perd = m_send%task_int(2:counter-1)
-      tmc_params%cell%symmetry_id = m_send%task_int(counter+1)
+      counter = 1 + m_send%task_int(1) + 1
+      tmc_params%cell%perd = m_send%task_int(2:counter - 1)
+      tmc_params%cell%symmetry_id = m_send%task_int(counter + 1)
       tmc_params%cell%orthorhombic = .FALSE.
-      IF (m_send%task_int(counter+2) .EQ. 1) tmc_params%cell%orthorhombic = .TRUE.
-      counter = counter+3
+      IF (m_send%task_int(counter + 2) .EQ. 1) tmc_params%cell%orthorhombic = .TRUE.
+      counter = counter + 3
       CPASSERT(counter .EQ. m_send%info(2))
       CPASSERT(m_send%task_int(counter) .EQ. message_end_flag)
 
@@ -580,9 +569,9 @@ CONTAINS
       flag = INT(m_send%task_real(counter)) .EQ. SIZE(tmc_params%cell%hmat)
       CPASSERT(flag)
       tmc_params%cell%hmat = &
-         RESHAPE(m_send%task_real(counter+1:counter+ &
+         RESHAPE(m_send%task_real(counter + 1:counter + &
                                   SIZE(tmc_params%cell%hmat)), (/3, 3/))
-      counter = counter+1+INT(m_send%task_real(counter))
+      counter = counter + 1 + INT(m_send%task_real(counter))
 
       CPASSERT(counter .EQ. m_send%info(3))
       CPASSERT(INT(m_send%task_real(m_send%info(3))) .EQ. message_end_flag)
@@ -607,9 +596,6 @@ CONTAINS
       TYPE(tmc_param_type), POINTER                      :: tmc_params
       TYPE(message_send), POINTER                        :: m_send
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'create_start_conf_message', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: counter, i, msg_size_int, msg_size_real
 
       CPASSERT(ASSOCIATED(m_send))
@@ -621,51 +607,51 @@ CONTAINS
       CPASSERT(.NOT. ALLOCATED(m_send%task_char))
 
       counter = 1
-      msg_size_int = 1+SIZE(tmc_params%cell%perd)+1+1+1+1+SIZE(elem%mol)+1
+      msg_size_int = 1 + SIZE(tmc_params%cell%perd) + 1 + 1 + 1 + 1 + SIZE(elem%mol) + 1
       IF (msg_type .EQ. TMC_STAT_INIT_ANALYSIS) THEN
          CPASSERT(PRESENT(result_count))
          CPASSERT(ASSOCIATED(result_count))
-         msg_size_int = msg_size_int+1+SIZE(result_count(1:))
+         msg_size_int = msg_size_int + 1 + SIZE(result_count(1:))
       END IF
       ALLOCATE (m_send%task_int(msg_size_int))
       m_send%task_int(counter) = SIZE(tmc_params%cell%perd) ! periodicity of the cell
-      counter = counter+1+m_send%task_int(counter)
-      m_send%task_int(2:counter-1) = tmc_params%cell%perd(:)
+      counter = counter + 1 + m_send%task_int(counter)
+      m_send%task_int(2:counter - 1) = tmc_params%cell%perd(:)
       m_send%task_int(counter) = 1
-      m_send%task_int(counter+1) = tmc_params%cell%symmetry_id
-      m_send%task_int(counter+2) = 0
-      IF (tmc_params%cell%orthorhombic) m_send%task_int(counter+2) = 1
-      counter = counter+3
+      m_send%task_int(counter + 1) = tmc_params%cell%symmetry_id
+      m_send%task_int(counter + 2) = 0
+      IF (tmc_params%cell%orthorhombic) m_send%task_int(counter + 2) = 1
+      counter = counter + 3
       m_send%task_int(counter) = SIZE(elem%mol)
-      m_send%task_int(counter+1:counter+m_send%task_int(counter)) = elem%mol(:)
-      counter = counter+1+m_send%task_int(counter)
+      m_send%task_int(counter + 1:counter + m_send%task_int(counter)) = elem%mol(:)
+      counter = counter + 1 + m_send%task_int(counter)
       IF (msg_type .EQ. TMC_STAT_INIT_ANALYSIS) THEN
          m_send%task_int(counter) = SIZE(result_count(1:))
-         m_send%task_int(counter+1:counter+m_send%task_int(counter)) = &
+         m_send%task_int(counter + 1:counter + m_send%task_int(counter)) = &
             result_count(1:)
-         counter = counter+1+m_send%task_int(counter)
+         counter = counter + 1 + m_send%task_int(counter)
       END IF
       m_send%task_int(counter) = message_end_flag
       CPASSERT(counter .EQ. SIZE(m_send%task_int))
 
       counter = 0
       !float array with pos, cell vectors, atom_mass
-      msg_size_real = 1+SIZE(elem%pos)+1+SIZE(tmc_params%cell%hmat) &
-                      +1+SIZE(tmc_params%atoms)+1
+      msg_size_real = 1 + SIZE(elem%pos) + 1 + SIZE(tmc_params%cell%hmat) &
+                      + 1 + SIZE(tmc_params%atoms) + 1
       ALLOCATE (m_send%task_real(msg_size_real))
       m_send%task_real(1) = REAL(SIZE(elem%pos), KIND=dp) ! positions
-      counter = 2+INT(m_send%task_real(1))
-      m_send%task_real(2:counter-1) = elem%pos
+      counter = 2 + INT(m_send%task_real(1))
+      m_send%task_real(2:counter - 1) = elem%pos
       m_send%task_real(counter) = SIZE(tmc_params%cell%hmat) ! cell vectors for cell size
-      m_send%task_real(counter+1:counter+SIZE(tmc_params%cell%hmat)) = &
+      m_send%task_real(counter + 1:counter + SIZE(tmc_params%cell%hmat)) = &
          RESHAPE(tmc_params%cell%hmat(:, :), &
                  (/SIZE(tmc_params%cell%hmat)/))
-      counter = counter+1+INT(m_send%task_real(counter))
+      counter = counter + 1 + INT(m_send%task_real(counter))
       m_send%task_real(counter) = SIZE(tmc_params%atoms) ! atom mass
       DO i = 1, SIZE(tmc_params%atoms)
-         m_send%task_real(counter+i) = tmc_params%atoms(i)%mass
+         m_send%task_real(counter + i) = tmc_params%atoms(i)%mass
       END DO
-      counter = counter+1+INT(m_send%task_real(counter))
+      counter = counter + 1 + INT(m_send%task_real(counter))
       m_send%task_real(counter) = REAL(message_end_flag, KIND=dp) !message end
       CPASSERT(SIZE(m_send%task_real) .EQ. msg_size_real)
       CPASSERT(INT(m_send%task_real(msg_size_real)) .EQ. message_end_flag)
@@ -690,9 +676,6 @@ CONTAINS
       TYPE(message_send), POINTER                        :: m_send
       TYPE(tmc_param_type), POINTER                      :: tmc_params
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_start_conf_message', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: counter, i
       LOGICAL                                            :: flag
 
@@ -709,41 +692,41 @@ CONTAINS
       !int array
       flag = INT(m_send%task_int(1)) .EQ. SIZE(tmc_params%cell%perd)
       CPASSERT(flag)
-      counter = 1+m_send%task_int(1)+1
-      tmc_params%cell%perd = m_send%task_int(2:counter-1)
-      tmc_params%cell%symmetry_id = m_send%task_int(counter+1)
+      counter = 1 + m_send%task_int(1) + 1
+      tmc_params%cell%perd = m_send%task_int(2:counter - 1)
+      tmc_params%cell%symmetry_id = m_send%task_int(counter + 1)
       tmc_params%cell%orthorhombic = .FALSE.
-      IF (m_send%task_int(counter+2) .EQ. 1) tmc_params%cell%orthorhombic = .TRUE.
-      counter = counter+3
-      elem%mol(:) = m_send%task_int(counter+1:counter+m_send%task_int(counter))
-      counter = counter+1+m_send%task_int(counter)
+      IF (m_send%task_int(counter + 2) .EQ. 1) tmc_params%cell%orthorhombic = .TRUE.
+      counter = counter + 3
+      elem%mol(:) = m_send%task_int(counter + 1:counter + m_send%task_int(counter))
+      counter = counter + 1 + m_send%task_int(counter)
       IF (msg_type .EQ. TMC_STAT_INIT_ANALYSIS) THEN
          CPASSERT(PRESENT(result_count))
          CPASSERT(.NOT. ASSOCIATED(result_count))
          ALLOCATE (result_count(m_send%task_int(counter)))
-         result_count(:) = m_send%task_int(counter+1:counter+m_send%task_int(counter))
-         counter = counter+1+m_send%task_int(counter)
+         result_count(:) = m_send%task_int(counter + 1:counter + m_send%task_int(counter))
+         counter = counter + 1 + m_send%task_int(counter)
       END IF
       CPASSERT(counter .EQ. m_send%info(2))
       CPASSERT(m_send%task_int(counter) .EQ. message_end_flag)
 
       counter = 0
       !float array with pos, cell vectors, atom_mass
-      counter = 2+INT(m_send%task_real(1))
-      elem%pos = m_send%task_real(2:counter-1)
+      counter = 2 + INT(m_send%task_real(1))
+      elem%pos = m_send%task_real(2:counter - 1)
       flag = INT(m_send%task_real(counter)) .EQ. SIZE(tmc_params%cell%hmat)
       CPASSERT(flag)
       tmc_params%cell%hmat = &
-         RESHAPE(m_send%task_real(counter+1:counter+ &
+         RESHAPE(m_send%task_real(counter + 1:counter + &
                                   SIZE(tmc_params%cell%hmat)), (/3, 3/))
-      counter = counter+1+INT(m_send%task_real(counter))
+      counter = counter + 1 + INT(m_send%task_real(counter))
 
       CALL allocate_tmc_atom_type(atoms=tmc_params%atoms, &
                                   nr_atoms=INT(m_send%task_real(counter)))
       DO i = 1, SIZE(tmc_params%atoms)
-         tmc_params%atoms(i)%mass = m_send%task_real(counter+i)
+         tmc_params%atoms(i)%mass = m_send%task_real(counter + i)
       END DO
-      counter = counter+1+INT(m_send%task_real(counter))
+      counter = counter + 1 + INT(m_send%task_real(counter))
 
       CPASSERT(counter .EQ. m_send%info(3))
       CPASSERT(INT(m_send%task_real(m_send%info(3))) .EQ. message_end_flag)
@@ -766,9 +749,6 @@ CONTAINS
       TYPE(message_send), POINTER                        :: m_send
       TYPE(tmc_param_type), POINTER                      :: tmc_params
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'create_energy_request_message', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: counter, msg_size_int, msg_size_real
 
       CPASSERT(ASSOCIATED(m_send))
@@ -779,30 +759,30 @@ CONTAINS
 
       counter = 0
       !first integer array
-      msg_size_int = 1+1+1+1+1 ! 1+SIZE(elem%sub_tree_nr) +1+SIZE(elem%nr)
+      msg_size_int = 1 + 1 + 1 + 1 + 1 ! 1+SIZE(elem%sub_tree_nr) +1+SIZE(elem%nr)
       ALLOCATE (m_send%task_int(msg_size_int))
       counter = 1
       m_send%task_int(counter) = 1 !SIZE(elem%sub_tree_nr)
-      m_send%task_int(counter+1:counter+m_send%task_int(counter)) = elem%sub_tree_nr
-      counter = counter+1+m_send%task_int(counter)
+      m_send%task_int(counter + 1:counter + m_send%task_int(counter)) = elem%sub_tree_nr
+      counter = counter + 1 + m_send%task_int(counter)
       m_send%task_int(counter) = 1 !SIZE(elem%nr)
-      m_send%task_int(counter+1:counter+m_send%task_int(counter)) = elem%nr
-      counter = counter+1+m_send%task_int(counter)
+      m_send%task_int(counter + 1:counter + m_send%task_int(counter)) = elem%nr
+      counter = counter + 1 + m_send%task_int(counter)
       m_send%task_int(counter) = message_end_flag
       CPASSERT(SIZE(m_send%task_int) .EQ. msg_size_int)
       CPASSERT(m_send%task_int(msg_size_int) .EQ. message_end_flag)
 
       !then float array with pos
-      msg_size_real = 1+SIZE(elem%pos)+1
-      IF (tmc_params%pressure .GE. 0.0_dp) msg_size_real = msg_size_real+1+SIZE(elem%box_scale(:))
+      msg_size_real = 1 + SIZE(elem%pos) + 1
+      IF (tmc_params%pressure .GE. 0.0_dp) msg_size_real = msg_size_real + 1 + SIZE(elem%box_scale(:))
       ALLOCATE (m_send%task_real(msg_size_real))
       m_send%task_real(1) = SIZE(elem%pos)
-      counter = 2+INT(m_send%task_real(1))
-      m_send%task_real(2:counter-1) = elem%pos
+      counter = 2 + INT(m_send%task_real(1))
+      m_send%task_real(2:counter - 1) = elem%pos
       IF (tmc_params%pressure .GE. 0.0_dp) THEN
          m_send%task_real(counter) = SIZE(elem%box_scale)
-         m_send%task_real(counter+1:counter+INT(m_send%task_real(counter))) = elem%box_scale(:)
-         counter = counter+1+INT(m_send%task_real(counter))
+         m_send%task_real(counter + 1:counter + INT(m_send%task_real(counter))) = elem%box_scale(:)
+         counter = counter + 1 + INT(m_send%task_real(counter))
       END IF
       m_send%task_real(counter) = REAL(message_end_flag, KIND=dp) !message end
 
@@ -822,9 +802,6 @@ CONTAINS
       TYPE(message_send), POINTER                        :: m_send
       TYPE(tmc_param_type), POINTER                      :: tmc_params
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_energy_request_message', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: counter
 
       CPASSERT(ASSOCIATED(m_send))
@@ -840,20 +817,20 @@ CONTAINS
       ! read the integer values
       CPASSERT(m_send%info(2) .GT. 0)
       counter = 1
-      elem%sub_tree_nr = m_send%task_int(counter+1)
-      counter = counter+1+m_send%task_int(counter)
-      elem%nr = m_send%task_int(counter+1)
-      counter = counter+1+m_send%task_int(counter)
+      elem%sub_tree_nr = m_send%task_int(counter + 1)
+      counter = counter + 1 + m_send%task_int(counter)
+      elem%nr = m_send%task_int(counter + 1)
+      counter = counter + 1 + m_send%task_int(counter)
       CPASSERT(m_send%task_int(counter) .EQ. message_end_flag)
 
       !float array with pos
       counter = 0
-      counter = 1+NINT(m_send%task_real(1))
+      counter = 1 + NINT(m_send%task_real(1))
       elem%pos = m_send%task_real(2:counter)
-      counter = counter+1
+      counter = counter + 1
       IF (tmc_params%pressure .GE. 0.0_dp) THEN
-         elem%box_scale(:) = m_send%task_real(counter+1:counter+INT(m_send%task_real(counter)))
-         counter = counter+1+INT(m_send%task_real(counter))
+         elem%box_scale(:) = m_send%task_real(counter + 1:counter + INT(m_send%task_real(counter)))
+         counter = counter + 1 + INT(m_send%task_real(counter))
       END IF
 
       CPASSERT(counter .EQ. m_send%info(3))
@@ -872,9 +849,6 @@ CONTAINS
       TYPE(message_send), POINTER                        :: m_send
       TYPE(tmc_param_type), POINTER                      :: tmc_params
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'create_energy_result_message', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: counter, msg_size_int, msg_size_real
 
       CPASSERT(ASSOCIATED(m_send))
@@ -888,22 +862,22 @@ CONTAINS
       msg_size_int = 0
       ! for checking the tree element mapping, send back the tree numbers
       IF (DEBUG .GT. 0) THEN
-         msg_size_int = 1+1+1+1+1 ! 1+SIZE(elem%sub_tree_nr) +1+SIZE(elem%nr)
+         msg_size_int = 1 + 1 + 1 + 1 + 1 ! 1+SIZE(elem%sub_tree_nr) +1+SIZE(elem%nr)
          ALLOCATE (m_send%task_int(msg_size_int))
          counter = 1
          m_send%task_int(counter) = 1 !SIZE(elem%sub_tree_nr)
-         m_send%task_int(counter+1:counter+m_send%task_int(counter)) = elem%sub_tree_nr
-         counter = counter+1+m_send%task_int(counter)
+         m_send%task_int(counter + 1:counter + m_send%task_int(counter)) = elem%sub_tree_nr
+         counter = counter + 1 + m_send%task_int(counter)
          m_send%task_int(counter) = 1 !SIZE(elem%nr)
-         m_send%task_int(counter+1:counter+m_send%task_int(counter)) = elem%nr
-         counter = counter+m_send%task_int(counter)+1
+         m_send%task_int(counter + 1:counter + m_send%task_int(counter)) = elem%nr
+         counter = counter + m_send%task_int(counter) + 1
          m_send%task_int(counter) = message_end_flag !message end
       END IF
 
       !then float array with energy of exact potential
-      msg_size_real = 1+1+1
-      IF (tmc_params%print_forces) msg_size_real = msg_size_real+1+SIZE(elem%frc)
-      IF (tmc_params%print_dipole) msg_size_real = msg_size_real+1+SIZE(elem%dipole)
+      msg_size_real = 1 + 1 + 1
+      IF (tmc_params%print_forces) msg_size_real = msg_size_real + 1 + SIZE(elem%frc)
+      IF (tmc_params%print_dipole) msg_size_real = msg_size_real + 1 + SIZE(elem%dipole)
 
       ALLOCATE (m_send%task_real(msg_size_real))
       m_send%task_real(1) = 1
@@ -911,13 +885,13 @@ CONTAINS
       counter = 3
       IF (tmc_params%print_forces) THEN
          m_send%task_real(counter) = SIZE(elem%frc)
-         m_send%task_real(counter+1:counter+NINT(m_send%task_real(counter))) = elem%frc
-         counter = counter+NINT(m_send%task_real(counter))+1
+         m_send%task_real(counter + 1:counter + NINT(m_send%task_real(counter))) = elem%frc
+         counter = counter + NINT(m_send%task_real(counter)) + 1
       END IF
       IF (tmc_params%print_dipole) THEN
          m_send%task_real(counter) = SIZE(elem%dipole)
-         m_send%task_real(counter+1:counter+NINT(m_send%task_real(counter))) = elem%dipole
-         counter = counter+NINT(m_send%task_real(counter))+1
+         m_send%task_real(counter + 1:counter + NINT(m_send%task_real(counter))) = elem%dipole
+         counter = counter + NINT(m_send%task_real(counter)) + 1
       END IF
 
       m_send%task_real(counter) = REAL(message_end_flag, KIND=dp) !message end
@@ -938,9 +912,6 @@ CONTAINS
       TYPE(message_send), POINTER                        :: m_send
       TYPE(tmc_param_type), POINTER                      :: tmc_params
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_energy_result_message', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: counter
 
       CPASSERT(ASSOCIATED(elem))
@@ -952,10 +923,10 @@ CONTAINS
       ! for checking the tree element mapping, check the tree numbers
       IF (DEBUG .GT. 0) THEN
          counter = 1
-         IF (elem%sub_tree_nr .NE. m_send%task_int(counter+1) .OR. &
-             elem%nr .NE. m_send%task_int(counter+3)) THEN
+         IF (elem%sub_tree_nr .NE. m_send%task_int(counter + 1) .OR. &
+             elem%nr .NE. m_send%task_int(counter + 3)) THEN
             WRITE (*, *) "ERROR: read_energy_result: master got energy result of subtree elem ", &
-               m_send%task_int(counter+1), m_send%task_int(counter+3), &
+               m_send%task_int(counter + 1), m_send%task_int(counter + 3), &
                " but expect result of subtree elem", elem%sub_tree_nr, elem%nr
             CPABORT("read_energy_result: got energy result from unexpected tree element.")
          END IF
@@ -967,12 +938,12 @@ CONTAINS
       elem%potential = m_send%task_real(2)
       counter = 3
       IF (tmc_params%print_forces) THEN
-         elem%frc(:) = m_send%task_real((counter+1):(counter+NINT(m_send%task_real(counter))))
-         counter = counter+1+NINT(m_send%task_real(counter))
+         elem%frc(:) = m_send%task_real((counter + 1):(counter + NINT(m_send%task_real(counter))))
+         counter = counter + 1 + NINT(m_send%task_real(counter))
       END IF
       IF (tmc_params%print_dipole) THEN
-         elem%dipole(:) = m_send%task_real((counter+1):(counter+NINT(m_send%task_real(counter))))
-         counter = counter+1+NINT(m_send%task_real(counter))
+         elem%dipole(:) = m_send%task_real((counter + 1):(counter + NINT(m_send%task_real(counter))))
+         counter = counter + 1 + NINT(m_send%task_real(counter))
       END IF
 
       CPASSERT(counter .EQ. m_send%info(3))
@@ -992,9 +963,6 @@ CONTAINS
       TYPE(message_send), POINTER                        :: m_send
       TYPE(tmc_param_type), POINTER                      :: tmc_params
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'create_approx_energy_result_message', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: counter, msg_size_real
 
       CPASSERT(ASSOCIATED(m_send))
@@ -1006,8 +974,8 @@ CONTAINS
       counter = 0
 
       !then float array with energy of exact potential
-      msg_size_real = 1+1+1
-      IF (tmc_params%pressure .GE. 0.0_dp) msg_size_real = msg_size_real+1+SIZE(elem%box_scale(:))
+      msg_size_real = 1 + 1 + 1
+      IF (tmc_params%pressure .GE. 0.0_dp) msg_size_real = msg_size_real + 1 + SIZE(elem%box_scale(:))
 
       ALLOCATE (m_send%task_real(msg_size_real))
       m_send%task_real(1) = 1
@@ -1016,8 +984,8 @@ CONTAINS
       ! the box size for NpT
       IF (tmc_params%pressure .GE. 0.0_dp) THEN
          m_send%task_real(counter) = SIZE(elem%box_scale)
-         m_send%task_real(counter+1:counter+INT(m_send%task_real(counter))) = elem%box_scale(:)
-         counter = counter+1+INT(m_send%task_real(counter))
+         m_send%task_real(counter + 1:counter + INT(m_send%task_real(counter))) = elem%box_scale(:)
+         counter = counter + 1 + INT(m_send%task_real(counter))
       END IF
       m_send%task_real(counter) = REAL(message_end_flag, KIND=dp) !message end
 
@@ -1037,9 +1005,6 @@ CONTAINS
       TYPE(message_send), POINTER                        :: m_send
       TYPE(tmc_param_type), POINTER                      :: tmc_params
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_approx_energy_result', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: counter
 
       CPASSERT(ASSOCIATED(elem))
@@ -1051,8 +1016,8 @@ CONTAINS
       elem%e_pot_approx = m_send%task_real(2)
       counter = 3
       IF (tmc_params%pressure .GE. 0.0_dp) THEN
-         elem%box_scale(:) = m_send%task_real(counter+1:counter+INT(m_send%task_real(counter)))
-         counter = counter+1+INT(m_send%task_real(counter))
+         elem%box_scale(:) = m_send%task_real(counter + 1:counter + INT(m_send%task_real(counter)))
+         counter = counter + 1 + INT(m_send%task_real(counter))
       END IF
 
       CPASSERT(counter .EQ. m_send%info(3))
@@ -1077,9 +1042,6 @@ CONTAINS
       TYPE(message_send), POINTER                        :: m_send
       TYPE(tmc_param_type), POINTER                      :: tmc_params
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'create_NMC_request_massage', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: counter, msg_size_int, msg_size_real
 
       CPASSERT(ASSOCIATED(m_send))
@@ -1090,59 +1052,59 @@ CONTAINS
 
       counter = 0
       !first integer array with element status,mol_info, move type, sub tree, element nr, temp index
-      msg_size_int = 1+SIZE(elem%elem_stat)+1+SIZE(elem%mol)+1+1+1+1+1+1+1+1+1
+      msg_size_int = 1 + SIZE(elem%elem_stat) + 1 + SIZE(elem%mol) + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1
 
       ALLOCATE (m_send%task_int(msg_size_int))
       ! element status
       m_send%task_int(1) = SIZE(elem%elem_stat)
-      counter = 2+m_send%task_int(1)
-      m_send%task_int(2:counter-1) = elem%elem_stat
+      counter = 2 + m_send%task_int(1)
+      m_send%task_int(2:counter - 1) = elem%elem_stat
       m_send%task_int(counter) = SIZE(elem%mol)
-      m_send%task_int(counter+1:counter+m_send%task_int(counter)) = elem%mol(:)
-      counter = counter+1+m_send%task_int(counter)
+      m_send%task_int(counter + 1:counter + m_send%task_int(counter)) = elem%mol(:)
+      counter = counter + 1 + m_send%task_int(counter)
       ! element move type
       m_send%task_int(counter) = 1
-      m_send%task_int(counter+1) = elem%move_type
-      counter = counter+2
+      m_send%task_int(counter + 1) = elem%move_type
+      counter = counter + 2
       m_send%task_int(counter) = 1
-      m_send%task_int(counter+1) = elem%nr
-      counter = counter+2
+      m_send%task_int(counter + 1) = elem%nr
+      counter = counter + 2
       m_send%task_int(counter) = 1
-      m_send%task_int(counter+1) = elem%sub_tree_nr
-      counter = counter+2
+      m_send%task_int(counter + 1) = elem%sub_tree_nr
+      counter = counter + 2
       m_send%task_int(counter) = 1
-      m_send%task_int(counter+1) = elem%temp_created
-      m_send%task_int(counter+2) = message_end_flag !message end
+      m_send%task_int(counter + 1) = elem%temp_created
+      m_send%task_int(counter + 2) = message_end_flag !message end
 
       counter = 0
       !then float array with pos, (vel), random number seed, subbox_center
-      msg_size_real = 1+SIZE(elem%pos)+1+SIZE(elem%rng_seed)+1+SIZE(elem%subbox_center(:))+1
+      msg_size_real = 1 + SIZE(elem%pos) + 1 + SIZE(elem%rng_seed) + 1 + SIZE(elem%subbox_center(:)) + 1
       IF (msg_type .EQ. TMC_STAT_MD_REQUEST .OR. msg_type .EQ. TMC_STAT_MD_BROADCAST) &
-         msg_size_real = msg_size_real+1+SIZE(elem%vel) ! the velocities
-      IF (tmc_params%pressure .GE. 0.0_dp) msg_size_real = msg_size_real+1+SIZE(elem%box_scale(:)) ! box size for NpT
+         msg_size_real = msg_size_real + 1 + SIZE(elem%vel) ! the velocities
+      IF (tmc_params%pressure .GE. 0.0_dp) msg_size_real = msg_size_real + 1 + SIZE(elem%box_scale(:)) ! box size for NpT
 
       ALLOCATE (m_send%task_real(msg_size_real))
       m_send%task_real(1) = SIZE(elem%pos)
-      counter = 2+INT(m_send%task_real(1))
-      m_send%task_real(2:counter-1) = elem%pos
+      counter = 2 + INT(m_send%task_real(1))
+      m_send%task_real(2:counter - 1) = elem%pos
       IF (msg_type .EQ. TMC_STAT_MD_REQUEST .OR. msg_type .EQ. TMC_STAT_MD_BROADCAST) THEN
          m_send%task_real(counter) = SIZE(elem%vel)
-         m_send%task_real(counter+1:counter+NINT(m_send%task_real(counter))) = elem%vel
-         counter = counter+1+NINT(m_send%task_real(counter))
+         m_send%task_real(counter + 1:counter + NINT(m_send%task_real(counter))) = elem%vel
+         counter = counter + 1 + NINT(m_send%task_real(counter))
       END IF
       ! rng seed
       m_send%task_real(counter) = SIZE(elem%rng_seed)
-      m_send%task_real(counter+1:counter+SIZE(elem%rng_seed)) = RESHAPE(elem%rng_seed(:, :, :), (/SIZE(elem%rng_seed)/))
-      counter = counter+NINT(m_send%task_real(counter))+1
+      m_send%task_real(counter + 1:counter + SIZE(elem%rng_seed)) = RESHAPE(elem%rng_seed(:, :, :), (/SIZE(elem%rng_seed)/))
+      counter = counter + NINT(m_send%task_real(counter)) + 1
       ! sub box center
       m_send%task_real(counter) = SIZE(elem%subbox_center(:))
-      m_send%task_real(counter+1:counter+SIZE(elem%subbox_center)) = elem%subbox_center(:)
-      counter = counter+1+NINT(m_send%task_real(counter))
+      m_send%task_real(counter + 1:counter + SIZE(elem%subbox_center)) = elem%subbox_center(:)
+      counter = counter + 1 + NINT(m_send%task_real(counter))
       ! the box size for NpT
       IF (tmc_params%pressure .GE. 0.0_dp) THEN
          m_send%task_real(counter) = SIZE(elem%box_scale)
-         m_send%task_real(counter+1:counter+INT(m_send%task_real(counter))) = elem%box_scale(:)
-         counter = counter+1+INT(m_send%task_real(counter))
+         m_send%task_real(counter + 1:counter + INT(m_send%task_real(counter))) = elem%box_scale(:)
+         counter = counter + 1 + INT(m_send%task_real(counter))
       END IF
       m_send%task_real(counter) = message_end_flag !message end
 
@@ -1167,9 +1129,6 @@ CONTAINS
       TYPE(message_send), POINTER                        :: m_send
       TYPE(tmc_param_type), POINTER                      :: tmc_params
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_NMC_request_massage', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: counter, num_dim, rnd_seed_size
 
       CPASSERT(.NOT. ASSOCIATED(elem))
@@ -1178,48 +1137,48 @@ CONTAINS
       CPASSERT(ASSOCIATED(tmc_params))
 
       counter = 0
-      !first integer array with number of dimentions and random seed size
-      rnd_seed_size = m_send%task_int(1+m_send%task_int(1)+1)
+      !first integer array with number of dimensions and random seed size
+      rnd_seed_size = m_send%task_int(1 + m_send%task_int(1) + 1)
 
       IF (.NOT. ASSOCIATED(elem)) THEN
          CALL allocate_new_sub_tree_node(next_el=elem, nr_dim=NINT(m_send%task_real(1)), &
                                          tmc_params=tmc_params)
       END IF
       ! element status
-      counter = 2+m_send%task_int(1)
-      elem%elem_stat = m_send%task_int(2:counter-1)
-      elem%mol(:) = m_send%task_int(counter+1:counter+m_send%task_int(counter))
-      counter = counter+1+m_send%task_int(counter)
+      counter = 2 + m_send%task_int(1)
+      elem%elem_stat = m_send%task_int(2:counter - 1)
+      elem%mol(:) = m_send%task_int(counter + 1:counter + m_send%task_int(counter))
+      counter = counter + 1 + m_send%task_int(counter)
       ! element move type
-      elem%move_type = m_send%task_int(counter+1)
-      counter = counter+2
-      elem%nr = m_send%task_int(counter+1)
-      counter = counter+2
-      elem%sub_tree_nr = m_send%task_int(counter+1)
-      counter = counter+2
-      elem%temp_created = m_send%task_int(counter+1)
-      counter = counter+2
+      elem%move_type = m_send%task_int(counter + 1)
+      counter = counter + 2
+      elem%nr = m_send%task_int(counter + 1)
+      counter = counter + 2
+      elem%sub_tree_nr = m_send%task_int(counter + 1)
+      counter = counter + 2
+      elem%temp_created = m_send%task_int(counter + 1)
+      counter = counter + 2
       CPASSERT(counter .EQ. m_send%info(2))
 
       counter = 0
       !then float array with pos, (vel), subbox_center and temp
       num_dim = NINT(m_send%task_real(1))
-      counter = 2+INT(m_send%task_real(1))
-      elem%pos = m_send%task_real(2:counter-1)
+      counter = 2 + INT(m_send%task_real(1))
+      elem%pos = m_send%task_real(2:counter - 1)
       IF (msg_type .EQ. TMC_STAT_MD_REQUEST .OR. msg_type .EQ. TMC_STAT_MD_BROADCAST) THEN
-         elem%vel = m_send%task_real(counter+1:counter+NINT(m_send%task_real(counter)))
-         counter = counter+NINT(m_send%task_real(counter))+1
+         elem%vel = m_send%task_real(counter + 1:counter + NINT(m_send%task_real(counter)))
+         counter = counter + NINT(m_send%task_real(counter)) + 1
       END IF
       ! rng seed
-      elem%rng_seed(:, :, :) = RESHAPE(m_send%task_real(counter+1:counter+SIZE(elem%rng_seed)), (/3, 2, 3/))
-      counter = counter+NINT(m_send%task_real(counter))+1
+      elem%rng_seed(:, :, :) = RESHAPE(m_send%task_real(counter + 1:counter + SIZE(elem%rng_seed)), (/3, 2, 3/))
+      counter = counter + NINT(m_send%task_real(counter)) + 1
       ! sub box center
-      elem%subbox_center(:) = m_send%task_real(counter+1:counter+INT(m_send%task_real(counter)))
-      counter = counter+1+NINT(m_send%task_real(counter))
+      elem%subbox_center(:) = m_send%task_real(counter + 1:counter + INT(m_send%task_real(counter)))
+      counter = counter + 1 + NINT(m_send%task_real(counter))
 
       IF (tmc_params%pressure .GE. 0.0_dp) THEN
-         elem%box_scale(:) = m_send%task_real(counter+1:counter+INT(m_send%task_real(counter)))
-         counter = counter+1+INT(m_send%task_real(counter))
+         elem%box_scale(:) = m_send%task_real(counter + 1:counter + INT(m_send%task_real(counter)))
+         counter = counter + 1 + INT(m_send%task_real(counter))
       ELSE
          elem%box_scale(:) = 1.0_dp
       END IF
@@ -1246,9 +1205,6 @@ CONTAINS
       TYPE(message_send), POINTER                        :: m_send
       TYPE(tmc_param_type), POINTER                      :: tmc_params
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'create_NMC_result_massage', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: counter, msg_size_int, msg_size_real
 
       CPASSERT(ASSOCIATED(m_send))
@@ -1258,100 +1214,100 @@ CONTAINS
       CPASSERT(ASSOCIATED(tmc_params))
 
       !first integer array with status, nmc_acc_counts, subbox_acc_count and (subbox rejectance)
-      msg_size_int = 1+SIZE(elem%mol) &
-                     +1+SIZE(tmc_params%nmc_move_types%mv_count) &
-                     +1+SIZE(tmc_params%nmc_move_types%acc_count)+1
-      IF (DEBUG .GT. 0) msg_size_int = msg_size_int+1+1+1+1
+      msg_size_int = 1 + SIZE(elem%mol) &
+                     + 1 + SIZE(tmc_params%nmc_move_types%mv_count) &
+                     + 1 + SIZE(tmc_params%nmc_move_types%acc_count) + 1
+      IF (DEBUG .GT. 0) msg_size_int = msg_size_int + 1 + 1 + 1 + 1
       IF (.NOT. ANY(tmc_params%sub_box_size .LE. 0.1_dp)) &
-         msg_size_int = msg_size_int+1+SIZE(tmc_params%nmc_move_types%subbox_count) &
-                        +1+SIZE(tmc_params%nmc_move_types%subbox_acc_count)
+         msg_size_int = msg_size_int + 1 + SIZE(tmc_params%nmc_move_types%subbox_count) &
+                        + 1 + SIZE(tmc_params%nmc_move_types%subbox_acc_count)
 
       ALLOCATE (m_send%task_int(msg_size_int))
       counter = 1
       IF (DEBUG .GT. 0) THEN
          ! send the element number back
          m_send%task_int(counter) = 1
-         m_send%task_int(counter+1) = elem%sub_tree_nr
-         counter = counter+1+m_send%task_int(counter)
+         m_send%task_int(counter + 1) = elem%sub_tree_nr
+         counter = counter + 1 + m_send%task_int(counter)
          m_send%task_int(counter) = 1
-         m_send%task_int(counter+1) = elem%nr
-         counter = counter+1+m_send%task_int(counter)
+         m_send%task_int(counter + 1) = elem%nr
+         counter = counter + 1 + m_send%task_int(counter)
       END IF
       ! the molecule information
       m_send%task_int(counter) = SIZE(elem%mol)
-      m_send%task_int(counter+1:counter+m_send%task_int(counter)) = elem%mol(:)
-      counter = counter+1+m_send%task_int(counter)
+      m_send%task_int(counter + 1:counter + m_send%task_int(counter)) = elem%mol(:)
+      counter = counter + 1 + m_send%task_int(counter)
       ! the counters for each move type
       m_send%task_int(counter) = SIZE(tmc_params%nmc_move_types%mv_count)
-      m_send%task_int(counter+1:counter+m_send%task_int(counter)) = &
+      m_send%task_int(counter + 1:counter + m_send%task_int(counter)) = &
          RESHAPE(tmc_params%nmc_move_types%mv_count(:, :), &
                  (/SIZE(tmc_params%nmc_move_types%mv_count)/))
-      counter = counter+1+m_send%task_int(counter)
+      counter = counter + 1 + m_send%task_int(counter)
       ! the counter for the accepted moves
       m_send%task_int(counter) = SIZE(tmc_params%nmc_move_types%acc_count)
-      m_send%task_int(counter+1:counter+m_send%task_int(counter)) = &
+      m_send%task_int(counter + 1:counter + m_send%task_int(counter)) = &
          RESHAPE(tmc_params%nmc_move_types%acc_count(:, :), &
                  (/SIZE(tmc_params%nmc_move_types%acc_count)/))
-      counter = counter+1+m_send%task_int(counter)
+      counter = counter + 1 + m_send%task_int(counter)
       ! amount of rejected subbox moves
       IF (.NOT. ANY(tmc_params%sub_box_size .LE. 0.1_dp)) THEN
          m_send%task_int(counter) = SIZE(tmc_params%nmc_move_types%subbox_count)
-         m_send%task_int(counter+1:counter+m_send%task_int(counter)) = &
+         m_send%task_int(counter + 1:counter + m_send%task_int(counter)) = &
             RESHAPE(tmc_params%nmc_move_types%subbox_count(:, :), &
                     (/SIZE(tmc_params%nmc_move_types%subbox_count)/))
-         counter = counter+1+m_send%task_int(counter)
+         counter = counter + 1 + m_send%task_int(counter)
          m_send%task_int(counter) = SIZE(tmc_params%nmc_move_types%subbox_acc_count)
-         m_send%task_int(counter+1:counter+m_send%task_int(counter)) = &
+         m_send%task_int(counter + 1:counter + m_send%task_int(counter)) = &
             RESHAPE(tmc_params%nmc_move_types%subbox_acc_count(:, :), &
                     (/SIZE(tmc_params%nmc_move_types%subbox_acc_count)/))
-         counter = counter+1+m_send%task_int(counter)
+         counter = counter + 1 + m_send%task_int(counter)
       END IF
       m_send%task_int(counter) = message_end_flag ! message end
 
       counter = 0
       !then float array with pos,(vel, e_kin_befor_md, ekin),(forces),rng_seed,
       !                       potential,e_pot_approx,acc_prob,subbox_prob
-      msg_size_real = 1+SIZE(elem%pos) & ! pos
-                      +1+SIZE(elem%rng_seed) & ! rng_seed
-                      +1+1 & ! potential
-                      +1+1 & ! e_pot_approx
-                      +1 ! check bit
+      msg_size_real = 1 + SIZE(elem%pos) & ! pos
+                      + 1 + SIZE(elem%rng_seed) & ! rng_seed
+                      + 1 + 1 & ! potential
+                      + 1 + 1 & ! e_pot_approx
+                      + 1 ! check bit
 
       IF (msg_type .EQ. TMC_STAT_MD_REQUEST .OR. msg_type .EQ. TMC_STAT_MD_RESULT .OR. &
           msg_type .EQ. TMC_STAT_MD_BROADCAST) &
-         msg_size_real = msg_size_real+1+SIZE(elem%vel)+1+1+1+1 ! for MD also: vel, e_kin_befor_md, ekin
+         msg_size_real = msg_size_real + 1 + SIZE(elem%vel) + 1 + 1 + 1 + 1 ! for MD also: vel, e_kin_befor_md, ekin
 
       ALLOCATE (m_send%task_real(msg_size_real))
       ! pos
       counter = 1
       m_send%task_real(counter) = SIZE(elem%pos)
-      m_send%task_real(counter+1:counter+NINT(m_send%task_real(counter))) = elem%pos
-      counter = counter+1+NINT(m_send%task_real(counter))
+      m_send%task_real(counter + 1:counter + NINT(m_send%task_real(counter))) = elem%pos
+      counter = counter + 1 + NINT(m_send%task_real(counter))
       ! rng seed
       m_send%task_real(counter) = SIZE(elem%rng_seed)
-      m_send%task_real(counter+1:counter+SIZE(elem%rng_seed)) = &
+      m_send%task_real(counter + 1:counter + SIZE(elem%rng_seed)) = &
          RESHAPE(elem%rng_seed(:, :, :), (/SIZE(elem%rng_seed)/))
-      counter = counter+1+NINT(m_send%task_real(counter))
+      counter = counter + 1 + NINT(m_send%task_real(counter))
       ! potential
       m_send%task_real(counter) = 1
-      m_send%task_real(counter+1) = elem%potential
-      counter = counter+2
+      m_send%task_real(counter + 1) = elem%potential
+      counter = counter + 2
       ! approximate potential energy
       m_send%task_real(counter) = 1
-      m_send%task_real(counter+1) = elem%e_pot_approx
-      counter = counter+2
+      m_send%task_real(counter + 1) = elem%e_pot_approx
+      counter = counter + 2
       ! for MD also: vel, e_kin_befor_md, ekin
       IF (msg_type .EQ. TMC_STAT_MD_REQUEST .OR. msg_type .EQ. TMC_STAT_MD_RESULT .OR. &
           msg_type .EQ. TMC_STAT_MD_BROADCAST) THEN
          m_send%task_real(counter) = SIZE(elem%vel)
-         m_send%task_real(counter+1:counter+NINT(m_send%task_real(counter))) = elem%vel
-         counter = counter+1+INT(m_send%task_real(counter))
+         m_send%task_real(counter + 1:counter + NINT(m_send%task_real(counter))) = elem%vel
+         counter = counter + 1 + INT(m_send%task_real(counter))
          m_send%task_real(counter) = 1
-         m_send%task_real(counter+1) = elem%ekin_before_md
-         counter = counter+2
+         m_send%task_real(counter + 1) = elem%ekin_before_md
+         counter = counter + 2
          m_send%task_real(counter) = 1
-         m_send%task_real(counter+1) = elem%ekin
-         counter = counter+2
+         m_send%task_real(counter + 1) = elem%ekin
+         counter = counter + 2
       END IF
       m_send%task_real(counter) = message_end_flag ! message end
 
@@ -1375,9 +1331,6 @@ CONTAINS
       TYPE(message_send), POINTER                        :: m_send
       TYPE(tmc_param_type), POINTER                      :: tmc_params
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_NMC_result_massage', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: counter
       INTEGER, DIMENSION(:, :), POINTER                  :: acc_counter, mv_counter, &
                                                             subbox_acc_counter, subbox_counter
@@ -1392,42 +1345,42 @@ CONTAINS
       !first integer array with element status, random number seed, and move type
       counter = 1
       IF (DEBUG .GT. 0) THEN
-         IF ((m_send%task_int(counter+1) .NE. elem%sub_tree_nr) .AND. (m_send%task_int(counter+3) .NE. elem%nr)) THEN
+         IF ((m_send%task_int(counter + 1) .NE. elem%sub_tree_nr) .AND. (m_send%task_int(counter + 3) .NE. elem%nr)) THEN
             CPABORT("read_NMC_result_massage: got result of wrong element")
          ENDIF
-         counter = counter+2+2
+         counter = counter + 2 + 2
       END IF
       ! the molecule information
-      elem%mol(:) = m_send%task_int(counter+1:counter+m_send%task_int(counter))
-      counter = counter+1+m_send%task_int(counter)
+      elem%mol(:) = m_send%task_int(counter + 1:counter + m_send%task_int(counter))
+      counter = counter + 1 + m_send%task_int(counter)
       ! the counters for each move type
-      ALLOCATE (mv_counter(0:SIZE(tmc_params%nmc_move_types%mv_count(:, 1))-1, &
+      ALLOCATE (mv_counter(0:SIZE(tmc_params%nmc_move_types%mv_count(:, 1)) - 1, &
                            SIZE(tmc_params%nmc_move_types%mv_count(1, :))))
-      mv_counter(:, :) = RESHAPE(m_send%task_int(counter+1:counter+m_send%task_int(counter)), &
+      mv_counter(:, :) = RESHAPE(m_send%task_int(counter + 1:counter + m_send%task_int(counter)), &
                                  (/SIZE(tmc_params%nmc_move_types%mv_count(:, 1)), &
                                    SIZE(tmc_params%nmc_move_types%mv_count(1, :))/))
-      counter = counter+1+m_send%task_int(counter)
+      counter = counter + 1 + m_send%task_int(counter)
       ! the counter for the accepted moves
-      ALLOCATE (acc_counter(0:SIZE(tmc_params%nmc_move_types%acc_count(:, 1))-1, &
+      ALLOCATE (acc_counter(0:SIZE(tmc_params%nmc_move_types%acc_count(:, 1)) - 1, &
                             SIZE(tmc_params%nmc_move_types%acc_count(1, :))))
-      acc_counter(:, :) = RESHAPE(m_send%task_int(counter+1:counter+m_send%task_int(counter)), &
+      acc_counter(:, :) = RESHAPE(m_send%task_int(counter + 1:counter + m_send%task_int(counter)), &
                                   (/SIZE(tmc_params%nmc_move_types%acc_count(:, 1)), &
                                     SIZE(tmc_params%nmc_move_types%acc_count(1, :))/))
-      counter = counter+1+m_send%task_int(counter)
+      counter = counter + 1 + m_send%task_int(counter)
       ! amount of rejected subbox moves
       IF (.NOT. ANY(tmc_params%sub_box_size .LE. 0.1_dp)) THEN
          ALLOCATE (subbox_counter(SIZE(tmc_params%nmc_move_types%subbox_count(:, 1)), &
                                   SIZE(tmc_params%nmc_move_types%subbox_count(1, :))))
-         subbox_counter(:, :) = RESHAPE(m_send%task_int(counter+1:counter+m_send%task_int(counter)), &
+         subbox_counter(:, :) = RESHAPE(m_send%task_int(counter + 1:counter + m_send%task_int(counter)), &
                                         (/SIZE(tmc_params%nmc_move_types%subbox_count(:, 1)), &
                                           SIZE(tmc_params%nmc_move_types%subbox_count(1, :))/))
-         counter = counter+1+m_send%task_int(counter)
+         counter = counter + 1 + m_send%task_int(counter)
          ALLOCATE (subbox_acc_counter(SIZE(tmc_params%nmc_move_types%subbox_acc_count(:, 1)), &
                                       SIZE(tmc_params%nmc_move_types%subbox_acc_count(1, :))))
-         subbox_acc_counter(:, :) = RESHAPE(m_send%task_int(counter+1:counter+m_send%task_int(counter)), &
+         subbox_acc_counter(:, :) = RESHAPE(m_send%task_int(counter + 1:counter + m_send%task_int(counter)), &
                                             (/SIZE(tmc_params%nmc_move_types%subbox_acc_count(:, 1)), &
                                               SIZE(tmc_params%nmc_move_types%subbox_acc_count(1, :))/))
-         counter = counter+1+m_send%task_int(counter)
+         counter = counter + 1 + m_send%task_int(counter)
       END IF
       CPASSERT(counter .EQ. m_send%info(2))
 
@@ -1435,27 +1388,27 @@ CONTAINS
       !then float array with pos, (vel, e_kin_befor_md, ekin), (forces), rng_seed, potential, e_pot_approx
       counter = 1
       ! pos
-      elem%pos = m_send%task_real(counter+1:counter+NINT(m_send%task_real(counter)))
-      counter = counter+1+NINT(m_send%task_real(counter))
+      elem%pos = m_send%task_real(counter + 1:counter + NINT(m_send%task_real(counter)))
+      counter = counter + 1 + NINT(m_send%task_real(counter))
       ! rng seed
-      elem%rng_seed(:, :, :) = RESHAPE(m_send%task_real(counter+1:counter+SIZE(elem%rng_seed)), (/3, 2, 3/))
-      counter = counter+1+NINT(m_send%task_real(counter))
+      elem%rng_seed(:, :, :) = RESHAPE(m_send%task_real(counter + 1:counter + SIZE(elem%rng_seed)), (/3, 2, 3/))
+      counter = counter + 1 + NINT(m_send%task_real(counter))
       ! potential
-      elem%potential = m_send%task_real(counter+1)
-      counter = counter+2
+      elem%potential = m_send%task_real(counter + 1)
+      counter = counter + 2
       ! approximate potential energy
-      elem%e_pot_approx = m_send%task_real(counter+1)
-      counter = counter+2
+      elem%e_pot_approx = m_send%task_real(counter + 1)
+      counter = counter + 2
       ! for MD also: vel, e_kin_befor_md, ekin
       IF (msg_type .EQ. TMC_STAT_MD_REQUEST .OR. msg_type .EQ. TMC_STAT_MD_RESULT .OR. &
           msg_type .EQ. TMC_STAT_MD_BROADCAST) THEN
-         elem%vel = m_send%task_real(counter+1:counter+NINT(m_send%task_real(counter)))
-         counter = counter+1+INT(m_send%task_real(counter))
+         elem%vel = m_send%task_real(counter + 1:counter + NINT(m_send%task_real(counter)))
+         counter = counter + 1 + INT(m_send%task_real(counter))
          IF (.NOT. (tmc_params%task_type .EQ. task_type_gaussian_adaptation)) &
-            elem%ekin_before_md = m_send%task_real(counter+1)
-         counter = counter+2
-         elem%ekin = m_send%task_real(counter+1)
-         counter = counter+2
+            elem%ekin_before_md = m_send%task_real(counter + 1)
+         counter = counter + 2
+         elem%ekin = m_send%task_real(counter + 1)
+         counter = counter + 2
       END IF
 
       CALL add_mv_prob(move_types=tmc_params%nmc_move_types, prob_opt=tmc_params%esimate_acc_prob, &
@@ -1491,9 +1444,6 @@ CONTAINS
       TYPE(message_send), POINTER                        :: m_send
       TYPE(tmc_param_type), POINTER                      :: tmc_params
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'create_analysis_request_message', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: counter, msg_size_int, msg_size_real
 
       CPASSERT(ASSOCIATED(m_send))
@@ -1504,30 +1454,30 @@ CONTAINS
 
       counter = 0
       !first integer array
-      msg_size_int = 1+1+1+1+1 ! 1+SIZE(list_elem%elem%sub_tree_nr) +1+SIZE(list_elem%elem%nr)
+      msg_size_int = 1 + 1 + 1 + 1 + 1 ! 1+SIZE(list_elem%elem%sub_tree_nr) +1+SIZE(list_elem%elem%nr)
       ALLOCATE (m_send%task_int(msg_size_int))
       counter = 1
       m_send%task_int(counter) = 1 ! temperature index
-      m_send%task_int(counter+1:counter+m_send%task_int(counter)) = list_elem%temp_ind
-      counter = counter+1+m_send%task_int(counter)
+      m_send%task_int(counter + 1:counter + m_send%task_int(counter)) = list_elem%temp_ind
+      counter = counter + 1 + m_send%task_int(counter)
       m_send%task_int(counter) = 1 ! Markov chain number
-      m_send%task_int(counter+1:counter+m_send%task_int(counter)) = list_elem%nr
-      counter = counter+1+m_send%task_int(counter)
+      m_send%task_int(counter + 1:counter + m_send%task_int(counter)) = list_elem%nr
+      counter = counter + 1 + m_send%task_int(counter)
       m_send%task_int(counter) = message_end_flag
       CPASSERT(SIZE(m_send%task_int) .EQ. msg_size_int)
       CPASSERT(m_send%task_int(msg_size_int) .EQ. message_end_flag)
 
       !then float array with pos
-      msg_size_real = 1+SIZE(list_elem%elem%pos)+1
-      IF (tmc_params%pressure .GE. 0.0_dp) msg_size_real = msg_size_real+1+SIZE(list_elem%elem%box_scale(:))
+      msg_size_real = 1 + SIZE(list_elem%elem%pos) + 1
+      IF (tmc_params%pressure .GE. 0.0_dp) msg_size_real = msg_size_real + 1 + SIZE(list_elem%elem%box_scale(:))
       ALLOCATE (m_send%task_real(msg_size_real))
       m_send%task_real(1) = SIZE(list_elem%elem%pos)
-      counter = 2+INT(m_send%task_real(1))
-      m_send%task_real(2:counter-1) = list_elem%elem%pos
+      counter = 2 + INT(m_send%task_real(1))
+      m_send%task_real(2:counter - 1) = list_elem%elem%pos
       IF (tmc_params%pressure .GE. 0.0_dp) THEN
          m_send%task_real(counter) = SIZE(list_elem%elem%box_scale)
-         m_send%task_real(counter+1:counter+INT(m_send%task_real(counter))) = list_elem%elem%box_scale(:)
-         counter = counter+1+INT(m_send%task_real(counter))
+         m_send%task_real(counter + 1:counter + INT(m_send%task_real(counter))) = list_elem%elem%box_scale(:)
+         counter = counter + 1 + INT(m_send%task_real(counter))
       END IF
       m_send%task_real(counter) = REAL(message_end_flag, KIND=dp) !message end
 
@@ -1547,9 +1497,6 @@ CONTAINS
       TYPE(message_send), POINTER                        :: m_send
       TYPE(tmc_param_type), POINTER                      :: tmc_params
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_analysis_request_message', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: counter
 
       CPASSERT(ASSOCIATED(m_send))
@@ -1565,20 +1512,20 @@ CONTAINS
       ! read the integer values
       CPASSERT(m_send%info(2) .GT. 0)
       counter = 1
-      elem%sub_tree_nr = m_send%task_int(counter+1)
-      counter = counter+1+m_send%task_int(counter)
-      elem%nr = m_send%task_int(counter+1)
-      counter = counter+1+m_send%task_int(counter)
+      elem%sub_tree_nr = m_send%task_int(counter + 1)
+      counter = counter + 1 + m_send%task_int(counter)
+      elem%nr = m_send%task_int(counter + 1)
+      counter = counter + 1 + m_send%task_int(counter)
       CPASSERT(m_send%task_int(counter) .EQ. message_end_flag)
 
       !float array with pos
       counter = 0
-      counter = 1+NINT(m_send%task_real(1))
+      counter = 1 + NINT(m_send%task_real(1))
       elem%pos = m_send%task_real(2:counter)
-      counter = counter+1
+      counter = counter + 1
       IF (tmc_params%pressure .GE. 0.0_dp) THEN
-         elem%box_scale(:) = m_send%task_real(counter+1:counter+INT(m_send%task_real(counter)))
-         counter = counter+1+INT(m_send%task_real(counter))
+         elem%box_scale(:) = m_send%task_real(counter + 1:counter + INT(m_send%task_real(counter)))
+         counter = counter + 1 + INT(m_send%task_real(counter))
       END IF
 
       CPASSERT(counter .EQ. m_send%info(3))
@@ -1598,14 +1545,11 @@ CONTAINS
       TYPE(tree_type), POINTER                           :: elem
       TYPE(message_send), POINTER                        :: m_send
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_scf_step_ener', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(elem))
       CPASSERT(ASSOCIATED(m_send))
 
-      elem%scf_energies(MOD(elem%scf_energies_count, 4)+1) = m_send%task_real(1)
-      elem%scf_energies_count = elem%scf_energies_count+1
+      elem%scf_energies(MOD(elem%scf_energies_count, 4) + 1) = m_send%task_real(1)
+      elem%scf_energies_count = elem%scf_energies_count + 1
 
    END SUBROUTINE read_scf_step_ener
 
@@ -1625,9 +1569,6 @@ CONTAINS
       TYPE(tmc_atom_type), DIMENSION(:), POINTER         :: atoms
       INTEGER                                            :: source
       TYPE(cp_para_env_type), POINTER                    :: para_env
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'communicate_atom_types', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_string_length), &
          ALLOCATABLE, DIMENSION(:)                       :: msg(:)
@@ -1670,9 +1611,6 @@ CONTAINS
          POINTER                                         :: worker_info
       TYPE(tmc_param_type), POINTER                      :: tmc_params
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'stop_whole_group', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: act_rank, dest_rank, stat
       LOGICAL                                            :: flag
       LOGICAL, ALLOCATABLE, DIMENSION(:)                 :: rank_stoped
@@ -1682,7 +1620,7 @@ CONTAINS
       CPASSERT(ASSOCIATED(para_env))
       CPASSERT(ASSOCIATED(tmc_params))
 
-      ALLOCATE (rank_stoped(0:para_env%num_pe-1))
+      ALLOCATE (rank_stoped(0:para_env%num_pe - 1))
       rank_stoped(:) = .FALSE.
       rank_stoped(para_env%mepos) = .TRUE.
 
@@ -1690,7 +1628,7 @@ CONTAINS
       IF (PRESENT(worker_info)) THEN
          CPASSERT(ASSOCIATED(worker_info))
          ! canceling running jobs and stop workers
-         worker_group_loop: DO dest_rank = 1, para_env%num_pe-1
+         worker_group_loop: DO dest_rank = 1, para_env%num_pe - 1
             ! busy workers have to be canceled
             IF (worker_info(dest_rank)%busy) THEN
                stat = TMC_CANCELING_MESSAGE

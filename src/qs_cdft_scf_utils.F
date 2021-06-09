@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -63,9 +65,6 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       INTEGER                                            :: output_unit, nwork, pwork
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:)           :: coeff, step_multiplier, dh
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'prepare_jacobian_stencil', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(len=15)                                  :: fmt_code
       INTEGER                                            :: ivar
@@ -206,9 +205,6 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       LOGICAL                                            :: used_history
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'build_diagonal_jacobian', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, ihistory, nvar, outer_scf_ihistory
       LOGICAL                                            :: use_md_history
       REAL(KIND=dp)                                      :: inv_error
@@ -233,14 +229,14 @@ CONTAINS
          use_md_history = .TRUE.
          ! Check that none of the history values are identical in which case we should try something different
          DO i = 1, nvar
-            IF (ABS(variable_history(i, 2)-variable_history(i, 1)) .LT. 1.0E-12_dp) &
+            IF (ABS(variable_history(i, 2) - variable_history(i, 1)) .LT. 1.0E-12_dp) &
                use_md_history = .FALSE.
          END DO
          IF (use_md_history) THEN
             ALLOCATE (jacobian(nvar, nvar))
             DO i = 1, nvar
-               jacobian(i, i) = (gradient_history(i, 2)-gradient_history(i, 1))/ &
-                                (variable_history(i, 2)-variable_history(i, 1))
+               jacobian(i, i) = (gradient_history(i, 2) - gradient_history(i, 1))/ &
+                                (variable_history(i, 2) - variable_history(i, 1))
             END DO
             IF (.NOT. ASSOCIATED(scf_env%outer_scf%inv_jacobian)) &
                ALLOCATE (scf_env%outer_scf%inv_jacobian(nvar, nvar))
@@ -263,8 +259,8 @@ CONTAINS
                           "to 3 for optimizers that build the Jacobian from SCF history.")
          ALLOCATE (jacobian(nvar, nvar))
          DO i = 1, nvar
-            jacobian(i, i) = (scf_env%outer_scf%gradient(i, ihistory)-scf_env%outer_scf%gradient(i, ihistory-1))/ &
-                             (scf_env%outer_scf%variables(i, ihistory)-scf_env%outer_scf%variables(i, ihistory-1))
+            jacobian(i, i) = (scf_env%outer_scf%gradient(i, ihistory) - scf_env%outer_scf%gradient(i, ihistory - 1))/ &
+                             (scf_env%outer_scf%variables(i, ihistory) - scf_env%outer_scf%variables(i, ihistory - 1))
          END DO
          IF (.NOT. ASSOCIATED(scf_env%outer_scf%inv_jacobian)) &
             ALLOCATE (scf_env%outer_scf%inv_jacobian(nvar, nvar))
@@ -287,9 +283,6 @@ CONTAINS
    SUBROUTINE restart_inverse_jacobian(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'restart_inverse_jacobian', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, iwork, j, nvar
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: inv_jacobian
       TYPE(qs_scf_env_type), POINTER                     :: scf_env
@@ -311,7 +304,7 @@ CONTAINS
       DO i = 1, nvar
          DO j = 1, nvar
             inv_jacobian(i, j) = scf_control%outer_scf%cdft_opt_control%jacobian_vector(iwork)
-            iwork = iwork+1
+            iwork = iwork + 1
          END DO
       END DO
       DEALLOCATE (scf_control%outer_scf%cdft_opt_control%jacobian_vector)
@@ -335,9 +328,6 @@ CONTAINS
          POINTER                                         :: inv_jacobian
       INTEGER                                            :: iter_count
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'print_inverse_jacobian', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(len=default_path_length)                 :: project_name
       INTEGER                                            :: i, j, lp, nvar, output_unit
 
@@ -345,7 +335,7 @@ CONTAINS
       output_unit = get_unit_number()
       project_name = logger%iter_info%project_name
       lp = LEN_TRIM(project_name)
-      project_name(lp+1:LEN(project_name)) = ".inverseJacobian"
+      project_name(lp + 1:LEN(project_name)) = ".inverseJacobian"
       CALL open_file(file_name=project_name, file_status="UNKNOWN", &
                      file_action="WRITE", file_position="APPEND", &
                      unit_number=output_unit)
@@ -376,14 +366,11 @@ CONTAINS
       INTEGER, INTENT(OUT)                               :: output_unit
       TYPE(cp_logger_type), INTENT(OUT), POINTER         :: tmp_logger
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'create_tmp_logger', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: lp
 
-      IF (para_env%mepos == para_env%source) THEN
+      IF (para_env%ionode) THEN
          lp = LEN_TRIM(project_name)
-         project_name(lp+1:LEN(project_name)) = suffix
+         project_name(lp + 1:LEN(project_name)) = suffix
          CALL open_file(file_name=project_name, file_status="UNKNOWN", &
                         file_action="WRITE", file_position="APPEND", &
                         unit_number=output_unit)
@@ -413,9 +400,6 @@ CONTAINS
       TYPE(qs_scf_env_type), POINTER                     :: scf_env
       LOGICAL                                            :: explicit_jacobian, should_build, &
                                                             used_history
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'initialize_inverse_jacobian', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(ASSOCIATED(scf_control))
       CPASSERT(ASSOCIATED(scf_env))

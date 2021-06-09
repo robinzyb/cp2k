@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -73,8 +75,7 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: subsys_section
       LOGICAL, INTENT(OUT)                               :: binary_file_read
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_binary_coordinates', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_binary_coordinates'
 
       CHARACTER(LEN=default_path_length)                 :: binary_restart_file_name
       CHARACTER(LEN=default_string_length)               :: string
@@ -300,8 +301,7 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: root_section, subsys_section
       LOGICAL, INTENT(OUT)                               :: binary_file_read
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_binary_cs_coordinates', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_binary_cs_coordinates'
 
       CHARACTER(LEN=default_path_length)                 :: binary_restart_file_name, message
       CHARACTER(LEN=default_string_length)               :: section_label, section_name
@@ -499,8 +499,7 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: subsys_section
       LOGICAL, INTENT(OUT)                               :: binary_file_read
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_binary_velocities', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_binary_velocities'
 
       CHARACTER(LEN=default_path_length)                 :: binary_restart_file_name, message
       CHARACTER(LEN=default_string_length)               :: section_label, section_name
@@ -683,8 +682,7 @@ CONTAINS
       LOGICAL, INTENT(OUT)                               :: restart
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_binary_thermostats_nose', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_binary_thermostats_nose'
 
       CHARACTER(LEN=default_string_length)               :: section_label, section_name
       INTEGER                                            :: handle, i, idx, input_unit, istat, j, &
@@ -761,9 +759,9 @@ CONTAINS
          END IF
          CALL mp_bcast(rbuf, para_env%source, para_env%group)
          DO i = 1, SIZE(nhc%nvt, 2)
-            idx = (nhc%map_info%index(i)-1)*nhc%nhc_len
+            idx = (nhc%map_info%index(i) - 1)*nhc%nhc_len
             DO j = 1, SIZE(nhc%nvt, 1)
-               idx = idx+1
+               idx = idx + 1
                nhc%nvt(j, i)%eta = rbuf(idx)
             END DO
          END DO
@@ -781,9 +779,9 @@ CONTAINS
          END IF
          CALL mp_bcast(rbuf, para_env%source, para_env%group)
          DO i = 1, SIZE(nhc%nvt, 2)
-            idx = (nhc%map_info%index(i)-1)*nhc%nhc_len
+            idx = (nhc%map_info%index(i) - 1)*nhc%nhc_len
             DO j = 1, SIZE(nhc%nvt, 1)
-               idx = idx+1
+               idx = idx + 1
                nhc%nvt(j, i)%v = rbuf(idx)
             END DO
          END DO
@@ -801,9 +799,9 @@ CONTAINS
          END IF
          CALL mp_bcast(rbuf, para_env%source, para_env%group)
          DO i = 1, SIZE(nhc%nvt, 2)
-            idx = (nhc%map_info%index(i)-1)*nhc%nhc_len
+            idx = (nhc%map_info%index(i) - 1)*nhc%nhc_len
             DO j = 1, SIZE(nhc%nvt, 1)
-               idx = idx+1
+               idx = idx + 1
                nhc%nvt(j, i)%mass = rbuf(idx)
             END DO
          END DO
@@ -821,9 +819,9 @@ CONTAINS
          END IF
          CALL mp_bcast(rbuf, para_env%source, para_env%group)
          DO i = 1, SIZE(nhc%nvt, 2)
-            idx = (nhc%map_info%index(i)-1)*nhc%nhc_len
+            idx = (nhc%map_info%index(i) - 1)*nhc%nhc_len
             DO j = 1, SIZE(nhc%nvt, 1)
-               idx = idx+1
+               idx = idx + 1
                nhc%nvt(j, i)%f = rbuf(idx)
             END DO
          END DO

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -66,9 +68,6 @@ CONTAINS
       TYPE(molecular_scf_guess_env_type)                 :: env
       INTEGER, INTENT(IN)                                :: nfrags
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'molecular_scf_guess_env_init', &
-         routineP = moduleN//':'//routineN
-
 ! check if the number of fragments is already set
 !IF (env%nfrags.ne.0) THEN
 !   ! do not allow re-initialization
@@ -95,9 +94,6 @@ CONTAINS
    SUBROUTINE molecular_scf_guess_env_destroy(env)
 
       TYPE(molecular_scf_guess_env_type)                 :: env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'molecular_scf_guess_env_destroy', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ifrag, jfrag
 
@@ -131,8 +127,7 @@ CONTAINS
       TYPE(dbcsr_type), INTENT(INOUT)                    :: matrix_out
       INTEGER, INTENT(IN)                                :: iset
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_matrix_from_submatrices', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'get_matrix_from_submatrices'
 
       INTEGER                                            :: handle, ifrag
       INTEGER, DIMENSION(2)                              :: matrix_size, offset, submatrix_size
@@ -166,8 +161,8 @@ CONTAINS
 
          CALL dbcsr_add(matrix_out, matrix_temp, 1.0_dp, 1.0_dp)
 
-         offset(1) = offset(1)+submatrix_size(1)
-         offset(2) = offset(2)+submatrix_size(2)
+         offset(1) = offset(1) + submatrix_size(1)
+         offset(2) = offset(2) + submatrix_size(2)
 
       ENDDO
 
@@ -202,16 +197,12 @@ CONTAINS
       TYPE(dbcsr_type), INTENT(INOUT)                    :: matrix_out
       INTEGER, DIMENSION(2), INTENT(IN)                  :: offset, submatrix_size, matrix_size
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'copy_submatrix_into_matrix', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: add_blocks_after, dimen, iblock_col, &
                                                             iblock_row, iblock_size, nblocks, &
                                                             nblocks_new, start_index, trailing_size
       INTEGER, DIMENSION(2)                              :: add_blocks_before
-      INTEGER, DIMENSION(:), POINTER :: blk_distr, blk_sizes, block_sizes_new, cluster_distr, &
-         cluster_distr_new, col_cluster_new, col_distr_new, col_sizes_new, distr_new_array, &
-         row_cluster_new, row_distr_new, row_sizes_new
+      INTEGER, DIMENSION(:), POINTER :: blk_distr, blk_sizes, block_sizes_new, col_distr_new, &
+         col_sizes_new, distr_new_array, row_distr_new, row_sizes_new
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: data_p, p_new_block
       TYPE(dbcsr_distribution_type)                      :: dist_new, dist_qs
       TYPE(dbcsr_iterator_type)                          :: iter
@@ -226,68 +217,66 @@ CONTAINS
          add_blocks_before(dimen) = 0
          add_blocks_after = 0
          start_index = 1
-         trailing_size = matrix_size(dimen)-offset(dimen)-submatrix_size(dimen)
+         trailing_size = matrix_size(dimen) - offset(dimen) - submatrix_size(dimen)
          IF (offset(dimen) .GT. 0) THEN
-            add_blocks_before(dimen) = add_blocks_before(dimen)+1
+            add_blocks_before(dimen) = add_blocks_before(dimen) + 1
             start_index = 2
          ENDIF
          IF (trailing_size .GT. 0) THEN
-            add_blocks_after = add_blocks_after+1
+            add_blocks_after = add_blocks_after + 1
          ENDIF
 
-         NULLIFY (cluster_distr_new)
-
          IF (dimen == 1) THEN !rows
-            CALL dbcsr_distribution_get(dist_qs, row_dist=blk_distr, row_cluster=cluster_distr)
+            CALL dbcsr_distribution_get(dist_qs, row_dist=blk_distr)
             CALL dbcsr_get_info(submatrix_in, row_blk_size=blk_sizes)
          ELSE !columns
-            CALL dbcsr_distribution_get(dist_qs, col_dist=blk_distr, col_cluster=cluster_distr)
+            CALL dbcsr_distribution_get(dist_qs, col_dist=blk_distr)
             CALL dbcsr_get_info(submatrix_in, col_blk_size=blk_sizes)
          ENDIF
          nblocks = SIZE(blk_sizes) ! number of blocks in the small matrix
 
-         nblocks_new = nblocks+add_blocks_before(dimen)+add_blocks_after
+         nblocks_new = nblocks + add_blocks_before(dimen) + add_blocks_after
          ALLOCATE (block_sizes_new(nblocks_new))
          ALLOCATE (distr_new_array(nblocks_new))
-         IF (ASSOCIATED(cluster_distr)) THEN
-            ALLOCATE (cluster_distr_new(nblocks_new))
-         END IF
+         !IF (ASSOCIATED(cluster_distr)) THEN
+         !ALLOCATE (cluster_distr_new(nblocks_new))
+         !END IF
          IF (add_blocks_before(dimen) .GT. 0) THEN
             block_sizes_new(1) = offset(dimen)
             distr_new_array(1) = 0
-            IF (ASSOCIATED(cluster_distr)) THEN
-               cluster_distr_new(1) = 0
-            END IF
+            !IF (ASSOCIATED(cluster_distr)) THEN
+            !cluster_distr_new(1) = 0
+            !END IF
          ENDIF
-         block_sizes_new(start_index:nblocks+start_index-1) = blk_sizes(1:nblocks)
-         distr_new_array(start_index:nblocks+start_index-1) = blk_distr(1:nblocks)
-         IF (ASSOCIATED(cluster_distr)) THEN
-            cluster_distr_new(start_index:nblocks+start_index-1) = cluster_distr(1:nblocks)
-         END IF
+         block_sizes_new(start_index:nblocks + start_index - 1) = blk_sizes(1:nblocks)
+         distr_new_array(start_index:nblocks + start_index - 1) = blk_distr(1:nblocks)
+         !IF (ASSOCIATED(cluster_distr)) THEN
+         !cluster_distr_new(start_index:nblocks+start_index-1) = cluster_distr(1:nblocks)
+         !END IF
          IF (add_blocks_after .GT. 0) THEN
             block_sizes_new(nblocks_new) = trailing_size
             distr_new_array(nblocks_new) = 0
-            IF (ASSOCIATED(cluster_distr)) THEN
-               cluster_distr_new(nblocks_new) = 0
-            END IF
+            !IF (ASSOCIATED(cluster_distr)) THEN
+            !cluster_distr_new(nblocks_new) = 0
+            !END IF
          ENDIF
 
          ! create final arrays
          IF (dimen == 1) THEN !rows
             row_sizes_new => block_sizes_new
             row_distr_new => distr_new_array
-            row_cluster_new => cluster_distr_new
+            !row_cluster_new => cluster_distr_new
          ELSE !columns
             col_sizes_new => block_sizes_new
             col_distr_new => distr_new_array
-            col_cluster_new => cluster_distr_new
+            !col_cluster_new => cluster_distr_new
          ENDIF
       ENDDO ! both rows and columns are done
 
       ! Create the distribution
       CALL dbcsr_distribution_new(dist_new, template=dist_qs, &
                                   row_dist=row_distr_new, col_dist=col_distr_new, &
-                                  row_cluster=row_cluster_new, col_cluster=col_cluster_new, &
+                                  !row_cluster=row_cluster_new, col_cluster=col_cluster_new, &
                                   reuse_arrays=.TRUE.)
 
       ! Create big the matrix
@@ -316,8 +305,8 @@ CONTAINS
          ! to work
          NULLIFY (p_new_block)
          CALL dbcsr_reserve_block2d(matrix_new, &
-                                    iblock_row+add_blocks_before(1), &
-                                    iblock_col+add_blocks_before(2), &
+                                    iblock_row + add_blocks_before(1), &
+                                    iblock_col + add_blocks_before(2), &
                                     p_new_block)
 
          CPASSERT(ASSOCIATED(p_new_block))

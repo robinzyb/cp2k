@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -19,7 +21,7 @@ MODULE helium_types
                                               dp,&
                                               int_8
    USE parallel_rng_types,              ONLY: rng_stream_type
-   USE splines_types,                   ONLY: spline_data_p_type
+   USE splines_types,                   ONLY: spline_data_type
 #include "../base/base_uses.f90"
 
    IMPLICIT NONE
@@ -28,8 +30,6 @@ MODULE helium_types
 
    LOGICAL, PRIVATE, PARAMETER :: debug_this_module = .TRUE.
    CHARACTER(len=*), PARAMETER, PRIVATE :: moduleN = 'helium_types'
-
-   REAL(KIND=dp), PARAMETER, PUBLIC :: he_mass = 4.00263037059764_dp !< 4He mass in [u]
 
    !> Energy contributions - symbolic names for indexing energy arrays
    INTEGER, PARAMETER, PUBLIC :: &
@@ -114,7 +114,7 @@ MODULE helium_types
       LOGICAL                        :: periodic !< true if bulk liquid helium in periodic box
       INTEGER                        :: cell_shape !< unit cell shape for PBC calculations
       REAL(KIND=dp)                  :: cell_size !< size of the periodic box (helium only)
-      REAL(KIND=dp)                  :: cell_size_inv !< 1/cell_size (inverse)
+      REAL(KIND=dp)                   :: cell_size_inv !< 1/cell_size (inverse)
       REAL(KIND=dp), DIMENSION(3, 3)  :: cell_m !< the unit cell vectors' matrix
       REAL(KIND=dp), DIMENSION(3, 3)  :: cell_m_inv !< invrse  of the unit cell vectors' matrix
       REAL(KIND=dp), DIMENSION(3)    :: origin !< origin of the cell (first voxel position)
@@ -122,18 +122,31 @@ MODULE helium_types
 
       REAL(KIND=dp), DIMENSION(3)    :: center !< COM of solute (if present) or center of periodic cell (if periodic) or COM of helium
 
-      ! sampling parameters
       INTEGER :: sampling_method
-      REAL(KIND=dp) :: worm_centroid_move_drmax
-      INTEGER :: worm_centroid_move_freq
-      INTEGER :: worm_staging_move_l, worm_staging_move_rep
-      REAL(KIND=dp) :: worm_open_close_move_C
-      INTEGER :: worm_open_close_move_lmax
-      INTEGER :: worm_head_tail_move_lmax
-      INTEGER :: worm_swap_move_lmax
-      INTEGER :: worm_gsector_move_rep
-      LOGICAL :: worm_gsector_move, worm_write
-      INTEGER :: iw, it, isector
+      ! worm sampling parameters
+      REAL(KIND=dp) :: worm_centroid_drmax
+      INTEGER       :: worm_nstat
+      INTEGER       :: worm_staging_l
+      INTEGER       :: worm_repeat_crawl
+      INTEGER       :: worm_all_limit
+      INTEGER       :: worm_centroid_min, worm_centroid_max
+      INTEGER       :: worm_staging_min, worm_staging_max
+      INTEGER       :: worm_fcrawl_min, worm_fcrawl_max
+      INTEGER       :: worm_bcrawl_min, worm_bcrawl_max
+      INTEGER       :: worm_head_min, worm_head_max
+      INTEGER       :: worm_tail_min, worm_tail_max
+      INTEGER       :: worm_swap_min, worm_swap_max
+      INTEGER       :: worm_open_close_min, worm_open_close_max
+      REAL(KIND=dp) :: worm_open_close_scale
+      REAL(KIND=dp) :: worm_ln_openclose_scale
+      LOGICAL       :: worm_allow_open, worm_show_statistics
+
+      ! worm specific variables
+      REAL(KIND=dp), DIMENSION(3) :: worm_xtra_bead, worm_xtra_bead_work
+      INTEGER :: worm_atom_idx, worm_bead_idx
+      INTEGER :: worm_atom_idx_work, worm_bead_idx_work
+      INTEGER ::  iw, it
+      LOGICAL :: worm_is_closed !before isector=1 -> open; isector=0 -> closed
 
       INTEGER :: iter_norot !< number of iterations to try for a given imaginary time slice rotation (num inner MC loop iters)
       INTEGER :: iter_rot !< number of rotations to try (total number of iterations is iter_norot*iter_rot) (num outer MC loop iters)
@@ -173,8 +186,12 @@ MODULE helium_types
       REAL(KIND=dp), DIMENSION(:, :), POINTER :: ipmatrix
       INTEGER, DIMENSION(:, :), POINTER :: nmatrix
 
-      TYPE(spline_data_p_type), DIMENSION(:, :), POINTER :: uij !< pair density matrix coefficients (action)
-      TYPE(spline_data_p_type), DIMENSION(:, :), POINTER :: eij !< pair density matrix coefficients (energy)
+      TYPE(spline_data_type), POINTER :: vij !< physical pair potential energy
+      TYPE(spline_data_type), POINTER :: u0 !< pair density matrix coefficient (action) endpoint approx
+      TYPE(spline_data_type), POINTER :: e0 !< pair density matrix coefficient (energy) endpoint approx
+      !< raw spline data for pair density matrix off diagonal expansion beyond endpoint approx:
+      REAL(KIND=dp), CONTIGUOUS, DIMENSION(:, :, :), POINTER :: uoffdiag !< (action)
+      REAL(KIND=dp), CONTIGUOUS, DIMENSION(:, :, :), POINTER :: eoffdiag !< (energy)
 
       ! calculated properties
       !
@@ -194,15 +211,17 @@ MODULE helium_types
       INTEGER                                :: rdf_nbin !< number of bins for RDF
       INTEGER                                :: rdf_iweight !< weight for restarted RDF
       INTEGER                                :: rho_iweight !< weight for restarted RHO
-      INTEGER                                :: rdf_num !< number of RDF estimators
+      INTEGER                                :: rdf_num !< number of X-He-RDFs
       INTEGER                                :: rdf_num_ctr !< number of centers for RDF calc
       REAL(KIND=dp)                          :: rdf_delr !< delta r for RDF
       REAL(KIND=dp)                          :: rdf_maxr !< maximum r for RDF
-      REAL(KIND=dp), DIMENSION(:), POINTER :: rdf_centers !< positions of RDF centers
-      REAL(KIND=dp), DIMENSION(:, :, :), POINTER :: rdf_inst !< RDF (instantaneous/tmp array)
-      REAL(KIND=dp), DIMENSION(:, :, :), POINTER :: rdf_rstr !< RDF (restarted)
-      REAL(KIND=dp), DIMENSION(:, :, :), POINTER :: rdf_accu !< RDF (accumulated for one run)
+      REAL(KIND=dp), DIMENSION(:, :), POINTER :: rdf_centers !< positions of RDF solute  centers
+      REAL(KIND=dp), DIMENSION(:, :), POINTER :: rdf_inst !< RDF (instantaneous/tmp array)
+      REAL(KIND=dp), DIMENSION(:, :), POINTER :: rdf_rstr !< RDF (restarted)
+      REAL(KIND=dp), DIMENSION(:, :), POINTER :: rdf_accu !< RDF (accumulated for one run)
       LOGICAL :: rdf_present
+      LOGICAL :: rdf_sol_he
+      LOGICAL :: rdf_he_he
       !
       INTEGER :: rho_nbin
       INTEGER :: rho_num_act !< actual number of density estimators
@@ -336,9 +355,6 @@ CONTAINS
 
       TYPE(int_arr_ptr), DIMENSION(:), POINTER           :: int_arr_p
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'helium_destroy_int_arr_ptr', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ip
 
 ! deallocate memory used by each component of the pointer array
@@ -367,9 +383,6 @@ CONTAINS
    SUBROUTINE helium_destroy_real_arr_ptr(real_arr_p)
 
       TYPE(real_arr_ptr), DIMENSION(:), POINTER          :: real_arr_p
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'helium_destroy_real_arr_ptr', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ip
 

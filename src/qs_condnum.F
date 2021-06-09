@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -65,8 +67,7 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: norml1, norml2, use_arnoldi
       TYPE(cp_blacs_env_type), POINTER                   :: blacs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'overlap_condnum', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'overlap_condnum'
 
       INTEGER                                            :: handle, ic, maxiter, nbas, ndep
       LOGICAL                                            :: converged
@@ -234,17 +235,17 @@ CONTAINS
          g = dlange("1", nbas, 1, x, nbas, work)
          IF (g <= gg) EXIT
          x(1:nbas) = SIGN(1._dp, x(1:nbas))
-         IF (SUM(ABS(x-xsi)) == 0 .OR. SUM(ABS(x+xsi)) == 0) EXIT
+         IF (SUM(ABS(x - xsi)) == 0 .OR. SUM(ABS(x + xsi)) == 0) EXIT
          xsi(1:nbas) = x(1:nbas)
          CALL dbcsr_solve(amat, x, pmat)
-         k = k+1
+         k = k + 1
          IF (k > 5) EXIT
          IF (SUM(r) == SUM(MAXLOC(ABS(x)))) EXIT
       END DO
       !
       IF (nbas > 1) THEN
          DO i = 1, nbas
-            x(i) = -1._dp**(i+1)*(1._dp+REAL(i-1, dp)/REAL(nbas-1, dp))
+            x(i) = -1._dp**(i + 1)*(1._dp + REAL(i - 1, dp)/REAL(nbas - 1, dp))
          END DO
       ELSE
          x(1) = 1.0_dp
@@ -286,9 +287,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE smat_precon_diag(pmat)
       TYPE(dbcsr_type)                                   :: pmat
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'smat_precon_diag', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: iatom, info, jatom, n
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: sblock

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -45,8 +47,6 @@ CONTAINS
       TYPE(xc_rho_cflags_type), INTENT(inout), OPTIONAL  :: needs
       INTEGER, INTENT(out), OPTIONAL                     :: max_deriv
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'optx_lda_info', routineP = moduleN//':'//routineN
-
       IF (PRESENT(reference)) THEN
          reference = "OPTX, Handy NC and Cohen AJ,  JCP 116, p. 5411 (2002) (LDA)"
       END IF
@@ -74,8 +74,6 @@ CONTAINS
       TYPE(xc_rho_cflags_type), INTENT(inout), OPTIONAL  :: needs
       INTEGER, INTENT(out), OPTIONAL                     :: max_deriv
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'optx_lsd_info', routineP = moduleN//':'//routineN
-
       IF (PRESENT(reference)) THEN
          reference = "OPTX, Handy NC and Cohen AJ,  JCP 116, p. 5411 (2002), (LSD) "
       END IF
@@ -94,7 +92,7 @@ CONTAINS
 !> \param rho_set the density where you want to evaluate the functional
 !> \param deriv_set place where to store the functional derivatives (they are
 !>        added to the derivatives)
-!> \param grad_deriv degree of the derivative that should be evalated,
+!> \param grad_deriv degree of the derivative that should be evaluated,
 !>        if positive all the derivatives up to the given degree are evaluated,
 !>        if negative only the given degree is calculated
 !> \param optx_params input parameter (scaling)
@@ -107,8 +105,6 @@ CONTAINS
       TYPE(xc_derivative_set_type), POINTER              :: deriv_set
       INTEGER, INTENT(in)                                :: grad_deriv
       TYPE(section_vals_type), POINTER                   :: optx_params
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'optx_lda_eval', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: npoints
       INTEGER, DIMENSION(:, :), POINTER                  :: bo
@@ -131,7 +127,7 @@ CONTAINS
       CALL xc_rho_set_get(rho_set, rho=rho, &
                           norm_drho=norm_drho, local_bounds=bo, rho_cutoff=epsilon_rho, &
                           drho_cutoff=epsilon_drho)
-      npoints = (bo(2, 1)-bo(1, 1)+1)*(bo(2, 2)-bo(1, 2)+1)*(bo(2, 3)-bo(1, 3)+1)
+      npoints = (bo(2, 1) - bo(1, 1) + 1)*(bo(2, 2) - bo(1, 2) + 1)*(bo(2, 3) - bo(1, 3) + 1)
 
       deriv => xc_dset_get_derivative(deriv_set, "", &
                                       allocate_deriv=.TRUE.)
@@ -158,7 +154,7 @@ CONTAINS
 !> \param rho_set the density where you want to evaluate the functional
 !> \param deriv_set place where to store the functional derivatives (they are
 !>        added to the derivatives)
-!> \param grad_deriv degree of the derivative that should be evalated,
+!> \param grad_deriv degree of the derivative that should be evaluated,
 !>        if positive all the derivatives up to the given degree are evaluated,
 !>        if negative only the given degree is calculated
 !> \param optx_params input parameter (scaling)
@@ -171,8 +167,6 @@ CONTAINS
       TYPE(xc_derivative_set_type), POINTER              :: deriv_set
       INTEGER, INTENT(in)                                :: grad_deriv
       TYPE(section_vals_type), POINTER                   :: optx_params
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'optx_lsd_eval', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ispin, npoints
       INTEGER, DIMENSION(:, :), POINTER                  :: bo
@@ -203,7 +197,7 @@ CONTAINS
                           norm_drhoa=ndrho(1)%array, &
                           norm_drhob=ndrho(2)%array, rho_cutoff=epsilon_rho, &
                           drho_cutoff=epsilon_drho, local_bounds=bo)
-      npoints = (bo(2, 1)-bo(1, 1)+1)*(bo(2, 2)-bo(1, 2)+1)*(bo(2, 3)-bo(1, 3)+1)
+      npoints = (bo(2, 1) - bo(1, 1) + 1)*(bo(2, 2) - bo(1, 2) + 1)*(bo(2, 3) - bo(1, 3) + 1)
 
       deriv => xc_dset_get_derivative(deriv_set, "", &
                                       allocate_deriv=.TRUE.)
@@ -283,14 +277,14 @@ CONTAINS
             rho43 = myrho**o43
             xs = (myndrho/rho43)
             gamxsxs = gam*xs*xs
-            denom = 1.0_dp/(1.0_dp+gamxsxs)
-            ex = rho43*(a1*cx+a2*(gamxsxs*denom)**2)
+            denom = 1.0_dp/(1.0_dp + gamxsxs)
+            ex = rho43*(a1*cx + a2*(gamxsxs*denom)**2)
             ! 2.0 for both spins
-            e_0(ii) = e_0(ii)-(2.0_dp*ex)*sx
-            tmp = rho43*2.0_dp*a2*gamxsxs*denom**2*(1.0_dp-gamxsxs*denom)
+            e_0(ii) = e_0(ii) - (2.0_dp*ex)*sx
+            tmp = rho43*2.0_dp*a2*gamxsxs*denom**2*(1.0_dp - gamxsxs*denom)
             ! derive e_0 wrt to rho (full) and ndrho (also full)
-            e_rho(ii) = e_rho(ii)-((o43*ex+tmp*gamxsxs*(-2.0_dp*o43))/myrho)*sx
-            e_ndrho(ii) = e_ndrho(ii)-((tmp*gam*2.0_dp*myndrho/rho43**2))*sx
+            e_rho(ii) = e_rho(ii) - ((o43*ex + tmp*gamxsxs*(-2.0_dp*o43))/myrho)*sx
+            e_ndrho(ii) = e_ndrho(ii) - ((tmp*gam*2.0_dp*myndrho/rho43**2))*sx
          END IF
       END DO
 
@@ -347,14 +341,14 @@ CONTAINS
             rho43 = myrho**o43
             xs = (myndrho/rho43)
             gamxsxs = gam*xs*xs
-            denom = 1.0_dp/(1.0_dp+gamxsxs)
-            ex = rho43*(a1*cx+a2*(gamxsxs*denom)**2)
+            denom = 1.0_dp/(1.0_dp + gamxsxs)
+            ex = rho43*(a1*cx + a2*(gamxsxs*denom)**2)
             ! for a single spin
-            e_0(ii) = e_0(ii)-ex*sx
-            tmp = rho43*2.0_dp*a2*gamxsxs*denom**2*(1.0_dp-gamxsxs*denom)
+            e_0(ii) = e_0(ii) - ex*sx
+            tmp = rho43*2.0_dp*a2*gamxsxs*denom**2*(1.0_dp - gamxsxs*denom)
             ! derive e_0 wrt to rho and ndrho
-            e_rho(ii) = e_rho(ii)-((o43*ex+tmp*gamxsxs*(-2.0_dp*o43))/myrho)*sx
-            e_ndrho(ii) = e_ndrho(ii)-((tmp*gam*2.0_dp*myndrho/rho43**2))*sx
+            e_rho(ii) = e_rho(ii) - ((o43*ex + tmp*gamxsxs*(-2.0_dp*o43))/myrho)*sx
+            e_ndrho(ii) = e_ndrho(ii) - ((tmp*gam*2.0_dp*myndrho/rho43**2))*sx
          END IF
       END DO
 

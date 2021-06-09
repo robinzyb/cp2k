@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -110,8 +112,6 @@ CONTAINS
       INTEGER, INTENT(in)                                :: run_type
       REAL(dp), INTENT(in), OPTIONAL                     :: delta_iter, used_time
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'rt_prop_output', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: n_electrons, nspin, output_unit, spin
       REAL(dp)                                           :: orthonormality, tot_rho_r
       REAL(KIND=dp), DIMENSION(:), POINTER               :: qs_tot_rho_r
@@ -142,7 +142,7 @@ CONTAINS
       rtp_section => section_vals_get_subs_vals(input, "DFT%REAL_TIME_PROPAGATION")
 
       CALL get_qs_kind_set(qs_kind_set, nelectron=n_electrons)
-      n_electrons = n_electrons-dft_control%charge
+      n_electrons = n_electrons - dft_control%charge
 
       CALL qs_rho_get(rho_struct=rho, tot_rho_r=qs_tot_rho_r)
 
@@ -157,16 +157,16 @@ CONTAINS
          WRITE (UNIT=output_unit, FMT="((T3,A,T41,2F20.10))") &
             "Total electronic density (r-space): ", &
             tot_rho_r, &
-            tot_rho_r+ &
+            tot_rho_r + &
             REAL(n_electrons, dp)
          WRITE (UNIT=output_unit, FMT="((T3,A,T59,F22.14))") &
             "Total energy:", rtp%energy_new
          IF (run_type == ehrenfest) &
             WRITE (UNIT=output_unit, FMT="((T3,A,T61,F20.14))") &
-            "Energy difference to previous iteration step:", rtp%energy_new-rtp%energy_old
+            "Energy difference to previous iteration step:", rtp%energy_new - rtp%energy_old
          IF (run_type == real_time_propagation) &
             WRITE (UNIT=output_unit, FMT="((T3,A,T61,F20.14))") &
-            "Energy difference to initial state:", rtp%energy_new-rtp%energy_old
+            "Energy difference to initial state:", rtp%energy_new - rtp%energy_old
          IF (PRESENT(delta_iter)) &
             WRITE (UNIT=output_unit, FMT="((T3,A,T61,E20.6))") &
             "Convergence:", delta_iter
@@ -175,7 +175,7 @@ CONTAINS
                WRITE (UNIT=output_unit, FMT="((T3,A,T61,F12.2))") &
                "Time needed for propagation:", used_time
             WRITE (UNIT=output_unit, FMT="(/,(T3,A,3X,F16.14))") &
-               "CONVERGENCE REACHED", rtp%energy_new-rtp%energy_old
+               "CONVERGENCE REACHED", rtp%energy_new - rtp%energy_old
          END IF
       END IF
 
@@ -264,8 +264,7 @@ CONTAINS
       TYPE(cp_fm_p_type), DIMENSION(:), POINTER          :: mos_new
       TYPE(dbcsr_type), OPTIONAL, POINTER                :: matrix_s
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'rt_calculate_orthonormality', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'rt_calculate_orthonormality'
 
       INTEGER                                            :: handle, i, im, ispin, j, k, n, &
                                                             ncol_local, nrow_local, nspin, re
@@ -282,7 +281,7 @@ CONTAINS
       max_alpha = 0.0_dp
       max_beta = 0.0_dp
       DO ispin = 1, nspin
-         re = ispin*2-1
+         re = ispin*2 - 1
          im = ispin*2
          ! get S*C
          CALL cp_fm_create(svec_re, mos_new(im)%matrix%matrix_struct)
@@ -315,7 +314,7 @@ CONTAINS
          DO i = 1, nrow_local
             DO j = 1, ncol_local
                alpha = overlap_re%local_data(i, j)
-               IF (row_indices(i) .EQ. col_indices(j)) alpha = alpha-1.0_dp
+               IF (row_indices(i) .EQ. col_indices(j)) alpha = alpha - 1.0_dp
                max_alpha = MAX(max_alpha, ABS(alpha))
             ENDDO
          ENDDO
@@ -330,7 +329,7 @@ CONTAINS
    END SUBROUTINE rt_calculate_orthonormality
 
 ! **************************************************************************************************
-!> \brief computs the convergence criterion for RTP and EMD
+!> \brief computes the convergence criterion for RTP and EMD
 !> \param rtp ...
 !> \param matrix_s Overlap matrix without the derivatives
 !> \param delta_mos ...
@@ -345,7 +344,7 @@ CONTAINS
       TYPE(cp_fm_p_type), DIMENSION(:), POINTER          :: delta_mos
       REAL(dp), INTENT(out)                              :: delta_eps
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'rt_convergence', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'rt_convergence'
       REAL(KIND=dp), PARAMETER                           :: one = 1.0_dp, zero = 0.0_dp
 
       INTEGER                                            :: handle, i, icol, im, ispin, j, lcol, &
@@ -370,7 +369,7 @@ CONTAINS
       END DO
 
       DO ispin = 1, nspin
-         re = ispin*2-1
+         re = ispin*2 - 1
          im = ispin*2
 
          double_col = .TRUE.
@@ -392,7 +391,7 @@ CONTAINS
 
          DO icol = 1, lcol
             work%local_data(:, icol) = delta_mos(re)%matrix%local_data(:, icol)
-            work%local_data(:, icol+lcol) = delta_mos(im)%matrix%local_data(:, icol)
+            work%local_data(:, icol + lcol) = delta_mos(im)%matrix%local_data(:, icol)
          END DO
 
          CALL cp_dbcsr_sm_fm_multiply(matrix_s, work, work1, ncol=newdim)
@@ -420,8 +419,8 @@ CONTAINS
          CALL cp_fm_get_info(work, nrow_local=lrow)
          DO i = 1, lrow
             DO j = 1, lcol
-               alpha = SQRT((work%local_data(i, j)+work2%local_data(i, j+lcol))**2+ &
-                            (work%local_data(i, j+lcol)-work2%local_data(i, j))**2)
+               alpha = SQRT((work%local_data(i, j) + work2%local_data(i, j + lcol))**2 + &
+                            (work%local_data(i, j + lcol) - work2%local_data(i, j))**2)
                max_alpha = MAX(max_alpha, ABS(alpha))
             ENDDO
          ENDDO
@@ -443,7 +442,7 @@ CONTAINS
    END SUBROUTINE rt_convergence
 
 ! **************************************************************************************************
-!> \brief computs the convergence criterion for RTP and EMD based on the density matrix
+!> \brief computes the convergence criterion for RTP and EMD based on the density matrix
 !> \param rtp ...
 !> \param delta_P ...
 !> \param delta_eps ...
@@ -456,8 +455,7 @@ CONTAINS
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: delta_P
       REAL(dp), INTENT(out)                              :: delta_eps
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'rt_convergence_density', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'rt_convergence_density'
       REAL(KIND=dp), PARAMETER                           :: one = 1.0_dp, zero = 0.0_dp
 
       INTEGER                                            :: col_atom, group, handle, i, ispin, &
@@ -489,7 +487,7 @@ CONTAINS
       ALLOCATE (tmp)
       CALL dbcsr_create(tmp, template=delta_P(1)%matrix, matrix_type="N")
       DO ispin = 1, SIZE(delta_P)/2
-         CALL dbcsr_desymmetrize(delta_P(2*ispin-1)%matrix, tmp)
+         CALL dbcsr_desymmetrize(delta_P(2*ispin - 1)%matrix, tmp)
          CALL dbcsr_add(delta_P(2*ispin)%matrix, tmp, one, one)
       END DO
       !the absolute values are now in the even entries of delta_P
@@ -521,7 +519,7 @@ CONTAINS
 
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'make_moment', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'make_moment'
 
       INTEGER                                            :: handle, output_unit
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -557,8 +555,7 @@ CONTAINS
       REAL(KIND=dp)                                      :: filter_eps
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: rho
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'report_density_occupation', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'report_density_occupation'
 
       INTEGER                                            :: handle, i, im, ispin, re, unit_nr
       REAL(KIND=dp)                                      :: eps, occ
@@ -577,7 +574,7 @@ CONTAINS
          CALL dbcsr_copy(tmp(i)%matrix, rho(i)%matrix)
       ENDDO
       DO ispin = 1, SIZE(rho)/2
-         re = 2*ispin-1
+         re = 2*ispin - 1
          im = 2*ispin
          eps = MAX(filter_eps, 10E-12_dp)
          DO WHILE (eps < 1.1_dp)
@@ -613,8 +610,7 @@ CONTAINS
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: rho_new
       LOGICAL                                            :: history
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_rt_p_to_restart', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_rt_p_to_restart'
 
       CHARACTER(LEN=default_path_length)                 :: file_name, project_name
       INTEGER                                            :: handle, im, ispin, re, unit_nr
@@ -623,7 +619,7 @@ CONTAINS
 
       CALL timeset(routineN, handle)
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -631,7 +627,7 @@ CONTAINS
 
       project_name = logger%iter_info%project_name
       DO ispin = 1, SIZE(rho_new)/2
-         re = 2*ispin-1
+         re = 2*ispin - 1
          im = 2*ispin
          IF (history) THEN
             WRITE (file_name, '(A,I0,A)') &
@@ -676,7 +672,7 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: dft_section
       INTEGER                                            :: spin, nspin
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'rt_current', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'rt_current'
 
       CHARACTER(len=1)                                   :: char_spin
       CHARACTER(len=14)                                  :: ext

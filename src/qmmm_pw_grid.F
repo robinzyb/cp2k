@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -52,9 +54,6 @@ CONTAINS
    SUBROUTINE qmmm_pw_grid_init(qmmm_env, pw_env)
       TYPE(qmmm_env_qm_type), POINTER                    :: qmmm_env
       TYPE(pw_env_type), POINTER                         :: pw_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_pw_grid_init', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: auxbas_grid, Ilevel, pw_mode
       REAL(KIND=dp), DIMENSION(3)                        :: Maxdr, Mindr
@@ -110,7 +109,7 @@ CONTAINS
 !> \param pw_mode ...
 !> \par History
 !>      08.2004 created [tlaino]
-!>      04.2005 completly rewritten the duplicate routine, fixed parallel
+!>      04.2005 completely rewritten the duplicate routine, fixed parallel
 !>              behaviour, narrowed scope to copy to non pbc and renamed
 !>              accordingly [fawzi]
 !>      06.2007 moved to new module [jgh]
@@ -120,9 +119,6 @@ CONTAINS
       TYPE(pw_grid_type), POINTER                        :: pw_grid_in, pw_grid_out
       INTEGER, INTENT(IN), OPTIONAL                      :: pw_mode
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pw_grid_create_copy_no_pbc', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: pw_mode_loc
       INTEGER, DIMENSION(:), POINTER                     :: pos_of_x
 
@@ -131,27 +127,27 @@ CONTAINS
       pw_mode_loc = pw_grid_in%para%mode
       IF (PRESENT(pw_mode)) pw_mode_loc = pw_mode
       CALL pw_grid_create(pw_grid_out, pw_grid_in%para%group)
-      qmmm_grid_tag = qmmm_grid_tag+1
+      qmmm_grid_tag = qmmm_grid_tag + 1
       pw_grid_out%id_nr = qmmm_grid_tag
       pw_grid_out%ref_count = 1
       pw_grid_out%reference = 0
       pw_grid_out%bounds = pw_grid_in%bounds
-      pw_grid_out%bounds(2, :) = pw_grid_out%bounds(2, :)+1
+      pw_grid_out%bounds(2, :) = pw_grid_out%bounds(2, :) + 1
       IF (pw_mode_loc == PW_MODE_DISTRIBUTED) THEN
          pw_grid_out%bounds_local = pw_grid_in%bounds_local
          IF (pw_grid_in%bounds_local(2, 1) == pw_grid_in%bounds(2, 1) .AND. &
              pw_grid_in%bounds_local(1, 1) <= pw_grid_in%bounds(2, 1)) THEN
-            pw_grid_out%bounds_local(2, 1) = pw_grid_out%bounds_local(2, 1)+1
+            pw_grid_out%bounds_local(2, 1) = pw_grid_out%bounds_local(2, 1) + 1
          END IF
-         pw_grid_out%bounds_local(2, 2) = pw_grid_out%bounds_local(2, 2)+1
-         pw_grid_out%bounds_local(2, 3) = pw_grid_out%bounds_local(2, 3)+1
+         pw_grid_out%bounds_local(2, 2) = pw_grid_out%bounds_local(2, 2) + 1
+         pw_grid_out%bounds_local(2, 3) = pw_grid_out%bounds_local(2, 3) + 1
       ELSE
          pw_grid_out%bounds_local = pw_grid_out%bounds
       END IF
-      pw_grid_out%npts = pw_grid_in%npts+1
+      pw_grid_out%npts = pw_grid_in%npts + 1
       pw_grid_out%ngpts = PRODUCT(INT(pw_grid_out%npts, KIND=int_8))
       pw_grid_out%ngpts_cut = 0
-      pw_grid_out%npts_local = pw_grid_out%bounds_local(2, :)-pw_grid_out%bounds_local(1, :)+1
+      pw_grid_out%npts_local = pw_grid_out%bounds_local(2, :) - pw_grid_out%bounds_local(1, :) + 1
       pw_grid_out%ngpts_local = PRODUCT(pw_grid_out%npts_local)
       pw_grid_out%ngpts_cut_local = 0
       pw_grid_out%dr = pw_grid_in%dr
@@ -179,8 +175,8 @@ CONTAINS
                pw_grid_out%para%nyzray, &
                pw_grid_out%para%bo)
       ALLOCATE (pos_of_x(pw_grid_out%bounds(1, 1):pw_grid_out%bounds(2, 1)))
-      pos_of_x(:pw_grid_out%bounds(2, 1)-1) = pw_grid_in%para%pos_of_x
-      pos_of_x(pw_grid_out%bounds(2, 1)) = pos_of_x(pw_grid_out%bounds(2, 1)-1)
+      pos_of_x(:pw_grid_out%bounds(2, 1) - 1) = pw_grid_in%para%pos_of_x
+      pos_of_x(pw_grid_out%bounds(2, 1)) = pos_of_x(pw_grid_out%bounds(2, 1) - 1)
       pw_grid_out%para%pos_of_x => pos_of_x
       pw_grid_out%para%rs_dims = pw_grid_in%para%rs_dims
       IF (PRODUCT(pw_grid_in%para%rs_dims) /= 0) THEN

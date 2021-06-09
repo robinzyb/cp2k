@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -16,6 +18,7 @@
 !> - 10.2004 removed pao [fawzi]
 !> - 08.2014 separated qs-related stuff from atomic_kind_types.F [Ole Schuett]
 !> - 07.2015 new container for basis sets [jgh]
+!> - 04.2021 init dft_plus_u_type [MK]
 ! **************************************************************************************************
 MODULE qs_kind_types
    USE atom_sgp,                        ONLY: atom_sgp_potential_type,&
@@ -41,7 +44,8 @@ MODULE qs_kind_types
         read_gto_basis_set, read_sto_basis_set, sto_basis_set_type, write_gto_basis_set, &
         write_orb_basis_set
    USE cp_control_types,                ONLY: dft_control_type,&
-                                              qs_control_type
+                                              qs_control_type,&
+                                              xtb_control_type
    USE cp_log_handling,                 ONLY: cp_get_default_logger,&
                                               cp_logger_get_default_io_unit,&
                                               cp_logger_type
@@ -76,7 +80,8 @@ MODULE qs_kind_types
                                               projectors
    USE periodic_table,                  ONLY: get_ptable_info,&
                                               ptable
-   USE physcon,                         ONLY: bohr,&
+   USE physcon,                         ONLY: angstrom,&
+                                              bohr,&
                                               evolt
    USE qs_dftb_types,                   ONLY: qs_dftb_atom_type
    USE qs_dftb_utils,                   ONLY: deallocate_dftb_atom_param,&
@@ -113,18 +118,20 @@ MODULE qs_kind_types
 
    CHARACTER(len=*), PARAMETER, PRIVATE :: moduleN = 'qs_kind_types'
 
+! **************************************************************************************************
 !> \brief Input parameters for the DFT+U method
 ! **************************************************************************************************
    TYPE dft_plus_u_type
-      INTEGER                                :: l, max_scf
-      REAL(KIND=dp)                          :: eps_u_ramping, &
-                                                eps_scf, &
-                                                u_minus_j_target, &
-                                                u_minus_j, &
-                                                u_ramping
-      INTEGER, DIMENSION(:), POINTER         :: orbitals
-      LOGICAL                                :: init_u_ramping_each_scf, &
-                                                smear
+      INTEGER                                :: l = -1
+      INTEGER                                :: max_scf = -1
+      REAL(KIND=dp)                          :: eps_u_ramping = 0.0_dp
+      REAL(KIND=dp)                          :: eps_scf = HUGE(0.0_dp)
+      REAL(KIND=dp)                          :: u_minus_j_target
+      REAL(KIND=dp)                          :: u_minus_j = 0.0_dp
+      REAL(KIND=dp)                          :: u_ramping = 0.0_dp
+      INTEGER, DIMENSION(:), POINTER         :: orbitals => Null()
+      LOGICAL                                :: init_u_ramping_each_scf = .FALSE.
+      LOGICAL                                :: smear = .FALSE.
       REAL(KIND=dp), DIMENSION(:), POINTER   :: nelec => Null()
    END TYPE dft_plus_u_type
 
@@ -150,6 +157,7 @@ MODULE qs_kind_types
       REAL(KIND=dp)                          :: screening_radius = HUGE(dp)
    END TYPE pao_descriptor_type
 
+! **************************************************************************************************
 !> \brief Provides all information about a quickstep kind
 ! **************************************************************************************************
    TYPE qs_kind_type
@@ -171,14 +179,17 @@ MODULE qs_kind_types
       !
       TYPE(basis_set_container_type), &
          DIMENSION(20)                       :: basis_sets
-      !
+      ! Atomic radii
+      REAL(KIND=dp)                          :: covalent_radius = 0.0_dp
+      REAL(KIND=dp)                          :: vdw_radius = 0.0_dp
+      ! GAPW specific data
       TYPE(paw_proj_set_type), POINTER       :: paw_proj_set => Null()
-      !
-      REAL(dp)                               :: hard_radius = 0.8_dp*bohr ! for hard and soft exp
-      REAL(dp)                               :: hard0_radius = 0.8_dp*bohr ! for hard exp of rho0
-      REAL(dp)                               :: max_rad_local = 13.2_dp*bohr ! max GTO radius used in GAPW
+      REAL(KIND=dp)                          :: hard_radius = 0.8_dp*bohr ! for hard and soft exp
+      REAL(KIND=dp)                          :: hard0_radius = 0.8_dp*bohr ! for hard exp of rho0
+      REAL(KIND=dp)                          :: max_rad_local = 13.2_dp*bohr ! max GTO radius used in GAPW
       LOGICAL                                :: paw_atom = .FALSE. ! needs atomic rho1
       LOGICAL                                :: gpw_type_forced = .FALSE. ! gpw atom even if with hard exponents
+      !
       LOGICAL                                :: ghost = .FALSE.
       LOGICAL                                :: floating = .FALSE.
       INTEGER                                :: lmax_dftb = -1
@@ -207,6 +218,7 @@ MODULE qs_kind_types
       TYPE(pao_descriptor_type), DIMENSION(:), POINTER :: pao_descriptors => Null()
    END TYPE qs_kind_type
 
+! **************************************************************************************************
 !> \brief Provides a vector of pointers of type qs_kind_type
 ! **************************************************************************************************
    TYPE qs_kind_p_type
@@ -246,9 +258,6 @@ CONTAINS
 
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_qs_kind_set', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ikind, nkind
 
       IF (ASSOCIATED(qs_kind_set)) THEN
@@ -264,13 +273,14 @@ CONTAINS
             END IF
             IF (ASSOCIATED(qs_kind_set(ikind)%gth_potential)) THEN
                CALL deallocate_potential(qs_kind_set(ikind)%gth_potential)
-            ENDIF
+            END IF
             IF (ASSOCIATED(qs_kind_set(ikind)%sgp_potential)) THEN
                CALL deallocate_potential(qs_kind_set(ikind)%sgp_potential)
-            ENDIF
+            END IF
             IF (ASSOCIATED(qs_kind_set(ikind)%upf_potential)) THEN
                CALL atom_release_upf(qs_kind_set(ikind)%upf_potential)
-            ENDIF
+               DEALLOCATE (qs_kind_set(ikind)%upf_potential)
+            END IF
             IF (ASSOCIATED(qs_kind_set(ikind)%se_parameter)) THEN
                CALL semi_empirical_release(qs_kind_set(ikind)%se_parameter)
             END IF
@@ -381,6 +391,8 @@ CONTAINS
 !> \param hard_radius ...
 !> \param hard0_radius ...
 !> \param max_rad_local ...
+!> \param covalent_radius ...
+!> \param vdw_radius ...
 !> \param gpw_type_forced ...
 !> \param harmonics ...
 !> \param max_iso_not0 ...
@@ -425,6 +437,7 @@ CONTAINS
                           alpha_core_charge, ccore_charge, core_charge, core_charge_radius, &
                           soft_basis_set, hard_basis_set, paw_proj_set, softb, &
                           paw_atom, hard_radius, hard0_radius, max_rad_local, &
+                          covalent_radius, vdw_radius, &
                           gpw_type_forced, harmonics, max_iso_not0, max_s_harm, grid_atom, &
                           ngrid_ang, ngrid_rad, lmax_rho0, &
                           dft_plus_u_atom, l_of_dft_plus_u, u_minus_j, dispersion, &
@@ -454,7 +467,9 @@ CONTAINS
       TYPE(paw_proj_set_type), OPTIONAL, POINTER         :: paw_proj_set
       LOGICAL, INTENT(IN), OPTIONAL                      :: softb
       LOGICAL, INTENT(OUT), OPTIONAL                     :: paw_atom
-      REAL(dp), INTENT(OUT), OPTIONAL                    :: hard_radius, hard0_radius, max_rad_local
+      REAL(KIND=dp), INTENT(OUT), OPTIONAL               :: hard_radius, hard0_radius, &
+                                                            max_rad_local, covalent_radius, &
+                                                            vdw_radius
       LOGICAL, INTENT(OUT), OPTIONAL                     :: gpw_type_forced
       TYPE(harmonics_atom_type), OPTIONAL, POINTER       :: harmonics
       INTEGER, INTENT(OUT), OPTIONAL                     :: max_iso_not0, max_s_harm
@@ -486,8 +501,6 @@ CONTAINS
       TYPE(pao_descriptor_type), DIMENSION(:), &
          OPTIONAL, POINTER                               :: pao_descriptors
       REAL(KIND=dp), DIMENSION(:), OPTIONAL, POINTER     :: nelec
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_qs_kind', routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_string_length)               :: my_basis_type
       INTEGER                                            :: l
@@ -521,7 +534,7 @@ CONTAINS
             CALL get_gto_basis_set(gto_basis_set=tmp_basis_set, ncgf=ncgf)
          ELSE IF (ASSOCIATED(qs_kind%dftb_parameter)) THEN
             l = qs_kind%dftb_parameter%lmax
-            ncgf = ((l+1)*(l+2)*(l+3))/6
+            ncgf = ((l + 1)*(l + 2)*(l + 3))/6
          ELSE
             ncgf = 0
          END IF
@@ -631,6 +644,9 @@ CONTAINS
 
       IF (PRESENT(soft_basis_set)) soft_basis_set => qs_kind%soft_basis_set
       IF (PRESENT(hard_basis_set)) hard_basis_set => qs_kind%hard_basis_set
+
+      IF (PRESENT(covalent_radius)) covalent_radius = qs_kind%covalent_radius
+      IF (PRESENT(vdw_radius)) vdw_radius = qs_kind%vdw_radius
 
       IF (PRESENT(paw_proj_set)) paw_proj_set => qs_kind%paw_proj_set
       IF (PRESENT(paw_atom)) paw_atom = qs_kind%paw_atom
@@ -795,6 +811,7 @@ CONTAINS
 !> \param lmax_rho0 ...
 !> \param basis_rcut ...
 !> \param basis_type ...
+!> \param total_zeff_corr ... [SGh]
 ! **************************************************************************************************
    SUBROUTINE get_qs_kind_set(qs_kind_set, &
                               all_potential_present, tnadd_potential_present, gth_potential_present, &
@@ -803,7 +820,7 @@ CONTAINS
                               ncgf, npgf, nset, nsgf, nshell, maxpol, maxlppl, maxlppnl, maxppnl, &
                               nelectron, maxder, max_ngrid_rad, max_sph_harm, maxg_iso_not0, lmax_rho0, &
                               basis_rcut, &
-                              basis_type)
+                              basis_type, total_zeff_corr)
 
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
       LOGICAL, INTENT(OUT), OPTIONAL :: all_potential_present, tnadd_potential_present, &
@@ -816,9 +833,7 @@ CONTAINS
                                                             maxg_iso_not0, lmax_rho0
       REAL(KIND=dp), INTENT(OUT), OPTIONAL               :: basis_rcut
       CHARACTER(len=*), OPTIONAL                         :: basis_type
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_qs_kind_set', &
-         routineP = moduleN//':'//routineN
+      REAL(KIND=dp), INTENT(OUT), OPTIONAL               :: total_zeff_corr
 
       CHARACTER(len=default_string_length)               :: my_basis_type
       INTEGER                                            :: ikind, imax, lmax_rho0_kind, &
@@ -872,6 +887,7 @@ CONTAINS
          IF (PRESENT(max_sph_harm)) max_sph_harm = 0
          IF (PRESENT(lmax_rho0)) lmax_rho0 = 0
          IF (PRESENT(basis_rcut)) basis_rcut = 0.0_dp
+         IF (PRESENT(total_zeff_corr)) total_zeff_corr = 0.0_dp
 
          nkind = SIZE(qs_kind_set)
          DO ikind = 1, nkind
@@ -892,11 +908,11 @@ CONTAINS
 
             IF (PRESENT(maxlppl) .AND. ASSOCIATED(gth_potential)) THEN
                CALL get_potential(potential=gth_potential, nexp_ppl=n)
-               maxlppl = MAX(maxlppl, 2*(n-1))
+               maxlppl = MAX(maxlppl, 2*(n - 1))
             ELSEIF (PRESENT(maxlppl) .AND. ASSOCIATED(sgp_potential)) THEN
                CALL get_potential(potential=sgp_potential, nrloc=nrloc)
-               n = MAXVAL(nrloc)-2
-               maxlppl = MAX(maxlppl, 2*(n-1))
+               n = MAXVAL(nrloc) - 2
+               maxlppl = MAX(maxlppl, 2*(n - 1))
             END IF
 
             IF (PRESENT(maxlppnl) .AND. ASSOCIATED(gth_potential)) THEN
@@ -909,18 +925,18 @@ CONTAINS
 
             IF (PRESENT(maxpol) .AND. ASSOCIATED(tnadd_potential)) THEN
                CALL get_potential(potential=tnadd_potential, npol=n)
-               maxpol = MAX(maxpol, 2*(n-1))
+               maxpol = MAX(maxpol, 2*(n - 1))
             END IF
 
             IF (PRESENT(maxco_proj) .AND. ASSOCIATED(paw_proj_set)) THEN
                CALL get_paw_proj_set(paw_proj_set=paw_proj_set, ncgauprj=imax)
                maxco_proj = MAX(maxco_proj, imax)
-            ENDIF
+            END IF
 
             IF (PRESENT(maxlprj) .AND. ASSOCIATED(paw_proj_set)) THEN
                CALL get_paw_proj_set(paw_proj_set=paw_proj_set, maxl=imax)
                maxlprj = MAX(maxlprj, imax)
-            ENDIF
+            END IF
 
             IF (PRESENT(maxppnl) .AND. ASSOCIATED(gth_potential)) THEN
                CALL get_potential(potential=gth_potential, nppnl=imax)
@@ -939,7 +955,7 @@ CONTAINS
                   maxcgf = MAX(maxcgf, imax)
                ELSE IF (ASSOCIATED(qs_kind%dftb_parameter)) THEN
                   CALL get_dftb_atom_param(dftb_parameter=dftb_parameter, lmax=imax)
-                  imax = ((imax+1)*(imax+2)*(imax+3))/6
+                  imax = ((imax + 1)*(imax + 2)*(imax + 3))/6
                   maxcgf = MAX(maxcgf, imax)
                END IF
             END IF
@@ -1005,45 +1021,45 @@ CONTAINS
             IF (PRESENT(ncgf)) THEN
                IF (ASSOCIATED(tmp_basis_set)) THEN
                   CALL get_gto_basis_set(gto_basis_set=tmp_basis_set, ncgf=n)
-                  ncgf = ncgf+n*qs_kind_set(ikind)%natom
+                  ncgf = ncgf + n*qs_kind_set(ikind)%natom
                ELSE IF (ASSOCIATED(qs_kind%dftb_parameter)) THEN
                   CALL get_dftb_atom_param(dftb_parameter=dftb_parameter, lmax=imax)
-                  n = ((imax+1)*(imax+2)*(imax+3))/6
-                  ncgf = ncgf+n*qs_kind_set(ikind)%natom
+                  n = ((imax + 1)*(imax + 2)*(imax + 3))/6
+                  ncgf = ncgf + n*qs_kind_set(ikind)%natom
                END IF
             END IF
 
             IF (PRESENT(npgf)) THEN
                IF (ASSOCIATED(tmp_basis_set)) THEN
                   CALL get_gto_basis_set(gto_basis_set=tmp_basis_set, npgf_sum=n)
-                  npgf = npgf+n*qs_kind_set(ikind)%natom
+                  npgf = npgf + n*qs_kind_set(ikind)%natom
                END IF
             END IF
 
             IF (PRESENT(nset)) THEN
                IF (ASSOCIATED(tmp_basis_set)) THEN
                   CALL get_gto_basis_set(gto_basis_set=tmp_basis_set, nset=n)
-                  nset = nset+n*qs_kind_set(ikind)%natom
+                  nset = nset + n*qs_kind_set(ikind)%natom
                END IF
             END IF
 
             IF (PRESENT(nsgf)) THEN
                IF (ASSOCIATED(tmp_basis_set)) THEN
                   CALL get_gto_basis_set(gto_basis_set=tmp_basis_set, nsgf=n)
-                  nsgf = nsgf+n*qs_kind_set(ikind)%natom
+                  nsgf = nsgf + n*qs_kind_set(ikind)%natom
                ELSE IF (ASSOCIATED(qs_kind%dftb_parameter)) THEN
                   CALL get_dftb_atom_param(dftb_parameter=dftb_parameter, natorb=n)
-                  nsgf = nsgf+n*qs_kind_set(ikind)%natom
+                  nsgf = nsgf + n*qs_kind_set(ikind)%natom
                END IF
             END IF
 
             IF (PRESENT(nshell)) THEN
                IF (ASSOCIATED(tmp_basis_set)) THEN
                   CALL get_gto_basis_set(gto_basis_set=tmp_basis_set, nshell_sum=n)
-                  nshell = nshell+n*qs_kind_set(ikind)%natom
+                  nshell = nshell + n*qs_kind_set(ikind)%natom
                ELSE IF (ASSOCIATED(qs_kind%dftb_parameter)) THEN
                   CALL get_dftb_atom_param(dftb_parameter=dftb_parameter, lmax=n)
-                  nshell = nshell+(n+1)*qs_kind_set(ikind)%natom
+                  nshell = nshell + (n + 1)*qs_kind_set(ikind)%natom
                END IF
             END IF
 
@@ -1061,7 +1077,7 @@ CONTAINS
                   zeff = 0.0_dp
                   zeff_correction = 0.0_dp
                END IF
-               nelectron = nelectron+qs_kind_set(ikind)%natom*NINT(zeff-zeff_correction)
+               nelectron = nelectron + qs_kind_set(ikind)%natom*NINT(zeff - zeff_correction)
             END IF
 
             IF (PRESENT(basis_rcut)) THEN
@@ -1072,6 +1088,23 @@ CONTAINS
                   CALL get_dftb_atom_param(dftb_parameter=dftb_parameter, cutoff=brcut)
                   basis_rcut = MAX(basis_rcut, brcut)
                END IF
+            END IF
+
+            IF (PRESENT(total_zeff_corr)) THEN
+               IF (ASSOCIATED(qs_kind%all_potential)) THEN
+                  CALL get_potential(potential=qs_kind%all_potential, &
+                                     zeff=zeff, zeff_correction=zeff_correction)
+               ELSE IF (ASSOCIATED(qs_kind%gth_potential)) THEN
+                  CALL get_potential(potential=qs_kind%gth_potential, &
+                                     zeff=zeff, zeff_correction=zeff_correction)
+               ELSE IF (ASSOCIATED(qs_kind%sgp_potential)) THEN
+                  CALL get_potential(potential=qs_kind%sgp_potential, &
+                                     zeff=zeff, zeff_correction=zeff_correction)
+               ELSE
+                  zeff = 0.0_dp
+                  zeff_correction = 0.0_dp
+               END IF
+               total_zeff_corr = total_zeff_corr + qs_kind_set(ikind)%natom*zeff_correction
             END IF
 
             IF (PRESENT(all_potential_present)) THEN
@@ -1112,11 +1145,11 @@ CONTAINS
 
             IF (PRESENT(max_ngrid_rad)) THEN
                max_ngrid_rad = MAX(max_ngrid_rad, ngrid_rad)
-            ENDIF
+            END IF
 
             IF (PRESENT(max_sph_harm)) THEN
                max_sph_harm = MAX(max_sph_harm, max_s_harm)
-            ENDIF
+            END IF
 
             IF (PRESENT(maxg_iso_not0)) THEN
                maxg_iso_not0 = MAX(maxg_iso_not0, max_iso_not0)
@@ -1142,7 +1175,7 @@ CONTAINS
    SUBROUTINE init_qs_kind(qs_kind)
       TYPE(qs_kind_type), POINTER                        :: qs_kind
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_qs_kind', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'init_qs_kind'
 
       CHARACTER(LEN=default_string_length)               :: basis_type
       INTEGER                                            :: handle, i
@@ -1186,8 +1219,7 @@ CONTAINS
 
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_qs_kind_set', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'init_qs_kind_set'
 
       INTEGER                                            :: handle, ikind
       TYPE(qs_kind_type), POINTER                        :: qs_kind
@@ -1196,7 +1228,7 @@ CONTAINS
 
       IF (.NOT. ASSOCIATED(qs_kind_set)) THEN
          CPABORT("init_qs_kind_set: The pointer qs_kind_set is not associated")
-      ENDIF
+      END IF
 
       DO ikind = 1, SIZE(qs_kind_set)
          qs_kind => qs_kind_set(ikind)
@@ -1212,26 +1244,30 @@ CONTAINS
 !> \param qs_kind_set ...
 !> \param qs_control ...
 !> \param force_env_section ...
+!> \param modify_qs_control  whether the qs_control should be modified
 ! **************************************************************************************************
-   SUBROUTINE init_gapw_basis_set(qs_kind_set, qs_control, force_env_section)
+   SUBROUTINE init_gapw_basis_set(qs_kind_set, qs_control, force_env_section, modify_qs_control)
 
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
       TYPE(qs_control_type), POINTER                     :: qs_control
       TYPE(section_vals_type), POINTER                   :: force_env_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_gapw_basis_set', &
-         routineP = moduleN//':'//routineN
+      LOGICAL, OPTIONAL                                  :: modify_qs_control
 
       INTEGER                                            :: ikind, nkind
-      LOGICAL                                            :: gpw, paw_atom
+      LOGICAL                                            :: gpw, my_mod_control, paw_atom
       REAL(dp)                                           :: max_rad_local_type, rc
       TYPE(gto_basis_set_type), POINTER                  :: orb_basis
       TYPE(paw_proj_set_type), POINTER                   :: paw_proj
       TYPE(qs_kind_type), POINTER                        :: qs_kind
 
+      my_mod_control = .TRUE.
+      IF (PRESENT(modify_qs_control)) THEN
+         my_mod_control = modify_qs_control
+      END IF
+
       IF (ASSOCIATED(qs_kind_set)) THEN
 
-         qs_control%gapw_control%non_paw_atoms = .FALSE.
+         IF (my_mod_control) qs_control%gapw_control%non_paw_atoms = .FALSE.
          nkind = SIZE(qs_kind_set)
 
          DO ikind = 1, nkind
@@ -1260,7 +1296,7 @@ CONTAINS
                CALL projectors(paw_proj, orb_basis, rc, qs_control, max_rad_local_type, &
                                force_env_section)
             ELSE
-               qs_control%gapw_control%non_paw_atoms = .TRUE.
+               IF (my_mod_control) qs_control%gapw_control%non_paw_atoms = .TRUE.
             END IF
 
             ! grid_atom and harmonics are allocated even if NOT PAW_ATOM
@@ -1270,10 +1306,12 @@ CONTAINS
 
          END DO
 
-         IF (qs_control%gapw_control%non_paw_atoms) THEN
-            qs_control%gapw_control%nopaw_as_gpw = .TRUE.
-         ELSE
-            qs_control%gapw_control%nopaw_as_gpw = .FALSE.
+         IF (my_mod_control) THEN
+            IF (qs_control%gapw_control%non_paw_atoms) THEN
+               qs_control%gapw_control%nopaw_as_gpw = .TRUE.
+            ELSE
+               qs_control%gapw_control%nopaw_as_gpw = .FALSE.
+            END IF
          END IF
       ELSE
          CPABORT("The pointer qs_kind_set is not associated")
@@ -1287,8 +1325,6 @@ CONTAINS
    SUBROUTINE init_gapw_nlcc(qs_kind_set)
 
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_gapw_nlcc', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, ic, ikind, n_nlcc, nc, nexp_nlcc, &
                                                             nkind, nr
@@ -1328,10 +1364,10 @@ CONTAINS
                            DO ic = 1, nc
                               cval = cval_nlcc(ic, i)
                               coa = cval/alpha
-                              den(:, 1) = den(:, 1)+fe(:)*rc**(2*ic-2)*cval
-                              den(:, 2) = den(:, 2)-fe(:)*rc**(2*ic-1)*coa
+                              den(:, 1) = den(:, 1) + fe(:)*rc**(2*ic - 2)*cval
+                              den(:, 2) = den(:, 2) - fe(:)*rc**(2*ic - 1)*coa
                               IF (ic > 1) THEN
-                                 den(:, 2) = den(:, 2)+REAL(2*ic-2, dp)*fe(:)*rc**(2*ic-3)*coa
+                                 den(:, 2) = den(:, 2) + REAL(2*ic - 2, dp)*fe(:)*rc**(2*ic - 3)*coa
                               END IF
                            END DO
                         END DO
@@ -1350,8 +1386,8 @@ CONTAINS
                            alpha = a_nlcc(i)
                            fe(:) = EXP(-alpha*rr(:)*rr(:))
                            cval = c_nlcc(i)
-                           den(:, 1) = den(:, 1)+cval*fe(:)
-                           den(:, 2) = den(:, 2)-2.0_dp*alpha*cval*rr(:)*fe(:)
+                           den(:, 1) = den(:, 1) + cval*fe(:)
+                           den(:, 2) = den(:, 2) - 2.0_dp*alpha*cval*rr(:)*fe(:)
                         END DO
                         DEALLOCATE (rc, fe)
                      END IF
@@ -1380,8 +1416,7 @@ CONTAINS
 !>      - 20.09.2002,gt: adapted for POL/KG use (elp_potential)
 !>      - 05.03.2010: split elp_potential into fist_potential and kg_potential
 ! **************************************************************************************************
-   SUBROUTINE read_qs_kind(qs_kind, kind_section, para_env, force_env_section, &
-                           no_fail, method_id)
+   SUBROUTINE read_qs_kind(qs_kind, kind_section, para_env, force_env_section, no_fail, method_id)
 
       TYPE(qs_kind_type), INTENT(INOUT)                  :: qs_kind
       TYPE(section_vals_type), POINTER                   :: kind_section
@@ -1390,15 +1425,15 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: no_fail
       INTEGER, INTENT(IN)                                :: method_id
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_qs_kind', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'read_qs_kind'
       INTEGER, PARAMETER                                 :: maxbas = 20
 
       CHARACTER(LEN=2)                                   :: element_symbol
       CHARACTER(len=default_path_length)                 :: kg_potential_fn_kind, &
                                                             potential_file_name, potential_fn_kind
-      CHARACTER(LEN=default_string_length) :: akind_name, aux_basis_set_name, &
-         aux_fit_basis_set_name, basis_type, keyword, kgpot_name, kgpot_type, lri_basis_set_name, &
-         orb_basis_set_name, potential_name, potential_type, ri_aux_basis_set_name, tmp
+      CHARACTER(LEN=default_string_length)               :: akind_name, basis_type, keyword, &
+                                                            kgpot_name, kgpot_type, &
+                                                            potential_name, potential_type, tmp
       CHARACTER(LEN=default_string_length), DIMENSION(4) :: description
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: tmpstringlist
@@ -1410,7 +1445,7 @@ CONTAINS
       INTEGER, DIMENSION(:), POINTER                     :: add_el, elec_conf, orbitals
       LOGICAL :: check, explicit, explicit_basis, explicit_kgpot, explicit_potential, nobasis, &
          section_enabled, subsection_enabled, update_input
-      REAL(KIND=dp)                                      :: alpha, ccore, rc, zeff_correction
+      REAL(KIND=dp)                                      :: alpha, ccore, r, rc, zeff_correction
       REAL(KIND=dp), DIMENSION(3)                        :: error
       REAL(KIND=dp), DIMENSION(:), POINTER               :: a_nl, aloc, anlcc, cloc, cnlcc, nelec
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: h_nl
@@ -1437,9 +1472,6 @@ CONTAINS
       basis_set_name(:) = ""
       basis_set_type(:) = ""
       basis_set_form(:) = ""
-      aux_basis_set_name = ""
-      ri_aux_basis_set_name = ""
-      orb_basis_set_name = ""
       potential_name = ""
       potential_type = ""
       kgpot_name = ""
@@ -1467,7 +1499,7 @@ CONTAINS
          IF (((ipos == 2) .OR. (ipos == 3)) .AND. (INDEX(qs_kind%name, "_ghost") == 0)) THEN
             ! If the atm_name could not match any KIND section it maybe be a QM/MM link atom.
             ! ghost atoms will be treated differently.
-            akind_name = qs_kind%name(1:ipos-1)
+            akind_name = qs_kind%name(1:ipos - 1)
             CALL uppercase(akind_name)
             DO i_rep = 1, n_rep
                CALL section_vals_val_get(kind_section, "_SECTION_PARAMETERS_", &
@@ -1547,53 +1579,14 @@ CONTAINS
                basis_set_form(i) = tmpstringlist(2)
                basis_set_name(i) = tmpstringlist(3)
             ELSE
-               CPABORT("")
+               CALL cp_abort(__LOCATION__, &
+                             "invalid number of BASIS_SET keyword parameters: BASIS_SET [<TYPE>] [<FORM>] <NAME>")
             END IF
             ! check that we have a valid basis set form
             IF (basis_set_form(i) /= "GTO" .AND. basis_set_form(i) /= "STO") THEN
-               CPABORT("BASIS_SET_FORM invalid")
+               CPABORT("invalid BASIS_SET FORM parameter")
             END IF
          END DO
-
-         ! Deprecated keywords
-         DO i = 1, nb_rep
-            IF (basis_set_type(i) == "ORB") THEN
-               orb_basis_set_name = basis_set_name(i)
-               EXIT
-            END IF
-         END DO
-         !
-         CALL section_vals_val_get(kind_section, i_rep_section=k_rep, &
-                                   keyword_name="AUX_FIT_BASIS_SET", c_val=aux_fit_basis_set_name)
-         IF (aux_fit_basis_set_name /= "") THEN
-            CPWARN("AUX_FIT_BASIS_SET Keyword cannot be used any longer, use BASIS_SET AUX_FIT")
-            CPABORT("AUX_FIT_BASIS_SET")
-         END IF
-         !
-         CALL section_vals_val_get(kind_section, i_rep_section=k_rep, &
-                                   keyword_name="AUX_BASIS_SET", c_val=aux_basis_set_name)
-         IF (aux_basis_set_name /= "") THEN
-            CPWARN("AUX_BASIS_SET Keyword cannot be used any longer, use BASIS_SET AUX")
-            CPABORT("AUX_BASIS_SET")
-         END IF
-         !
-         CALL section_vals_val_get(kind_section, i_rep_section=k_rep, &
-                                   keyword_name="LRI_BASIS_SET", c_val=lri_basis_set_name)
-         IF (lri_basis_set_name /= "") THEN
-            CPWARN("LRI_BASIS_SET Keyword cannot be used any longer, use BASIS_SET LRI")
-            CPABORT("LRI_BASIS_SET")
-         END IF
-         !
-         CALL section_vals_val_get(kind_section, i_rep_section=k_rep, &
-                                   keyword_name="RI_AUX_BASIS_SET", c_val=ri_aux_basis_set_name)
-         IF (ri_aux_basis_set_name /= "") THEN
-            nb_rep = nb_rep+1
-            CPASSERT(nb_rep <= maxbas)
-            basis_set_type(nb_rep) = "RI_AUX"
-            basis_set_form(nb_rep) = "GTO"
-            basis_set_name(nb_rep) = ri_aux_basis_set_name
-         END IF
-         ! end of deprecated input
 
          ! parse PAO_BASIS_SIZE
          CALL section_vals_val_get(kind_section, keyword_name="PAO_BASIS_SIZE", i_rep_section=k_rep, &
@@ -1612,7 +1605,7 @@ CONTAINS
                                       r_val=qs_kind%pao_potentials(ipaopot)%beta)
             CALL section_vals_val_get(pao_pot_section, keyword_name="WEIGHT", i_rep_section=ipaopot, &
                                       r_val=qs_kind%pao_potentials(ipaopot)%weight)
-         ENDDO
+         END DO
 
          ! parse PAO_DESCRIPTOR sections
          pao_desc_section => section_vals_get_subs_vals(kind_section, "PAO_DESCRIPTOR", i_rep_section=k_rep)
@@ -1625,7 +1618,7 @@ CONTAINS
                                       r_val=qs_kind%pao_descriptors(ipaodesc)%screening)
             CALL section_vals_val_get(pao_desc_section, keyword_name="WEIGHT", i_rep_section=ipaodesc, &
                                       r_val=qs_kind%pao_descriptors(ipaodesc)%weight)
-         ENDDO
+         END DO
 
          ! parse ELEC_CONF
          CALL section_vals_val_get(kind_section, i_rep_section=k_rep, &
@@ -1634,10 +1627,9 @@ CONTAINS
             CALL section_vals_val_get(kind_section, i_rep_section=k_rep, &
                                       keyword_name="ELEC_CONF", i_vals=elec_conf)
             CALL set_qs_kind(qs_kind, elec_conf=elec_conf)
-         ENDIF
+         END IF
          CALL section_vals_val_get(kind_section, i_rep_section=k_rep, &
                                    keyword_name="CORE_CORRECTION", r_val=zeff_correction)
-
          ! parse POTENTIAL
          CALL section_vals_val_get(kind_section, i_rep_section=k_rep, &
                                    keyword_name="POTENTIAL_FILE_NAME", c_val=potential_fn_kind)
@@ -1652,7 +1644,7 @@ CONTAINS
                IF (potential_type == "") THEN
                   ipos = INDEX(potential_name, "-")
                   IF (ipos > 1) THEN
-                     potential_type = potential_name(:ipos-1)
+                     potential_type = potential_name(:ipos - 1)
                   ELSE
                      potential_type = potential_name
                   END IF
@@ -1666,13 +1658,25 @@ CONTAINS
          END IF
          CALL uppercase(potential_type)
 
-         ! parse KG POTENTIAL
+         ! Parse KG POTENTIAL
          CALL section_vals_val_get(kind_section, i_rep_section=k_rep, &
                                    keyword_name="KG_POTENTIAL_FILE_NAME", c_val=kg_potential_fn_kind)
          CALL section_vals_val_get(kind_section, i_rep_section=k_rep, &
                                    keyword_name="KG_POTENTIAL", c_val=kgpot_name)
 
-         ! assign atom dependent defaults, only H special case
+         ! Assign atomic covalent radius
+         qs_kind%covalent_radius = ptable(z)%covalent_radius*bohr
+         CALL section_vals_val_get(kind_section, i_rep_section=k_rep, &
+                                   keyword_name="COVALENT_RADIUS", r_val=r)
+         IF (r > 0.0_dp) qs_kind%covalent_radius = r
+
+         ! Assign atomic van der Waals radius
+         qs_kind%vdw_radius = ptable(z)%vdw_radius*bohr
+         CALL section_vals_val_get(kind_section, i_rep_section=k_rep, &
+                                   keyword_name="VDW_RADIUS", r_val=r)
+         IF (r > 0.0_dp) qs_kind%vdw_radius = r
+
+         ! Assign atom dependent defaults, only H special case
          CALL section_vals_val_get(kind_section, i_rep_section=k_rep, n_rep_val=i, &
                                    keyword_name="HARD_EXP_RADIUS")
          IF (i == 0) THEN
@@ -1680,11 +1684,11 @@ CONTAINS
                qs_kind%hard_radius = 1.2_dp
             ELSE
                qs_kind%hard_radius = 0.8_dp*bohr
-            ENDIF
+            END IF
          ELSE
             CALL section_vals_val_get(kind_section, i_rep_section=k_rep, &
                                       keyword_name="HARD_EXP_RADIUS", r_val=qs_kind%hard_radius)
-         ENDIF
+         END IF
 
          ! assign atom dependent defaults, only H special case
          CALL section_vals_val_get(kind_section, i_rep_section=k_rep, n_rep_val=i, &
@@ -1694,7 +1698,7 @@ CONTAINS
          ELSE
             CALL section_vals_val_get(kind_section, i_rep_section=k_rep, &
                                       keyword_name="RHO0_EXP_RADIUS", r_val=qs_kind%hard0_radius)
-         ENDIF
+         END IF
          IF (qs_kind%hard_radius < qs_kind%hard0_radius) &
             CPABORT("rc0 should be <= rc")
 
@@ -1866,7 +1870,7 @@ CONTAINS
                                          keyword_name="ORBITALS", &
                                          i_vals=orbitals)
                norbitals = SIZE(orbitals)
-               IF (norbitals <= 0 .OR. norbitals > 2*l+1) &
+               IF (norbitals <= 0 .OR. norbitals > 2*l + 1) &
                   CALL cp_abort(__LOCATION__, "DFT+U| Invalid number of ORBITALS specified: "// &
                                 "1 to 2*L+1 integer numbers are expected")
                ALLOCATE (qs_kind%dft_plus_u%orbitals(norbitals))
@@ -1971,7 +1975,7 @@ CONTAINS
          CALL add_basis_set_to_container(qs_kind%basis_sets, tmp_basis_set, "ORB")
          CALL init_potential(qs_kind%all_potential, itype="BARE", &
                              zeff=qs_kind%se_parameter%zeff, zeff_correction=zeff_correction)
-         qs_kind%se_parameter%zeff = qs_kind%se_parameter%zeff-zeff_correction
+         qs_kind%se_parameter%zeff = qs_kind%se_parameter%zeff - zeff_correction
 
          check = ((potential_name /= '') .OR. explicit_potential)
          IF (check) &
@@ -1979,7 +1983,7 @@ CONTAINS
                          "Information provided in the input file regarding POTENTIAL for KIND <"// &
                          TRIM(qs_kind%name)//"> will be ignored!")
 
-         check = ((orb_basis_set_name /= '') .OR. explicit_basis)
+         check = ((k_rep > 0) .OR. explicit_basis)
          IF (check) &
             CALL cp_warn(__LOCATION__, &
                          "Information provided in the input file regarding BASIS for KIND <"// &
@@ -2012,7 +2016,7 @@ CONTAINS
                          "Information provided in the input file regarding POTENTIAL for KIND <"// &
                          TRIM(qs_kind%name)//"> will be ignored!")
 
-         check = ((orb_basis_set_name /= '') .OR. explicit_basis)
+         check = ((k_rep > 0) .OR. explicit_basis)
          IF (check) &
             CALL cp_warn(__LOCATION__, &
                          "Information provided in the input file regarding BASIS for KIND <"// &
@@ -2045,7 +2049,7 @@ CONTAINS
                          "Information provided in the input file regarding POTENTIAL for KIND <"// &
                          TRIM(qs_kind%name)//"> will be ignored!")
 
-         check = ((orb_basis_set_name /= '') .OR. explicit_basis)
+         check = ((k_rep > 0) .OR. explicit_basis)
          IF (check) &
             CALL cp_warn(__LOCATION__, &
                          "Information provided in the input file regarding BASIS for KIND <"// &
@@ -2055,7 +2059,7 @@ CONTAINS
          ! PW DFT
          ! Allocate and initialise the potential data set structure
          IF (potential_name /= '') THEN
-            SELECT CASE (TRIM (potential_type))
+            SELECT CASE (TRIM(potential_type))
             CASE ("ALL", "ECP")
                CALL cp_abort(__LOCATION__, &
                              "PW DFT calculations only with potential type UPF or GTH possible."// &
@@ -2076,6 +2080,8 @@ CONTAINS
                IF (.NOT. ASSOCIATED(elec_conf)) THEN
                   CALL get_potential(potential=qs_kind%gth_potential, elec_conf=elec_conf)
                   CALL set_qs_kind(qs_kind, elec_conf=elec_conf)
+               ELSE
+                  CALL set_potential(potential=qs_kind%gth_potential, elec_conf=elec_conf)
                END IF
             CASE ("UPF")
                ALLOCATE (qs_kind%upf_potential)
@@ -2104,7 +2110,7 @@ CONTAINS
          ! Allocate and initialise the basis set data set structure
          ! first external basis sets
          DO i = 1, nb_rep
-            SELECT CASE (basis_set_form (i))
+            SELECT CASE (basis_set_form(i))
             CASE ("GTO")
                NULLIFY (tmp_basis_set)
                CALL allocate_gto_basis_set(tmp_basis_set)
@@ -2134,7 +2140,7 @@ CONTAINS
                NULLIFY (tmp_basis_set)
                CALL allocate_gto_basis_set(tmp_basis_set)
                CALL read_gto_basis_set(qs_kind%element_symbol, basis_type, &
-                                       tmp_basis_set, basis_section, i)
+                                       tmp_basis_set, basis_section, i, dft_section)
                tmp = basis_type
                CALL uppercase(tmp)
                CALL add_basis_set_to_container(qs_kind%basis_sets, tmp_basis_set, tmp)
@@ -2147,8 +2153,8 @@ CONTAINS
                                           inumbas=i, basis_type=basis_type)
             IF (basis_type == "") CYCLE
             jj = i
-            DO j = i+1, SIZE(qs_kind%basis_sets)
-               jj = jj+1
+            DO j = i + 1, SIZE(qs_kind%basis_sets)
+               jj = jj + 1
                NULLIFY (sup_basis_set)
                CALL get_basis_from_container(qs_kind%basis_sets, basis_set=sup_basis_set, &
                                              inumbas=jj, basis_type=tmp)
@@ -2156,12 +2162,11 @@ CONTAINS
                   ! we found a match, combine the basis sets and delete the second
                   CALL combine_basis_sets(tmp_basis_set, sup_basis_set)
                   CALL remove_basis_from_container(qs_kind%basis_sets, jj)
-                  jj = jj-1
+                  jj = jj - 1
                END IF
             END DO
             NULLIFY (sup_basis_set)
          END DO
-         NULLIFY (tmp_basis_set)
 
          ! check that we have an orbital basis set
          nobasis = .TRUE.
@@ -2190,7 +2195,7 @@ CONTAINS
                   potential_file_name = potential_fn_kind
                END IF
                !
-               SELECT CASE (TRIM (potential_type))
+               SELECT CASE (TRIM(potential_type))
                CASE ("ALL")
                   CALL allocate_potential(qs_kind%all_potential)
                   CALL read_potential(qs_kind%element_symbol, potential_name, &
@@ -2201,6 +2206,8 @@ CONTAINS
                   IF (.NOT. ASSOCIATED(elec_conf)) THEN
                      CALL get_potential(potential=qs_kind%all_potential, elec_conf=elec_conf)
                      CALL set_qs_kind(qs_kind, elec_conf=elec_conf)
+                  ELSE
+                     CALL set_potential(potential=qs_kind%all_potential, elec_conf=elec_conf)
                   END IF
                CASE ("GTH")
                   CALL allocate_potential(qs_kind%gth_potential)
@@ -2212,6 +2219,8 @@ CONTAINS
                   IF (.NOT. ASSOCIATED(elec_conf)) THEN
                      CALL get_potential(potential=qs_kind%gth_potential, elec_conf=elec_conf)
                      CALL set_qs_kind(qs_kind, elec_conf=elec_conf)
+                  ELSE
+                     CALL set_potential(potential=qs_kind%gth_potential, elec_conf=elec_conf)
                   END IF
                CASE ("ECP")
                   CALL allocate_potential(qs_kind%sgp_potential)
@@ -2243,7 +2252,7 @@ CONTAINS
                      nnl = sgppot%n_nonlocal
                      nppnl = 0
                      DO l = 0, sgppot%lmax
-                        nppnl = nppnl+nnl*nco(l)
+                        nppnl = nppnl + nnl*nco(l)
                      END DO
                      l = sgppot%lmax
                      ALLOCATE (a_nl(nnl), h_nl(nnl, 0:l), c_nl(nnl, nnl, 0:l))
@@ -2259,7 +2268,7 @@ CONTAINS
                   CPASSERT(.NOT. sgppot%has_local)
                   CPASSERT(.NOT. sgppot%has_nlcc)
                   ! core
-                  rc = ptable(z)%covalent_radius*0.5_dp
+                  rc = 0.5_dp*qs_kind%covalent_radius*angstrom
                   rc = MAX(rc, 0.2_dp)
                   rc = MIN(rc, 1.0_dp)
                   alpha = 1.0_dp/(2.0_dp*rc**2)
@@ -2300,7 +2309,7 @@ CONTAINS
                      nnl = sgppot%n_nonlocal
                      nppnl = 0
                      DO l = 0, sgppot%lmax
-                        nppnl = nppnl+nnl*nco(l)
+                        nppnl = nppnl + nnl*nco(l)
                      END DO
                      l = sgppot%lmax
                      ALLOCATE (a_nl(nnl), h_nl(nnl, 0:l), c_nl(nnl, nnl, 0:l))
@@ -2360,13 +2369,13 @@ CONTAINS
             IF ((kgpot_name /= '') .OR. explicit_kgpot) THEN
                ipos = INDEX(kgpot_name, "-")
                IF (ipos > 1) THEN
-                  kgpot_type = kgpot_name(:ipos-1)
+                  kgpot_type = kgpot_name(:ipos - 1)
                ELSE
                   kgpot_type = kgpot_name
                END IF
                CALL uppercase(kgpot_type)
 
-               SELECT CASE (TRIM (kgpot_type))
+               SELECT CASE (TRIM(kgpot_type))
                CASE ("TNADD")
                   ! determine the pseudopotential file to search
                   IF (kg_potential_fn_kind == "-") THEN
@@ -2434,13 +2443,15 @@ CONTAINS
 
       INTEGER                                            :: i, istat, j
 
-      DO i = 1, LEN_TRIM(string)-2
-         IF (string(i:i+1) .NE. "-Q") CYCLE
-         j = SCAN(string(i+2:), "- ")
-         READ (string(i+2:i+j), '(I3)', iostat=istat) n
-         IF (istat == 0) RETURN
-      ENDDO
-      n = -1 ! valence electron number not found
+      i = INDEX(string, "-Q", .TRUE.)
+      IF (i == 0) THEN
+         n = -1
+      ELSE
+         j = SCAN(string(i + 2:), "- ")
+         READ (string(i + 2:i + j), '(I3)', iostat=istat) n
+         IF (istat /= 0) n = -1
+      END IF
+
    END FUNCTION
 
 ! **************************************************************************************************
@@ -2459,8 +2470,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(section_vals_type), POINTER                   :: force_env_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_qs_kind_set', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'create_qs_kind_set'
 
       INTEGER                                            :: handle, ikind, method, nkind, qs_method
       LOGICAL                                            :: no_fail
@@ -2518,8 +2528,6 @@ CONTAINS
       TYPE(dft_control_type), INTENT(IN)                 :: dft_control
       TYPE(section_vals_type), POINTER                   :: subsys_section
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'check_qs_kind', routineP = moduleN//':'//routineN
-
       LOGICAL                                            :: defined
       TYPE(qs_dftb_atom_type), POINTER                   :: dftb_parameter
       TYPE(semi_empirical_type), POINTER                 :: se_parameter
@@ -2559,8 +2567,7 @@ CONTAINS
       TYPE(dft_control_type), INTENT(IN)                 :: dft_control
       TYPE(section_vals_type), POINTER                   :: subsys_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'check_qs_kind_set', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'check_qs_kind_set'
 
       INTEGER                                            :: handle, ikind, nkind
       TYPE(qs_kind_type), POINTER                        :: qs_kind
@@ -2573,7 +2580,8 @@ CONTAINS
             CALL check_qs_kind(qs_kind, dft_control, subsys_section)
          END DO
          IF (dft_control%qs_control%xtb) THEN
-            CALL write_xtb_kab_param(qs_kind_set, subsys_section)
+            CALL write_xtb_kab_param(qs_kind_set, subsys_section, &
+                                     dft_control%qs_control%xtb_control)
          END IF
       ELSE
          CPABORT("The pointer qs_kind_set is not associated")
@@ -2585,14 +2593,13 @@ CONTAINS
 !> \brief ...
 !> \param qs_kind_set ...
 !> \param subsys_section ...
+!> \param xtb_control ...
 ! **************************************************************************************************
-   SUBROUTINE write_xtb_kab_param(qs_kind_set, subsys_section)
+   SUBROUTINE write_xtb_kab_param(qs_kind_set, subsys_section, xtb_control)
 
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
       TYPE(section_vals_type), POINTER                   :: subsys_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'write_xtb_kab_param', &
-         routineP = moduleN//':'//routineN
+      TYPE(xtb_control_type), POINTER                    :: xtb_control
 
       CHARACTER(LEN=default_string_length)               :: aname, bname
       INTEGER                                            :: ikind, io_unit, jkind, nkind, za, zb
@@ -2619,7 +2626,7 @@ CONTAINS
                   CALL get_qs_kind(qs_kindb, xtb_parameter=xtb_parameter_b)
                   CALL get_xtb_atom_param(xtb_parameter_b, aname=bname, z=zb)
                   WRITE (io_unit, "(A,T10,A15,T25,A15,T71,F10.3)") &
-                     "    Kab:", TRIM(aname), TRIM(bname), xtb_set_kab(za, zb)
+                     "    Kab:", TRIM(aname), TRIM(bname), xtb_set_kab(za, zb, xtb_control)
                END DO
             END DO
             WRITE (io_unit, *)
@@ -2639,6 +2646,8 @@ CONTAINS
 !> \param floating ...
 !> \param hard_radius ...
 !> \param hard0_radius ...
+!> \param covalent_radius ...
+!> \param vdw_radius ...
 !> \param soft_basis_set ...
 !> \param hard_basis_set ...
 !> \param lmax_rho0 ...
@@ -2653,6 +2662,7 @@ CONTAINS
 !> \param pao_basis_size ...
 ! **************************************************************************************************
    SUBROUTINE set_qs_kind(qs_kind, paw_atom, ghost, floating, hard_radius, hard0_radius, &
+                          covalent_radius, vdw_radius, &
                           soft_basis_set, hard_basis_set, lmax_rho0, zeff, &
                           no_optimize, dispersion, u_minus_j, reltmat, &
                           dftb_parameter, xtb_parameter, &
@@ -2660,7 +2670,8 @@ CONTAINS
 
       TYPE(qs_kind_type), INTENT(INOUT)                  :: qs_kind
       LOGICAL, INTENT(IN), OPTIONAL                      :: paw_atom, ghost, floating
-      REAL(dp), INTENT(IN), OPTIONAL                     :: hard_radius, hard0_radius
+      REAL(KIND=dp), INTENT(IN), OPTIONAL                :: hard_radius, hard0_radius, &
+                                                            covalent_radius, vdw_radius
       TYPE(gto_basis_set_type), OPTIONAL, POINTER        :: soft_basis_set, hard_basis_set
       INTEGER, INTENT(IN), OPTIONAL                      :: lmax_rho0
       REAL(KIND=dp), INTENT(IN), OPTIONAL                :: zeff
@@ -2673,20 +2684,20 @@ CONTAINS
       INTEGER, DIMENSION(:), INTENT(IN), OPTIONAL        :: elec_conf
       INTEGER, INTENT(IN), OPTIONAL                      :: pao_basis_size
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_qs_kind', routineP = moduleN//':'//routineN
-
       IF (PRESENT(dftb_parameter)) qs_kind%dftb_parameter => dftb_parameter
       IF (PRESENT(xtb_parameter)) qs_kind%xtb_parameter => xtb_parameter
       IF (PRESENT(elec_conf)) THEN
          IF (ASSOCIATED(qs_kind%elec_conf)) THEN
             DEALLOCATE (qs_kind%elec_conf)
-         ENDIF
-         ALLOCATE (qs_kind%elec_conf(0:SIZE(elec_conf)-1))
+         END IF
+         ALLOCATE (qs_kind%elec_conf(0:SIZE(elec_conf) - 1))
          qs_kind%elec_conf(:) = elec_conf(:)
-      ENDIF
+      END IF
       IF (PRESENT(paw_atom)) qs_kind%paw_atom = paw_atom
       IF (PRESENT(hard_radius)) qs_kind%hard_radius = hard_radius
       IF (PRESENT(hard0_radius)) qs_kind%hard0_radius = hard0_radius
+      IF (PRESENT(covalent_radius)) qs_kind%covalent_radius = covalent_radius
+      IF (PRESENT(vdw_radius)) qs_kind%vdw_radius = vdw_radius
       IF (PRESENT(soft_basis_set)) qs_kind%soft_basis_set => soft_basis_set
       IF (PRESENT(hard_basis_set)) qs_kind%hard_basis_set => hard_basis_set
       IF (PRESENT(lmax_rho0)) qs_kind%lmax_rho0 = lmax_rho0
@@ -2732,8 +2743,6 @@ CONTAINS
       TYPE(qs_kind_type), POINTER                        :: qs_kind
       INTEGER, INTENT(in)                                :: kind_number, output_unit
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'write_qs_kind', routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=3)                                   :: yon
       CHARACTER(LEN=default_string_length)               :: basis_type, bstring
       INTEGER                                            :: ibas
@@ -2764,6 +2773,10 @@ CONTAINS
                   bstring = "Auxiliary Fit Basis Set"
                CASE ("LRI_AUX")
                   bstring = "LRI Basis Set"
+               CASE ("RI_XAS")
+                  bstring = "RI XAS Basis Set"
+               CASE ("RI_HFX")
+                  bstring = "RI HFX Basis Set"
                END SELECT
 
                CALL write_orb_basis_set(tmp_basis, output_unit, bstring)
@@ -2777,6 +2790,16 @@ CONTAINS
             IF (qs_kind%floating) THEN
                WRITE (UNIT=output_unit, FMT="(/,T6,A)") &
                   "The atoms of this atomic kind are FLOATING BASIS FUNCTIONS."
+            END IF
+            IF (qs_kind%covalent_radius > 0.0_dp) THEN
+               WRITE (UNIT=output_unit, FMT="(/,T8,A,T71,F10.3)") &
+                  "Atomic covalent radius [Angstrom]:", &
+                  qs_kind%covalent_radius*angstrom
+            END IF
+            IF (qs_kind%vdw_radius > 0.0_dp) THEN
+               WRITE (UNIT=output_unit, FMT="(/,T8,A,T71,F10.3)") &
+                  "Atomic van der Waals radius [Angstrom]:", &
+                  qs_kind%vdw_radius*angstrom
             END IF
             IF (qs_kind%paw_atom) THEN
                WRITE (UNIT=output_unit, FMT="(/,T6,A)") &
@@ -2861,8 +2884,7 @@ CONTAINS
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
       TYPE(section_vals_type), POINTER                   :: subsys_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'write_qs_kind_set', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'write_qs_kind_set'
 
       INTEGER                                            :: handle, ikind, nkind, output_unit
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -2908,8 +2930,7 @@ CONTAINS
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
       TYPE(section_vals_type), POINTER                   :: subsys_section
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_gto_basis_sets', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_gto_basis_sets'
 
       CHARACTER(LEN=default_string_length)               :: basis_type, bstring
       INTEGER                                            :: handle, ibas, ikind, nkind, output_unit
@@ -2952,6 +2973,8 @@ CONTAINS
                      bstring = "Auxiliary Fit Basis Set"
                   CASE ("LRI_AUX")
                      bstring = "LRI Basis Set"
+                  CASE ("RI_HFX")
+                     bstring = "RI HFX Basis Set"
                   END SELECT
 
                   CALL write_gto_basis_set(tmp_basis, output_unit, bstring)
@@ -2991,9 +3014,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(0:lmat, 10, 2), &
          INTENT(OUT)                                     :: edelta
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_atom_electronic_state', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, ii, is, l, ll, ne, nn, z
       INTEGER, DIMENSION(:), POINTER                     :: econf
       INTEGER, DIMENSION(:, :), POINTER                  :: addel, laddel, naddel
@@ -3024,21 +3044,21 @@ CONTAINS
          CALL set_pseudo_state(econf, z, ncalc, ncore, nelem)
       ELSE
          DO l = 0, MIN(lmat, UBOUND(ptable(z)%e_conv, 1))
-            ll = 2*(2*l+1)
+            ll = 2*(2*l + 1)
             nn = ptable(z)%e_conv(l)
             ii = 0
             DO
-               ii = ii+1
+               ii = ii + 1
                IF (nn <= ll) THEN
                   nelem(l, ii) = nn
                   EXIT
                ELSE
                   nelem(l, ii) = ll
-                  nn = nn-ll
+                  nn = nn - ll
                END IF
             END DO
          END DO
-         ncalc = nelem-ncore
+         ncalc = nelem - ncore
       END IF
 
       ! readjust the occupation number of the orbitals as requested by user
@@ -3049,28 +3069,28 @@ CONTAINS
             DO i = 1, SIZE(addel, 1)
                ne = addel(i, is)
                l = laddel(i, is)
-               nn = naddel(i, is)-l
+               nn = naddel(i, is) - l
                IF (ne /= 0) THEN
                   IF (nn == 0) THEN
                      DO ii = SIZE(nelem, 2), 1, -1
                         IF (ncalc(l, ii) > 0) THEN
-                           IF ((ncalc(l, ii)+ne) < 2*(2*l+1)+1) THEN
-                              edelta(l, ii, is) = edelta(l, ii, is)+ne
+                           IF ((ncalc(l, ii) + ne) < 2*(2*l + 1) + 1) THEN
+                              edelta(l, ii, is) = edelta(l, ii, is) + ne
                               nn = ii
                            ELSE
-                              edelta(l, ii+1, is) = edelta(l, ii+1, is)+ne
-                              nn = ii+1
+                              edelta(l, ii + 1, is) = edelta(l, ii + 1, is) + ne
+                              nn = ii + 1
                            END IF
                            EXIT
                         ELSE IF (ii == 1) THEN
-                           edelta(l, ii, is) = edelta(l, ii, is)+ne
+                           edelta(l, ii, is) = edelta(l, ii, is) + ne
                            nn = ii
                         END IF
                      END DO
                   ELSE
-                     edelta(l, nn, is) = edelta(l, nn, is)+ne
+                     edelta(l, nn, is) = edelta(l, nn, is) + ne
                   END IF
-                  IF (ncalc(l, nn)+edelta(l, nn, is) < 0) THEN
+                  IF (ncalc(l, nn) + edelta(l, nn, is) < 0) THEN
                      edelta(l, nn, is) = -ncalc(l, nn)
                   END IF
                END IF
@@ -3080,12 +3100,12 @@ CONTAINS
       ELSE IF (magnetization /= 0.0_dp) THEN
          dmag = 0.5_dp*ABS(magnetization)
          DO l = 0, MIN(lmat, UBOUND(ptable(z)%e_conv, 1))
-            ll = 2*(2*l+1)
+            ll = 2*(2*l + 1)
             ii = 0
             DO i = 1, SIZE(ncalc, 2)
                IF (ncalc(l, i) == 0) CYCLE
                IF (ncalc(l, i) == ll) CYCLE
-               IF (ncalc(l, i) > dmag .AND. (ll-ncalc(l, i)) > dmag) THEN
+               IF (ncalc(l, i) > dmag .AND. (ll - ncalc(l, i)) > dmag) THEN
                   ii = i
                   EXIT
                END IF
@@ -3124,77 +3144,161 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: z
       INTEGER, DIMENSION(0:lmat, 10), INTENT(OUT)        :: ncalc, ncore, nelem
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_pseudo_state', &
-         routineP = moduleN//':'//routineN
-
-      INTEGER                                            :: ii, l, ll, lx, nn
+      INTEGER                                            :: ii, iounit, l, ll, lmin, nc, nn
       INTEGER, DIMENSION(0:lmat)                         :: econfx
+      TYPE(cp_logger_type), POINTER                      :: logger
+
+      NULLIFY (logger)
+      logger => cp_get_default_logger()
+      iounit = cp_logger_get_default_io_unit(logger)
 
       econfx = 0
-      econfx(0:SIZE(econf)-1) = econf
+      econfx(0:SIZE(econf) - 1) = econf
       IF (SUM(econf) >= 0) THEN
-         DO l = 0, MIN(lmat, UBOUND(ptable(z)%e_conv, 1))
-            ll = 2*(2*l+1)
-            nn = ptable(z)%e_conv(l)-econfx(l)
-            IF (MOD(nn, ll) == 0) CYCLE
-            IF (econfx(l) == 0) CYCLE
-            IF (MOD(nn, 2) == 0) CYCLE
-            DO lx = 3, l+1, -1
-               IF (econfx(lx) == 0) CYCLE
-               econfx(l) = econfx(l)+1
-               econfx(lx) = econfx(lx)-1
-               EXIT
+         lmin = MIN(lmat, UBOUND(ptable(z)%e_conv, 1))
+         ! number of core electrons
+         nc = z - SUM(econf)
+         ! setup ncore
+         ncore = 0
+         SELECT CASE (nc)
+         CASE (0)
+         CASE (2)
+            ncore(0, 1) = 2
+         CASE (10)
+            ncore(0, 1) = 2
+            ncore(0, 2) = 2
+            ncore(1, 1) = 6
+         CASE (18)
+            ncore(0, 1) = 2
+            ncore(0, 2) = 2
+            ncore(0, 3) = 2
+            ncore(1, 1) = 6
+            ncore(1, 2) = 6
+         CASE (28)
+            ncore(0, 1) = 2
+            ncore(0, 2) = 2
+            ncore(0, 3) = 2
+            ncore(1, 1) = 6
+            ncore(1, 2) = 6
+            ncore(2, 1) = 10
+         CASE (36)
+            ncore(0, 1) = 2
+            ncore(0, 2) = 2
+            ncore(0, 3) = 2
+            ncore(0, 4) = 2
+            ncore(1, 1) = 6
+            ncore(1, 2) = 6
+            ncore(1, 3) = 6
+            ncore(2, 1) = 10
+         CASE (46)
+            ncore(0, 1) = 2
+            ncore(0, 2) = 2
+            ncore(0, 3) = 2
+            ncore(0, 4) = 2
+            ncore(1, 1) = 6
+            ncore(1, 2) = 6
+            ncore(1, 3) = 6
+            ncore(2, 1) = 10
+            ncore(2, 2) = 10
+         CASE (54)
+            ncore(0, 1) = 2
+            ncore(0, 2) = 2
+            ncore(0, 3) = 2
+            ncore(0, 4) = 2
+            ncore(0, 5) = 2
+            ncore(1, 1) = 6
+            ncore(1, 2) = 6
+            ncore(1, 3) = 6
+            ncore(1, 4) = 6
+            ncore(2, 1) = 10
+            ncore(2, 2) = 10
+         CASE (60)
+            ncore(0, 1) = 2
+            ncore(0, 2) = 2
+            ncore(0, 3) = 2
+            ncore(0, 4) = 2
+            ncore(1, 1) = 6
+            ncore(1, 2) = 6
+            ncore(1, 3) = 6
+            ncore(2, 1) = 10
+            ncore(2, 2) = 10
+            ncore(3, 1) = 14
+         CASE (68)
+            ncore(0, 1) = 2
+            ncore(0, 2) = 2
+            ncore(0, 3) = 2
+            ncore(0, 4) = 2
+            ncore(0, 5) = 2
+            ncore(1, 1) = 6
+            ncore(1, 2) = 6
+            ncore(1, 3) = 6
+            ncore(1, 4) = 6
+            ncore(2, 1) = 10
+            ncore(2, 2) = 10
+            ncore(3, 1) = 14
+         CASE (78)
+            ncore(0, 1) = 2
+            ncore(0, 2) = 2
+            ncore(0, 3) = 2
+            ncore(0, 4) = 2
+            ncore(0, 5) = 2
+            ncore(1, 1) = 6
+            ncore(1, 2) = 6
+            ncore(1, 3) = 6
+            ncore(1, 4) = 6
+            ncore(2, 1) = 10
+            ncore(2, 2) = 10
+            ncore(2, 3) = 10
+            ncore(3, 1) = 14
+         CASE DEFAULT
+            ncore(0, 1) = -1
+         END SELECT
+         ! if the core is established, finish the setup
+         IF (ncore(0, 1) >= 0) THEN
+            DO l = 0, lmin
+               ll = 2*(2*l + 1)
+               nn = SUM(ncore(l, :)) + econfx(l)
+               ii = 0
+               DO
+                  ii = ii + 1
+                  IF (nn <= ll) THEN
+                     nelem(l, ii) = nn
+                     EXIT
+                  ELSE
+                     nelem(l, ii) = ll
+                     nn = nn - ll
+                  END IF
+               END DO
             END DO
-         END DO
-         DO l = 0, MIN(lmat, UBOUND(ptable(z)%e_conv, 1))
-            ll = 2*(2*l+1)
-            nn = ptable(z)%e_conv(l)-econfx(l)
-            ii = 0
-            DO
-               ii = ii+1
-               IF (nn <= ll) THEN
-                  ncore(l, ii) = nn
-                  EXIT
-               ELSE
-                  ncore(l, ii) = ll
-                  nn = nn-ll
-               END IF
-            END DO
-         END DO
-         DO l = 0, MIN(lmat, UBOUND(ptable(z)%e_conv, 1))
-            ll = 2*(2*l+1)
-            nn = ptable(z)%e_conv(l)
-            ii = 0
-            DO
-               ii = ii+1
-               IF (nn <= ll) THEN
-                  nelem(l, ii) = nn
-                  EXIT
-               ELSE
-                  nelem(l, ii) = ll
-                  nn = nn-ll
-               END IF
-            END DO
-         END DO
-         ncalc = nelem-ncore
+            ncalc = nelem - ncore
+         ELSE
+            ! test for compatibility of valence occupation and full atomic occupation
+            IF (iounit > 0) THEN
+               WRITE (iounit, "(/,A,A2)") "WARNING: Core states irregular for atom type ", ptable(z)%symbol
+               WRITE (iounit, "(A,10I3)") "WARNING: Redefine ELEC_CONF in the KIND section"
+               CPABORT("Incompatible Atomic Occupations Detected")
+            END IF
+         END IF
       ELSE
+         lmin = MIN(lmat, UBOUND(ptable(z)%e_conv, 1))
          ncore = 0
          ncalc = 0
-         DO l = 0, MIN(lmat, UBOUND(ptable(z)%e_conv, 1))
-            ll = 2*(2*l+1)
+         DO l = 0, lmin
+            ll = 2*(2*l + 1)
             nn = ABS(econfx(l))
             ii = 0
             DO
-               ii = ii+1
+               ii = ii + 1
                IF (nn <= ll) THEN
                   ncalc(l, ii) = -nn
                   EXIT
                ELSE
                   ncalc(l, ii) = -ll
-                  nn = nn-ll
+                  nn = nn - ll
                END IF
             END DO
          END DO
+         nelem = ncalc
       END IF
 
    END SUBROUTINE set_pseudo_state
@@ -3208,8 +3312,6 @@ CONTAINS
 
       TYPE(qs_kind_type), DIMENSION(:)                   :: qs_kind_set
       LOGICAL                                            :: nlcc
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'has_nlcc', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ikind
       LOGICAL                                            :: nlcc_present
@@ -3227,7 +3329,7 @@ CONTAINS
             CALL get_potential(potential=sgp_potential, has_nlcc=nlcc_present)
             nlcc = nlcc .OR. nlcc_present
          END IF
-      ENDDO
+      END DO
 
    END FUNCTION has_nlcc
 

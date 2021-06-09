@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -50,8 +52,6 @@ CONTAINS
       TYPE(cp_subsys_type), OPTIONAL, POINTER            :: subsys
       REAL(KIND=dp), INTENT(OUT), OPTIONAL               :: potential_energy, kinetic_energy
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_env_get', routineP = moduleN//':'//routineN
-
       TYPE(fist_energy_type), POINTER                    :: thermo
       TYPE(qs_energy_type), POINTER                      :: qs_energy
 
@@ -72,7 +72,7 @@ CONTAINS
          ! for conventional QM/MM, and force-mixing knows to put relevant energy there.
          CALL fist_env_get(qmmm_env%fist_env, thermo=thermo)
          CALL get_qs_env(qmmm_env%qs_env, energy=qs_energy)
-         potential_energy = thermo%pot+qs_energy%total
+         potential_energy = thermo%pot + qs_energy%total
       ENDIF
    END SUBROUTINE qmmm_env_get
 
@@ -84,12 +84,9 @@ CONTAINS
    SUBROUTINE qmmm_env_release(qmmm_env)
       TYPE(qmmm_env_type), POINTER                       :: qmmm_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_env_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(qmmm_env)) THEN
          CPASSERT(qmmm_env%ref_count > 0)
-         qmmm_env%ref_count = qmmm_env%ref_count-1
+         qmmm_env%ref_count = qmmm_env%ref_count - 1
          IF (qmmm_env%ref_count == 0) THEN
             CALL qs_env_release(qmmm_env%qs_env)
             CALL qmmm_env_qm_release(qmmm_env%qm)
@@ -108,12 +105,9 @@ CONTAINS
    SUBROUTINE qmmm_env_retain(qmmm_env)
       TYPE(qmmm_env_type), POINTER                       :: qmmm_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_env_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(qmmm_env))
       CPASSERT(qmmm_env%ref_count > 0)
-      qmmm_env%ref_count = qmmm_env%ref_count+1
+      qmmm_env%ref_count = qmmm_env%ref_count + 1
    END SUBROUTINE qmmm_env_retain
 
 END MODULE qmmm_types

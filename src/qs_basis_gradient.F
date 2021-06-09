@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! *****************************************************************************
@@ -81,8 +83,7 @@ CONTAINS
 
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_basis_center_gradient', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'qs_basis_center_gradient'
 
       INTEGER                                            :: handle, i, iatom, ikind, img, ispin, &
                                                             natom, nimg, nkind, nspin
@@ -213,8 +214,8 @@ CONTAINS
          CALL get_atomic_kind(particle_set(iatom)%atomic_kind, kind_number=ikind)
          CALL get_qs_kind(qs_kind_set(ikind), floating=floating)
          IF (floating) THEN
-            nfloat = nfloat+1
-            norm = norm+SUM(ABS(gradient(1:3, iatom)))
+            nfloat = nfloat + 1
+            norm = norm + SUM(ABS(gradient(1:3, iatom)))
          END IF
       END DO
       IF (nfloat > 0) THEN
@@ -231,8 +232,7 @@ CONTAINS
 
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_update_basis_center_pos', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'qs_update_basis_center_pos'
 
       INTEGER                                            :: handle, iatom, ikind, natom
       LOGICAL                                            :: floating
@@ -256,7 +256,7 @@ CONTAINS
          CALL get_atomic_kind(particle_set(iatom)%atomic_kind, kind_number=ikind)
          CALL get_qs_kind(qs_kind_set(ikind), floating=floating)
          IF (floating) THEN
-            particle_set(iatom)%r(1:3) = particle_set(iatom)%r(1:3)+alpha*gradient(1:3, iatom)
+            particle_set(iatom)%r(1:3) = particle_set(iatom)%r(1:3) + alpha*gradient(1:3, iatom)
          END IF
       END DO
 
@@ -276,8 +276,7 @@ CONTAINS
    SUBROUTINE qs_basis_reinit_energy(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_basis_reinit_energy', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'qs_basis_reinit_energy'
 
       INTEGER                                            :: handle, ispin, nmo
       TYPE(cp_fm_type), POINTER                          :: mo_coeff

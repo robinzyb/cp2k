@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -52,21 +54,19 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(section_vals_type), POINTER                   :: base_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'print_basis_set_file', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=2)                                   :: element_symbol
       CHARACTER(LEN=default_string_length)               :: bname, filename
       INTEGER                                            :: ikind, iunit, nkind, ounit
       INTEGER, SAVE                                      :: ncalls = 0
       TYPE(cp_logger_type), POINTER                      :: logger
       TYPE(gto_basis_set_type), POINTER                  :: aux_fit_basis, lri_aux_basis, orb_basis, &
-                                                            ri_aux_basis, ri_hxc_basis
+                                                            ri_aux_basis, ri_hfx_basis, &
+                                                            ri_hxc_basis, ri_xas_basis
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
       TYPE(qs_kind_type), POINTER                        :: qs_kind
 
       IF (ncalls > 0) RETURN
-      ncalls = ncalls+1
+      ncalls = ncalls + 1
 
       logger => cp_get_default_logger()
       ounit = cp_logger_get_default_io_unit(logger)
@@ -92,8 +92,10 @@ CONTAINS
          CALL get_qs_kind(qs_kind, basis_set=orb_basis, basis_type="ORB")
          CALL get_qs_kind(qs_kind, basis_set=ri_aux_basis, basis_type="RI_AUX")
          CALL get_qs_kind(qs_kind, basis_set=ri_hxc_basis, basis_type="RI_HXC")
+         CALL get_qs_kind(qs_kind, basis_set=ri_hfx_basis, basis_type="RI_HFX")
          CALL get_qs_kind(qs_kind, basis_set=lri_aux_basis, basis_type="LRI_AUX")
          CALL get_qs_kind(qs_kind, basis_set=aux_fit_basis, basis_type="AUX_FIT")
+         CALL get_qs_kind(qs_kind, basis_set=ri_xas_basis, basis_type="RI_XAS")
          IF (ounit > 0) THEN
             IF (ASSOCIATED(orb_basis)) THEN
                bname = "local_orbital"
@@ -115,6 +117,14 @@ CONTAINS
                bname = "local_aux_fit"
                CALL basis_out(aux_fit_basis, element_symbol, bname, iunit)
             END IF
+            IF (ASSOCIATED(ri_xas_basis)) THEN
+               bname = "local_ri_xas"
+               CALL basis_out(ri_xas_basis, element_symbol, bname, iunit)
+            END IF
+            IF (ASSOCIATED(ri_hfx_basis)) THEN
+               bname = "local_ri_hfx"
+               CALL basis_out(ri_hfx_basis, element_symbol, bname, iunit)
+            ENDIF
          ENDIF
       END DO
 
@@ -138,8 +148,6 @@ CONTAINS
       CHARACTER(LEN=*), INTENT(IN)                       :: element_symbol, bname
       INTEGER, INTENT(IN)                                :: iunit
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'basis_out', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ipgf, iset, ishell, ll, nset
       INTEGER, DIMENSION(0:9)                            :: lset
       INTEGER, DIMENSION(:), POINTER                     :: lmax, lmin, npgf, nshell
@@ -159,7 +167,7 @@ CONTAINS
          lset = 0
          DO ishell = 1, nshell(iset)
             ll = l(ishell, iset)
-            lset(ll) = lset(ll)+1
+            lset(ll) = lset(ll) + 1
          END DO
          WRITE (iunit, "(I5,2I3,I5,2X,10(I3))") n(1, iset), lmin(iset), lmax(iset), npgf(iset), &
             (lset(ll), ll=lmin(iset), lmax(iset))

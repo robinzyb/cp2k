@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 ! **************************************************************************************************
 !> \brief Utility routines for qs_scf
@@ -93,9 +95,6 @@ CONTAINS
       LOGICAL                                            :: diis_step, energy_only, just_energy, &
                                                             exit_inner_loop
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_scf_set_loop_flags', &
-         routineP = moduleN//':'//routineN
-
 ! Some flags needed to be set at the beginning of the loop
 
       diis_step = .FALSE.
@@ -128,7 +127,7 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: scf_section
       LOGICAL                                            :: diis_step, energy_only
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_scf_new_mos', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'qs_scf_new_mos'
 
       INTEGER                                            :: handle, ispin
       LOGICAL                                            :: has_unit_metric, skip_diag_sub
@@ -151,6 +150,33 @@ CONTAINS
                       has_unit_metric=has_unit_metric)
       scf_env%iter_param = 0.0_dp
 
+      ! transfer total_zeff_corr from qs_env to scf_env only if
+      ! correct_el_density_dip is switched on [SGh]
+      IF (dft_control%correct_el_density_dip) THEN
+         scf_env%sum_zeff_corr = qs_env%total_zeff_corr
+         IF (ABS(qs_env%total_zeff_corr) > 0.0_dp) THEN
+            IF (scf_env%method /= general_diag_method_nr) THEN
+               CALL cp_abort(__LOCATION__, &
+                             "Please use ALGORITHM STANDARD in "// &
+                             "SCF%DIAGONALIZATION if "// &
+                             "CORE_CORRECTION /= 0.0 and "// &
+                             "SURFACE_DIPOLE_CORRECTION TRUE ")
+            ELSEIF (dft_control%roks) THEN
+               CALL cp_abort(__LOCATION__, &
+                             "Combination of "// &
+                             "CORE_CORRECTION /= 0.0 and "// &
+                             "SURFACE_DIPOLE_CORRECTION TRUE "// &
+                             "is not implemented with ROKS")
+            ELSEIF (scf_control%diagonalization%mom) THEN
+               CALL cp_abort(__LOCATION__, &
+                             "Combination of "// &
+                             "CORE_CORRECTION /= 0.0 and "// &
+                             "SURFACE_DIPOLE_CORRECTION TRUE "// &
+                             "is not implemented with SCF%MOM")
+            ENDIF
+         ENDIF
+      ENDIF
+
       SELECT CASE (scf_env%method)
       CASE DEFAULT
          CALL cp_abort(__LOCATION__, &
@@ -162,6 +188,13 @@ CONTAINS
          ! *************************************************************************
       CASE (filter_matrix_diag_method_nr)
 
+         IF (ABS(qs_env%total_zeff_corr) > 0.0_dp) THEN
+            CALL cp_abort(__LOCATION__, &
+                          "CORE_CORRECTION /= 0.0 plus"// &
+                          "SURFACE_DIPOLE_CORRECTION  TRUE"// &
+                          "requires SCF%DIAGONALIZATION: "// &
+                          "ALGORITHM STANDARD")
+         ENDIF
          CALL fb_env_do_diag(scf_env%filter_matrix_env, qs_env, &
                              matrix_ks, matrix_s, scf_section, diis_step)
 
@@ -242,8 +275,8 @@ CONTAINS
       energy%efermi = 0.0_dp
       CALL get_qs_env(qs_env, mos=mos)
       DO ispin = 1, SIZE(mos)
-         energy%kTS = energy%kTS+mos(ispin)%mo_set%kTS
-         energy%efermi = energy%efermi+mos(ispin)%mo_set%mu
+         energy%kTS = energy%kTS + mos(ispin)%mo_set%kTS
+         energy%efermi = energy%efermi + mos(ispin)%mo_set%mu
       ENDDO
       energy%efermi = energy%efermi/REAL(SIZE(mos), KIND=dp)
 
@@ -265,8 +298,7 @@ CONTAINS
       TYPE(scf_control_type), POINTER                    :: scf_control
       LOGICAL                                            :: diis_step
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_scf_new_mos_kp', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'qs_scf_new_mos_kp'
 
       INTEGER                                            :: handle, ispin
       LOGICAL                                            :: has_unit_metric
@@ -326,8 +358,8 @@ CONTAINS
       energy%efermi = 0.0_dp
       mos => kpoints%kp_env(1)%kpoint_env%mos
       DO ispin = 1, SIZE(mos, 2)
-         energy%kTS = energy%kTS+mos(1, ispin)%mo_set%kTS
-         energy%efermi = energy%efermi+mos(1, ispin)%mo_set%mu
+         energy%kTS = energy%kTS + mos(1, ispin)%mo_set%kTS
+         energy%efermi = energy%efermi + mos(1, ispin)%mo_set%mu
       ENDDO
       energy%efermi = energy%efermi/REAL(SIZE(mos, 2), KIND=dp)
 
@@ -366,8 +398,7 @@ CONTAINS
       LOGICAL, INTENT(INOUT)                             :: energy_only
       LOGICAL, INTENT(IN)                                :: has_unit_metric
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_scf_loop_do_ot', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'qs_scf_loop_do_ot'
 
       INTEGER                                            :: handle, ispin
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: rho_ao
@@ -422,9 +453,6 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       LOGICAL                                            :: diis_step
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_scf_density_mixing', &
-         routineP = moduleN//':'//routineN
-
       TYPE(dbcsr_p_type), DIMENSION(:, :), POINTER       :: rho_ao_kp
 
       NULLIFY (rho_ao_kp)
@@ -467,15 +495,12 @@ CONTAINS
       LOGICAL                                            :: should_stop, outer_loop_converged, &
                                                             exit_outer_loop
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_scf_check_outer_exit', &
-         routineP = moduleN//':'//routineN
-
       REAL(KIND=dp)                                      :: outer_loop_eps
 
       outer_loop_converged = .TRUE.
       IF (scf_control%outer_scf%have_scf) THEN
          ! We have an outer SCF loop...
-         scf_env%outer_scf%iter_count = scf_env%outer_scf%iter_count+1
+         scf_env%outer_scf%iter_count = scf_env%outer_scf%iter_count + 1
          outer_loop_converged = .FALSE.
 
          CALL outer_loop_gradient(qs_env, scf_env)
@@ -508,9 +533,6 @@ CONTAINS
       LOGICAL                                            :: should_stop, exit_inner_loop, &
                                                             inner_loop_converged
       INTEGER                                            :: output_unit
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_scf_check_inner_exit', &
-         routineP = moduleN//':'//routineN
 
       inner_loop_converged = .FALSE.
       exit_inner_loop = .FALSE.
@@ -550,9 +572,6 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       LOGICAL                                            :: diis_step
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_scf_undo_mixing', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(len=default_string_length)               :: name
       INTEGER                                            :: ic, ispin, nc
       TYPE(dbcsr_p_type), DIMENSION(:, :), POINTER       :: rho_ao_kp
@@ -587,7 +606,7 @@ CONTAINS
    END SUBROUTINE qs_scf_undo_mixing
 
 ! **************************************************************************************************
-!> \brief Performes the updates rho (takes care of mixing as well)
+!> \brief Performs the updates rho (takes care of mixing as well)
 !> \param rho ...
 !> \param qs_env ...
 !> \param scf_env ...
@@ -600,9 +619,6 @@ CONTAINS
       TYPE(qs_scf_env_type), POINTER                     :: scf_env
       TYPE(qs_ks_env_type), POINTER                      :: ks_env
       LOGICAL, INTENT(IN)                                :: mix_rho
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_scf_rho_update', &
-         routineP = moduleN//':'//routineN
 
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
@@ -621,7 +637,7 @@ CONTAINS
    END SUBROUTINE qs_scf_rho_update
 
 ! **************************************************************************************************
-!> \brief Performes the necessary steps before leaving innner scf loop
+!> \brief Performs the necessary steps before leaving innner scf loop
 !> \param scf_env ...
 !> \param qs_env ...
 !> \param diis_step ...
@@ -632,9 +648,6 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       LOGICAL                                            :: diis_step
       INTEGER, INTENT(IN)                                :: output_unit
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_scf_inner_finalize', &
-         routineP = moduleN//':'//routineN
 
       LOGICAL                                            :: do_kpoints
       TYPE(cp_para_env_type), POINTER                    :: para_env
@@ -673,8 +686,7 @@ CONTAINS
    SUBROUTINE cleanup_scf_loop(scf_env)
       TYPE(qs_scf_env_type), POINTER                     :: scf_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cleanup_scf_loop', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'cleanup_scf_loop'
 
       INTEGER                                            :: handle, ispin
 

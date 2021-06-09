@@ -1,12 +1,14 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 MODULE se_fock_matrix_dbg
-   USE dbcsr_api,                       ONLY: dbcsr_p_type,&
-                                              dbcsr_set,&
-                                              dbcsr_trace
+   USE dbcsr_api,                       ONLY: dbcsr_dot,&
+                                              dbcsr_p_type,&
+                                              dbcsr_set
    USE kinds,                           ONLY: dp
    USE qs_energy_types,                 ONLY: init_qs_energy,&
                                               qs_energy_type
@@ -46,9 +48,6 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: calculate_forces
       TYPE(semi_empirical_si_type), POINTER              :: store_int_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'dbg_energy_coulomb_lr', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ispin
       REAL(KIND=dp)                                      :: ecoul
 
@@ -65,15 +64,15 @@ CONTAINS
 
       ! Compute the Hartree energy
       DO ispin = 1, nspins
-         CALL dbcsr_trace(ks_matrix(ispin)%matrix, matrix_p(ispin)%matrix, trace=ecoul)
-         energy%hartree = energy%hartree+ecoul
+         CALL dbcsr_dot(ks_matrix(ispin)%matrix, matrix_p(ispin)%matrix, ecoul)
+         energy%hartree = energy%hartree + ecoul
 
          WRITE (*, *) ispin, "ECOUL ", ecoul
       END DO
       WRITE (*, *) "ENUC in DBG:", energy%core_overlap
 
       ! Debug statements
-      WRITE (*, *) "TOTAL ENE", 0.5_dp*energy%hartree+energy%core_overlap
+      WRITE (*, *) "TOTAL ENE", 0.5_dp*energy%hartree + energy%core_overlap
       CPABORT("Debug energy for Coulomb Long-Range")
 
    END SUBROUTINE dbg_energy_coulomb_lr

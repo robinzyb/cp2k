@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -86,15 +88,12 @@ CONTAINS
    SUBROUTINE spline_env_release(spline_env)
       TYPE(spline_environment_type), POINTER             :: spline_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'spline_env_release', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
       TYPE(spline_data_p_type), DIMENSION(:), POINTER    :: spl_p
 
       IF (ASSOCIATED(spline_env)) THEN
          CPASSERT(spline_env%ref_count > 0)
-         spline_env%ref_count = spline_env%ref_count-1
+         spline_env%ref_count = spline_env%ref_count - 1
          IF (spline_env%ref_count < 1) THEN
             DEALLOCATE (spline_env%spltab)
             DO i = 1, SIZE(spline_env%spl_pp)
@@ -116,12 +115,9 @@ CONTAINS
    SUBROUTINE spline_data_release(spline_data)
       TYPE(spline_data_type), POINTER                    :: spline_data
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'spline_data_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(spline_data)) THEN
          CPASSERT(spline_data%ref_count > 0)
-         spline_data%ref_count = spline_data%ref_count-1
+         spline_data%ref_count = spline_data%ref_count - 1
          IF (spline_data%ref_count < 1) THEN
             IF (ASSOCIATED(spline_data%y)) THEN
                DEALLOCATE (spline_data%y)
@@ -141,9 +137,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE spline_data_p_release(spl_p)
       TYPE(spline_data_p_type), DIMENSION(:), POINTER    :: spl_p
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'spline_data_p_release', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
       LOGICAL                                            :: release_kind
@@ -169,12 +162,9 @@ CONTAINS
    SUBROUTINE spline_data_retain(spline_data)
       TYPE(spline_data_type), POINTER                    :: spline_data
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'spline_data_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(spline_data))
       CPASSERT(spline_data%ref_count > 0)
-      spline_data%ref_count = spline_data%ref_count+1
+      spline_data%ref_count = spline_data%ref_count + 1
    END SUBROUTINE spline_data_retain
 
 ! **************************************************************************************************
@@ -184,9 +174,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE spline_data_p_retain(spl_p)
       TYPE(spline_data_p_type), DIMENSION(:), POINTER    :: spl_p
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'spline_data_p_retain', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
 
@@ -206,12 +193,9 @@ CONTAINS
    SUBROUTINE spline_env_retain(spline_env)
       TYPE(spline_environment_type), POINTER             :: spline_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'spline_env_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(spline_env))
       CPASSERT(spline_env%ref_count > 0)
-      spline_env%ref_count = spline_env%ref_count+1
+      spline_env%ref_count = spline_env%ref_count + 1
    END SUBROUTINE spline_env_retain
 
 ! **************************************************************************************************
@@ -229,8 +213,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: ntype
       INTEGER, INTENT(IN), OPTIONAL                      :: ntab_in
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'spline_env_create', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'spline_env_create'
 
       INTEGER                                            :: handle, i, isize, j, ntab
 
@@ -240,13 +223,13 @@ CONTAINS
       NULLIFY (spline_env%spl_pp)
       NULLIFY (spline_env%spltab)
       spline_env%ref_count = 1
-      last_spline_env_id_nr = last_spline_env_id_nr+1
+      last_spline_env_id_nr = last_spline_env_id_nr + 1
       spline_env%id_nr = last_spline_env_id_nr
       ! Allocate the number of spline data tables (upper triangular)
       IF (PRESENT(ntab_in)) THEN
          ntab = ntab_in
       ELSE
-         ntab = (ntype*ntype+ntype)/2
+         ntab = (ntype*ntype + ntype)/2
       END IF
       ALLOCATE (spline_env%spl_pp(ntab))
 
@@ -273,9 +256,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE spline_data_p_copy(spl_p_source, spl_p_dest)
       TYPE(spline_data_p_type), DIMENSION(:), POINTER    :: spl_p_source, spl_p_dest
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'spline_data_p_copy', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, nsized, nsizes
 
@@ -307,9 +287,6 @@ CONTAINS
    SUBROUTINE spline_data_copy(spline_data_source, spline_data_dest)
       TYPE(spline_data_type), POINTER                    :: spline_data_source, spline_data_dest
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'spline_data_copy', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(spline_data_source))
       IF (.NOT. ASSOCIATED(spline_data_dest)) CALL spline_data_create(spline_data_dest)
 
@@ -339,12 +316,9 @@ CONTAINS
    SUBROUTINE spline_data_create(spline_data)
       TYPE(spline_data_type), POINTER                    :: spline_data
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'spline_data_create', &
-         routineP = moduleN//':'//routineN
-
       ALLOCATE (spline_data)
       spline_data%ref_count = 1
-      last_spline_data_id_nr = last_spline_data_id_nr+1
+      last_spline_data_id_nr = last_spline_data_id_nr + 1
       spline_data%id_nr = last_spline_data_id_nr
       NULLIFY (spline_data%y)
       NULLIFY (spline_data%y2)
@@ -357,9 +331,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE spline_factor_release(spline_factor)
       TYPE(spline_factor_type), POINTER                  :: spline_factor
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'spline_factor_release', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(spline_factor)) THEN
          IF (ASSOCIATED(spline_factor%rscale)) THEN
@@ -383,9 +354,6 @@ CONTAINS
    SUBROUTINE spline_factor_create(spline_factor)
       TYPE(spline_factor_type), POINTER                  :: spline_factor
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'spline_factor_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(spline_factor))
       ALLOCATE (spline_factor)
       ALLOCATE (spline_factor%rscale(1))
@@ -406,9 +374,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE spline_factor_copy(spline_factor_source, spline_factor_dest)
       TYPE(spline_factor_type), POINTER                  :: spline_factor_source, spline_factor_dest
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'spline_factor_copy', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: isize, jsize, ksize
 

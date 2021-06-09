@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -74,9 +76,6 @@ CONTAINS
 
       CHARACTER(len=*), INTENT(IN)                       :: line
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pint_write_line', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(len=default_string_length)               :: my_label
       INTEGER                                            :: unit_nr
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -105,8 +104,7 @@ CONTAINS
    SUBROUTINE pint_write_centroids(pint_env)
       TYPE(pint_env_type), POINTER                       :: pint_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pint_write_centroids', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'pint_write_centroids'
       INTEGER, PARAMETER                                 :: n_ids = 2, pos_id = 1, vel_id = 2
 
       CHARACTER(len=default_string_length)               :: ext, form, my_middle_name, unit_str
@@ -194,13 +192,13 @@ CONTAINS
          idim = 0
          DO iat = 1, pint_env%ndim/3
             DO idir = 1, 3
-               idim = idim+1
+               idim = idim + 1
                ss = 0.0_dp
                vv = 0.0_dp
 !          ss2=0.0_dp
                DO ib = 1, pint_env%p
-                  ss = ss+pint_env%x(ib, idim)
-                  vv = vv+pint_env%v(ib, idim)
+                  ss = ss + pint_env%x(ib, idim)
+                  vv = vv + pint_env%v(ib, idim)
 !            ss2=ss2+pint_env%x(ib,idim)**2
                END DO
                particles%els(iat)%r(idir) = ss/nb
@@ -260,8 +258,7 @@ CONTAINS
    SUBROUTINE pint_write_trajectory(pint_env)
       TYPE(pint_env_type), POINTER                       :: pint_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pint_write_trajectory', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'pint_write_trajectory'
       INTEGER, PARAMETER                                 :: force_id = 3, n_ids = 3, pos_id = 1, &
                                                             vel_id = 2
 
@@ -354,7 +351,7 @@ CONTAINS
             idim = 0
             DO iat = 1, pint_env%ndim/3
                DO idir = 1, 3
-                  idim = idim+1
+                  idim = idim + 1
                   particles%els(iat)%r(idir) = pint_env%x(ib, idim)
                   particles%els(iat)%v(idir) = pint_env%v(ib, idim)
                   particles%els(iat)%f(idir) = pint_env%f(ib, idim)
@@ -421,8 +418,6 @@ CONTAINS
    SUBROUTINE pint_write_com(pint_env)
 
       TYPE(pint_env_type), POINTER                       :: pint_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'pint_write_com', routineP = moduleN//':'//routineN
 
       CHARACTER(len=default_string_length)               :: stmp1, stmp2
       INTEGER                                            :: ic, unit_nr
@@ -492,9 +487,6 @@ CONTAINS
    SUBROUTINE pint_write_ener(pint_env)
       TYPE(pint_env_type), POINTER                       :: pint_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pint_write_ener', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ndof, unit_nr
       LOGICAL                                            :: file_is_new
       REAL(kind=dp)                                      :: t, temp
@@ -524,7 +516,7 @@ CONTAINS
          ! cp_print_key_unit_nr returns -1 on nodes other than logger%para_env%ionode
          IF (unit_nr > 0) THEN
 
-            ! please keep the format explaination up to date
+            ! please keep the format explanation up to date
             ! keep the constant of motion the true constant of motion !
             IF (file_is_new) THEN
                WRITE (unit_nr, "(A8,1X,A12,1X,5(A20,1X),A12)") &
@@ -542,7 +534,7 @@ CONTAINS
 
             ndof = pint_env%p
             IF (pint_env%first_propagated_mode .EQ. 2) THEN
-               ndof = ndof-1
+               ndof = ndof - 1
             END IF
             temp = cp_unit_from_cp2k(2.0_dp*pint_env%e_kin_beads/ &
                                      REAL(ndof, dp)/REAL(pint_env%ndim, dp), &
@@ -575,9 +567,6 @@ CONTAINS
    SUBROUTINE pint_write_action(pint_env)
       TYPE(pint_env_type), POINTER                       :: pint_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pint_write_action', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: unit_nr
       LOGICAL                                            :: file_is_new
       REAL(kind=dp)                                      :: t
@@ -607,7 +596,7 @@ CONTAINS
          ! cp_print_key_unit_nr returns -1 on nodes other than logger%para_env%ionode
          IF (unit_nr > 0) THEN
 
-            ! please keep the format explaination up to date
+            ! please keep the format explanation up to date
             ! keep the constant of motion the true constant of motion !
             IF (file_is_new) THEN
                WRITE (unit_nr, "(A8,1X,A12,1X,2(A25,1X))") &
@@ -648,9 +637,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pint_write_step_info(pint_env)
       TYPE(pint_env_type), POINTER                       :: pint_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'pint_write_step_info', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(len=default_string_length)               :: msgstr, stmp, time_unit
       INTEGER                                            :: unit_nr
@@ -711,9 +697,6 @@ CONTAINS
 
       TYPE(pint_env_type), POINTER                       :: pint_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pint_write_rgyr', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(len=default_string_length)               :: unit_str
       INTEGER                                            :: ia, ib, ic, idim, unit_nr
       LOGICAL                                            :: new_file, should_output
@@ -746,10 +729,10 @@ CONTAINS
       idim = 0
       DO ia = 1, pint_env%ndim/3
          DO ic = 1, 3
-            idim = idim+1
+            idim = idim + 1
             ss = 0.0_dp
             DO ib = 1, pint_env%p
-               ss = ss+pint_env%x(ib, idim)
+               ss = ss + pint_env%x(ib, idim)
             END DO
             pint_env%rtmp_ndim(idim) = ss/nb
          END DO
@@ -760,9 +743,9 @@ CONTAINS
       DO ia = 1, pint_env%ndim/3
          ss = 0.0_dp
          DO ic = 1, 3
-            idim = idim+1
+            idim = idim + 1
             DO ib = 1, pint_env%p
-               ss = ss+(pint_env%x(ib, idim)-pint_env%rtmp_ndim(idim))**2
+               ss = ss + (pint_env%x(ib, idim) - pint_env%rtmp_ndim(idim))**2
             END DO
          END DO
          pint_env%rtmp_natom(ia) = SQRT(ss/nb)*unit_conv

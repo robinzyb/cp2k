@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -147,9 +149,6 @@ CONTAINS
       TYPE(mixed_cdft_settings_type)                     :: settings
       INTEGER                                            :: natom
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mixed_cdft_parse_settings', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, iatom, iforce_eval, igroup, &
                                                             nforce_eval, nkinds
       INTEGER, ALLOCATABLE, DIMENSION(:, :)              :: constraint_type
@@ -223,7 +222,7 @@ CONTAINS
          CALL pw_env_get(pw_env, auxbas_pw_pool=auxbas_pw_pool)
          settings%bo = auxbas_pw_pool%pw_grid%bounds_local
          ! Only the rank 0 process collects info about pw_grid and CDFT
-         IF (force_env_qs%para_env%mepos == force_env_qs%para_env%source) THEN
+         IF (force_env_qs%para_env%ionode) THEN
             ! Grid settings
             settings%grid_span(iforce_eval) = auxbas_pw_pool%pw_grid%grid_span
             settings%npts(:, iforce_eval) = auxbas_pw_pool%pw_grid%npts
@@ -356,7 +355,7 @@ CONTAINS
                IF (settings%coeffs(i, 1) /= settings%coeffs(i, iforce_eval)) is_match = .FALSE.
             END IF
          END DO
-         IF (settings%atoms(i, 1) /= 0) settings%ncdft = settings%ncdft+1
+         IF (settings%atoms(i, 1) /= 0) settings%ncdft = settings%ncdft + 1
       END DO
       IF (.NOT. is_match .AND. mixed_cdft%run_type == mixed_cdft_parallel) &
          CALL cp_abort(__LOCATION__, &
@@ -405,7 +404,7 @@ CONTAINS
             END IF
             CALL get_qs_env(qs_env, dft_control=dft_control)
             cdft_control => dft_control%qs_control%cdft_control
-            IF (force_env_qs%para_env%mepos == force_env_qs%para_env%source) THEN
+            IF (force_env_qs%para_env%ionode) THEN
                DO igroup = 1, SIZE(cdft_control%group)
                   array_sizes(iforce_eval, igroup, 1) = SIZE(cdft_control%group(igroup)%atoms)
                   array_sizes(iforce_eval, igroup, 2) = SIZE(cdft_control%group(igroup)%coeff)
@@ -443,7 +442,7 @@ CONTAINS
                END IF
                CALL get_qs_env(qs_env, dft_control=dft_control)
                cdft_control => dft_control%qs_control%cdft_control
-               IF (force_env_qs%para_env%mepos == force_env_qs%para_env%source) THEN
+               IF (force_env_qs%para_env%ionode) THEN
                   DO i = 1, settings%si(4, 1)
                      atoms(iforce_eval, i)%array(:) = cdft_control%group(i)%atoms
                      coeff(iforce_eval, i)%array(:) = cdft_control%group(i)%coeff
@@ -541,9 +540,6 @@ CONTAINS
       TYPE(mixed_cdft_type), POINTER                     :: mixed_cdft
       TYPE(mixed_cdft_settings_type)                     :: settings
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mixed_cdft_transfer_settings', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, nkinds
       LOGICAL                                            :: is_match
       TYPE(cdft_control_type), POINTER                   :: cdft_control
@@ -599,7 +595,7 @@ CONTAINS
             CALL mp_sum(settings%cutoffs, force_env%para_env%group)
             DO i = 1, SIZE(settings%cutoffs, 1)
                IF (settings%cutoffs(i, 1) /= settings%cutoffs(i, 2)) is_match = .FALSE.
-               IF (settings%cutoffs(i, 1) /= 0.0_dp) nkinds = nkinds+1
+               IF (settings%cutoffs(i, 1) /= 0.0_dp) nkinds = nkinds + 1
             END DO
             IF (.NOT. is_match) &
                CALL cp_abort(__LOCATION__, &
@@ -613,7 +609,7 @@ CONTAINS
             CALL mp_sum(settings%radii, force_env%para_env%group)
             DO i = 1, SIZE(settings%radii, 1)
                IF (settings%radii(i, 1) /= settings%radii(i, 2)) is_match = .FALSE.
-               IF (settings%radii(i, 1) /= 0.0_dp) nkinds = nkinds+1
+               IF (settings%radii(i, 1) /= 0.0_dp) nkinds = nkinds + 1
             END DO
             IF (.NOT. is_match) &
                CALL cp_abort(__LOCATION__, &
@@ -641,9 +637,6 @@ CONTAINS
       TYPE(mixed_environment_type), POINTER              :: mixed_env
       TYPE(mixed_cdft_type), POINTER                     :: mixed_cdft
       TYPE(mixed_cdft_settings_type)                     :: settings
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'mixed_cdft_init_structures', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(len=default_path_length)                 :: c_val, input_file_path, output_file_path
       INTEGER                                            :: i, imap, iounit, j, lp, n_force_eval, &
@@ -743,7 +736,7 @@ CONTAINS
                             fft_usage=.TRUE., ncommensurate=0, icommensurate=1, &
                             blocked=do_pw_grid_blocked_false, rs_dims=mixed_rs_dims, &
                             iounit=iounit)
-         ! Check if the layout was succesfully created
+         ! Check if the layout was successfully created
          IF (mixed_cdft%is_special) THEN
             IF (.NOT. pw_grid%para%rs_dims(2) /= 1) is_match = .FALSE.
          ELSE IF (mixed_cdft%is_pencil) THEN
@@ -798,7 +791,7 @@ CONTAINS
                                         i_force_eval(2), i_force_eval(2))
             rs_grid_section => section_vals_get_subs_vals(force_env_section, "DFT%MGRID%RS_GRID")
             CALL init_input_type(input_settings, &
-                                 nsmax=2*MAX(1, return_cube_max_iradius(mixed_cdft%pw_env%cube_info(1)))+1, &
+                                 nsmax=2*MAX(1, return_cube_max_iradius(mixed_cdft%pw_env%cube_info(1))) + 1, &
                                  rs_grid_section=rs_grid_section, ilevel=1, &
                                  higher_grid_layout=higher_grid_layout)
             NULLIFY (rs_descs(1)%rs_desc)
@@ -833,10 +826,10 @@ CONTAINS
             ALLOCATE (mixed_cdft%dest_list(2))
             ALLOCATE (mixed_cdft%source_list(2))
             imap = force_env%para_env%mepos/2
-            mixed_cdft%dest_list = (/imap, imap+force_env%para_env%num_pe/2/)
-            imap = MOD(force_env%para_env%mepos, force_env%para_env%num_pe/2)+ &
+            mixed_cdft%dest_list = (/imap, imap + force_env%para_env%num_pe/2/)
+            imap = MOD(force_env%para_env%mepos, force_env%para_env%num_pe/2) + &
                    MODULO(force_env%para_env%mepos, force_env%para_env%num_pe/2)
-            mixed_cdft%source_list = (/imap, imap+1/)
+            mixed_cdft%source_list = (/imap, imap + 1/)
             ! Determine bounds of the data that is replicated
             ALLOCATE (mixed_cdft%recv_bo(4))
             ALLOCATE (sendbuffer(2), recvbuffer(2), recvbuffer2(2))
@@ -869,19 +862,19 @@ CONTAINS
             CALL pw_env_get(pw_env, auxbas_pw_pool=auxbas_pw_pool)
             ! work out the pw grid points each proc holds in the two (identical) parallel proc groups
             ! note we only care about the x dir since we assume the y dir is not subdivided
-            ALLOCATE (bounds(0:auxbas_pw_pool%pw_grid%para%group_size-1, 1:2))
-            DO i = 0, auxbas_pw_pool%pw_grid%para%group_size-1
+            ALLOCATE (bounds(0:auxbas_pw_pool%pw_grid%para%group_size - 1, 1:2))
+            DO i = 0, auxbas_pw_pool%pw_grid%para%group_size - 1
                bounds(i, 1:2) = auxbas_pw_pool%pw_grid%para%bo(1:2, 1, i, 1)
-               bounds(i, 1:2) = bounds(i, 1:2)-auxbas_pw_pool%pw_grid%npts(1)/2-1
+               bounds(i, 1:2) = bounds(i, 1:2) - auxbas_pw_pool%pw_grid%npts(1)/2 - 1
             END DO
             ! work out which procs to send my grid points
             ! first get the number of target procs per group
             ntargets = 0
             offset = -1
-            DO i = 0, auxbas_pw_pool%pw_grid%para%group_size-1
+            DO i = 0, auxbas_pw_pool%pw_grid%para%group_size - 1
                IF ((bounds(i, 1) .GE. bo_mixed(1, 1) .AND. bounds(i, 1) .LE. bo_mixed(2, 1)) .OR. &
                    (bounds(i, 2) .GE. bo_mixed(1, 1) .AND. bounds(i, 2) .LE. bo_mixed(2, 1))) THEN
-                  ntargets = ntargets+1
+                  ntargets = ntargets + 1
                   IF (offset == -1) offset = i
                ELSE IF (bounds(i, 2) .GT. bo_mixed(2, 1)) THEN
                   EXIT
@@ -893,11 +886,11 @@ CONTAINS
             ALLOCATE (mixed_cdft%dest_list_bo(2, ntargets))
             ! now determine the actual grid points to send
             j = 1
-            DO i = offset, offset+ntargets-1
+            DO i = offset, offset + ntargets - 1
                mixed_cdft%dest_list(j) = i
-               mixed_cdft%dest_list_bo(:, j) = (/bo_mixed(1, 1)+(bounds(i, 1)-bo_mixed(1, 1)), &
-                                                 bo_mixed(2, 1)+(bounds(i, 2)-bo_mixed(2, 1))/)
-               j = j+1
+               mixed_cdft%dest_list_bo(:, j) = (/bo_mixed(1, 1) + (bounds(i, 1) - bo_mixed(1, 1)), &
+                                                 bo_mixed(2, 1) + (bounds(i, 2) - bo_mixed(2, 1))/)
+               j = j + 1
             END DO
             ALLOCATE (mixed_cdft%dest_list_save(ntargets), mixed_cdft%dest_bo_save(2, ntargets))
             ! We need to store backups of these arrays since they might get reallocated during dlb
@@ -906,19 +899,19 @@ CONTAINS
             ! finally determine which procs will send me grid points
             ! now we need info about y dir also
             DEALLOCATE (bounds)
-            ALLOCATE (bounds(0:pw_pools(1)%pool%pw_grid%para%group_size-1, 1:4))
-            DO i = 0, pw_pools(1)%pool%pw_grid%para%group_size-1
+            ALLOCATE (bounds(0:pw_pools(1)%pool%pw_grid%para%group_size - 1, 1:4))
+            DO i = 0, pw_pools(1)%pool%pw_grid%para%group_size - 1
                bounds(i, 1:2) = pw_pools(1)%pool%pw_grid%para%bo(1:2, 1, i, 1)
                bounds(i, 3:4) = pw_pools(1)%pool%pw_grid%para%bo(1:2, 2, i, 1)
-               bounds(i, 1:2) = bounds(i, 1:2)-pw_pools(1)%pool%pw_grid%npts(1)/2-1
-               bounds(i, 3:4) = bounds(i, 3:4)-pw_pools(1)%pool%pw_grid%npts(2)/2-1
+               bounds(i, 1:2) = bounds(i, 1:2) - pw_pools(1)%pool%pw_grid%npts(1)/2 - 1
+               bounds(i, 3:4) = bounds(i, 3:4) - pw_pools(1)%pool%pw_grid%npts(2)/2 - 1
             END DO
             ntargets = 0
             offset = -1
-            DO i = 0, pw_pools(1)%pool%pw_grid%para%group_size-1
+            DO i = 0, pw_pools(1)%pool%pw_grid%para%group_size - 1
                IF ((bo(1, 1) .GE. bounds(i, 1) .AND. bo(1, 1) .LE. bounds(i, 2)) .OR. &
                    (bo(2, 1) .GE. bounds(i, 1) .AND. bo(2, 1) .LE. bounds(i, 2))) THEN
-                  ntargets = ntargets+1
+                  ntargets = ntargets + 1
                   IF (offset == -1) offset = i
                ELSE IF (bo(2, 1) .LT. bounds(i, 1)) THEN
                   EXIT
@@ -929,7 +922,7 @@ CONTAINS
             ALLOCATE (mixed_cdft%source_list(ntargets))
             ALLOCATE (mixed_cdft%source_list_bo(4, ntargets))
             j = 1
-            DO i = offset, offset+ntargets-1
+            DO i = offset, offset + ntargets - 1
                mixed_cdft%source_list(j) = i
                IF (bo(1, 1) .GE. bounds(i, 1) .AND. bo(2, 1) .LE. bounds(i, 2)) THEN
                   mixed_cdft%source_list_bo(:, j) = (/bo(1, 1), bo(2, 1), &
@@ -941,7 +934,7 @@ CONTAINS
                   mixed_cdft%source_list_bo(:, j) = (/bounds(i, 1), bo(2, 1), &
                                                       bounds(i, 3), bounds(i, 4)/)
                END IF
-               j = j+1
+               j = j + 1
             END DO
             ALLOCATE (mixed_cdft%source_list_save(ntargets), mixed_cdft%source_bo_save(4, ntargets))
             ! We need to store backups of these arrays since they might get reallocated during dlb
@@ -954,13 +947,13 @@ CONTAINS
          ! even when the states are treated in serial (the initial print of QS data [basis set etc] for
          ! all states unfortunately goes to the first log file)
          CALL force_env_get(force_env, root_section=root_section)
-         ALLOCATE (mixed_cdft%sub_logger(nforce_eval-1))
-         DO i = 1, nforce_eval-1
-            IF (force_env%para_env%mepos == force_env%para_env%source) THEN
+         ALLOCATE (mixed_cdft%sub_logger(nforce_eval - 1))
+         DO i = 1, nforce_eval - 1
+            IF (force_env%para_env%ionode) THEN
                CALL section_vals_val_get(root_section, "GLOBAL%PROJECT_NAME", &
                                          c_val=input_file_path)
                lp = LEN_TRIM(input_file_path)
-               input_file_path(lp+1:LEN(input_file_path)) = "-r-"//ADJUSTL(cp_to_string(i+1))
+               input_file_path(lp + 1:LEN(input_file_path)) = "-r-"//ADJUSTL(cp_to_string(i + 1))
                lp = LEN_TRIM(input_file_path)
                output_file_path = input_file_path(1:lp)//".out"
                CALL open_file(file_name=output_file_path, file_status="UNKNOWN", &
@@ -1054,9 +1047,6 @@ CONTAINS
    SUBROUTINE mixed_cdft_redistribute_arrays(force_env)
       TYPE(force_env_type), POINTER                      :: force_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mixed_cdft_redistribute_arrays', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iforce_eval, ispin, ivar, ncol_overlap, &
                                                             ncol_wmat, nforce_eval, nrow_overlap, &
                                                             nrow_wmat, nspins, nvar
@@ -1105,7 +1095,7 @@ CONTAINS
          CALL get_qs_env(qs_env, dft_control=dft_control)
          CPASSERT(ASSOCIATED(dft_control))
          nspins = dft_control%nspins
-         IF (force_env_qs%para_env%mepos == force_env_qs%para_env%source) &
+         IF (force_env_qs%para_env%ionode) &
             has_occupation_numbers(iforce_eval) = ALLOCATED(dft_control%qs_control%cdft_control%occupations)
       END DO
       CALL mp_sum(has_occupation_numbers(1), force_env%para_env%group)
@@ -1137,8 +1127,7 @@ CONTAINS
                   CALL force_env_get(force_env%sub_force_env(iforce_eval)%force_env, qs_env=qs_env)
                END IF
                CALL get_qs_env(qs_env, dft_control=dft_control)
-               IF (force_env%sub_force_env(iforce_eval)%force_env%para_env%mepos == &
-                   force_env%sub_force_env(iforce_eval)%force_env%para_env%source) THEN
+               IF (force_env%sub_force_env(iforce_eval)%force_env%para_env%ionode) THEN
                   DO ivar = 1, nvar
                      mixed_cdft%constraint_type(ivar, iforce_eval) = &
                         dft_control%qs_control%cdft_control%group(ivar)%constraint_type
@@ -1256,7 +1245,7 @@ CONTAINS
             DO ispin = 1, nspins
                IF (ncol_mo(ispin) /= SIZE(dft_control%qs_control%cdft_control%occupations(ispin)%array)) &
                   CPABORT("Array dimensions dont match.")
-               IF (force_env_qs%para_env%mepos == force_env_qs%para_env%source) THEN
+               IF (force_env_qs%para_env%ionode) THEN
                   ALLOCATE (occno_tmp(iforce_eval, ispin)%array(ncol_mo(ispin)))
                   occno_tmp(iforce_eval, ispin)%array = dft_control%qs_control%cdft_control%occupations(ispin)%array
                END IF
@@ -1376,9 +1365,6 @@ CONTAINS
    SUBROUTINE mixed_cdft_print_couplings(force_env)
       TYPE(force_env_type), POINTER                      :: force_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mixed_cdft_print_couplings', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iounit, ipermutation, istate, ivar, &
                                                             jstate, nforce_eval, npermutations, &
                                                             nvar
@@ -1403,7 +1389,7 @@ CONTAINS
       CPASSERT(ALLOCATED(mixed_cdft%results%energy))
       nforce_eval = SIZE(force_env%sub_force_env)
       nvar = SIZE(mixed_cdft%results%strength, 1)
-      npermutations = nforce_eval*(nforce_eval-1)/2 ! Size of upper triangular part
+      npermutations = nforce_eval*(nforce_eval - 1)/2 ! Size of upper triangular part
       IF (iounit > 0) THEN
          WRITE (iounit, '(/,T3,A,T66)') &
             '------------------------- CDFT coupling information --------------------------'
@@ -1430,7 +1416,7 @@ CONTAINS
             WRITE (iounit, '(/,T3,A,T60,(3X,F18.12))') &
                'Overlap between states I and J:', mixed_cdft%results%S(istate, jstate)
             WRITE (iounit, '(T3,A,T60,(3X,F18.12))') &
-               'Charge transfer energy (J-I) (Hartree):', (mixed_cdft%results%energy(jstate)-mixed_cdft%results%energy(istate))
+               'Charge transfer energy (J-I) (Hartree):', (mixed_cdft%results%energy(jstate) - mixed_cdft%results%energy(istate))
             WRITE (iounit, *)
             IF (ALLOCATED(mixed_cdft%results%rotation)) THEN
                IF (ABS(mixed_cdft%results%rotation(ipermutation))*1.0E3_dp .GE. 0.1_dp) THEN
@@ -1498,9 +1484,6 @@ CONTAINS
    SUBROUTINE mixed_cdft_release_work(force_env)
       TYPE(force_env_type), POINTER                      :: force_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mixed_cdft_release_work', &
-         routineP = moduleN//':'//routineN
-
       TYPE(mixed_cdft_type), POINTER                     :: mixed_cdft
 
       NULLIFY (mixed_cdft)
@@ -1525,18 +1508,15 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: n, ipermutation
       INTEGER, INTENT(OUT)                               :: i, j
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'map_permutation_to_states', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: kcol, kpermutation, krow, npermutations
 
-      npermutations = n*(n-1)/2 ! Size of upper triangular part
+      npermutations = n*(n - 1)/2 ! Size of upper triangular part
       IF (ipermutation > npermutations) &
          CPABORT("Permutation index out of bounds")
       kpermutation = 0
       DO krow = 1, n
-         DO kcol = krow+1, n
-            kpermutation = kpermutation+1
+         DO kcol = krow + 1, n
+            kpermutation = kpermutation + 1
             IF (kpermutation == ipermutation) THEN
                i = krow
                j = kcol
@@ -1563,8 +1543,6 @@ CONTAINS
       LOGICAL                                            :: just_zero
       INTEGER, OPTIONAL                                  :: bounds(2), work
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'hfun_zero', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i1, i2, i3, lb, n1, n2, n3, nzeroed, &
                                                             nzeroed_total, ub
       LOGICAL                                            :: lb_final, ub_final
@@ -1586,8 +1564,8 @@ CONTAINS
             DO i1 = 1, n1
                IF (fun(i1, i2, i3) < th) THEN
                   IF (.NOT. just_zero) THEN
-                     nzeroed = nzeroed+1
-                     nzeroed_total = nzeroed_total+1
+                     nzeroed = nzeroed + 1
+                     nzeroed_total = nzeroed_total + 1
                   ELSE
                      fun(i1, i2, i3) = 0.0_dp
                   END IF
@@ -1612,8 +1590,8 @@ CONTAINS
          IF (.NOT. ub_final) ub = n3
          bounds(1) = lb
          bounds(2) = ub
-         bounds = bounds-(n3/2)-1
-         work = n3*n2*n1-nzeroed_total
+         bounds = bounds - (n3/2) - 1
+         work = n3*n2*n1 - nzeroed_total
       END IF
 
    END SUBROUTINE hfun_zero
@@ -1635,9 +1613,6 @@ CONTAINS
          INTENT(OUT)                                     :: blocks
       LOGICAL, INTENT(OUT)                               :: ignore_excited
       INTEGER, INTENT(OUT)                               :: nrecursion
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'mixed_cdft_read_block_diag', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, j, k, l, nblk, nforce_eval
       INTEGER, DIMENSION(:), POINTER                     :: tmplist
@@ -1684,12 +1659,12 @@ CONTAINS
       DO i = 1, nblk
          ! Within same block
          DO j = 1, SIZE(blocks(i)%array)
-            DO k = j+1, SIZE(blocks(i)%array)
+            DO k = j + 1, SIZE(blocks(i)%array)
                IF (blocks(i)%array(j) == blocks(i)%array(k)) has_duplicates = .TRUE.
             END DO
          END DO
          ! Within different blocks
-         DO j = i+1, nblk
+         DO j = i + 1, nblk
             DO k = 1, SIZE(blocks(i)%array)
                DO l = 1, SIZE(blocks(j)%array)
                   IF (blocks(i)%array(k) == blocks(j)%array(l)) has_duplicates = .TRUE.
@@ -1730,9 +1705,6 @@ CONTAINS
       TYPE(cp_2d_r_p_type), ALLOCATABLE, DIMENSION(:), &
          INTENT(OUT)                                     :: H_block, S_block
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mixed_cdft_get_blocks', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, icol, irow, j, k, nblk
 
       EXTERNAL                                           :: dsygv
@@ -1749,9 +1721,9 @@ CONTAINS
          icol = 0
          DO j = 1, SIZE(blocks(i)%array)
             irow = 0
-            icol = icol+1
+            icol = icol + 1
             DO k = 1, SIZE(blocks(i)%array)
-               irow = irow+1
+               irow = irow + 1
                H_block(i)%array(irow, icol) = mixed_cdft%results%H(blocks(i)%array(k), blocks(i)%array(j))
                S_block(i)%array(irow, icol) = mixed_cdft%results%S(blocks(i)%array(k), blocks(i)%array(j))
             END DO
@@ -1779,9 +1751,6 @@ CONTAINS
       TYPE(cp_2d_r_p_type), ALLOCATABLE, DIMENSION(:)    :: H_block, S_block
       TYPE(cp_1d_r_p_type), ALLOCATABLE, DIMENSION(:), &
          INTENT(OUT)                                     :: eigenvalues
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'mixed_cdft_diagonalize_blocks', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, info, nblk, work_array_size
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:)           :: work
@@ -1845,9 +1814,6 @@ CONTAINS
       TYPE(cp_1d_r_p_type), ALLOCATABLE, DIMENSION(:)    :: eigenvalues
       INTEGER                                            :: n, iounit
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mixed_cdft_assemble_block_diag', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=20)                                  :: ilabel, jlabel
       CHARACTER(LEN=3)                                   :: tmp
       INTEGER                                            :: i, icol, ipermutation, irow, j, k, l, &
@@ -1870,20 +1836,20 @@ CONTAINS
          DO j = 1, SIZE(eigenvalues(i)%array)
             H_mat(k, k) = eigenvalues(i)%array(j)
             S_mat(k, k) = 1.0_dp
-            k = k+1
+            k = k + 1
             IF (iounit > 0) THEN
                IF (j == 1) THEN
                   WRITE (iounit, '(T9,A,T58,(3X,F20.14))') 'Ground state energy:', eigenvalues(i)%array(j)
                ELSE
                   WRITE (iounit, '(T9,A,I2,A,T58,(3X,F20.14))') &
-                     'Excited state (', j-1, ' ) energy:', eigenvalues(i)%array(j)
+                     'Excited state (', j - 1, ' ) energy:', eigenvalues(i)%array(j)
                END IF
             END IF
             IF (ignore_excited .AND. j == 1) EXIT
          END DO
       END DO
       ! Transform the off-diagonal blocks using the eigenvectors of each block
-      npermutations = nblk*(nblk-1)/2
+      npermutations = nblk*(nblk - 1)/2
       IF (iounit > 0) WRITE (iounit, '(/,T3,A)') "Interactions between block diagonalized states"
       DO ipermutation = 1, npermutations
          CALL map_permutation_to_states(nblk, ipermutation, i, j)
@@ -1893,9 +1859,9 @@ CONTAINS
          icol = 0
          DO k = 1, SIZE(blocks(j)%array)
             irow = 0
-            icol = icol+1
+            icol = icol + 1
             DO l = 1, SIZE(blocks(i)%array)
-               irow = irow+1
+               irow = irow + 1
                H_offdiag(irow, icol) = mixed_cdft%results%H(blocks(i)%array(l), blocks(j)%array(k))
                S_offdiag(irow, icol) = mixed_cdft%results%S(blocks(i)%array(l), blocks(j)%array(k))
             END DO
@@ -1932,16 +1898,16 @@ CONTAINS
          ELSE
             irow = 1
             icol = 1
-            DO k = 1, i-1
-               irow = irow+SIZE(blocks(k)%array)
+            DO k = 1, i - 1
+               irow = irow + SIZE(blocks(k)%array)
             END DO
-            DO k = 1, j-1
-               icol = icol+SIZE(blocks(k)%array)
+            DO k = 1, j - 1
+               icol = icol + SIZE(blocks(k)%array)
             END DO
-            H_mat(irow:irow+SIZE(H_offdiag, 1)-1, icol:icol+SIZE(H_offdiag, 2)-1) = H_offdiag(:, :)
-            H_mat(icol:icol+SIZE(H_offdiag, 2)-1, irow:irow+SIZE(H_offdiag, 1)-1) = TRANSPOSE(H_offdiag)
-            S_mat(irow:irow+SIZE(H_offdiag, 1)-1, icol:icol+SIZE(H_offdiag, 2)-1) = S_offdiag(:, :)
-            S_mat(icol:icol+SIZE(H_offdiag, 2)-1, irow:irow+SIZE(H_offdiag, 1)-1) = TRANSPOSE(S_offdiag)
+            H_mat(irow:irow + SIZE(H_offdiag, 1) - 1, icol:icol + SIZE(H_offdiag, 2) - 1) = H_offdiag(:, :)
+            H_mat(icol:icol + SIZE(H_offdiag, 2) - 1, irow:irow + SIZE(H_offdiag, 1) - 1) = TRANSPOSE(H_offdiag)
+            S_mat(irow:irow + SIZE(H_offdiag, 1) - 1, icol:icol + SIZE(H_offdiag, 2) - 1) = S_offdiag(:, :)
+            S_mat(icol:icol + SIZE(H_offdiag, 2) - 1, irow:irow + SIZE(H_offdiag, 1) - 1) = TRANSPOSE(S_offdiag)
          END IF
          IF (iounit > 0) THEN
             WRITE (iounit, '(/,T3,A)') REPEAT('#', 39)
@@ -1952,14 +1918,14 @@ CONTAINS
                ilabel = "(ground state)"
                IF (irow > 1) THEN
                   IF (ignore_excited) EXIT
-                  WRITE (tmp, '(I3)') irow-1
+                  WRITE (tmp, '(I3)') irow - 1
                   ilabel = "(excited state "//TRIM(ADJUSTL(tmp))//")"
                END IF
                DO icol = 1, SIZE(H_offdiag, 2)
                   jlabel = "(ground state)"
                   IF (icol > 1) THEN
                      IF (ignore_excited) EXIT
-                     WRITE (tmp, '(I3)') icol-1
+                     WRITE (tmp, '(I3)') icol - 1
                      jlabel = "(excited state "//TRIM(ADJUSTL(tmp))//")"
                   END IF
                   WRITE (iounit, '(T6,A,T58,(3X,F20.14))') TRIM(ilabel)//'-'//TRIM(jlabel)//':', H_offdiag(irow, icol)
@@ -1971,14 +1937,14 @@ CONTAINS
                IF (irow > 1) THEN
                   IF (ignore_excited) EXIT
                   ilabel = "(excited state)"
-                  WRITE (tmp, '(I3)') irow-1
+                  WRITE (tmp, '(I3)') irow - 1
                   ilabel = "(excited state "//TRIM(ADJUSTL(tmp))//")"
                END IF
                DO icol = 1, SIZE(H_offdiag, 2)
                   jlabel = "(ground state)"
                   IF (icol > 1) THEN
                      IF (ignore_excited) EXIT
-                     WRITE (tmp, '(I3)') icol-1
+                     WRITE (tmp, '(I3)') icol - 1
                      jlabel = "(excited state "//TRIM(ADJUSTL(tmp))//")"
                   END IF
                   WRITE (iounit, '(T6,A,T58,(3X,F20.14))') TRIM(ilabel)//'-'//TRIM(jlabel)//':', S_offdiag(irow, icol)

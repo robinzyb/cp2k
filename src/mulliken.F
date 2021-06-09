@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -76,9 +78,6 @@ CONTAINS
       TYPE(dbcsr_p_type), DIMENSION(:), OPTIONAL, &
          POINTER                                         :: ks_matrix, w_matrix
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mulliken_restraint', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: blk, iblock_col, iblock_row, ispin, &
                                                             nblock, nspin
       LOGICAL                                            :: found
@@ -121,10 +120,10 @@ CONTAINS
                IF (.NOT. (ASSOCIATED(s_block) .AND. ASSOCIATED(ks_block))) THEN
                   CPABORT("Unexpected s / ks structure")
                END IF
-               mult = 0.5_dp*charges_deriv(iblock_row, ispin)+ &
+               mult = 0.5_dp*charges_deriv(iblock_row, ispin) + &
                       0.5_dp*charges_deriv(iblock_col, ispin)
 
-               ks_block = ks_block+mult*s_block
+               ks_block = ks_block + mult*s_block
 
             ENDDO
             CALL dbcsr_iterator_stop(iter)
@@ -146,9 +145,9 @@ CONTAINS
 
                ! minus sign relates to convention for W
                mult = -0.5_dp*charges_deriv(iblock_row, ispin) &
-                      -0.5_dp*charges_deriv(iblock_col, ispin)
+                      - 0.5_dp*charges_deriv(iblock_col, ispin)
 
-               w_block = w_block+mult*p_block
+               w_block = w_block + mult*p_block
 
             END DO
             CALL dbcsr_iterator_stop(iter)
@@ -189,13 +188,13 @@ CONTAINS
       order_p = 0.0_dp
 
       DO I = 1, mulliken_restraint_control%natoms
-         order_p = order_p+charges(mulliken_restraint_control%atoms(I), 1) &
-                   -charges(mulliken_restraint_control%atoms(I), 2) ! spin density on the relevant atoms
+         order_p = order_p + charges(mulliken_restraint_control%atoms(I), 1) &
+                   - charges(mulliken_restraint_control%atoms(I), 2) ! spin density on the relevant atoms
       ENDDO
       ! energy
-      energy = mulliken_restraint_control%strength*(order_p-mulliken_restraint_control%target)**2
+      energy = mulliken_restraint_control%strength*(order_p - mulliken_restraint_control%target)**2
       ! derivative
-      dum = 2*mulliken_restraint_control%strength*(order_p-mulliken_restraint_control%target)
+      dum = 2*mulliken_restraint_control%strength*(order_p - mulliken_restraint_control%target)
       DO I = 1, mulliken_restraint_control%natoms
          charges_deriv(mulliken_restraint_control%atoms(I), 1) = dum
          charges_deriv(mulliken_restraint_control%atoms(I), 2) = -dum
@@ -245,9 +244,9 @@ CONTAINS
             ELSE
                mult = 1.0_dp
             ENDIF
-            charges(iblock_row, ispin) = charges(iblock_row, ispin)+ &
+            charges(iblock_row, ispin) = charges(iblock_row, ispin) + &
                                          mult*SUM(p_block*s_block)
-            charges(iblock_col, ispin) = charges(iblock_col, ispin)+ &
+            charges(iblock_col, ispin) = charges(iblock_col, ispin) + &
                                          mult*SUM(p_block*s_block)
 
          ENDDO
@@ -294,8 +293,8 @@ CONTAINS
          ELSE
             mult = 1.0_dp
          ENDIF
-         charges(iblock_row) = charges(iblock_row)+mult*SUM(p_block*s_block)
-         charges(iblock_col) = charges(iblock_col)+mult*SUM(p_block*s_block)
+         charges(iblock_row) = charges(iblock_row) + mult*SUM(p_block*s_block)
+         charges(iblock_col) = charges(iblock_col) + mult*SUM(p_block*s_block)
       ENDDO
       CALL dbcsr_iterator_stop(iter)
 
@@ -346,13 +345,13 @@ CONTAINS
             ELSE
                mult = 1.0_dp
             ENDIF
-            charges(iblock_row, ispin) = charges(iblock_row, ispin)+mult*SUM(p_block*s_block)
-            charges(iblock_col, ispin) = charges(iblock_col, ispin)+mult*SUM(p_block*s_block)
+            charges(iblock_row, ispin) = charges(iblock_row, ispin) + mult*SUM(p_block*s_block)
+            charges(iblock_col, ispin) = charges(iblock_col, ispin) + mult*SUM(p_block*s_block)
             DO ider = 1, 3
-               CALL dbcsr_get_block_p(matrix=s_matrix(ider+1)%matrix, &
+               CALL dbcsr_get_block_p(matrix=s_matrix(ider + 1)%matrix, &
                                       row=iblock_row, col=iblock_col, BLOCK=ds_block, found=found)
-               dcharges(iblock_row, ider) = dcharges(iblock_row, ider)+mult*SUM(p_block*ds_block)
-               dcharges(iblock_col, ider) = dcharges(iblock_col, ider)+mult*SUM(p_block*ds_block)
+               dcharges(iblock_row, ider) = dcharges(iblock_row, ider) + mult*SUM(p_block*ds_block)
+               dcharges(iblock_col, ider) = dcharges(iblock_col, ider) + mult*SUM(p_block*ds_block)
             END DO
 
          ENDDO
@@ -386,8 +385,7 @@ CONTAINS
       INTEGER                                            :: scr
       CHARACTER(LEN=*)                                   :: title
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mulliken_charges_a', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'mulliken_charges_a'
 
       INTEGER                                            :: handle, nblock, nspin
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: charges
@@ -425,8 +423,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: mcharge
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mulliken_charges_b', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'mulliken_charges_b'
 
       INTEGER                                            :: handle
 
@@ -454,8 +451,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: mcharge, dmcharge
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mulliken_charges_c', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'mulliken_charges_c'
 
       INTEGER                                            :: handle
 
@@ -482,8 +478,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       REAL(KIND=dp), DIMENSION(:)                        :: mcharge
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mulliken_charges_s', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'mulliken_charges_s'
 
       INTEGER                                            :: handle
 
@@ -517,8 +512,7 @@ CONTAINS
       INTEGER                                            :: scr
       CHARACTER(LEN=*)                                   :: title
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mulliken_charges_akp', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'mulliken_charges_akp'
 
       INTEGER                                            :: handle, ic, nblock, nspin
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: charges, charges_im
@@ -541,7 +535,7 @@ CONTAINS
          s_matrix => s_matrix_kp(1, ic)%matrix
          charges_im = 0.0_dp
          CALL compute_charges(p_matrix, s_matrix, charges_im, para_env)
-         charges(:, :) = charges(:, :)+charges_im(:, :)
+         charges(:, :) = charges(:, :) + charges_im(:, :)
       END DO
 
       CALL print_atomic_charges(particle_set, qs_kind_set, scr, title, electronic_charges=charges)
@@ -565,8 +559,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: mcharge
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mulliken_charges_bkp', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'mulliken_charges_bkp'
 
       INTEGER                                            :: handle, ic, natom, nspin
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: mcharge_im
@@ -588,7 +581,7 @@ CONTAINS
             s_matrix => s_matrix_kp(1, ic)%matrix
             IF (ASSOCIATED(p_matrix) .AND. ASSOCIATED(s_matrix)) THEN
                CALL compute_charges(p_matrix, s_matrix, mcharge_im, para_env)
-               mcharge(:, :) = mcharge(:, :)+mcharge_im(:, :)
+               mcharge(:, :) = mcharge(:, :) + mcharge_im(:, :)
             END IF
          END DO
 
@@ -615,8 +608,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: mcharge, dmcharge
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mulliken_charges_ckp', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'mulliken_charges_ckp'
 
       INTEGER                                            :: handle, ic, natom, nder, nspin
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: dmcharge_im, mcharge_im
@@ -639,8 +631,8 @@ CONTAINS
             s_matrix => s_matrix_kp(:, ic)
             IF (ASSOCIATED(p_matrix) .AND. ASSOCIATED(s_matrix)) THEN
                CALL compute_dcharges(p_matrix, s_matrix, mcharge_im, dmcharge_im, para_env)
-               mcharge(:, :) = mcharge(:, :)+mcharge_im(:, :)
-               dmcharge(:, :) = dmcharge(:, :)+dmcharge_im(:, :)
+               mcharge(:, :) = mcharge(:, :) + mcharge_im(:, :)
+               dmcharge(:, :) = dmcharge(:, :) + dmcharge_im(:, :)
             END IF
          END DO
 
@@ -679,7 +671,7 @@ CONTAINS
          IF (.NOT. found) CYCLE
          IF (.NOT. (ASSOCIATED(sp) .AND. ASSOCIATED(ps))) CYCLE
 
-         bond_order(iat, jat) = bond_order(iat, jat)+SUM(ps*sp)
+         bond_order(iat, jat) = bond_order(iat, jat) + SUM(ps*sp)
       ENDDO
       CALL dbcsr_iterator_stop(iter)
 
@@ -704,7 +696,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: iatom
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ao_charges_1', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'ao_charges_1'
 
       INTEGER                                            :: blk, handle, i, iblock_col, iblock_row, &
                                                             ispin, j, nspin
@@ -731,13 +723,13 @@ CONTAINS
             IF (iblock_row == iatom) THEN
                DO j = 1, SIZE(p_block, 2)
                   DO i = 1, SIZE(p_block, 1)
-                     charges(i) = charges(i)+p_block(i, j)*s_block(i, j)
+                     charges(i) = charges(i) + p_block(i, j)*s_block(i, j)
                   END DO
                END DO
             ELSEIF (iblock_col == iatom) THEN
                DO j = 1, SIZE(p_block, 2)
                   DO i = 1, SIZE(p_block, 1)
-                     charges(j) = charges(j)+p_block(i, j)*s_block(i, j)
+                     charges(j) = charges(j) + p_block(i, j)*s_block(i, j)
                   END DO
                END DO
             END IF
@@ -767,7 +759,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :), INTENT(INOUT)      :: charges
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ao_charges_2', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'ao_charges_2'
 
       INTEGER                                            :: blk, handle, i, iblock_col, iblock_row, &
                                                             ispin, j, nspin
@@ -793,13 +785,13 @@ CONTAINS
 
             DO j = 1, SIZE(p_block, 2)
                DO i = 1, SIZE(p_block, 1)
-                  charges(i, iblock_row) = charges(i, iblock_row)+p_block(i, j)*s_block(i, j)
+                  charges(i, iblock_row) = charges(i, iblock_row) + p_block(i, j)*s_block(i, j)
                END DO
             END DO
             IF (iblock_col /= iblock_row) THEN
                DO j = 1, SIZE(p_block, 2)
                   DO i = 1, SIZE(p_block, 1)
-                     charges(j, iblock_col) = charges(j, iblock_col)+p_block(i, j)*s_block(i, j)
+                     charges(j, iblock_col) = charges(j, iblock_col) + p_block(i, j)*s_block(i, j)
                   END DO
                END DO
             END IF
@@ -828,7 +820,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: iatom
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ao_charges_kp', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'ao_charges_kp'
 
       INTEGER                                            :: handle, ic, na
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:)           :: charge_im
@@ -849,7 +841,7 @@ CONTAINS
             s_matrix => s_matrix_kp(1, ic)%matrix
             IF (ASSOCIATED(p_matrix) .AND. ASSOCIATED(s_matrix)) THEN
                CALL ao_charges_1(p_matrix, s_matrix, charge_im, iatom, para_env)
-               charges(:) = charges(:)+charge_im(:)
+               charges(:) = charges(:) + charge_im(:)
             END IF
          END DO
 
@@ -874,8 +866,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :), INTENT(INOUT)      :: charges
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ao_charges_kp_2', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'ao_charges_kp_2'
 
       INTEGER                                            :: handle, ic, na, nb
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :)        :: charge_im
@@ -897,7 +888,7 @@ CONTAINS
             s_matrix => s_matrix_kp(1, ic)%matrix
             IF (ASSOCIATED(p_matrix) .AND. ASSOCIATED(s_matrix)) THEN
                CALL ao_charges_2(p_matrix, s_matrix, charge_im, para_env)
-               charges(:, :) = charges(:, :)+charge_im(:, :)
+               charges(:, :) = charges(:, :) + charge_im(:, :)
             END IF
          END DO
 

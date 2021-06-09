@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -81,9 +83,6 @@ CONTAINS
       TYPE(simpar_type), POINTER                         :: simpar
       TYPE(global_environment_type), POINTER             :: globenv
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_barostat_type', &
-         routineP = moduleN//':'//routineN
-
       LOGICAL                                            :: check, explicit
       TYPE(cell_type), POINTER                           :: cell
       TYPE(section_vals_type), POINTER                   :: barostat_section
@@ -99,7 +98,7 @@ CONTAINS
           simpar%ensemble == nph_uniaxial_ensemble .OR. &
           simpar%ensemble == nph_uniaxial_damped_ensemble) THEN
          ALLOCATE (barostat)
-         last_barostat_id_nr = last_barostat_id_nr+1
+         last_barostat_id_nr = last_barostat_id_nr + 1
          barostat%id_nr = last_barostat_id_nr
          barostat%ref_count = 1
          barostat%section => barostat_section
@@ -128,7 +127,7 @@ CONTAINS
          IF (explicit) &
             CALL cp_warn(__LOCATION__, &
                          "A barostat has been defined with an MD ensemble which does not support barostat! "// &
-                         "It's definition will be ignored!")
+                         "Its definition will be ignored!")
       END IF
 
    END SUBROUTINE create_barostat_type
@@ -143,12 +142,9 @@ CONTAINS
    SUBROUTINE retain_barostat_type(barostat)
       TYPE(barostat_type), POINTER                       :: barostat
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'retain_barostat_type', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(barostat)) THEN
          CPASSERT(barostat%ref_count > 0)
-         barostat%ref_count = barostat%ref_count+1
+         barostat%ref_count = barostat%ref_count + 1
       END IF
    END SUBROUTINE retain_barostat_type
 
@@ -162,15 +158,12 @@ CONTAINS
    SUBROUTINE release_barostat_type(barostat)
       TYPE(barostat_type), POINTER                       :: barostat
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'release_barostat_type', &
-         routineP = moduleN//':'//routineN
-
       LOGICAL                                            :: check
 
       IF (ASSOCIATED(barostat)) THEN
          check = barostat%ref_count > 0
          CPASSERT(check)
-         barostat%ref_count = barostat%ref_count-1
+         barostat%ref_count = barostat%ref_count - 1
          IF (barostat%ref_count < 1) THEN
             IF (ASSOCIATED(barostat%npt)) THEN
                DEALLOCATE (barostat%npt)

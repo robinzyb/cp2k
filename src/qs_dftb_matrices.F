@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -27,9 +29,9 @@ MODULE qs_dftb_matrices
                                               cp_print_key_unit_nr
    USE cp_para_types,                   ONLY: cp_para_env_type
    USE dbcsr_api,                       ONLY: &
-        convert_offsets_to_sizes, dbcsr_add, dbcsr_copy, dbcsr_create, dbcsr_distribution_type, &
-        dbcsr_finalize, dbcsr_get_block_p, dbcsr_multiply, dbcsr_p_type, dbcsr_trace, dbcsr_type, &
-        dbcsr_type_antisymmetric, dbcsr_type_symmetric
+        dbcsr_add, dbcsr_convert_offsets_to_sizes, dbcsr_copy, dbcsr_create, &
+        dbcsr_distribution_type, dbcsr_dot, dbcsr_finalize, dbcsr_get_block_p, dbcsr_multiply, &
+        dbcsr_p_type, dbcsr_type, dbcsr_type_antisymmetric, dbcsr_type_symmetric
    USE efield_tb_methods,               ONLY: efield_tb_matrix
    USE input_section_types,             ONLY: section_vals_get_subs_vals,&
                                               section_vals_type,&
@@ -98,8 +100,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       LOGICAL, INTENT(IN)                                :: calculate_forces
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'build_dftb_matrices', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'build_dftb_matrices'
 
       INTEGER :: after, atom_a, atom_b, handle, i, iatom, ic, icol, ikind, img, irow, iw, jatom, &
          jkind, l1, l2, la, lb, llm, lmaxi, lmaxj, m, n1, n2, n_urpoly, natom, natorb_a, natorb_b, &
@@ -152,7 +153,7 @@ CONTAINS
             DO l1 = 0, MAX(la, lb)
                DO l2 = 0, MIN(l1, la, lb)
                   DO m = 0, l2
-                     llm = llm+1
+                     llm = llm + 1
                      iptr(l1, l2, m, la, lb) = llm
                   END DO
                END DO
@@ -314,8 +315,8 @@ CONTAINS
             IF (iatom == jatom .AND. dr < 0.001_dp) THEN
                ! diagonal block
                DO i = 1, natorb_a
-                  sblock(i, i) = sblock(i, i)+1._dp
-                  fblock(i, i) = fblock(i, i)+skself(orbptr(i))
+                  sblock(i, i) = sblock(i, i) + 1._dp
+                  fblock(i, i) = fblock(i, i) + skself(orbptr(i))
                END DO
             ELSE
                ! off-diagonal block
@@ -339,7 +340,7 @@ CONTAINS
                      drij = rij
                      dfblock = 0._dp; dsblock = 0._dp
 
-                     drij(i) = rij(i)-ddr*f0
+                     drij(i) = rij(i) - ddr*f0
                      CALL compute_block_sk(dsblock, smatij, smatji, drij, ngrd, ngrdcut, dgrd, &
                                            llm, lmaxi, lmaxj, irow, iatom)
                      CALL compute_block_sk(dfblock, fmatij, fmatji, drij, ngrd, ngrdcut, dgrd, &
@@ -348,7 +349,7 @@ CONTAINS
                      dsblock = -dsblock
                      dfblock = -dfblock
 
-                     drij(i) = rij(i)+ddr*f0
+                     drij(i) = rij(i) + ddr*f0
                      CALL compute_block_sk(dsblock, smatij, smatji, drij, ngrd, ngrdcut, dgrd, &
                                            llm, lmaxi, lmaxj, irow, iatom)
                      CALL compute_block_sk(dfblock, fmatij, fmatji, drij, ngrd, ngrdcut, dgrd, &
@@ -360,11 +361,11 @@ CONTAINS
                      foab = 2.0_dp*SUM(dfblock*pblock)
                      fow = -2.0_dp*SUM(dsblock*wblock)
 
-                     force_ab(i) = force_ab(i)+foab
-                     force_w(i) = force_w(i)+fow
+                     force_ab(i) = force_ab(i) + foab
+                     force_w(i) = force_w(i) + fow
                      IF (dftb_control%self_consistent) THEN
-                        CPASSERT(ASSOCIATED(dsblocks(i+1)%block))
-                        dsblocks(i+1)%block = dsblocks(i+1)%block+dsblock
+                        CPASSERT(ASSOCIATED(dsblocks(i + 1)%block))
+                        dsblocks(i + 1)%block = dsblocks(i + 1)%block + dsblock
                      END IF
                   ENDDO
                   IF (use_virial) THEN
@@ -390,10 +391,10 @@ CONTAINS
                atom_b = atom_of_kind(jatom)
                IF (irow == iatom) force_ab = -force_ab
                IF (irow == iatom) force_w = -force_w
-               force(ikind)%all_potential(:, atom_a) = force(ikind)%all_potential(:, atom_a)-force_ab(:)
-               force(jkind)%all_potential(:, atom_b) = force(jkind)%all_potential(:, atom_b)+force_ab(:)
-               force(ikind)%overlap(:, atom_a) = force(ikind)%overlap(:, atom_a)-force_w(:)
-               force(jkind)%overlap(:, atom_b) = force(jkind)%overlap(:, atom_b)+force_w(:)
+               force(ikind)%all_potential(:, atom_a) = force(ikind)%all_potential(:, atom_a) - force_ab(:)
+               force(jkind)%all_potential(:, atom_b) = force(jkind)%all_potential(:, atom_b) + force_ab(:)
+               force(ikind)%overlap(:, atom_a) = force(ikind)%overlap(:, atom_a) - force_w(:)
+               force(jkind)%overlap(:, atom_b) = force(jkind)%overlap(:, atom_b) + force_w(:)
             END IF
 
          END IF
@@ -403,18 +404,18 @@ CONTAINS
             erepij = 0._dp
             CALL urep_egr(rij, dr, erepij, force_rr, &
                           n_urpoly, urep, spdim, s_cut, srep, spxr, scoeff, surr, calculate_forces)
-            erep = erep+erepij
+            erep = erep + erepij
             IF (atprop%energy) THEN
-               atprop%atecc(iatom) = atprop%atecc(iatom)+0.5_dp*erepij
-               atprop%atecc(jatom) = atprop%atecc(jatom)+0.5_dp*erepij
+               atprop%atecc(iatom) = atprop%atecc(iatom) + 0.5_dp*erepij
+               atprop%atecc(jatom) = atprop%atecc(jatom) + 0.5_dp*erepij
             END IF
             IF (calculate_forces .AND. (iatom /= jatom .OR. dr > 0.001_dp)) THEN
                atom_a = atom_of_kind(iatom)
                atom_b = atom_of_kind(jatom)
                force(ikind)%repulsive(:, atom_a) = &
-                  force(ikind)%repulsive(:, atom_a)-force_rr(:)
+                  force(ikind)%repulsive(:, atom_a) - force_rr(:)
                force(jkind)%repulsive(:, atom_b) = &
-                  force(jkind)%repulsive(:, atom_b)+force_rr(:)
+                  force(jkind)%repulsive(:, atom_b) + force_rr(:)
                IF (use_virial) THEN
                   f0 = -1.0_dp
                   IF (iatom == jatom) f0 = -0.5_dp
@@ -508,8 +509,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       LOGICAL, INTENT(in)                                :: calculate_forces, just_energy
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'build_dftb_ks_matrix', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'build_dftb_ks_matrix'
 
       INTEGER                                            :: atom_a, handle, iatom, ikind, img, &
                                                             ispin, natom, nkind, nspins, &
@@ -584,7 +584,7 @@ CONTAINS
             CALL get_dftb_atom_param(dftb_kind, zeff=zeff)
             DO iatom = 1, natom
                atom_a = atomic_kind_set(ikind)%atom_list(iatom)
-               mcharge(atom_a) = zeff-SUM(charges(atom_a, 1:nspins))
+               mcharge(atom_a) = zeff - SUM(charges(atom_a, 1:nspins))
             END DO
          END DO
          DEALLOCATE (charges)
@@ -607,16 +607,16 @@ CONTAINS
                            1.0_dp, 1.0_dp)
             CALL qs_rho_get(rho, rho_ao=matrix_p1)
             ! Compute QM/MM Energy
-            CALL dbcsr_trace(qs_env%ks_qmmm_env%matrix_h(1)%matrix, &
-                             matrix_p1(ispin)%matrix, trace=qmmm_el)
-            energy%qmmm_el = energy%qmmm_el+qmmm_el
+            CALL dbcsr_dot(qs_env%ks_qmmm_env%matrix_h(1)%matrix, &
+                           matrix_p1(ispin)%matrix, qmmm_el)
+            energy%qmmm_el = energy%qmmm_el + qmmm_el
          END DO
          pc_ener = qs_env%ks_qmmm_env%pc_ener
-         energy%qmmm_el = energy%qmmm_el+pc_ener
+         energy%qmmm_el = energy%qmmm_el + pc_ener
       END IF
 
-      energy%total = energy%core+energy%hartree+energy%qmmm_el+energy%efield+ &
-                     energy%repulsive+energy%dispersion+energy%dftb3
+      energy%total = energy%core + energy%hartree + energy%qmmm_el + energy%efield + &
+                     energy%repulsive + energy%dispersion + energy%dftb3
 
       output_unit = cp_print_key_unit_nr(logger, scf_section, "PRINT%DETAILED_ENERGY", &
                                          extension=".scfLog")
@@ -672,8 +672,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: nderivative
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: matrix_s
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'build_dftb_overlap', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'build_dftb_overlap'
 
       INTEGER :: handle, i, iatom, icol, ikind, indder, irow, j, jatom, jkind, l1, l2, la, lb, &
          llm, lmaxi, lmaxj, m, n1, n2, natom, natorb_a, natorb_b, ngrd, ngrdcut, nkind
@@ -708,7 +707,7 @@ CONTAINS
             DO l1 = 0, MAX(la, lb)
                DO l2 = 0, MIN(l1, la, lb)
                   DO m = 0, l2
-                     llm = llm+1
+                     llm = llm + 1
                      iptr(l1, l2, m, la, lb) = llm
                   END DO
                END DO
@@ -790,7 +789,7 @@ CONTAINS
             IF (iatom == jatom .AND. dr < 0.001_dp) THEN
                ! diagonal block
                DO i = 1, natorb_a
-                  sblock(i, i) = sblock(i, i)+1._dp
+                  sblock(i, i) = sblock(i, i) + 1._dp
                END DO
             ELSE
                ! off-diagonal block
@@ -808,48 +807,48 @@ CONTAINS
                      drij = rij
                      f0 = 1.0_dp; IF (irow == iatom) f0 = -1.0_dp
 
-                     drij(i) = rij(i)-ddr*f0
+                     drij(i) = rij(i) - ddr*f0
                      CALL compute_block_sk(dsblockm, smatij, smatji, drij, ngrd, ngrdcut, dgrd, &
                                            llm, lmaxi, lmaxj, irow, iatom)
 
-                     drij(i) = rij(i)+ddr*f0
+                     drij(i) = rij(i) + ddr*f0
                      CALL compute_block_sk(dsblock, smatij, smatji, drij, ngrd, ngrdcut, dgrd, &
                                            llm, lmaxi, lmaxj, irow, iatom)
 
-                     dsblock1(:, :, i) = (dsblock+dsblockm)
-                     dsblock = dsblock-dsblockm
+                     dsblock1(:, :, i) = (dsblock + dsblockm)
+                     dsblock = dsblock - dsblockm
                      dsblock = dsblock/(2.0_dp*ddr)
 
-                     CPASSERT(ASSOCIATED(dsblocks(i+1)%block))
-                     dsblocks(i+1)%block = dsblocks(i+1)%block+dsblock
+                     CPASSERT(ASSOCIATED(dsblocks(i + 1)%block))
+                     dsblocks(i + 1)%block = dsblocks(i + 1)%block + dsblock
                      IF (nderivative .GT. 1) THEN
-                        indder = indder+5-i
+                        indder = indder + 5 - i
                         dsblocks(indder)%block = 0.0_dp
-                        dsblocks(indder)%block = dsblocks(indder)%block+ &
-                                                 (dsblock1(:, :, i)-2.0_dp*sblock)/ddr**2
+                        dsblocks(indder)%block = dsblocks(indder)%block + &
+                                                 (dsblock1(:, :, i) - 2.0_dp*sblock)/ddr**2
                      END IF
                   ENDDO
 
                   IF (nderivative .GT. 1) THEN
                      DO i = 1, 2
-                        DO j = i+1, 3
+                        DO j = i + 1, 3
                            dsblock = 0._dp; dsblockm = 0.0_dp
                            drij = rij
                            f0 = 1.0_dp; IF (irow == iatom) f0 = -1.0_dp
 
-                           drij(i) = rij(i)-ddr*f0; drij(j) = rij(j)-ddr*f0
+                           drij(i) = rij(i) - ddr*f0; drij(j) = rij(j) - ddr*f0
                            CALL compute_block_sk(dsblockm, smatij, smatji, drij, ngrd, ngrdcut, dgrd, &
                                                  llm, lmaxi, lmaxj, irow, iatom)
 
-                           drij(i) = rij(i)+ddr*f0; drij(j) = rij(j)+ddr*f0
+                           drij(i) = rij(i) + ddr*f0; drij(j) = rij(j) + ddr*f0
                            CALL compute_block_sk(dsblock, smatij, smatji, drij, ngrd, ngrdcut, dgrd, &
                                                  llm, lmaxi, lmaxj, irow, iatom)
 
-                           indder = 2+2*i+j
+                           indder = 2 + 2*i + j
                            dsblocks(indder)%block = 0.0_dp
                            dsblocks(indder)%block = &
-                              dsblocks(indder)%block+( &
-                              dsblock+dsblockm-dsblock1(:, :, i)-dsblock1(:, :, j)+2.0_dp*sblock)/(2.0_dp*ddr**2)
+                              dsblocks(indder)%block + ( &
+                              dsblock + dsblockm - dsblock1(:, :, i) - dsblock1(:, :, j) + 2.0_dp*sblock)/(2.0_dp*ddr**2)
                         END DO
                      END DO
                   END IF
@@ -885,9 +884,6 @@ CONTAINS
       CHARACTER(LEN=*)                                   :: mnames
       TYPE(neighbor_list_set_p_type), DIMENSION(:), &
          POINTER                                         :: sab_nl
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'setup_matrices1', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(1)                                       :: symmetry_type
       CHARACTER(LEN=default_string_length)               :: matnames
@@ -928,7 +924,7 @@ CONTAINS
       CPASSERT(nmat > 0)
 
       ALLOCATE (row_blk_sizes(natom))
-      CALL convert_offsets_to_sizes(first_sgf, row_blk_sizes, last_sgf)
+      CALL dbcsr_convert_offsets_to_sizes(first_sgf, row_blk_sizes, last_sgf)
 
       CALL dbcsr_allocate_matrix_set(matrices, nmat)
 
@@ -976,9 +972,6 @@ CONTAINS
       TYPE(neighbor_list_set_p_type), DIMENSION(:), &
          POINTER                                         :: sab_nl
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'setup_matrices2', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(1)                                       :: symmetry_type
       CHARACTER(LEN=default_string_length)               :: matnames
       INTEGER                                            :: i, img, natom, neighbor_list_id, nkind, &
@@ -1018,7 +1011,7 @@ CONTAINS
       CPASSERT(nmat > 0)
 
       ALLOCATE (row_blk_sizes(natom))
-      CALL convert_offsets_to_sizes(first_sgf, row_blk_sizes, last_sgf)
+      CALL dbcsr_convert_offsets_to_sizes(first_sgf, row_blk_sizes, last_sgf)
 
       CALL dbcsr_allocate_matrix_set(matrices, nmat, nimg)
 

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -49,8 +51,6 @@ CONTAINS
       INTEGER, INTENT(IN), OPTIONAL                      :: estate
       REAL(KIND=dp), INTENT(IN), OPTIONAL                :: festate
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'Fermi', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: I, Nstate
       REAL(KIND=dp)                                      :: arg, occupation, term1, term2, tmp, &
                                                             tmp2, tmp3, tmp4, tmplog
@@ -72,30 +72,30 @@ CONTAINS
          END IF
          ! have the result of exp go to zero instead of overflowing
          IF (e(i) > mu) THEN
-            arg = -(e(i)-mu)/T
+            arg = -(e(i) - mu)/T
             ! tmp is smaller than 1
             tmp = EXP(arg)
-            tmp4 = tmp+1.0_dp
+            tmp4 = tmp + 1.0_dp
             tmp2 = tmp/tmp4
             tmp3 = 1.0_dp/tmp4
             ! log(1+eps), might need to be written more accurately
             tmplog = -LOG(tmp4)
-            term1 = tmp2*(arg+tmplog)
+            term1 = tmp2*(arg + tmplog)
             term2 = tmp3*tmplog
          ELSE
-            arg = (e(i)-mu)/T
+            arg = (e(i) - mu)/T
             ! tmp is smaller than 1
             tmp = EXP(arg)
-            tmp4 = tmp+1.0_dp
+            tmp4 = tmp + 1.0_dp
             tmp2 = 1.0_dp/tmp4
             tmp3 = tmp/tmp4
             tmplog = -LOG(tmp4)
             term1 = tmp2*tmplog
-            term2 = tmp3*(arg+tmplog)
+            term2 = tmp3*(arg + tmplog)
          END IF
 
          f(i) = occupation*tmp2
-         kTS = kTS+T*occupation*(term1+term2)
+         kTS = kTS + T*occupation*(term1 + term2)
       END DO
 
       N = accurate_sum(f)
@@ -122,8 +122,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:), INTENT(IN)            :: wk
       REAL(KIND=dp), INTENT(IN)                          :: t, maxocc
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'Fermi2', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ik, is, nkp, nmo
       REAL(KIND=dp)                                      :: arg, beta, term1, term2, tmp, tmp2, &
                                                             tmp3, tmp4, tmplog
@@ -138,27 +136,27 @@ CONTAINS
          DO ik = 1, nkp
             DO is = 1, nmo
                IF (e(is, ik) > mu) THEN
-                  arg = -(e(is, ik)-mu)*beta
+                  arg = -(e(is, ik) - mu)*beta
                   tmp = EXP(arg)
-                  tmp4 = tmp+1.0_dp
+                  tmp4 = tmp + 1.0_dp
                   tmp2 = tmp/tmp4
                   tmp3 = 1.0_dp/tmp4
                   tmplog = -LOG(tmp4)
-                  term1 = tmp2*(arg+tmplog)
+                  term1 = tmp2*(arg + tmplog)
                   term2 = tmp3*tmplog
                ELSE
-                  arg = (e(is, ik)-mu)*beta
+                  arg = (e(is, ik) - mu)*beta
                   tmp = EXP(arg)
-                  tmp4 = tmp+1.0_dp
+                  tmp4 = tmp + 1.0_dp
                   tmp2 = 1.0_dp/tmp4
                   tmp3 = tmp/tmp4
                   tmplog = -LOG(tmp4)
                   term1 = tmp2*tmplog
-                  term2 = tmp3*(arg+tmplog)
+                  term2 = tmp3*(arg + tmplog)
                END IF
 
                f(is, ik) = maxocc*tmp2
-               kTS = kTS+t*maxocc*(term1+term2)*wk(ik)
+               kTS = kTS + t*maxocc*(term1 + term2)*wk(ik)
             END DO
          END DO
       ELSE
@@ -175,7 +173,7 @@ CONTAINS
 
       nel = 0.0_dp
       DO ik = 1, nkp
-         nel = nel+accurate_sum(f(1:nmo, ik))*wk(ik)
+         nel = nel + accurate_sum(f(1:nmo, ik))*wk(ik)
       END DO
 
    END SUBROUTINE Fermi2
@@ -206,8 +204,6 @@ CONTAINS
       INTEGER, INTENT(IN), OPTIONAL                      :: estate
       REAL(KIND=dp), INTENT(IN), OPTIONAL                :: festate
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'FermiFixed', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iter, my_estate
       REAL(KIND=dp)                                      :: mu_max, mu_min, mu_now, my_festate, &
                                                             N_max, N_min, N_now
@@ -226,10 +222,10 @@ CONTAINS
       mu_min = MINVAL(e)
       iter = 0
       DO
-         iter = iter+1
+         iter = iter + 1
          CALL Fermi(f, N_min, kTS, e, mu_min, T, maxocc, my_estate, my_festate)
          IF (N_min > N .OR. iter > 20) THEN
-            mu_min = mu_min-T
+            mu_min = mu_min - T
          ELSE
             EXIT
          ENDIF
@@ -238,10 +234,10 @@ CONTAINS
       mu_max = MAXVAL(e)
       iter = 0
       DO
-         iter = iter+1
+         iter = iter + 1
          CALL Fermi(f, N_max, kTS, e, mu_max, T, maxocc, my_estate, my_festate)
          IF (N_max < N .OR. iter > 20) THEN
-            mu_max = mu_max+T
+            mu_max = mu_max + T
          ELSE
             EXIT
          ENDIF
@@ -249,11 +245,11 @@ CONTAINS
 
       ! now bisect
       iter = 0
-      DO WHILE (mu_max-mu_min > EPSILON(mu)*MAX(1.0_dp, ABS(mu_max), ABS(mu_min)))
-         iter = iter+1
-         mu_now = (mu_max+mu_min)/2.0_dp
+      DO WHILE (mu_max - mu_min > EPSILON(mu)*MAX(1.0_dp, ABS(mu_max), ABS(mu_min)))
+         iter = iter + 1
+         mu_now = (mu_max + mu_min)/2.0_dp
          CALL Fermi(f, N_now, kTS, e, mu_now, T, maxocc, my_estate, my_festate)
-         iter = iter+1
+         iter = iter + 1
 
          IF (N_now <= N) THEN
             mu_min = mu_now
@@ -267,7 +263,7 @@ CONTAINS
          ENDIF
       ENDDO
 
-      mu = (mu_max+mu_min)/2.0_dp
+      mu = (mu_max + mu_min)/2.0_dp
       CALL Fermi(f, N_now, kTS, e, mu, T, maxocc, my_estate, my_festate)
 
    END SUBROUTINE FermiFixed
@@ -291,24 +287,23 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:), INTENT(IN)            :: wk
       REAL(KIND=dp), INTENT(IN)                          :: t, maxocc
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'Fermikp', routineP = moduleN//':'//routineN
       REAL(KIND=dp), PARAMETER                           :: epsocc = 1.0e-12_dp
 
       INTEGER                                            :: iter
       REAL(KIND=dp)                                      :: de, mu_max, mu_min, N_now
 
       ! bisection search to find mu for a given nel
-      de = t*LOG((1.0_dp-epsocc)/epsocc)
+      de = t*LOG((1.0_dp - epsocc)/epsocc)
       de = MAX(de, 0.5_dp)
-      mu_min = MINVAL(e)-de
-      mu_max = MAXVAL(e)+de
+      mu_min = MINVAL(e) - de
+      mu_max = MAXVAL(e) + de
       iter = 0
-      DO WHILE (mu_max-mu_min > EPSILON(mu)*MAX(1.0_dp, ABS(mu_max), ABS(mu_min)))
-         iter = iter+1
-         mu = (mu_max+mu_min)/2.0_dp
+      DO WHILE (mu_max - mu_min > EPSILON(mu)*MAX(1.0_dp, ABS(mu_max), ABS(mu_min)))
+         iter = iter + 1
+         mu = (mu_max + mu_min)/2.0_dp
          CALL Fermi2(f, N_now, kTS, e, mu, wk, t, maxocc)
 
-         IF (ABS(N_now-nel) < nel*epsocc) EXIT
+         IF (ABS(N_now - nel) < nel*epsocc) EXIT
 
          IF (N_now <= nel) THEN
             mu_min = mu
@@ -322,7 +317,7 @@ CONTAINS
          ENDIF
       ENDDO
 
-      mu = (mu_max+mu_min)/2.0_dp
+      mu = (mu_max + mu_min)/2.0_dp
       CALL Fermi2(f, N_now, kTS, e, mu, wk, t, maxocc)
 
    END SUBROUTINE Fermikp
@@ -345,7 +340,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:), INTENT(IN)            :: wk
       REAL(KIND=dp), INTENT(IN)                          :: t
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'Fermikp2', routineP = moduleN//':'//routineN
       REAL(KIND=dp), PARAMETER                           :: epsocc = 1.0e-12_dp
 
       INTEGER                                            :: iter
@@ -356,19 +350,19 @@ CONTAINS
       CPASSERT(SIZE(f, 3) == 2 .AND. SIZE(e, 3) == 2)
 
       ! bisection search to find mu for a given nel
-      de = t*LOG((1.0_dp-epsocc)/epsocc)
+      de = t*LOG((1.0_dp - epsocc)/epsocc)
       de = MAX(de, 0.5_dp)
-      mu_min = MINVAL(e)-de
-      mu_max = MAXVAL(e)+de
+      mu_min = MINVAL(e) - de
+      mu_max = MAXVAL(e) + de
       iter = 0
-      DO WHILE (mu_max-mu_min > EPSILON(mu)*MAX(1.0_dp, ABS(mu_max), ABS(mu_min)))
-         iter = iter+1
-         mu = (mu_max+mu_min)/2.0_dp
+      DO WHILE (mu_max - mu_min > EPSILON(mu)*MAX(1.0_dp, ABS(mu_max), ABS(mu_min)))
+         iter = iter + 1
+         mu = (mu_max + mu_min)/2.0_dp
          CALL Fermi2(f(:, :, 1), na, kTSa, e(:, :, 1), mu, wk, t, 1.0_dp)
          CALL Fermi2(f(:, :, 2), nb, kTSb, e(:, :, 2), mu, wk, t, 1.0_dp)
-         N_now = na+nb
+         N_now = na + nb
 
-         IF (ABS(N_now-nel) < nel*epsocc) EXIT
+         IF (ABS(N_now - nel) < nel*epsocc) EXIT
 
          IF (N_now <= nel) THEN
             mu_min = mu
@@ -382,10 +376,10 @@ CONTAINS
          ENDIF
       ENDDO
 
-      mu = (mu_max+mu_min)/2.0_dp
+      mu = (mu_max + mu_min)/2.0_dp
       CALL Fermi2(f(:, :, 1), na, kTSa, e(:, :, 1), mu, wk, t, 1.0_dp)
       CALL Fermi2(f(:, :, 2), nb, kTSb, e(:, :, 2), mu, wk, t, 1.0_dp)
-      kTS = kTSa+kTSb
+      kTS = kTSa + kTSb
 
    END SUBROUTINE Fermikp2
 
@@ -405,13 +399,13 @@ CONTAINS
 !> \param   N total number of electrons (output)
 !> \param   T  electronic temperature
 !> \param maxocc ...
-!> \param   l  typical lenght scale (~ 10 * T)
+!> \param   l  typical length scale (~ 10 * T)
 !> \param estate ...
 !> \param festate ...
 !> \date    09.2008
 !> \par   History
 !>          - Made estate and festate optional (LT, 2014/02/26)
-!>          - Changed order of input, so l is before the two optional varaibles
+!>          - Changed order of input, so l is before the two optional variables
 !>            (LT, 2014/02/26)
 !> \author  Joost VandeVondele
 ! **************************************************************************************************
@@ -421,8 +415,7 @@ CONTAINS
       INTEGER, INTENT(IN), OPTIONAL                      :: estate
       REAL(KIND=dp), INTENT(IN), OPTIONAL                :: festate
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'FermiFixedDeriv', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'FermiFixedDeriv'
 
       INTEGER                                            :: handle, I, my_estate, Nstate
       REAL(KIND=dp)                                      :: h, mux, my_festate
@@ -443,7 +436,7 @@ CONTAINS
 
       DO I = 1, Nstate
          ! NR 5.7.8
-         ! the problem here is that each f_i 'seems to have' a different lenght scale
+         ! the problem here is that each f_i 'seems to have' a different length scale
          ! and it would be to expensive to compute each single df_i/de_i using a finite difference
          h = (EPSILON(h)**(1.0_dp/3.0_dp))*l
          ! get an exact machine representable number close to this h
@@ -452,12 +445,12 @@ CONTAINS
          ! write(*,*) h,(e(i)+h)-e(i),(e(i)-h)-e(i)
          ! and the symmetric finite difference
          ex(:) = e
-         ex(i) = e(i)+h
+         ex(i) = e(i) + h
          CALL FermiFixed(fx, mux, kTS, ex, N, T, maxocc, my_estate, my_festate)
          dfde(:, I) = fx
-         ex(i) = e(i)-h
+         ex(i) = e(i) - h
          CALL FermiFixed(fx, mux, kTS, ex, N, T, maxocc, my_estate, my_festate)
-         dfde(:, I) = (dfde(:, I)-fx)/(2.0_dp*h)
+         dfde(:, I) = (dfde(:, I) - fx)/(2.0_dp*h)
       ENDDO
       DEALLOCATE (ex, fx)
 

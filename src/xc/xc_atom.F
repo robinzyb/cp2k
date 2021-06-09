@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -82,7 +84,7 @@ CONTAINS
       LOGICAL, INTENT(IN), OPTIONAL                      :: energy_only, epr_xc
       REAL(dp), INTENT(IN), OPTIONAL                     :: adiabatic_rescale_factor
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'vxc_of_r_new', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'vxc_of_r_new'
 
       INTEGER                                            :: handle, ia, idir, ir, my_deriv_order
       LOGICAL                                            :: gradient_f, my_epr_xc, my_only_energy
@@ -154,12 +156,12 @@ CONTAINS
          END IF
          !  EXC energy ! is that needed for epr?
          deriv_att => xc_dset_get_derivative(deriv_set, "")
+         exc = 0.0_dp
          IF (ASSOCIATED(deriv_att)) THEN
             CALL xc_derivative_get(deriv_att, deriv_data=deriv_data)
-            exc = 0.0_dp
             DO ir = 1, nr
                DO ia = 1, na
-                  exc = exc+deriv_data(ia, ir, 1)*w(ia, ir)
+                  exc = exc + deriv_data(ia, ir, 1)*w(ia, ir)
                END DO
             END DO
             NULLIFY (deriv_data)
@@ -167,12 +169,12 @@ CONTAINS
       ELSE
 !  EXC energy
          deriv_att => xc_dset_get_derivative(deriv_set, "")
+         exc = 0.0_dp
          IF (ASSOCIATED(deriv_att)) THEN
             CALL xc_derivative_get(deriv_att, deriv_data=deriv_data)
-            exc = 0.0_dp
             DO ir = 1, nr
                DO ia = 1, na
-                  exc = exc+deriv_data(ia, ir, 1)*w(ia, ir)
+                  exc = exc + deriv_data(ia, ir, 1)*w(ia, ir)
                END DO
             END DO
             NULLIFY (deriv_data)
@@ -196,8 +198,8 @@ CONTAINS
                deriv_att => xc_dset_get_derivative(deriv_set, "(rho)")
                IF (ASSOCIATED(deriv_att)) THEN
                   CALL xc_derivative_get(deriv_att, deriv_data=deriv_data)
-                  vxc(:, :, 1) = vxc(:, :, 1)+deriv_data(:, :, 1)*w(:, :)*my_adiabatic_rescale_factor
-                  vxc(:, :, 2) = vxc(:, :, 2)+deriv_data(:, :, 1)*w(:, :)*my_adiabatic_rescale_factor
+                  vxc(:, :, 1) = vxc(:, :, 1) + deriv_data(:, :, 1)*w(:, :)*my_adiabatic_rescale_factor
+                  vxc(:, :, 2) = vxc(:, :, 2) + deriv_data(:, :, 1)*w(:, :)*my_adiabatic_rescale_factor
                   NULLIFY (deriv_data)
                END IF
             ELSE
@@ -256,8 +258,8 @@ CONTAINS
                         DO idir = 1, 3
                            IF (rho_set%norm_drho(ia, ir, 1) > drho_cutoff) THEN
                               vxg(idir, ia, ir, 1:2) = &
-                                 vxg(idir, ia, ir, 1:2)+( &
-                                 rho_set%drhoa(idir)%array(ia, ir, 1)+ &
+                                 vxg(idir, ia, ir, 1:2) + ( &
+                                 rho_set%drhoa(idir)%array(ia, ir, 1) + &
                                  rho_set%drhob(idir)%array(ia, ir, 1))* &
                                  deriv_data(ia, ir, 1)*w(ia, ir)/rho_set%norm_drho(ia, ir, 1)* &
                                  my_adiabatic_rescale_factor
@@ -289,16 +291,23 @@ CONTAINS
             END IF ! lsd
 !  Derivative with respect to tau
             IF (lsd) THEN
-               deriv_att => xc_dset_get_derivative(deriv_set, "(taua)")
+               deriv_att => xc_dset_get_derivative(deriv_set, "(tau_a)")
                IF (ASSOCIATED(deriv_att)) THEN
                   CALL xc_derivative_get(deriv_att, deriv_data=deriv_data)
                   vtau(:, :, 1) = deriv_data(:, :, 1)*w(:, :)*my_adiabatic_rescale_factor
                   NULLIFY (deriv_data)
                END IF
-               deriv_att => xc_dset_get_derivative(deriv_set, "(taub)")
+               deriv_att => xc_dset_get_derivative(deriv_set, "(tau_b)")
                IF (ASSOCIATED(deriv_att)) THEN
                   CALL xc_derivative_get(deriv_att, deriv_data=deriv_data)
                   vtau(:, :, 2) = deriv_data(:, :, 1)*w(:, :)*my_adiabatic_rescale_factor
+                  NULLIFY (deriv_data)
+               END IF
+               deriv_att => xc_dset_get_derivative(deriv_set, "(tau)")
+               IF (ASSOCIATED(deriv_att)) THEN
+                  CALL xc_derivative_get(deriv_att, deriv_data=deriv_data)
+                  vtau(:, :, 1) = vtau(:, :, 1) + deriv_data(:, :, 1)*w(:, :)*my_adiabatic_rescale_factor
+                  vtau(:, :, 2) = vtau(:, :, 2) + deriv_data(:, :, 1)*w(:, :)*my_adiabatic_rescale_factor
                   NULLIFY (deriv_data)
                END IF
             ELSE
@@ -343,8 +352,7 @@ CONTAINS
       REAL(dp), DIMENSION(:, :, :), POINTER              :: vxc
       REAL(dp), DIMENSION(:, :, :, :), POINTER           :: vxg
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'xc_2nd_deriv_of_r', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'xc_2nd_deriv_of_r'
 
       INTEGER                                            :: handle, ispin, nspins
       LOGICAL                                            :: lsd
@@ -427,9 +435,6 @@ CONTAINS
       TYPE(xc_rho_cflags_type)                           :: needs
       INTEGER, INTENT(IN)                                :: nspins
       INTEGER, DIMENSION(2, 3), INTENT(IN)               :: bo
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'xc_rho_set_atom_update', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: idir
 
@@ -589,13 +594,12 @@ CONTAINS
       TYPE(xc_rho_set_type), POINTER                     :: rho_set
       LOGICAL, INTENT(IN)                                :: lsd
       INTEGER, INTENT(IN)                                :: nspins
-      TYPE(xc_rho_cflags_type), INTENT(in)               :: needs
-      REAL(dp), DIMENSION(:, :), POINTER                 :: rho
-      REAL(dp), DIMENSION(:, :, :, :), POINTER           :: drho
-      REAL(dp), DIMENSION(:, :), POINTER                 :: tau
+      TYPE(xc_rho_cflags_type), INTENT(IN)               :: needs
+      REAL(dp), DIMENSION(:, :), INTENT(IN)              :: rho
+      REAL(dp), DIMENSION(:, :, :, :), INTENT(IN)        :: drho
+      REAL(dp), DIMENSION(:, :), INTENT(IN)              :: tau
       INTEGER, INTENT(IN)                                :: na, ir
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'fill_rho_set', routineP = moduleN//':'//routineN
       REAL(KIND=dp), PARAMETER                           :: f13 = (1.0_dp/3.0_dp)
 
       INTEGER                                            :: ia, idir, my_nspins
@@ -670,7 +674,7 @@ CONTAINS
             ! this should never be the case unless you use LDA functionals with LSD
             IF (.NOT. tddft_split) THEN
                DO ia = 1, na
-                  rho_set%rho(ia, ir, 1) = rho(ia, 1)+rho(ia, 2)
+                  rho_set%rho(ia, ir, 1) = rho(ia, 1) + rho(ia, 2)
                END DO
             ELSE
                DO ia = 1, na
@@ -684,7 +688,7 @@ CONTAINS
          IF (needs%rho_1_3) THEN
             IF (.NOT. tddft_split) THEN
                DO ia = 1, na
-                  rho_set%rho_1_3(ia, ir, 1) = MAX(rho(ia, 1)+rho(ia, 2), 0.0_dp)**f13
+                  rho_set%rho_1_3(ia, ir, 1) = MAX(rho(ia, 1) + rho(ia, 2), 0.0_dp)**f13
                END DO
             ELSE
                DO ia = 1, na
@@ -731,9 +735,9 @@ CONTAINS
             IF (.NOT. tddft_split) THEN
                DO ia = 1, na
                   rho_set%norm_drho(ia, ir, 1) = SQRT( &
-                                                 (drho(1, ia, ir, 1)+drho(1, ia, ir, 2))**2+ &
-                                                 (drho(2, ia, ir, 1)+drho(2, ia, ir, 2))**2+ &
-                                                 (drho(3, ia, ir, 1)+drho(3, ia, ir, 2))**2)
+                                                 (drho(1, ia, ir, 1) + drho(1, ia, ir, 2))**2 + &
+                                                 (drho(2, ia, ir, 1) + drho(2, ia, ir, 2))**2 + &
+                                                 (drho(3, ia, ir, 1) + drho(3, ia, ir, 2))**2)
                END DO
             ELSE
                DO ia = 1, na
@@ -768,8 +772,8 @@ CONTAINS
             IF (.NOT. tddft_split) THEN
                DO ia = 1, na
                   rho_set%drhoa_drhob(ia, ir, 1) = &
-                     (drho(1, ia, ir, 1)*drho(1, ia, ir, 2))+ &
-                     (drho(2, ia, ir, 1)*drho(2, ia, ir, 2))+ &
+                     (drho(1, ia, ir, 1)*drho(1, ia, ir, 2)) + &
+                     (drho(2, ia, ir, 1)*drho(2, ia, ir, 2)) + &
                      (drho(3, ia, ir, 1)*drho(3, ia, ir, 2))
                END DO
             ELSE
@@ -789,7 +793,7 @@ CONTAINS
             IF (.NOT. tddft_split) THEN
                DO idir = 1, 3
                   DO ia = 1, na
-                     rho_set%drho(idir)%array(ia, ir, 1) = drho(idir, ia, ir, 1)+drho(idir, ia, ir, 2)
+                     rho_set%drho(idir)%array(ia, ir, 1) = drho(idir, ia, ir, 1) + drho(idir, ia, ir, 2)
                   END DO
                END DO
             ELSE
@@ -827,13 +831,12 @@ CONTAINS
 
       ! tau part
       IF (needs%tau .OR. needs%tau_spin) THEN
-         CPASSERT(ASSOCIATED(tau))
          CPASSERT(SIZE(tau, 2) == my_nspins)
       END IF
       IF (needs%tau) THEN
          IF (my_nspins == 2) THEN
             DO ia = 1, na
-               rho_set%tau(ia, ir, 1) = tau(ia, 1)+tau(ia, 2)
+               rho_set%tau(ia, ir, 1) = tau(ia, 1) + tau(ia, 2)
             END DO
             rho_set%owns%tau = .TRUE.
             rho_set%has%tau = .TRUE.

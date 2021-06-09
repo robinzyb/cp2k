@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -9,6 +11,7 @@
 ! **************************************************************************************************
 MODULE rt_propagation_methods
    USE bibliography,                    ONLY: Kolafa2004,&
+                                              Kuhne2007,&
                                               cite_reference
    USE cp_cfm_basic_linalg,             ONLY: cp_cfm_cholesky_decompose,&
                                               cp_cfm_gemm,&
@@ -86,7 +89,7 @@ MODULE rt_propagation_methods
 CONTAINS
 
 ! **************************************************************************************************
-!> \brief performes a single propagation step a(t+Dt)=U(t+Dt,t)*a(0)
+!> \brief performs a single propagation step a(t+Dt)=U(t+Dt,t)*a(0)
 !>        and calculates the new exponential
 !> \param qs_env ...
 !> \param rtp ...
@@ -100,8 +103,7 @@ CONTAINS
       TYPE(rt_prop_type), POINTER                        :: rtp
       TYPE(rtp_control_type), POINTER                    :: rtp_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'propagation_step', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'propagation_step'
 
       INTEGER                                            :: aspc_order, handle, i, im, re, unit_nr
       TYPE(cp_fm_p_type), DIMENSION(:), POINTER          :: delta_mos, mos_new
@@ -113,7 +115,7 @@ CONTAINS
       CALL timeset(routineN, handle)
 
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -186,18 +188,18 @@ CONTAINS
             CALL dbcsr_create(ks_mix_im(i)%matrix, template=matrix_ks(1)%matrix)
          ENDDO
          DO i = 1, SIZE(matrix_ks)
-            re = 2*i-1
+            re = 2*i - 1
             im = 2*i
             CALL dbcsr_add(ks_mix(i)%matrix, matrix_ks(i)%matrix, 0.0_dp, rtp%mixing_factor)
-            CALL dbcsr_add(ks_mix(i)%matrix, H_last_iter(re)%matrix, 1.0_dp, 1.0_dp-rtp%mixing_factor)
+            CALL dbcsr_add(ks_mix(i)%matrix, H_last_iter(re)%matrix, 1.0_dp, 1.0_dp - rtp%mixing_factor)
             IF (rtp%do_hfx) THEN
                CALL dbcsr_add(ks_mix_im(i)%matrix, matrix_ks_im(i)%matrix, 0.0_dp, rtp%mixing_factor)
-               CALL dbcsr_add(ks_mix_im(i)%matrix, H_last_iter(im)%matrix, 1.0_dp, 1.0_dp-rtp%mixing_factor)
+               CALL dbcsr_add(ks_mix_im(i)%matrix, H_last_iter(im)%matrix, 1.0_dp, 1.0_dp - rtp%mixing_factor)
             ENDIF
          ENDDO
          CALL calc_SinvH(rtp, ks_mix, ks_mix_im, rtp_control)
          DO i = 1, SIZE(matrix_ks)
-            re = 2*i-1
+            re = 2*i - 1
             im = 2*i
             CALL dbcsr_copy(H_last_iter(re)%matrix, ks_mix(i)%matrix)
             IF (rtp%do_hfx) THEN
@@ -209,7 +211,7 @@ CONTAINS
       ELSE
          CALL calc_SinvH(rtp, matrix_ks, matrix_ks_im, rtp_control)
          DO i = 1, SIZE(matrix_ks)
-            re = 2*i-1
+            re = 2*i - 1
             im = 2*i
             CALL dbcsr_copy(H_last_iter(re)%matrix, matrix_ks(i)%matrix)
             IF (rtp%do_hfx) THEN
@@ -248,7 +250,7 @@ CONTAINS
    END SUBROUTINE propagation_step
 
 ! **************************************************************************************************
-!> \brief Performes all the stuff to finish the step:
+!> \brief Performs all the stuff to finish the step:
 !>        convergence checks
 !>        copying stuff into right place for the next step
 !>        updating the history for extrapolation
@@ -265,7 +267,7 @@ CONTAINS
       TYPE(cp_fm_p_type), DIMENSION(:), POINTER          :: delta_mos
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: delta_P
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'step_finalize', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'step_finalize'
 
       INTEGER                                            :: handle, i, ihist
       TYPE(cp_fm_p_type), DIMENSION(:), POINTER          :: mos_new, mos_old
@@ -291,7 +293,7 @@ CONTAINS
 
          !It would be better to redo the current step with mixixng,
          !but currently the decision is made to use mixing from the next step on
-         IF (rtp_control%sc_check_start .LT. rtp%iter+1) THEN
+         IF (rtp_control%sc_check_start .LT. rtp%iter + 1) THEN
             IF (rtp%delta_iter/rtp%delta_iter_old > 0.9) THEN
                rtp%mixing_factor = MAX(rtp%mixing_factor/2.0_dp, 0.125_dp)
                rtp%mixing = .TRUE.
@@ -319,7 +321,7 @@ CONTAINS
          DO i = 1, SIZE(exp_H_new)
             CALL dbcsr_copy(exp_H_old(i)%matrix, exp_H_new(i)%matrix)
          END DO
-         ihist = MOD(rtp%istep, rtp_control%aspc_order)+1
+         ihist = MOD(rtp%istep, rtp_control%aspc_order) + 1
          IF (rtp_control%fixed_ions) THEN
             CALL put_data_to_history(rtp, rho=rho_new, mos=mos_new, ihist=ihist)
          ELSE
@@ -344,8 +346,7 @@ CONTAINS
       TYPE(rt_prop_type), POINTER                        :: rtp
       INTEGER                                            :: propagator
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'compute_propagator_matrix', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'compute_propagator_matrix'
 
       INTEGER                                            :: handle, i
       REAL(Kind=dp)                                      :: dt, prefac
@@ -381,7 +382,7 @@ CONTAINS
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: matrix_ks, matrix_ks_im
       TYPE(rtp_control_type), POINTER                    :: rtp_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'calc_SinvH', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'calc_SinvH'
       REAL(KIND=dp), PARAMETER                           :: one = 1.0_dp, zero = 0.0_dp
 
       INTEGER                                            :: handle, im, ispin, re
@@ -394,7 +395,7 @@ CONTAINS
       CALL get_rtp(rtp=rtp, S_inv=S_inv, S_minus_half=S_minus_half, exp_H_new=exp_H, dt=t)
       CALL dbcsr_create(matrix_ks_nosym, template=matrix_ks(1)%matrix, matrix_type="N")
       DO ispin = 1, SIZE(matrix_ks)
-         re = ispin*2-1
+         re = ispin*2 - 1
          im = ispin*2
          CALL dbcsr_desymmetrize(matrix_ks(ispin)%matrix, matrix_ks_nosym)
          CALL dbcsr_multiply("N", "N", one, S_inv, matrix_ks_nosym, zero, exp_H(im)%matrix, &
@@ -408,7 +409,7 @@ CONTAINS
          CALL get_rtp(rtp=rtp, B_mat=B_mat, SinvB=SinvB)
          IF (rtp%do_hfx) THEN
             DO ispin = 1, SIZE(matrix_ks)
-               re = ispin*2-1
+               re = ispin*2 - 1
                im = ispin*2
                CALL dbcsr_set(matrix_ks_nosym, 0.0_dp)
                CALL dbcsr_desymmetrize(matrix_ks_im(ispin)%matrix, matrix_ks_nosym)
@@ -435,7 +436,7 @@ CONTAINS
       ELSE
          !set real part to zero
          DO ispin = 1, SIZE(exp_H)/2
-            re = ispin*2-1
+            re = ispin*2 - 1
             im = ispin*2
             CALL dbcsr_set(exp_H(re)%matrix, zero)
          ENDDO
@@ -457,8 +458,7 @@ CONTAINS
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: s_mat
       TYPE(rt_prop_type), POINTER                        :: rtp
 
-      CHARACTER(len=*), PARAMETER :: routineN = 's_matrices_create', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 's_matrices_create'
       REAL(KIND=dp), PARAMETER                           :: one = 1.0_dp, zero = 0.0_dp
 
       INTEGER                                            :: handle
@@ -498,8 +498,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(out)                         :: frob_norm
       TYPE(dbcsr_type), POINTER                          :: mat_re, mat_im
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'complex_frobenius_norm', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'complex_frobenius_norm'
       REAL(KIND=dp), PARAMETER                           :: one = 1.0_dp, zero = 0.0_dp
 
       INTEGER                                            :: col_atom, handle, row_atom
@@ -527,7 +526,7 @@ CONTAINS
          ENDIF
          CALL dbcsr_get_block_p(mat_im, row_atom, col_atom, block_values2, found=found)
          IF (found) THEN
-            block_values = block_values+block_values2*block_values2
+            block_values = block_values + block_values2*block_values2
          ENDIF
          block_values = SQRT(block_values)
       END DO
@@ -558,8 +557,7 @@ CONTAINS
       INTEGER, INTENT(in)                                :: max_iter
       REAL(KIND=dp), INTENT(in)                          :: threshold
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'purify_mcweeny_complex_nonorth', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'purify_mcweeny_complex_nonorth'
       REAL(KIND=dp), PARAMETER                           :: one = 1.0_dp, zero = 0.0_dp
 
       INTEGER                                            :: handle, i, im, imax, ispin, re, unit_nr
@@ -570,7 +568,7 @@ CONTAINS
       CALL timeset(routineN, handle)
 
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -593,7 +591,7 @@ CONTAINS
          CALL dbcsr_scale(P(2)%matrix, one/2)
       ENDIF
       DO ispin = 1, SIZE(P)/2
-         re = 2*ispin-1
+         re = 2*ispin - 1
          im = 2*ispin
          imax = MAX(max_iter, 1) !if max_iter is 0 then only the deviation from idempotency needs to be calculated
          DO i = 1, imax
@@ -656,8 +654,7 @@ CONTAINS
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: matrix_s
       INTEGER, INTENT(in)                                :: aspc_order
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'aspc_extrapolate', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'aspc_extrapolate'
       COMPLEX(KIND=dp), PARAMETER                        :: cone = (1.0_dp, 0.0_dp), &
                                                             czero = (0.0_dp, 0.0_dp)
       REAL(KIND=dp), PARAMETER                           :: one = 1.0_dp, zero = 0.0_dp
@@ -677,6 +674,7 @@ CONTAINS
       NULLIFY (rho_hist)
       CALL timeset(routineN, handle)
       CALL cite_reference(Kolafa2004)
+      CALL cite_reference(Kuhne2007)
 
       IF (rtp%linear_scaling) THEN
          CALL get_rtp(rtp=rtp, rho_new=rho_new)
@@ -690,9 +688,9 @@ CONTAINS
          rho_hist => rtp%history%rho_history
          DO imat = 1, nmat
             DO iaspc = 1, naspc
-               alpha = (-1.0_dp)**(iaspc+1)*REAL(iaspc, KIND=dp)* &
-                       binomial(2*naspc, naspc-iaspc)/binomial(2*naspc-2, naspc-1)
-               ihist = MOD(rtp%istep-iaspc, aspc_order)+1
+               alpha = (-1.0_dp)**(iaspc + 1)*REAL(iaspc, KIND=dp)* &
+                       binomial(2*naspc, naspc - iaspc)/binomial(2*naspc - 2, naspc - 1)
+               ihist = MOD(rtp%istep - iaspc, aspc_order) + 1
                IF (iaspc == 1) THEN
                   CALL dbcsr_add(rho_new(imat)%matrix, rho_hist(imat, ihist)%matrix, zero, alpha)
                ELSE
@@ -705,9 +703,9 @@ CONTAINS
          nmat = SIZE(mos_new)
          DO imat = 1, nmat
             DO iaspc = 1, naspc
-               alpha = (-1.0_dp)**(iaspc+1)*REAL(iaspc, KIND=dp)* &
-                       binomial(2*naspc, naspc-iaspc)/binomial(2*naspc-2, naspc-1)
-               ihist = MOD(rtp%istep-iaspc, aspc_order)+1
+               alpha = (-1.0_dp)**(iaspc + 1)*REAL(iaspc, KIND=dp)* &
+                       binomial(2*naspc, naspc - iaspc)/binomial(2*naspc - 2, naspc - 1)
+               ihist = MOD(rtp%istep - iaspc, aspc_order) + 1
                IF (iaspc == 1) THEN
                   CALL cp_fm_scale_and_add(zero, mos_new(imat)%matrix, alpha, mo_hist(imat, ihist)%matrix)
                ELSE
@@ -741,7 +739,7 @@ CONTAINS
                                 ncol_local=ncol_local)
 
             CALL cp_fm_struct_create(matrix_struct_new, &
-                                     template_fmstruct=matrix_struct, &
+                                     template_fmstruct=mos_new(2*i)%matrix%matrix_struct, &
                                      nrow_global=k, &
                                      ncol_global=k)
             CALL cp_cfm_create(csc, matrix_struct_new)
@@ -752,25 +750,24 @@ CONTAINS
             ! first the most recent
 
 ! reorthogonalize vectors
-
             DO icol_local = 1, ncol_local
-               fm_tmp%local_data(:, icol_local) = mos_new(2*i-1)%matrix%local_data(:, icol_local)
-               fm_tmp%local_data(:, icol_local+ncol_local) = mos_new(2*i)%matrix%local_data(:, icol_local)
+               fm_tmp%local_data(:, icol_local) = mos_new(2*i - 1)%matrix%local_data(:, icol_local)
+               fm_tmp%local_data(:, icol_local + ncol_local) = mos_new(2*i)%matrix%local_data(:, icol_local)
             END DO
 
             CALL cp_dbcsr_sm_fm_multiply(matrix_s(1)%matrix, fm_tmp, fm_tmp1, kdbl)
 
             DO icol_local = 1, ncol_local
                cfm_tmp%local_data(:, icol_local) = CMPLX(fm_tmp1%local_data(:, icol_local), &
-                                                         fm_tmp1%local_data(:, icol_local+ncol_local), dp)
-               cfm_tmp1%local_data(:, icol_local) = CMPLX(mos_new(2*i-1)%matrix%local_data(:, icol_local), &
+                                                         fm_tmp1%local_data(:, icol_local + ncol_local), dp)
+               cfm_tmp1%local_data(:, icol_local) = CMPLX(mos_new(2*i - 1)%matrix%local_data(:, icol_local), &
                                                           mos_new(2*i)%matrix%local_data(:, icol_local), dp)
             END DO
             CALL cp_cfm_gemm('C', 'N', k, k, n, cone, cfm_tmp1, cfm_tmp, czero, csc)
             CALL cp_cfm_cholesky_decompose(csc)
             CALL cp_cfm_triangular_multiply(csc, cfm_tmp1, n_cols=k, side='R', invert_tr=.TRUE.)
             DO icol_local = 1, ncol_local
-               mos_new(2*i-1)%matrix%local_data(:, icol_local) = REAL(cfm_tmp1%local_data(:, icol_local), dp)
+               mos_new(2*i - 1)%matrix%local_data(:, icol_local) = REAL(cfm_tmp1%local_data(:, icol_local), dp)
                mos_new(2*i)%matrix%local_data(:, icol_local) = AIMAG(cfm_tmp1%local_data(:, icol_local))
             END DO
 
@@ -805,9 +802,6 @@ CONTAINS
       TYPE(dbcsr_p_type), DIMENSION(:), OPTIONAL, &
          POINTER                                         :: s_mat
       INTEGER                                            :: ihist
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'put_data_to_history', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
 

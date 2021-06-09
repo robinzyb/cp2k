@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -47,9 +49,6 @@ CONTAINS
       INTEGER, INTENT(in), OPTIONAL                      :: source, mepos, num_pe
       LOGICAL, INTENT(in), OPTIONAL                      :: owns_group
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_para_env_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(para_env))
       ALLOCATE (para_env)
       para_env%group = group
@@ -59,7 +58,7 @@ CONTAINS
       IF (PRESENT(source)) para_env%source = source
       IF (PRESENT(owns_group)) para_env%owns_group = owns_group
       IF (.NOT. (PRESENT(mepos) .AND. PRESENT(num_pe))) THEN
-         CALL cp_para_env_update(para_env)
+         CALL mp_environ(taskid=para_env%mepos, numtask=para_env%num_pe, groupid=group)
       ELSE
          para_env%mepos = mepos
          para_env%num_pe = num_pe
@@ -78,12 +77,9 @@ CONTAINS
    SUBROUTINE cp_para_env_retain(para_env)
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_para_env_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(para_env))
       CPASSERT(para_env%ref_count > 0)
-      para_env%ref_count = para_env%ref_count+1
+      para_env%ref_count = para_env%ref_count + 1
    END SUBROUTINE cp_para_env_retain
 
 ! **************************************************************************************************
@@ -100,12 +96,9 @@ CONTAINS
    SUBROUTINE cp_para_env_release(para_env)
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_para_env_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(para_env)) THEN
          CPASSERT(para_env%ref_count > 0)
-         para_env%ref_count = para_env%ref_count-1
+         para_env%ref_count = para_env%ref_count - 1
          IF (para_env%ref_count < 1) THEN
             IF (para_env%owns_group) THEN
                CALL mp_comm_free(para_env%group)
@@ -115,26 +108,6 @@ CONTAINS
       END IF
       NULLIFY (para_env)
    END SUBROUTINE cp_para_env_release
-
-! **************************************************************************************************
-!> \brief gets again the position and size of the group from the mpi_group
-!> \param para_env the new group
-!> \par History
-!>      08.2002 created [fawzi]
-!> \author Fawzi Mohamed
-! **************************************************************************************************
-   SUBROUTINE cp_para_env_update(para_env)
-      TYPE(cp_para_env_type), POINTER                    :: para_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_para_env_update', &
-         routineP = moduleN//':'//routineN
-
-      CPASSERT(ASSOCIATED(para_env))
-      CPASSERT(para_env%ref_count > 0)
-      CALL mp_environ(taskid=para_env%mepos, numtask=para_env%num_pe, &
-                      groupid=para_env%group)
-      para_env%ionode = para_env%mepos == para_env%source
-   END SUBROUTINE cp_para_env_update
 
 ! **************************************************************************************************
 !> \brief creates a cart (multidimensional parallel environment)
@@ -149,8 +122,6 @@ CONTAINS
       TYPE(cp_para_cart_type), POINTER                   :: cart
       INTEGER, INTENT(in)                                :: group, ndims
       LOGICAL, INTENT(in), OPTIONAL                      :: owns_group
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_cart_create', routineP = moduleN//':'//routineN
 
       CPASSERT(.NOT. ASSOCIATED(cart))
       ALLOCATE (cart)
@@ -178,8 +149,6 @@ CONTAINS
    SUBROUTINE cp_cart_update(cart)
       TYPE(cp_para_cart_type), POINTER                   :: cart
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_cart_update', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(cart))
       CPASSERT(cart%ref_count > 0)
       CALL mp_environ(cart%group, cart%ndims, cart%num_pe, task_coor=cart%mepos, &
@@ -195,12 +164,9 @@ CONTAINS
    SUBROUTINE cp_cart_release(cart)
       TYPE(cp_para_cart_type), POINTER                   :: cart
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_cart_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(cart)) THEN
          CPASSERT(cart%ref_count > 0)
-         cart%ref_count = cart%ref_count-1
+         cart%ref_count = cart%ref_count - 1
          IF (cart%ref_count == 0) THEN
             IF (cart%owns_group) THEN
                CALL mp_comm_free(cart%group)

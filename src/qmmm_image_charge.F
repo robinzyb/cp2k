@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -10,7 +12,7 @@
 !> \author Dorothea Golze
 ! **************************************************************************************************
 MODULE qmmm_image_charge
-
+   USE ao_util,                         ONLY: exp_radius_very_extended
    USE cell_types,                      ONLY: cell_type,&
                                               pbc
    USE cp_control_types,                ONLY: dft_control_type
@@ -36,8 +38,7 @@ MODULE qmmm_image_charge
                                               section_vals_type,&
                                               section_vals_val_get
    USE kinds,                           ONLY: default_path_length,&
-                                              dp,&
-                                              int_8
+                                              dp
    USE mathconstants,                   ONLY: pi
    USE memory_utilities,                ONLY: reallocate
    USE message_passing,                 ONLY: mp_bcast,&
@@ -64,7 +65,7 @@ MODULE qmmm_image_charge
    USE qs_energy_types,                 ONLY: qs_energy_type
    USE qs_environment_types,            ONLY: get_qs_env,&
                                               qs_environment_type
-   USE qs_integrate_potential,          ONLY: integrate_pgf_product_rspace
+   USE qs_integrate_potential,          ONLY: integrate_pgf_product
    USE realspace_grid_types,            ONLY: pw2rs,&
                                               realspace_grid_desc_type,&
                                               realspace_grid_type,&
@@ -107,8 +108,7 @@ CONTAINS
       TYPE(qmmm_env_qm_type), POINTER                    :: qmmm_env
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_image_pot', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_image_pot'
 
       INTEGER                                            :: handle
 
@@ -162,8 +162,7 @@ CONTAINS
       TYPE(qmmm_env_qm_type), POINTER                    :: qmmm_env
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calc_image_coeff_gaussalgorithm', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calc_image_coeff_gaussalgorithm'
 
       INTEGER                                            :: handle, info, natom
       REAL(KIND=dp)                                      :: eta, V0
@@ -187,7 +186,7 @@ CONTAINS
       CALL integrate_potential_ga_rspace(v_hartree_rspace, qmmm_env, qs_env, &
                                          pot_const)
       !add integral V0*ga(r)
-      pot_const(:) = -pot_const(:)+V0*SQRT((pi/eta)**3)
+      pot_const(:) = -pot_const(:) + V0*SQRT((pi/eta)**3)
 
       !solve linear system of equations T*coeff=-pot_const
       !LU factorization of T  by DGETRF done in calculate_image_matrix
@@ -219,8 +218,7 @@ CONTAINS
       TYPE(qmmm_env_qm_type), POINTER                    :: qmmm_env
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calc_image_coeff_iterative', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calc_image_coeff_iterative'
 
       INTEGER                                            :: handle, iter_steps, natom, output_unit
       REAL(KIND=dp)                                      :: alpha, eta, rsnew, rsold, V0
@@ -253,7 +251,7 @@ CONTAINS
                                          pot_const)
 
       !add integral V0*ga(r)
-      pot_const(:) = -pot_const(:)+V0*SQRT((pi/eta)**3)
+      pot_const(:) = -pot_const(:) + V0*SQRT((pi/eta)**3)
 
       !initial guess for coeff
       coeff = 1.0_dp
@@ -271,7 +269,7 @@ CONTAINS
                                          qmmm_env=qmmm_env, qs_env=qs_env, int_res=vmetal_const)
 
       ! modify coefficients iteratively
-      r = pot_const-vmetal_const
+      r = pot_const - vmetal_const
       z = MATMUL(qs_env%image_matrix, r)
       d = z
       rsold = DOT_PRODUCT(r, z)
@@ -286,18 +284,18 @@ CONTAINS
                                             qs_env=qs_env, int_res=Ad)
 
          alpha = rsold/DOT_PRODUCT(d, Ad)
-         coeff = coeff+alpha*d
+         coeff = coeff + alpha*d
 
-         r = r-alpha*Ad
+         r = r - alpha*Ad
          z = MATMUL(qs_env%image_matrix, r)
          rsnew = DOT_PRODUCT(r, z)
-         iter_steps = iter_steps+1
+         iter_steps = iter_steps + 1
          ! SQRT(rsnew) < 1.0E-08
          IF (rsnew < 1.0E-16) THEN
             CALL pw_release(auxpot_Ad_rspace%pw)
             EXIT
          END IF
-         d = z+rsnew/rsold*d
+         d = z + rsnew/rsold*d
          rsold = rsnew
          CALL pw_release(auxpot_Ad_rspace%pw)
       ENDDO
@@ -349,13 +347,12 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:), POINTER               :: int_res
       INTEGER, INTENT(IN), OPTIONAL                      :: atom_num, atom_num_ref
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'integrate_potential_ga_rspace', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'integrate_potential_ga_rspace'
 
       INTEGER                                            :: atom_a, atom_b, atom_ref, handle, iatom, &
                                                             j, k, natom, npme
       INTEGER, DIMENSION(:), POINTER                     :: cores
-      REAL(KIND=dp)                                      :: eps_rho_rspace
+      REAL(KIND=dp)                                      :: eps_rho_rspace, radius
       REAL(KIND=dp), DIMENSION(3)                        :: ra
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: hab
       TYPE(cell_type), POINTER                           :: cell
@@ -388,7 +385,7 @@ CONTAINS
       k = 1
       IF (PRESENT(atom_num)) k = atom_num
 
-      CALL reallocate(cores, 1, natom-k+1)
+      CALL reallocate(cores, 1, natom - k + 1)
       int_res = 0.0_dp
       npme = 0
       cores = 0
@@ -397,11 +394,11 @@ CONTAINS
          IF (rs_v%desc%parallel .AND. .NOT. rs_v%desc%distributed) THEN
             ! replicated realspace grid, split the atoms up between procs
             IF (MODULO(iatom, rs_v%desc%group_size) == rs_v%desc%my_pos) THEN
-               npme = npme+1
+               npme = npme + 1
                cores(npme) = iatom
             ENDIF
          ELSE
-            npme = npme+1
+            npme = npme + 1
             cores(npme) = iatom
          ENDIF
       END DO
@@ -416,8 +413,8 @@ CONTAINS
             atom_b = qmmm_env%image_charge_pot%image_mm_list(k)
             atom_ref = qmmm_env%image_charge_pot%image_mm_list(atom_num_ref)
             ra(:) = pbc(qmmm_env%image_charge_pot%particles_all(atom_a)%r, cell) &
-                    -pbc(qmmm_env%image_charge_pot%particles_all(atom_b)%r, cell) &
-                    +pbc(qmmm_env%image_charge_pot%particles_all(atom_ref)%r, cell)
+                    - pbc(qmmm_env%image_charge_pot%particles_all(atom_b)%r, cell) &
+                    + pbc(qmmm_env%image_charge_pot%particles_all(atom_ref)%r, cell)
 
          ELSE
             ra(:) = pbc(qmmm_env%image_charge_pot%particles_all(atom_a)%r, cell)
@@ -425,11 +422,16 @@ CONTAINS
 
          hab(1, 1) = 0.0_dp
 
-         CALL integrate_pgf_product_rspace(0, qmmm_env%image_charge_pot%eta, 0, &
-                                           0, 0.0_dp, 0, ra, (/0.0_dp, 0.0_dp, 0.0_dp/), 0.0_dp, &
-                                           rs_v, cell, pw_env%cube_info(1), hab, o1=0, o2=0, &
-                                           eps_gvg_rspace=eps_rho_rspace, calculate_forces=.FALSE., &
-                                           use_subpatch=.TRUE., subpatch_pattern=0_int_8)
+         radius = exp_radius_very_extended(la_min=0, la_max=0, lb_min=0, lb_max=0, &
+                                           ra=ra, rb=ra, rp=ra, &
+                                           zetp=qmmm_env%image_charge_pot%eta, eps=eps_rho_rspace, &
+                                           prefactor=1.0_dp, cutoff=1.0_dp)
+
+         CALL integrate_pgf_product(0, qmmm_env%image_charge_pot%eta, 0, &
+                                    0, 0.0_dp, 0, ra, (/0.0_dp, 0.0_dp, 0.0_dp/), &
+                                    rs_v, cell, pw_env%cube_info(1), hab, o1=0, o2=0, &
+                                    radius=radius, calculate_forces=.FALSE., &
+                                    use_subpatch=.TRUE., subpatch_pattern=0)
 
          int_res(iatom) = hab(1, 1)
 
@@ -464,13 +466,12 @@ CONTAINS
       TYPE(qmmm_env_qm_type), POINTER                    :: qmmm_env
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'integrate_potential_devga_rspace', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'integrate_potential_devga_rspace'
 
       INTEGER                                            :: atom_a, handle, iatom, j, natom, npme
       INTEGER, DIMENSION(:), POINTER                     :: cores
       LOGICAL                                            :: use_virial
-      REAL(KIND=dp)                                      :: eps_rho_rspace
+      REAL(KIND=dp)                                      :: eps_rho_rspace, radius
       REAL(KIND=dp), DIMENSION(3)                        :: force_a, force_b, ra
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: hab, pab
       TYPE(cell_type), POINTER                           :: cell
@@ -526,11 +527,11 @@ CONTAINS
          IF (rs_v%desc%parallel .AND. .NOT. rs_v%desc%distributed) THEN
             ! replicated realspace grid, split the atoms up between procs
             IF (MODULO(iatom, rs_v%desc%group_size) == rs_v%desc%my_pos) THEN
-               npme = npme+1
+               npme = npme + 1
                cores(npme) = iatom
             ENDIF
          ELSE
-            npme = npme+1
+            npme = npme + 1
             cores(npme) = iatom
          ENDIF
       END DO
@@ -545,12 +546,18 @@ CONTAINS
          force_a(:) = 0.0_dp
          force_b(:) = 0.0_dp
 
-         CALL integrate_pgf_product_rspace(0, qmmm_env%image_charge_pot%eta, 0, &
-                                           0, 0.0_dp, 0, ra, (/0.0_dp, 0.0_dp, 0.0_dp/), 0.0_dp, &
-                                           rs_v, cell, pw_env%cube_info(1), hab, pab, o1=0, o2=0, &
-                                           eps_gvg_rspace=eps_rho_rspace, calculate_forces=.TRUE., &
-                                           force_a=force_a, force_b=force_b, use_subpatch=.TRUE., &
-                                           subpatch_pattern=0_int_8)
+         radius = exp_radius_very_extended(la_min=0, la_max=0, lb_min=0, lb_max=0, &
+                                           ra=ra, rb=ra, rp=ra, &
+                                           zetp=qmmm_env%image_charge_pot%eta, eps=eps_rho_rspace, &
+                                           pab=pab, o1=0, o2=0, &  ! without map_consistent
+                                           prefactor=1.0_dp, cutoff=1.0_dp)
+
+         CALL integrate_pgf_product(0, qmmm_env%image_charge_pot%eta, 0, &
+                                    0, 0.0_dp, 0, ra, (/0.0_dp, 0.0_dp, 0.0_dp/), &
+                                    rs_v, cell, pw_env%cube_info(1), hab, pab, o1=0, o2=0, &
+                                    radius=radius, calculate_forces=.TRUE., &
+                                    force_a=force_a, force_b=force_b, use_subpatch=.TRUE., &
+                                    subpatch_pattern=0)
 
          force_a(:) = coeff(iatom)*force_a(:)
          forces(:, iatom) = force_a(:)
@@ -580,9 +587,6 @@ CONTAINS
 
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(qmmm_env_qm_type), POINTER                    :: qmmm_env
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'conditional_calc_image_matrix', &
-         routineP = moduleN//':'//routineN
 
       IF (.NOT. qmmm_env%image_charge_pot%coeff_iterative) THEN
          SELECT CASE (qmmm_env%image_charge_pot%state_image_matrix)
@@ -623,8 +627,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(qmmm_env_qm_type), POINTER                    :: qmmm_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_image_matrix', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_image_matrix'
 
       INTEGER                                            :: handle, j, k, natom, output_unit, stat
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -679,7 +682,7 @@ CONTAINS
          CALL DPOTRI('L', natom, qs_env%image_matrix, natom, stat)
          CPASSERT(stat == 0)
          DO j = 1, natom
-            DO k = j+1, natom
+            DO k = j + 1, natom
                qs_env%image_matrix(j, k) = qs_env%image_matrix(k, j)
             ENDDO
          ENDDO
@@ -707,8 +710,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(qmmm_env_qm_type), POINTER                    :: qmmm_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_image_matrix_gpw', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_image_matrix_gpw'
 
       INTEGER                                            :: handle, iatom, iatom_ref, natom
       REAL(KIND=dp), DIMENSION(:), POINTER               :: int_res
@@ -762,7 +764,7 @@ CONTAINS
                                             qs_env, int_res, atom_num=iatom, &
                                             atom_num_ref=iatom_ref)
          image_matrix(iatom, iatom:natom) = int_res(iatom:natom)
-         image_matrix(iatom+1:natom, iatom) = int_res(iatom+1:natom)
+         image_matrix(iatom + 1:natom, iatom) = int_res(iatom + 1:natom)
       END DO
 
       CALL pw_release(vb_gspace%pw)
@@ -785,8 +787,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(qmmm_env_qm_type), POINTER                    :: qmmm_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_image_matrix_mme', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_image_matrix_mme'
 
       INTEGER                                            :: atom_a, handle, iatom, natom
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:)           :: zeta
@@ -832,8 +833,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :), INTENT(INOUT)      :: hab
       TYPE(cp_para_env_type), INTENT(IN), POINTER        :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'integrate_s_mme', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'integrate_s_mme'
 
       INTEGER                                            :: G_count, handle, ipgf, ipgf_prod, jpgf, &
                                                             npgf_prod, npgfa, npgfb, R_count
@@ -852,11 +852,11 @@ CONTAINS
       limits = get_limit(npgf_prod, para_env%num_pe, para_env%mepos)
 
       DO ipgf_prod = limits(1), limits(2)
-         ipgf = (ipgf_prod-1)/npgfb+1
-         jpgf = MOD(ipgf_prod-1, npgfb)+1
-         rab(:) = ra(:, ipgf)-rb(:, jpgf)
+         ipgf = (ipgf_prod - 1)/npgfb + 1
+         jpgf = MOD(ipgf_prod - 1, npgfb) + 1
+         rab(:) = ra(:, ipgf) - rb(:, jpgf)
          CALL eri_mme_2c_integrate(param%par, 0, 0, 0, 0, zeta(ipgf), &
-                                   zetb(jpgf), rab, hab, ipgf-1, jpgf-1, G_count=G_count, R_count=R_count)
+                                   zetb(jpgf), rab, hab, ipgf - 1, jpgf - 1, G_count=G_count, R_count=R_count)
       ENDDO
 
       CALL cp_eri_mme_update_local_counts(param, para_env, G_count_2c=G_count, R_count_2c=R_count)
@@ -867,7 +867,7 @@ CONTAINS
 
 ! **************************************************************************************************
 !> \brief calculates potential of the metal (image potential) given a set of
-!>        coefficents coeff
+!>        coefficients coeff
 !> \param v_metal_rspace potential generated by rho_metal in real space
 !> \param coeff expansion coefficients of the image charge density, i.e.
 !>        rho_metal=sum_a c_a*g_a
@@ -884,8 +884,7 @@ CONTAINS
       TYPE(qs_energy_type), OPTIONAL, POINTER            :: energy
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_potential_metal', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_potential_metal'
 
       INTEGER                                            :: handle
       REAL(KIND=dp)                                      :: en_external, en_vmetal_rhohartree, &
@@ -932,7 +931,7 @@ CONTAINS
          en_vmetal_rhohartree = 0.5_dp*pw_integral_ab(v_metal_gspace%pw, &
                                                       rho_hartree_gspace%pw)
          en_external = qs_env%qmmm_env_qm%image_charge_pot%V0*total_rho_metal
-         energy%image_charge = en_vmetal_rhohartree-0.5_dp*en_external
+         energy%image_charge = en_vmetal_rhohartree - 0.5_dp*en_external
          CALL print_image_energy_terms(en_vmetal_rhohartree, en_external, &
                                        total_rho_metal, qs_env)
       ENDIF
@@ -959,8 +958,7 @@ CONTAINS
       TYPE(pw_p_type), INTENT(IN)                        :: v_metal
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'add_image_pot_to_hartree_pot', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'add_image_pot_to_hartree_pot'
 
       INTEGER                                            :: handle, output_unit
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -1000,8 +998,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: image_matrix
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_image_matrix', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_image_matrix'
 
       CHARACTER(LEN=default_path_length)                 :: filename
       INTEGER                                            :: handle, rst_unit
@@ -1061,8 +1058,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(qmmm_env_qm_type), POINTER                    :: qmmm_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'restart_image_matrix', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'restart_image_matrix'
 
       CHARACTER(LEN=default_path_length)                 :: image_filename
       INTEGER                                            :: handle, natom, output_unit, rst_unit
@@ -1135,9 +1131,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: forces
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'print_gradients_image_atoms', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: atom_a, iatom, natom, output_unit
       REAL(KIND=dp), DIMENSION(3)                        :: sum_gradients
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -1150,7 +1143,7 @@ CONTAINS
       natom = SIZE(qs_env%qmmm_env_qm%image_charge_pot%image_mm_list)
 
       DO iatom = 1, natom
-         sum_gradients(:) = sum_gradients(:)+forces(:, iatom)
+         sum_gradients(:) = sum_gradients(:) + forces(:, iatom)
       ENDDO
 
       CALL get_qs_env(qs_env=qs_env, input=input)
@@ -1189,9 +1182,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:), POINTER               :: image_coeff
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'print_image_coefficients', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: atom_a, iatom, natom, output_unit
       REAL(KIND=dp)                                      :: normalize_factor, sum_coeff
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -1205,7 +1195,7 @@ CONTAINS
       normalize_factor = SQRT((qs_env%qmmm_env_qm%image_charge_pot%eta/pi)**3)
 
       DO iatom = 1, natom
-         sum_coeff = sum_coeff+image_coeff(iatom)
+         sum_coeff = sum_coeff + image_coeff(iatom)
       ENDDO
 
       CALL get_qs_env(qs_env=qs_env, input=input)
@@ -1254,9 +1244,6 @@ CONTAINS
                                                             total_rho_metal
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'print_image_energy_terms', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: output_unit
       TYPE(cp_logger_type), POINTER                      :: logger
       TYPE(section_vals_type), POINTER                   :: input
@@ -1278,7 +1265,7 @@ CONTAINS
          WRITE (unit=output_unit, fmt="(T3,A,T56,F25.14)") &
             "External potential energy term [a.u.]:", -0.5_dp*en_external
          WRITE (unit=output_unit, fmt="(T3,A,T56,F25.14)") &
-            "Total image charge energy [a.u.]:", en_vmetal_rhohartree-0.5_dp*en_external
+            "Total image charge energy [a.u.]:", en_vmetal_rhohartree - 0.5_dp*en_external
       ENDIF
 
       CALL cp_print_key_finished_output(output_unit, logger, input, &

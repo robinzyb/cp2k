@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -146,8 +148,7 @@ CONTAINS
          INTENT(INOUT)                                   :: copy
       LOGICAL, INTENT(IN)                                :: copy_data
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'copy_submatrix_array', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'copy_submatrix_array'
 
       INTEGER                                            :: handle, idomain, ndomains, ndomainsB
 
@@ -180,7 +181,7 @@ CONTAINS
       TYPE(domain_submatrix_type), INTENT(INOUT)         :: copy
       LOGICAL, INTENT(IN)                                :: copy_data
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'copy_submatrix', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'copy_submatrix'
 
       INTEGER                                            :: handle, icol, irow
 
@@ -260,8 +261,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :), INTENT(IN)         :: array
       TYPE(domain_submatrix_type), INTENT(INOUT)         :: copy
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'copy_submatrix_data', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'copy_submatrix_data'
 
       INTEGER                                            :: ds1, ds2, handle, ms1, ms2
 
@@ -300,8 +300,7 @@ CONTAINS
          INTENT(INOUT)                                   :: submatrices
       REAL(KIND=dp), INTENT(IN)                          :: scalar
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_submatrix_array', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'set_submatrix_array'
 
       INTEGER                                            :: handle, idomain, ndomains
 
@@ -328,7 +327,7 @@ CONTAINS
       TYPE(domain_submatrix_type), INTENT(INOUT)         :: submatrix
       REAL(KIND=dp), INTENT(IN)                          :: scalar
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_submatrix', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'set_submatrix'
 
       INTEGER                                            :: ds1, ds2, handle, ms1, ms2
 
@@ -367,8 +366,7 @@ CONTAINS
       TYPE(domain_submatrix_type), DIMENSION(:), &
          INTENT(INOUT)                                   :: subm
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'release_submatrix_array', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'release_submatrix_array'
 
       INTEGER                                            :: handle, idomain, ndomains
 
@@ -391,8 +389,7 @@ CONTAINS
 
       TYPE(domain_submatrix_type), INTENT(INOUT)         :: subm
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'release_submatrix', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'release_submatrix'
 
       INTEGER                                            :: handle
 
@@ -445,8 +442,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: beta
       TYPE(domain_submatrix_type), INTENT(INOUT)         :: C
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'multiply_submatrices_once', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'multiply_submatrices_once'
 
       INTEGER                                            :: cs1, cs2, handle, icol, irow, K, K1, &
                                                             LDA, LDB, LDC, M, Mblocks, N, Nblocks
@@ -575,8 +571,7 @@ CONTAINS
       TYPE(domain_submatrix_type), DIMENSION(:), &
          INTENT(INOUT)                                   :: C
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'multiply_submatrices_array', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'multiply_submatrices_array'
 
       INTEGER                                            :: handle, idomain, idomainA, idomainB, &
                                                             ndomains, ndomainsB, ndomainsC
@@ -627,8 +622,7 @@ CONTAINS
       TYPE(domain_submatrix_type), INTENT(IN)            :: B
       CHARACTER, INTENT(IN)                              :: transB
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'add_submatrices_once', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'add_submatrices_once'
 
       INTEGER                                            :: C1, C2, handle, icol, R1, R2
       LOGICAL                                            :: NOTB
@@ -657,11 +651,11 @@ CONTAINS
 
       IF (NOTB) THEN
          DO icol = 1, C1
-            A%mdata(:, icol) = alpha*A%mdata(:, icol)+beta*B%mdata(:, icol)
+            A%mdata(:, icol) = alpha*A%mdata(:, icol) + beta*B%mdata(:, icol)
          ENDDO
       ELSE
          DO icol = 1, C1
-            A%mdata(:, icol) = alpha*A%mdata(:, icol)+beta*B%mdata(icol, :)
+            A%mdata(:, icol) = alpha*A%mdata(:, icol) + beta*B%mdata(icol, :)
          ENDDO
       ENDIF
 
@@ -687,8 +681,7 @@ CONTAINS
          INTENT(IN)                                      :: B
       CHARACTER, INTENT(IN)                              :: transB
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'add_submatrices_array', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'add_submatrices_array'
 
       INTEGER                                            :: handle, idomain, idomainA, idomainB, &
                                                             ndomains, ndomainsB
@@ -732,8 +725,7 @@ CONTAINS
          INTENT(IN)                                      :: submatrices
       REAL(KIND=dp), INTENT(OUT)                         :: norm
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'maxnorm_submatrices', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'maxnorm_submatrices'
 
       INTEGER                                            :: handle, idomain, ndomains
       REAL(KIND=dp)                                      :: curr_norm, send_norm
@@ -782,8 +774,7 @@ CONTAINS
          INTENT(IN)                                      :: A, B
       REAL(KIND=dp), INTENT(OUT)                         :: trace
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'trace_submatrices', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'trace_submatrices'
 
       INTEGER                                            :: domainA, domainB, handle, idomain, &
                                                             ndomainsA, ndomainsB
@@ -813,7 +804,7 @@ CONTAINS
             CPASSERT(A(idomain)%ncols .EQ. B(idomain)%ncols)
 
             curr_trace = SUM(A(idomain)%mdata(:, :)*B(idomain)%mdata(:, :))
-            send_trace = send_trace+curr_trace
+            send_trace = send_trace + curr_trace
 
          ENDIF
 
@@ -855,8 +846,7 @@ CONTAINS
       INTEGER, DIMENSION(:), INTENT(IN)                  :: node_of_domain
       INTEGER, INTENT(IN)                                :: job_type
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'construct_submatrices', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'construct_submatrices'
 
       CHARACTER                                          :: matrix_type
       INTEGER :: block_node, block_offset, col, col_offset, col_size, dest_node, GroupID, handle, &
@@ -904,8 +894,8 @@ CONTAINS
 
          ! loop over those rows that have non-zero quencher
          index_sr = 1 ! index start row
-         IF (idomain .GT. 1) index_sr = domain_map%index1(idomain-1)
-         index_er = domain_map%index1(idomain)-1 ! index end row
+         IF (idomain .GT. 1) index_sr = domain_map%index1(idomain - 1)
+         index_er = domain_map%index1(idomain) - 1 ! index end row
 
          DO index_row = index_sr, index_er
 
@@ -914,8 +904,8 @@ CONTAINS
             IF (job_type == select_row_col) THEN
                ! loop over those columns that have non-zero quencher
                index_sc = 1 ! index start col
-               IF (idomain .GT. 1) index_sc = domain_map%index1(idomain-1)
-               index_ec = domain_map%index1(idomain)-1 ! index end col
+               IF (idomain .GT. 1) index_sc = domain_map%index1(idomain - 1)
+               index_ec = domain_map%index1(idomain) - 1 ! index end col
             ELSE
                ! fake loop
                index_sc = 1 ! index start col
@@ -936,9 +926,9 @@ CONTAINS
                IF (block_node .EQ. myNode) THEN
                   CALL dbcsr_get_block_p(matrix, row, col, block_p, found, row_size, col_size)
                   IF (found) THEN
-                     send_descriptor(1, dest_node+1) = send_descriptor(1, dest_node+1)+1
-                     send_descriptor(2, dest_node+1) = send_descriptor(2, dest_node+1)+ &
-                                                       row_size*col_size
+                     send_descriptor(1, dest_node + 1) = send_descriptor(1, dest_node + 1) + 1
+                     send_descriptor(2, dest_node + 1) = send_descriptor(2, dest_node + 1) + &
+                                                         row_size*col_size
                   ENDIF
                ENDIF
 
@@ -983,40 +973,40 @@ CONTAINS
       send_size_cpu(1) = send_descriptor(2, 1)
       DO iNode = 2, nNodes
          send_size_cpu(iNode) = send_descriptor(2, iNode)
-         send_offset_cpu(iNode) = send_offset_cpu(iNode-1)+ &
-                                  send_size_cpu(iNode-1)
+         send_offset_cpu(iNode) = send_offset_cpu(iNode - 1) + &
+                                  send_size_cpu(iNode - 1)
       ENDDO
-      send_size_total = send_offset_cpu(nNodes)+send_size_cpu(nNodes)
+      send_size_total = send_offset_cpu(nNodes) + send_size_cpu(nNodes)
 
       ALLOCATE (recv_size_cpu(nNodes), recv_offset_cpu(nNodes))
       recv_offset_cpu(1) = 0
       recv_size_cpu(1) = recv_descriptor(2, 1)
       DO iNode = 2, nNodes
          recv_size_cpu(iNode) = recv_descriptor(2, iNode)
-         recv_offset_cpu(iNode) = recv_offset_cpu(iNode-1)+ &
-                                  recv_size_cpu(iNode-1)
+         recv_offset_cpu(iNode) = recv_offset_cpu(iNode - 1) + &
+                                  recv_size_cpu(iNode - 1)
       ENDDO
-      recv_size_total = recv_offset_cpu(nNodes)+recv_size_cpu(nNodes)
+      recv_size_total = recv_offset_cpu(nNodes) + recv_size_cpu(nNodes)
 
       ALLOCATE (send_size2_cpu(nNodes), send_offset2_cpu(nNodes))
       send_offset2_cpu(1) = 0
       send_size2_cpu(1) = 2*send_descriptor(1, 1)
       DO iNode = 2, nNodes
          send_size2_cpu(iNode) = 2*send_descriptor(1, iNode)
-         send_offset2_cpu(iNode) = send_offset2_cpu(iNode-1)+ &
-                                   send_size2_cpu(iNode-1)
+         send_offset2_cpu(iNode) = send_offset2_cpu(iNode - 1) + &
+                                   send_size2_cpu(iNode - 1)
       ENDDO
-      send_size2_total = send_offset2_cpu(nNodes)+send_size2_cpu(nNodes)
+      send_size2_total = send_offset2_cpu(nNodes) + send_size2_cpu(nNodes)
 
       ALLOCATE (recv_size2_cpu(nNodes), recv_offset2_cpu(nNodes))
       recv_offset2_cpu(1) = 0
       recv_size2_cpu(1) = 2*recv_descriptor(1, 1)
       DO iNode = 2, nNodes
          recv_size2_cpu(iNode) = 2*recv_descriptor(1, iNode)
-         recv_offset2_cpu(iNode) = recv_offset2_cpu(iNode-1)+ &
-                                   recv_size2_cpu(iNode-1)
+         recv_offset2_cpu(iNode) = recv_offset2_cpu(iNode - 1) + &
+                                   recv_size2_cpu(iNode - 1)
       ENDDO
-      recv_size2_total = recv_offset2_cpu(nNodes)+recv_size2_cpu(nNodes)
+      recv_size2_total = recv_offset2_cpu(nNodes) + recv_size2_cpu(nNodes)
 
       DEALLOCATE (send_descriptor)
       DEALLOCATE (recv_descriptor)
@@ -1037,8 +1027,8 @@ CONTAINS
 
          ! loop over those rows that have non-zero quencher
          index_sr = 1 ! index start row
-         IF (idomain .GT. 1) index_sr = domain_map%index1(idomain-1)
-         index_er = domain_map%index1(idomain)-1 ! index end row
+         IF (idomain .GT. 1) index_sr = domain_map%index1(idomain - 1)
+         index_er = domain_map%index1(idomain) - 1 ! index end row
 
          DO index_row = index_sr, index_er
 
@@ -1047,8 +1037,8 @@ CONTAINS
             IF (job_type == select_row_col) THEN
                ! loop over those columns that have non-zero quencher
                index_sc = 1 ! index start col
-               IF (idomain .GT. 1) index_sc = domain_map%index1(idomain-1)
-               index_ec = domain_map%index1(idomain)-1 ! index end col
+               IF (idomain .GT. 1) index_sc = domain_map%index1(idomain - 1)
+               index_ec = domain_map%index1(idomain) - 1 ! index end col
             ELSE
                ! fake loop
                index_sc = 1 ! index start col
@@ -1079,17 +1069,17 @@ CONTAINS
                      !   col_offset=col_offset+row_size
                      !ENDDO
                      col_offset = row_size*col_size
-                     start_data = send_offset_cpu(dest_node+1)+ &
-                                  offset_block(dest_node+1)
-                     send_data(start_data+1:start_data+col_offset) = &
+                     start_data = send_offset_cpu(dest_node + 1) + &
+                                  offset_block(dest_node + 1)
+                     send_data(start_data + 1:start_data + col_offset) = &
                         block_p(1:col_offset)
-                     offset_block(dest_node+1) = offset_block(dest_node+1)+col_offset
+                     offset_block(dest_node + 1) = offset_block(dest_node + 1) + col_offset
                      ! fill out row,col information
-                     send_data2(send_offset2_cpu(dest_node+1)+ &
-                                offset2_block(dest_node+1)+1) = row
-                     send_data2(send_offset2_cpu(dest_node+1)+ &
-                                offset2_block(dest_node+1)+2) = col
-                     offset2_block(dest_node+1) = offset2_block(dest_node+1)+2
+                     send_data2(send_offset2_cpu(dest_node + 1) + &
+                                offset2_block(dest_node + 1) + 1) = row
+                     send_data2(send_offset2_cpu(dest_node + 1) + &
+                                offset2_block(dest_node + 1) + 2) = col
+                     offset2_block(dest_node + 1) = offset2_block(dest_node + 1) + 2
                   ENDIF
                ENDIF
 
@@ -1182,15 +1172,15 @@ CONTAINS
             ! loop over those rows that have non-zero quencher
             first_row(:) = -1
             index_sr = 1 ! index start row
-            IF (idomain .GT. 1) index_sr = domain_map%index1(idomain-1)
-            index_er = domain_map%index1(idomain)-1 ! index end row
+            IF (idomain .GT. 1) index_sr = domain_map%index1(idomain - 1)
+            index_er = domain_map%index1(idomain) - 1 ! index end row
             DO index_row = index_sr, index_er
                row = domain_map%pairs(index_row, 1)
                !DO row = 1, nblkrows_tot
                !   IF (qblk_exists(domain_map,row,idomain)) THEN
-               first_row(row) = submatrix(idomain)%nrows+1
-               submatrix(idomain)%nrows = submatrix(idomain)%nrows+row_blk_size(row)
-               submatrix(idomain)%nbrows = submatrix(idomain)%nbrows+1
+               first_row(row) = submatrix(idomain)%nrows + 1
+               submatrix(idomain)%nrows = submatrix(idomain)%nrows + row_blk_size(row)
+               submatrix(idomain)%nbrows = submatrix(idomain)%nbrows + 1
                !   ENDIF
             ENDDO
             ALLOCATE (submatrix(idomain)%dbcsr_row(submatrix(idomain)%nbrows))
@@ -1198,15 +1188,15 @@ CONTAINS
             smrow = 1
             ! again loop over those rows that have non-zero quencher
             index_sr = 1 ! index start row
-            IF (idomain .GT. 1) index_sr = domain_map%index1(idomain-1)
-            index_er = domain_map%index1(idomain)-1 ! index end row
+            IF (idomain .GT. 1) index_sr = domain_map%index1(idomain - 1)
+            index_er = domain_map%index1(idomain) - 1 ! index end row
             DO index_row = index_sr, index_er
                row = domain_map%pairs(index_row, 1)
                !DO row = 1, nblkrows_tot
                !   IF (first_row(row).ne.-1) THEN
                submatrix(idomain)%dbcsr_row(smrow) = row
                submatrix(idomain)%size_brow(smrow) = row_blk_size(row)
-               smrow = smrow+1
+               smrow = smrow + 1
                !   ENDIF
             ENDDO
 
@@ -1215,8 +1205,8 @@ CONTAINS
             IF (job_type == select_row_col) THEN
                ! loop over those columns that have non-zero quencher
                index_sc = 1 ! index start col
-               IF (idomain .GT. 1) index_sc = domain_map%index1(idomain-1)
-               index_ec = domain_map%index1(idomain)-1 ! index end col
+               IF (idomain .GT. 1) index_sc = domain_map%index1(idomain - 1)
+               index_ec = domain_map%index1(idomain) - 1 ! index end col
             ELSE
                ! fake loop
                index_sc = 1 ! index start col
@@ -1235,9 +1225,9 @@ CONTAINS
                !      domain_needs_block=(col==idomain) ! RZK-warning col belongs to the domain
                !   ENDIF
                !   IF (domain_needs_block) THEN
-               first_col(col) = submatrix(idomain)%ncols+1
-               submatrix(idomain)%ncols = submatrix(idomain)%ncols+col_blk_size(col)
-               submatrix(idomain)%nbcols = submatrix(idomain)%nbcols+1
+               first_col(col) = submatrix(idomain)%ncols + 1
+               submatrix(idomain)%ncols = submatrix(idomain)%ncols + col_blk_size(col)
+               submatrix(idomain)%nbcols = submatrix(idomain)%nbcols + 1
                !   ENDIF
             ENDDO
 
@@ -1249,8 +1239,8 @@ CONTAINS
             IF (job_type == select_row_col) THEN
                ! loop over those columns that have non-zero quencher
                index_sc = 1 ! index start col
-               IF (idomain .GT. 1) index_sc = domain_map%index1(idomain-1)
-               index_ec = domain_map%index1(idomain)-1 ! index end col
+               IF (idomain .GT. 1) index_sc = domain_map%index1(idomain - 1)
+               index_ec = domain_map%index1(idomain) - 1 ! index end col
             ELSE
                ! fake loop
                index_sc = 1 ! index start col
@@ -1266,7 +1256,7 @@ CONTAINS
                !   IF (first_col(col).ne.-1) THEN
                submatrix(idomain)%dbcsr_col(smcol) = col
                submatrix(idomain)%size_bcol(smcol) = col_blk_size(col)
-               smcol = smcol+1
+               smcol = smcol + 1
                !   ENDIF
             ENDDO
 
@@ -1278,18 +1268,18 @@ CONTAINS
                block_offset = 0
                DO iBlock = 1, recv_size2_cpu(iNode)/2
                   ! read the (row,col) of the block
-                  row = recv_data2(recv_offset2_cpu(iNode)+(iBlock-1)*2+1)
-                  col = recv_data2(recv_offset2_cpu(iNode)+(iBlock-1)*2+2)
+                  row = recv_data2(recv_offset2_cpu(iNode) + (iBlock - 1)*2 + 1)
+                  col = recv_data2(recv_offset2_cpu(iNode) + (iBlock - 1)*2 + 2)
                   ! check if this block should be in the submatrix of this domain
                   IF ((first_col(col) .NE. -1) .AND. (first_row(row) .NE. -1)) THEN
                      ! copy data from the received array into submatrix
-                     start_data = recv_offset_cpu(iNode)+block_offset+1
-                     DO icol = 0, col_blk_size(col)-1
+                     start_data = recv_offset_cpu(iNode) + block_offset + 1
+                     DO icol = 0, col_blk_size(col) - 1
                         submatrix(idomain)%mdata(first_row(row): &
-                                                 first_row(row)+row_blk_size(row)-1, &
-                                                 first_col(col)+icol) = &
-                           recv_data(start_data:start_data+row_blk_size(row)-1)
-                        start_data = start_data+row_blk_size(row)
+                                                 first_row(row) + row_blk_size(row) - 1, &
+                                                 first_col(col) + icol) = &
+                           recv_data(start_data:start_data + row_blk_size(row) - 1)
+                        start_data = start_data + row_blk_size(row)
                      ENDDO
                      IF (job_type == select_row_col) THEN
                         IF (matrix_type == dbcsr_type_symmetric .OR. &
@@ -1299,14 +1289,14 @@ CONTAINS
                            IF (matrix_type == dbcsr_type_antisymmetric) THEN
                               antifactor = -1.0_dp
                            ENDIF
-                           start_data = recv_offset_cpu(iNode)+block_offset+1
-                           DO icol = 0, col_blk_size(col)-1
-                              submatrix(idomain)%mdata(first_row(col)+icol, &
+                           start_data = recv_offset_cpu(iNode) + block_offset + 1
+                           DO icol = 0, col_blk_size(col) - 1
+                              submatrix(idomain)%mdata(first_row(col) + icol, &
                                                        first_col(row): &
-                                                       first_col(row)+row_blk_size(row)-1) = &
+                                                       first_col(row) + row_blk_size(row) - 1) = &
                                  antifactor*recv_data(start_data: &
-                                                      start_data+row_blk_size(row)-1)
-                              start_data = start_data+row_blk_size(row)
+                                                      start_data + row_blk_size(row) - 1)
+                              start_data = start_data + row_blk_size(row)
                            ENDDO
                         ELSE IF (matrix_type == dbcsr_type_no_symmetry) THEN
                         ELSE
@@ -1314,7 +1304,7 @@ CONTAINS
                         ENDIF
                      ENDIF
                   ENDIF
-                  block_offset = block_offset+col_blk_size(col)*row_blk_size(row)
+                  block_offset = block_offset + col_blk_size(col)*row_blk_size(row)
                ENDDO
             ENDDO
          ENDIF ! mynode.eq.dest_node
@@ -1347,8 +1337,7 @@ CONTAINS
          INTENT(IN)                                      :: submatrix
       TYPE(dbcsr_type), INTENT(IN)                       :: distr_pattern
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'construct_dbcsr_from_submatrices', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'construct_dbcsr_from_submatrices'
 
       CHARACTER                                          :: matrix_type
       INTEGER :: block_offset, col, col_offset, colsize, dest_node, GroupID, handle, iBlock, icol, &
@@ -1371,7 +1360,7 @@ CONTAINS
 
       ! get a useful output_unit
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -1433,10 +1422,10 @@ CONTAINS
                CALL dbcsr_get_stored_coordinates(distr_pattern, &
                                                  row, idomain, dest_node)
 
-               send_descriptor(1, dest_node+1) = send_descriptor(1, dest_node+1)+1
-               send_descriptor(2, dest_node+1) = send_descriptor(2, dest_node+1)+ &
-                                                 submatrix(idomain)%size_brow(irow_subm)* &
-                                                 submatrix(idomain)%size_bcol(1)
+               send_descriptor(1, dest_node + 1) = send_descriptor(1, dest_node + 1) + 1
+               send_descriptor(2, dest_node + 1) = send_descriptor(2, dest_node + 1) + &
+                                                   submatrix(idomain)%size_brow(irow_subm)* &
+                                                   submatrix(idomain)%size_bcol(1)
 
             ENDDO ! loop over submatrix blocks
 
@@ -1452,40 +1441,40 @@ CONTAINS
       send_size_cpu(1) = send_descriptor(2, 1)
       DO iNode = 2, nNodes
          send_size_cpu(iNode) = send_descriptor(2, iNode)
-         send_offset_cpu(iNode) = send_offset_cpu(iNode-1)+ &
-                                  send_size_cpu(iNode-1)
+         send_offset_cpu(iNode) = send_offset_cpu(iNode - 1) + &
+                                  send_size_cpu(iNode - 1)
       ENDDO
-      send_size_total = send_offset_cpu(nNodes)+send_size_cpu(nNodes)
+      send_size_total = send_offset_cpu(nNodes) + send_size_cpu(nNodes)
 
       ALLOCATE (recv_size_cpu(nNodes), recv_offset_cpu(nNodes))
       recv_offset_cpu(1) = 0
       recv_size_cpu(1) = recv_descriptor(2, 1)
       DO iNode = 2, nNodes
          recv_size_cpu(iNode) = recv_descriptor(2, iNode)
-         recv_offset_cpu(iNode) = recv_offset_cpu(iNode-1)+ &
-                                  recv_size_cpu(iNode-1)
+         recv_offset_cpu(iNode) = recv_offset_cpu(iNode - 1) + &
+                                  recv_size_cpu(iNode - 1)
       ENDDO
-      recv_size_total = recv_offset_cpu(nNodes)+recv_size_cpu(nNodes)
+      recv_size_total = recv_offset_cpu(nNodes) + recv_size_cpu(nNodes)
 
       ALLOCATE (send_size2_cpu(nNodes), send_offset2_cpu(nNodes))
       send_offset2_cpu(1) = 0
       send_size2_cpu(1) = 2*send_descriptor(1, 1)
       DO iNode = 2, nNodes
          send_size2_cpu(iNode) = 2*send_descriptor(1, iNode)
-         send_offset2_cpu(iNode) = send_offset2_cpu(iNode-1)+ &
-                                   send_size2_cpu(iNode-1)
+         send_offset2_cpu(iNode) = send_offset2_cpu(iNode - 1) + &
+                                   send_size2_cpu(iNode - 1)
       ENDDO
-      send_size2_total = send_offset2_cpu(nNodes)+send_size2_cpu(nNodes)
+      send_size2_total = send_offset2_cpu(nNodes) + send_size2_cpu(nNodes)
 
       ALLOCATE (recv_size2_cpu(nNodes), recv_offset2_cpu(nNodes))
       recv_offset2_cpu(1) = 0
       recv_size2_cpu(1) = 2*recv_descriptor(1, 1)
       DO iNode = 2, nNodes
          recv_size2_cpu(iNode) = 2*recv_descriptor(1, iNode)
-         recv_offset2_cpu(iNode) = recv_offset2_cpu(iNode-1)+ &
-                                   recv_size2_cpu(iNode-1)
+         recv_offset2_cpu(iNode) = recv_offset2_cpu(iNode - 1) + &
+                                   recv_size2_cpu(iNode - 1)
       ENDDO
-      recv_size2_total = recv_offset2_cpu(nNodes)+recv_size2_cpu(nNodes)
+      recv_size2_total = recv_offset2_cpu(nNodes) + recv_size2_cpu(nNodes)
 
       DEALLOCATE (send_descriptor)
       DEALLOCATE (recv_descriptor)
@@ -1520,23 +1509,23 @@ CONTAINS
                ! place the data appropriately
                col_offset = 0
                DO icol = 1, colsize
-                  start_data = send_offset_cpu(dest_node+1)+ &
-                               offset_block(dest_node+1)+ &
+                  start_data = send_offset_cpu(dest_node + 1) + &
+                               offset_block(dest_node + 1) + &
                                col_offset
-                  send_data(start_data+1:start_data+rowsize) = &
-                     submatrix(idomain)%mdata(smroff+1:smroff+rowsize, icol)
-                  col_offset = col_offset+rowsize
+                  send_data(start_data + 1:start_data + rowsize) = &
+                     submatrix(idomain)%mdata(smroff + 1:smroff + rowsize, icol)
+                  col_offset = col_offset + rowsize
                ENDDO
-               offset_block(dest_node+1) = offset_block(dest_node+1)+ &
-                                           colsize*rowsize
+               offset_block(dest_node + 1) = offset_block(dest_node + 1) + &
+                                             colsize*rowsize
                ! fill out row,col information
-               send_data2(send_offset2_cpu(dest_node+1)+ &
-                          offset2_block(dest_node+1)+1) = row
-               send_data2(send_offset2_cpu(dest_node+1)+ &
-                          offset2_block(dest_node+1)+2) = col
-               offset2_block(dest_node+1) = offset2_block(dest_node+1)+2
+               send_data2(send_offset2_cpu(dest_node + 1) + &
+                          offset2_block(dest_node + 1) + 1) = row
+               send_data2(send_offset2_cpu(dest_node + 1) + &
+                          offset2_block(dest_node + 1) + 2) = col
+               offset2_block(dest_node + 1) = offset2_block(dest_node + 1) + 2
 
-               smroff = smroff+rowsize
+               smroff = smroff + rowsize
 
             ENDDO
 
@@ -1558,14 +1547,14 @@ CONTAINS
       DEALLOCATE (offset_block)
       DEALLOCATE (offset2_block)
 
-      ! copy recieved data into dbcsr matrix
+      ! copy received data into dbcsr matrix
       CALL dbcsr_get_info(matrix, col_blk_size=col_blk_size, row_blk_size=row_blk_size)
       DO iNode = 1, nNodes
          block_offset = 0
          DO iBlock = 1, recv_size2_cpu(iNode)/2
             ! read the (row,col) of the block
-            row = recv_data2(recv_offset2_cpu(iNode)+(iBlock-1)*2+1)
-            col = recv_data2(recv_offset2_cpu(iNode)+(iBlock-1)*2+2)
+            row = recv_data2(recv_offset2_cpu(iNode) + (iBlock - 1)*2 + 1)
+            col = recv_data2(recv_offset2_cpu(iNode) + (iBlock - 1)*2 + 2)
             !CALL dbcsr_get_block_p(matrix,row,col,block_p,found)
             !IF (.NOT.found) THEN
             NULLIFY (block_p)
@@ -1573,13 +1562,13 @@ CONTAINS
             CPASSERT(ASSOCIATED(block_p))
             !ENDIF
             ! copy data from the received array into the matrix block
-            start_data = recv_offset_cpu(iNode)+block_offset+1
+            start_data = recv_offset_cpu(iNode) + block_offset + 1
             DO icol = 1, col_blk_size(col)
                block_p(:, icol) = &
-                  recv_data(start_data:start_data+row_blk_size(row)-1)
-               start_data = start_data+row_blk_size(row)
+                  recv_data(start_data:start_data + row_blk_size(row) - 1)
+               start_data = start_data + row_blk_size(row)
             ENDDO
-            block_offset = block_offset+col_blk_size(col)*row_blk_size(row)
+            block_offset = block_offset + col_blk_size(col)*row_blk_size(row)
          ENDDO
       ENDDO
 
@@ -1605,8 +1594,7 @@ CONTAINS
          INTENT(IN)                                      :: submatrices
       INTEGER, INTENT(IN)                                :: mpgroup
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'print_submatrices', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'print_submatrices'
 
       CHARACTER(len=30)                                  :: colstr, formatstr
       INTEGER                                            :: handle, i, irow, n, ncols, nrows
@@ -1650,8 +1638,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: row, col
       LOGICAL                                            :: qblk_exists
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qblk_exists', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: first, last, mid, ndomains
 
 !CALL timeset(routineN,handle)
@@ -1661,16 +1647,16 @@ CONTAINS
       qblk_exists = .FALSE.
       IF (col .LT. 1 .OR. col .GT. ndomains) RETURN
       first = 1
-      IF (col .GT. 1) first = map%index1(col-1)
-      last = map%index1(col)-1
+      IF (col .GT. 1) first = map%index1(col - 1)
+      last = map%index1(col) - 1
 
       ! perform binary search within first-last
       DO WHILE (last .GE. first)
-         mid = first+(last-first)/2
+         mid = first + (last - first)/2
          IF (map%pairs(mid, 1) .GT. row) THEN
-            last = mid-1
+            last = mid - 1
          ELSE IF (map%pairs(mid, 1) .LT. row) THEN
-            first = mid+1
+            first = mid + 1
          ELSE
             qblk_exists = .TRUE. ! SUCCESS!!
             EXIT

@@ -1,25 +1,19 @@
-FROM ubuntu:18.04
+ARG BASE_IMAGE=ubuntu:20.04
+FROM ${BASE_IMAGE}
+
+ARG MPI_MODE=mpich
+ARG LIBINT_LMAX=5
+ARG BASE_IMAGE
+
+# author: Ole Schuett
+
+# Installs complete toolchain including packages which are skipped by default.
+
 USER root
 
-# install Ubuntu packages
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    autoconf \
-    autogen \
-    automake \
-    autotools-dev \
-    ca-certificates \
-    g++ \
-    git \
-    less \
-    libtool \
-    make \
-    nano \
-    pkg-config \
-    python \
-    unzip \
-    wget \
-    zlib1g-dev \
-   && rm -rf /var/lib/apt/lists/*
+# install Linux packages.
+COPY ./install_requirements*.sh ./
+RUN ./install_requirements.sh ${BASE_IMAGE}
 
 # copy helper scripts
 WORKDIR /opt/cp2k-toolchain
@@ -28,96 +22,49 @@ COPY ./scripts/VERSION \
      ./scripts/parse_if.py \
      ./scripts/tool_kit.sh \
      ./scripts/common_vars.sh \
-     ./scripts/signal_trap.sh ./scripts/
+     ./scripts/signal_trap.sh \
+     ./scripts/get_openblas_arch.sh \
+     ./scripts/
 
+# Dry-run leaves behind config files for the followup install scripts.
+# This breaks up the lengthy installation into smaller docker build steps.
 COPY ./install_cp2k_toolchain.sh .
-RUN ./install_cp2k_toolchain.sh --install-all --dry-run
+RUN ./install_cp2k_toolchain.sh  \
+    --install-all \
+    --mpi-mode=${MPI_MODE} \
+    --libint-lmax=${LIBINT_LMAX} \
+    --dry-run
 
-COPY ./scripts/install_valgrind.sh ./scripts/
-RUN ./scripts/install_valgrind.sh && rm -rf ./build
+COPY ./scripts/stage0/ ./scripts/stage0/
+RUN  ./scripts/stage0/install_stage0.sh && rm -rf ./build
 
-COPY ./scripts/install_cmake.sh ./scripts/
-RUN ./scripts/install_cmake.sh && rm -rf ./build
+COPY ./scripts/stage1/ ./scripts/stage1/
+RUN  ./scripts/stage1/install_stage1.sh && rm -rf ./build
 
-COPY ./scripts/install_gcc.sh ./scripts/
-RUN ./scripts/install_gcc.sh && rm -rf ./build
+COPY ./scripts/stage2/ ./scripts/stage2/
+RUN  ./scripts/stage2/install_stage2.sh && rm -rf ./build
 
-COPY ./scripts/get_openblas_arch.sh ./scripts/
-COPY ./scripts/setup_buildtools.sh ./scripts/
-RUN ./scripts/setup_buildtools.sh && rm -rf ./build
+COPY ./scripts/stage3/ ./scripts/stage3/
+RUN  ./scripts/stage3/install_stage3.sh && rm -rf ./build
 
-COPY ./scripts/install_mpich.sh ./scripts/
-RUN ./scripts/install_mpich.sh && rm -rf ./build
+COPY ./scripts/stage4/ ./scripts/stage4/
+RUN  ./scripts/stage4/install_stage4.sh && rm -rf ./build
 
-COPY ./scripts/install_openmpi.sh ./scripts/
-RUN ./scripts/install_openmpi.sh && rm -rf ./build
+COPY ./scripts/stage5/ ./scripts/stage5/
+RUN  ./scripts/stage5/install_stage5.sh && rm -rf ./build
 
-COPY ./scripts/install_reflapack.sh \
-     ./scripts/install_mkl.sh \
-     ./scripts/install_acml.sh \
-     ./scripts/install_openblas.sh \
-     ./scripts/install_mathlibs.sh ./scripts/
-RUN ./scripts/install_mathlibs.sh && rm -rf ./build
+COPY ./scripts/stage6/ ./scripts/stage6/
+RUN  ./scripts/stage6/install_stage6.sh && rm -rf ./build
 
-COPY ./scripts/install_fftw.sh ./scripts/
-RUN ./scripts/install_fftw.sh && rm -rf ./build
+COPY ./scripts/stage7/ ./scripts/stage7/
+RUN  ./scripts/stage7/install_stage7.sh && rm -rf ./build
 
-COPY ./scripts/install_libint.sh ./scripts/
-RUN ./scripts/install_libint.sh && rm -rf ./build
-
-COPY ./scripts/install_libxc.sh ./scripts/
-RUN ./scripts/install_libxc.sh && rm -rf ./build
-
-COPY ./scripts/install_libsmm.sh ./scripts/
-RUN ./scripts/install_libsmm.sh && rm -rf ./build
-
-COPY ./scripts/install_libxsmm.sh ./scripts/
-RUN ./scripts/install_libxsmm.sh && rm -rf ./build
-
-COPY ./scripts/install_scalapack.sh ./scripts/
-RUN ./scripts/install_scalapack.sh && rm -rf ./build
-
-COPY ./scripts/install_elpa.sh ./scripts/
-RUN ./scripts/install_elpa.sh && rm -rf ./build
-
-COPY ./scripts/install_ptscotch.sh ./scripts/
-RUN ./scripts/install_ptscotch.sh && rm -rf ./build
-
-COPY ./scripts/install_parmetis.sh ./scripts/
-RUN ./scripts/install_parmetis.sh && rm -rf ./build
-
-COPY ./scripts/install_metis.sh ./scripts/
-RUN ./scripts/install_metis.sh && rm -rf ./build
-
-COPY ./scripts/install_superlu.sh ./scripts/
-RUN ./scripts/install_superlu.sh && rm -rf ./build
-
-COPY ./scripts/install_pexsi.sh ./scripts/
-RUN ./scripts/install_pexsi.sh && rm -rf ./build
-
-COPY ./scripts/install_quip.sh ./scripts/
-RUN ./scripts/install_quip.sh && rm -rf ./build
-
-COPY ./scripts/install_gsl.sh ./scripts/
-RUN ./scripts/install_gsl.sh && rm -rf ./build
-
-COPY ./scripts/install_spglib.sh ./scripts/
-RUN ./scripts/install_spglib.sh && rm -rf ./build
-
-COPY ./scripts/install_hdf5.sh ./scripts/
-RUN ./scripts/install_hdf5.sh && rm -rf ./build
-
-COPY ./scripts/install_libvdwxc.sh ./scripts/
-RUN ./scripts/install_libvdwxc.sh && rm -rf ./build
-
-COPY ./scripts/install_sirius.sh ./scripts/
-RUN ./scripts/install_sirius.sh && rm -rf ./build
-
-COPY ./scripts/install_json_fortran.sh ./scripts/
-RUN ./scripts/install_json_fortran.sh && rm -rf ./build
+COPY ./scripts/stage8/ ./scripts/stage8/
+RUN  ./scripts/stage8/install_stage8.sh && rm -rf ./build
 
 COPY ./scripts/arch_base.tmpl \
-     ./scripts/generate_arch_files.sh ./scripts/
+     ./scripts/generate_arch_files.sh \
+     ./scripts/
 RUN ./scripts/generate_arch_files.sh && rm -rf ./build
 
 #EOF

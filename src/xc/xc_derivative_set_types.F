@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -71,9 +73,6 @@ CONTAINS
       LOGICAL, INTENT(in), OPTIONAL                      :: allocate_deriv
       TYPE(xc_derivative_type), POINTER                  :: res
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xc_dset_get_derivative', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(len=MAX_DERIVATIVE_DESC_LENGTH)          :: std_deriv_desc
       LOGICAL                                            :: my_allocate_deriv
       REAL(kind=dp), DIMENSION(:, :, :), POINTER         :: cr3d_ptr
@@ -118,8 +117,6 @@ CONTAINS
       TYPE(pw_pool_type), OPTIONAL, POINTER              :: pw_pool
       INTEGER, DIMENSION(2, 3), OPTIONAL                 :: local_bounds
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xc_dset_create', routineP = moduleN//':'//routineN
-
       TYPE(pw_grid_type), POINTER                        :: pw_grid
 
       NULLIFY (pw_grid)
@@ -129,7 +126,7 @@ CONTAINS
 
       NULLIFY (derivative_set%derivs)
       derivative_set%ref_count = 1
-      derivative_set_last_id_nr = derivative_set_last_id_nr+1
+      derivative_set_last_id_nr = derivative_set_last_id_nr + 1
       derivative_set%id_nr = derivative_set_last_id_nr
       IF (PRESENT(pw_pool)) THEN
          derivative_set%pw_pool => pw_pool
@@ -158,9 +155,6 @@ CONTAINS
 
       TYPE(xc_derivative_set_type), POINTER              :: derivative_set
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xc_dset_release', &
-         routineP = moduleN//':'//routineN
-
       TYPE(cp_sll_xc_deriv_type), POINTER                :: pos
       TYPE(xc_derivative_type), POINTER                  :: deriv_att
 
@@ -168,7 +162,7 @@ CONTAINS
       CPASSERT(ASSOCIATED(derivative_set))
       CPASSERT(derivative_set%ref_count > 0)
 
-      derivative_set%ref_count = derivative_set%ref_count-1
+      derivative_set%ref_count = derivative_set%ref_count - 1
       IF (derivative_set%ref_count == 0) THEN
          pos => derivative_set%derivs
          DO WHILE (cp_sll_xc_deriv_next(pos, el_att=deriv_att))
@@ -193,11 +187,9 @@ CONTAINS
    SUBROUTINE xc_dset_retain(deriv_set)
       TYPE(xc_derivative_set_type), POINTER              :: deriv_set
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xc_dset_retain', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(deriv_set))
       CPASSERT(deriv_set%ref_count > 0)
-      deriv_set%ref_count = deriv_set%ref_count+1
+      deriv_set%ref_count = deriv_set%ref_count + 1
    END SUBROUTINE xc_dset_retain
 
 ! **************************************************************************************************
@@ -207,9 +199,6 @@ CONTAINS
    SUBROUTINE xc_dset_zero_all(deriv_set)
 
       TYPE(xc_derivative_set_type), POINTER              :: deriv_set
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'xc_dset_zero_all', &
-         routineP = moduleN//':'//routineN
 
       TYPE(cp_sll_xc_deriv_type), POINTER                :: pos
       TYPE(xc_derivative_type), POINTER                  :: deriv_att

@@ -11,7 +11,7 @@
     THRESHOLD  0.001
   &END
   ! TRACE
-  ! TRACE_MASTER .FALSE. 
+  ! TRACE_MASTER .FALSE.
   ! TRACE_MAX 10000
 &END GLOBAL
 &MOTION
@@ -24,13 +24,13 @@
   METHOD Quickstep
   &DFT
     BASIS_SET_FILE_NAME    HFX_BASIS
-    POTENTIAL_FILE_NAME    HF_POTENTIALS 
+    POTENTIAL_FILE_NAME    HF_POTENTIALS
     UKS .TRUE.
     MULTIPLICITY 1
 
     &MGRID
-      CUTOFF    200
-      REL_CUTOFF 50
+      CUTOFF     50
+      REL_CUTOFF 20
       ! SKIP_LOAD_BALANCE_DISTRIBUTED
     &END MGRID
     &QS
@@ -39,7 +39,7 @@
     &END QS
     &SCF
       SCF_GUESS ATOMIC
-      EPS_SCF 5.0E-7
+      EPS_SCF 5.0E-5
       MAX_SCF 30
       ADDED_MOS 5
 
@@ -49,7 +49,7 @@
       &END MOM
 
       &OUTER_SCF
-        EPS_SCF  2.0E-7
+        EPS_SCF  2.0E-5
         MAX_SCF  2
       &END
     &END SCF
@@ -59,32 +59,33 @@
       &HF
         FRACTION  1.0
         &SCREENING
-          EPS_SCHWARZ          1.0E-8
+          EPS_SCHWARZ          1.0E-7
           SCREEN_ON_INITIAL_P  FALSE
         &END SCREENING
         &INTERACTION_POTENTIAL
           POTENTIAL_TYPE TRUNCATED
-          CUTOFF_RADIUS  3.0
+          CUTOFF_RADIUS  2.0
           T_C_G_DATA  t_c_g.dat
         &END
       &END HF
       &WF_CORRELATION
-        METHOD  RI_MP2_GPW
         &RI_MP2
           BLOCK_SIZE  1
           EPS_CANONICAL 1.0E-7
           FREE_HFX_BUFFER .FALSE.
+          &CPHF
+            EPS_CONV  1.0E-4
+            MAX_ITER  10
+          &END
         &END
-        &CPHF
-          EPS_CONV  1.0E-5
-          MAX_ITER  50
-        &END
-        &WFC_GPW
-          CUTOFF      100
-          REL_CUTOFF  25
-          EPS_FILTER  1.0E-5
-          EPS_GRID    1.0E-7
-        &END
+        &INTEGRALS
+          &WFC_GPW
+            CUTOFF      20
+            REL_CUTOFF  10
+            EPS_FILTER  1.0E-4
+            EPS_GRID    1.0E-6
+          &END WFC_GPW
+        &END INTEGRALS
         MEMORY    500
         NUMBER_PROC  1
       &END
@@ -92,12 +93,12 @@
   &END DFT
   &SUBSYS
     &COORD
-      O  0.000000    0.000000   -0.065587  
-      H  0.000000   -0.757136    0.520545  
-      H  0.000000    0.757136    0.520545  
+      O  0.000000    0.000000   -0.065587
+      H  0.000000   -0.757136    0.520545
+      H  0.000000    0.757136    0.520545
     &END
     &CELL
-        ABC 6.000 6.000 6.000    
+        ABC 6.000 6.000 6.000
     &END
     &KIND H
       BASIS_SET          DZVP-GTH

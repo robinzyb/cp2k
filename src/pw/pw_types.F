@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -9,7 +11,7 @@
 !>      "in_use" and "in_space" can not be used.
 !>      For performance reasons it would be better to have the loops
 !>      over g-vectros in the gather/scatter routines in new subprograms
-!>      with the actual arrays (also the adressing) in the parameter list
+!>      with the actual arrays (also the addressing) in the parameter list
 !> \par History
 !>      JGH (29-Dec-2000) : Changes for parallel use
 !>      JGH (13-Mar-2001) : added timing calls
@@ -87,11 +89,9 @@ CONTAINS
    SUBROUTINE pw_retain(pw)
       TYPE(pw_type), POINTER                             :: pw
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pw_retain', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(pw))
       CPASSERT(pw%ref_count > 0)
-      pw%ref_count = pw%ref_count+1
+      pw%ref_count = pw%ref_count + 1
    END SUBROUTINE pw_retain
 
 ! **************************************************************************************************
@@ -106,15 +106,13 @@ CONTAINS
    SUBROUTINE pw_release(pw)
       TYPE(pw_type), POINTER                             :: pw
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pw_release', routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(pw)) THEN
          CPASSERT(pw%ref_count > 0)
-         pw%ref_count = pw%ref_count-1
+         pw%ref_count = pw%ref_count - 1
          IF (pw%ref_count == 0) THEN
             pw%ref_count = 1
 
-            allocated_pw_count = allocated_pw_count-1
+            allocated_pw_count = allocated_pw_count - 1
             SELECT CASE (pw%in_use)
             CASE (REALDATA1D)
                DEALLOCATE (pw%cr)
@@ -159,7 +157,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :, :), OPTIONAL, &
          POINTER                                         :: cr3d_ptr
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pw_create', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'pw_create'
 
       INTEGER                                            :: handle
       INTEGER, DIMENSION(:, :), POINTER                  :: bounds
@@ -185,7 +183,7 @@ CONTAINS
          END IF
       END IF
 
-      last_pw_id_nr = last_pw_id_nr+1
+      last_pw_id_nr = last_pw_id_nr + 1
       pw%id_nr = last_pw_id_nr
       pw%ref_count = 1
       NULLIFY (pw%pw_grid)
@@ -195,7 +193,7 @@ CONTAINS
       pw%in_space = NOSPACE
       bounds => pw%pw_grid%bounds_local
 
-      allocated_pw_count = allocated_pw_count+1
+      allocated_pw_count = allocated_pw_count + 1
 
       NULLIFY (pw%cr, pw%cc, pw%cr3d, pw%cc3d)
 

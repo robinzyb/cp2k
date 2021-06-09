@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -101,35 +103,35 @@ CONTAINS
       TYPE(cp_fm_type), POINTER                          :: fm_mat_Q, fm_mat_Q_gemm
       INTEGER, INTENT(IN)                                :: dimen_RI, dimen_ia
       TYPE(cp_para_env_type), POINTER                    :: para_env_sub, para_env_RPA
-      INTEGER, ALLOCATABLE, DIMENSION(:), INTENT(IN)     :: RPA_proc_map
+      INTEGER, DIMENSION(-para_env_RPA%num_pe:2*&
+         para_env_RPA%num_pe-1), INTENT(IN)              :: RPA_proc_map
       REAL(KIND=dp), DIMENSION(:), INTENT(IN)            :: Eig
       TYPE(cp_fm_type), POINTER                          :: fm_mat_S
       INTEGER, INTENT(IN)                                :: homo, virtual
       REAL(KIND=dp), INTENT(IN)                          :: omega
-      TYPE(integ_mat_buffer_type), ALLOCATABLE, &
-         DIMENSION(:), INTENT(INOUT)                     :: buffer_send_axk, buffer_rec_axk
+      TYPE(integ_mat_buffer_type), DIMENSION(:), &
+         INTENT(INOUT)                                   :: buffer_send_axk, buffer_rec_axk
       INTEGER, INTENT(IN)                                :: number_of_send_axk
-      INTEGER, ALLOCATABLE, DIMENSION(:), INTENT(IN)     :: map_send_size_axk, map_rec_size_axk
-      INTEGER, ALLOCATABLE, DIMENSION(:, :), INTENT(IN)  :: local_size_source_axk
+      INTEGER, DIMENSION(:), INTENT(IN)                  :: map_send_size_axk, map_rec_size_axk
+      INTEGER, DIMENSION(:, :), INTENT(IN)               :: local_size_source_axk
       TYPE(mp2_type), POINTER                            :: mp2_env
       TYPE(dbcsr_p_type), INTENT(IN)                     :: mat_munu
       INTEGER, INTENT(IN)                                :: unit_nr
       REAL(KIND=dp), INTENT(INOUT)                       :: e_axk_corr
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'compute_axk_ener', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'compute_axk_ener'
       REAL(KIND=dp), PARAMETER                           :: thresh = 0.0000001_dp
 
       INTEGER :: avirt, color_sub, handle, i_global, iib, iitmp(2), iocc, j_global, jjb, kkb, &
          L_counter, my_group_L_end, my_group_L_size, my_group_L_start, ncol_local, ngroup, &
          nrow_local
-      INTEGER, DIMENSION(:), POINTER                     :: col_indices, row_indices
-      REAL(KIND=dp)                                      :: eigen_diff, eps_filter, trace_corr
-      REAL(KIND=dp), ALLOCATABLE, DIMENSION(:)           :: eigenval
-      TYPE(cp_fm_struct_type), POINTER                   :: fm_struct
       TYPE(cp_fm_type), POINTER                          :: fm_mat_Gamma_3, fm_mat_Q_tmp, &
                                                             fm_mat_R_half, fm_mat_R_half_gemm, &
                                                             fm_mat_U
+      TYPE(cp_fm_struct_type), POINTER                   :: fm_struct
+      REAL(KIND=dp), ALLOCATABLE, DIMENSION(:)           :: eigenval
+      REAL(KIND=dp)                                      :: eigen_diff, eps_filter, trace_corr
+      INTEGER, DIMENSION(:), POINTER                     :: col_indices, row_indices
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: dbcsr_Gamma_3, dbcsr_Gamma_inu_P, &
                                                             dbcsr_Gamma_munu_P
       TYPE(dbcsr_type), POINTER                          :: mo_coeff_o, mo_coeff_v
@@ -182,8 +184,8 @@ CONTAINS
       DO iib = 1, dimen_RI
          IF (ABS(eigenval(iib)) .GE. thresh) THEN
             eigenval(iib) = &
-               SQRT((1.0_dp/(eigenval(iib)**2))*LOG(1.0_dp+eigenval(iib)) &
-                    -1.0_dp/(eigenval(iib)*(eigenval(iib)+1.0_dp)))
+               SQRT((1.0_dp/(eigenval(iib)**2))*LOG(1.0_dp + eigenval(iib)) &
+                    - 1.0_dp/(eigenval(iib)*(eigenval(iib) + 1.0_dp)))
          ELSE
             eigenval(iib) = 0.707_dp
          ENDIF
@@ -220,12 +222,12 @@ CONTAINS
          DO iiB = 1, nrow_local
             i_global = row_indices(iiB)
 
-            iocc = MAX(1, i_global-1)/virtual+1
-            avirt = i_global-(iocc-1)*virtual
-            eigen_diff = eig(avirt+homo)-eig(iocc)
+            iocc = MAX(1, i_global - 1)/virtual + 1
+            avirt = i_global - (iocc - 1)*virtual
+            eigen_diff = eig(avirt + homo) - eig(iocc)
 
             fm_mat_S%local_data(iiB, jjB) = fm_mat_S%local_data(iiB, jjB)* &
-                                            SQRT(eigen_diff/(eigen_diff**2+omega**2))
+                                            SQRT(eigen_diff/(eigen_diff**2 + omega**2))
 
          END DO
       END DO
@@ -253,12 +255,12 @@ CONTAINS
          DO iiB = 1, nrow_local
             i_global = row_indices(iiB)
 
-            iocc = MAX(1, i_global-1)/virtual+1
-            avirt = i_global-(iocc-1)*virtual
-            eigen_diff = eig(avirt+homo)-eig(iocc)
+            iocc = MAX(1, i_global - 1)/virtual + 1
+            avirt = i_global - (iocc - 1)*virtual
+            eigen_diff = eig(avirt + homo) - eig(iocc)
 
             fm_mat_S%local_data(iiB, jjB) = fm_mat_S%local_data(iiB, jjB)/ &
-                                            SQRT(eigen_diff/(eigen_diff**2+omega**2))
+                                            SQRT(eigen_diff/(eigen_diff**2 + omega**2))
 
          END DO
       END DO
@@ -283,7 +285,7 @@ CONTAINS
       iitmp = get_limit(dimen_RI, ngroup, color_sub)
       my_group_L_start = iitmp(1)
       my_group_L_end = iitmp(2)
-      my_group_L_size = iitmp(2)-iitmp(1)+1
+      my_group_L_size = iitmp(2) - iitmp(1) + 1
 
       ! Copy Gamma_ia_P^3 to dbcsr matrix set
       CALL gamma_fm_to_dbcsr(fm_mat_Gamma_3, dbcsr_Gamma_3, para_env_RPA, para_env_sub, &
@@ -305,7 +307,7 @@ CONTAINS
 
       L_counter = 0
       DO kkb = my_group_L_start, my_group_L_end
-         L_counter = L_counter+1
+         L_counter = L_counter + 1
          ! One-index transformed Gamma_3
          ALLOCATE (dbcsr_Gamma_inu_P(L_counter)%matrix)
          CALL dbcsr_init_p(dbcsr_Gamma_inu_P(L_counter)%matrix)
@@ -324,7 +326,7 @@ CONTAINS
       !! Loup over auxiliary basis functions: multiplication
       L_counter = 0
       DO kkb = my_group_L_start, my_group_L_end
-         L_counter = L_counter+1
+         L_counter = L_counter + 1
          ! Do dbcsr multiplication: transform the virtual index
          CALL dbcsr_multiply("N", "T", 1.0_dp, mo_coeff_v, dbcsr_Gamma_3(L_counter)%matrix, &
                              0.0_dp, dbcsr_Gamma_inu_P(L_counter)%matrix, filter_eps=eps_filter)
@@ -339,7 +341,7 @@ CONTAINS
       ! Gamma_3 not needed anymore
       L_counter = 0
       DO kkb = my_group_L_start, my_group_L_end
-         L_counter = L_counter+1
+         L_counter = L_counter + 1
          CALL dbcsr_release(dbcsr_Gamma_3(L_counter)%matrix)
          DEALLOCATE (dbcsr_Gamma_3(L_counter)%matrix)
       ENDDO
@@ -358,7 +360,7 @@ CONTAINS
 
       L_counter = 0
       DO kkb = my_group_L_start, my_group_L_end
-         L_counter = L_counter+1
+         L_counter = L_counter + 1
          CALL dbcsr_release(dbcsr_Gamma_inu_P(L_counter)%matrix)
          CALL dbcsr_release(dbcsr_Gamma_munu_P(L_counter)%matrix)
          DEALLOCATE (dbcsr_Gamma_inu_P(L_counter)%matrix)
@@ -396,8 +398,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(OUT)                         :: axk_corr
       INTEGER, INTENT(IN)                                :: my_group_L_start, my_group_L_end
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'integrate_exchange', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'integrate_exchange'
 
       INTEGER                                            :: aux, handle, irep, kkb, n_rep_hf, ns
       LOGICAL                                            :: my_recalc_hfx_integrals
@@ -442,7 +443,7 @@ CONTAINS
       P_stack_size = P_stack_size
       aux = 0
       DO kkb = my_group_L_start, my_group_L_end
-         aux = aux+1
+         aux = aux + 1
 
          CALL dbcsr_copy(rho_work_ao(1)%matrix, dbcsr_Gamma_munu_P(aux)%matrix)
 
@@ -451,17 +452,17 @@ CONTAINS
             rho_ao_2d(1:ns, 1:1) => rho_work_ao(1:ns)
 
             CALL dbcsr_set(mat_2d(1, 1)%matrix, 0.0_dp)
-            CALL integrate_four_center(qs_env, mat_2d, ehfx, rho_ao_2d, hfx_sections, &
+            CALL integrate_four_center(qs_env, x_data, mat_2d, ehfx, rho_ao_2d, hfx_sections, &
                                        para_env_sub, my_recalc_hfx_integrals, irep, .TRUE., &
-                                       ispin=1, axk_x_data=x_data)
+                                       ispin=1)
          END DO
 
          my_recalc_hfx_integrals = .FALSE.
          ! One more dbcsr multiplication and trace
-         CALL dbcsr_multiply("T", "N", 1.0_dp, mat_2d(1, 1)%matrix, dbcsr_Gamma_munu_P(aux)%matrix, &
+         CALL dbcsr_multiply("T", "N", 1.0_dp, mat_2d(1, 1)%matrix, rho_work_ao(1)%matrix, &
                              0.0_dp, dbcsr_Gamma_munu_P(aux)%matrix, filter_eps=eps_filter)
          CALL dbcsr_trace(dbcsr_Gamma_munu_P(aux)%matrix, e_axk_p)
-         axk_corr = axk_corr+e_axk_P
+         axk_corr = axk_corr + e_axk_P
       ENDDO
 
       CALL dbcsr_release(mat_2d(1, 1)%matrix)
@@ -494,10 +495,9 @@ CONTAINS
       TYPE(hfx_type), DIMENSION(:, :), POINTER           :: x_data
       INTEGER, INTENT(OUT)                               :: n_rep_hf
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'hfx_create_subgroup', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'hfx_create_subgroup'
 
-      INTEGER                                            :: handle, natom
+      INTEGER                                            :: handle
       LOGICAL                                            :: do_hfx
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
       TYPE(cell_type), POINTER                           :: my_cell
@@ -529,9 +529,8 @@ CONTAINS
 
       IF (do_hfx) THEN
          ! Retrieve particle_set and atomic_kind_set
-         natom = SIZE(particle_set)
-         CALL hfx_create(x_data, para_env_sub, hfx_section, natom, atomic_kind_set, &
-                         qs_kind_set, dft_control, my_cell, do_exx=.TRUE.)
+         CALL hfx_create(x_data, para_env_sub, hfx_section, atomic_kind_set, &
+                         qs_kind_set, particle_set, dft_control, my_cell, do_exx=.TRUE.)
       END IF
 
       CALL timestop(handle)

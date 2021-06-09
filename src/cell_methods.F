@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -77,8 +79,6 @@ CONTAINS
       TYPE(section_vals_type), OPTIONAL, POINTER         :: cell_section
       LOGICAL, INTENT(IN), OPTIONAL                      :: check_for_ref
       TYPE(cp_para_env_type), POINTER                    :: para_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_cell', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: my_per
       INTEGER, DIMENSION(:), POINTER                     :: multiple_unit_cell
@@ -205,9 +205,6 @@ CONTAINS
       LOGICAL, INTENT(IN), OPTIONAL                      :: check_this_section
       LOGICAL                                            :: res
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'parsed_cp2k_input', &
-         routineP = moduleN//':'//routineN
-
       LOGICAL                                            :: my_check
       TYPE(section_vals_type), POINTER                   :: glob_section
 
@@ -238,9 +235,6 @@ CONTAINS
       TYPE(cell_type), POINTER                           :: cell
       INTEGER, DIMENSION(:), POINTER                     :: multiple_unit_cell
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_multiple_unit_cell', &
-         routineP = moduleN//':'//routineN
-
 ! Fail is one of the value is set to zero..
 
       IF (ANY(multiple_unit_cell <= 0)) &
@@ -267,9 +261,6 @@ CONTAINS
 
       TYPE(section_vals_type), POINTER                   :: cell_section
       TYPE(cp_para_env_type), POINTER                    :: para_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_cell_from_external_file', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_path_length)                 :: cell_file_name
       INTEGER                                            :: i, idum, j, my_format, n_rep
@@ -373,7 +364,7 @@ CONTAINS
       TYPE(cell_type), POINTER                           :: cell
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_cell_cif', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'read_cell_cif'
 
       INTEGER                                            :: handle
       INTEGER, DIMENSION(3)                              :: periodic
@@ -459,14 +450,12 @@ CONTAINS
       TYPE(cp_parser_type), POINTER                      :: parser
       REAL(KIND=dp), INTENT(OUT)                         :: r
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cif_get_real', routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length)               :: s_tag
       INTEGER                                            :: iln
 
       CALL parser_get_object(parser, s_tag)
       iln = LEN_TRIM(s_tag)
-      IF (INDEX(s_tag, "(") /= 0) iln = INDEX(s_tag, "(")-1
+      IF (INDEX(s_tag, "(") /= 0) iln = INDEX(s_tag, "(") - 1
       READ (s_tag(1:iln), *) r
    END SUBROUTINE cif_get_real
 
@@ -488,8 +477,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: subsys_section
       TYPE(cell_type), OPTIONAL, POINTER                 :: cell_ref
       CHARACTER(LEN=*), INTENT(IN), OPTIONAL             :: label
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'write_cell', routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_string_length)               :: my_label, unit_str
       INTEGER                                            :: output_unit
@@ -514,17 +501,17 @@ CONTAINS
          CALL get_cell(cell=cell, abc=abc, alpha=alpha, beta=beta, gamma=gamma)
          WRITE (UNIT=output_unit, FMT='( )')
          val = cp_unit_from_cp2k(cell%deth, TRIM(unit_str)//"^3")
-         WRITE (UNIT=output_unit, FMT="(T2,A,T61,F20.3)") &
+         WRITE (UNIT=output_unit, FMT="(T2,A,T61,F20.6)") &
             TRIM(my_label)//" Volume ["//TRIM(unit_str)//"^3]:", val
          val = cp_unit_from_cp2k(1.0_dp, TRIM(unit_str))
-         WRITE (UNIT=output_unit, FMT="(T2,A,T30,3F10.3,4X,A6,F11.3)") &
+         WRITE (UNIT=output_unit, FMT="(T2,A,T30,3F10.3,3X,A6,F12.6)") &
             TRIM(my_label)//" Vector a ["//TRIM(unit_str)//"]:", cell%hmat(:, 1)*val, &
             "|a| = ", abc(1)*val, &
             TRIM(my_label)//" Vector b ["//TRIM(unit_str)//"]:", cell%hmat(:, 2)*val, &
             "|b| = ", abc(2)*val, &
             TRIM(my_label)//" Vector c ["//TRIM(unit_str)//"]:", cell%hmat(:, 3)*val, &
             "|c| = ", abc(3)*val
-         WRITE (UNIT=output_unit, FMT="(T2,A,T70,F11.3)") &
+         WRITE (UNIT=output_unit, FMT="(T2,A,T69,F12.6)") &
             TRIM(my_label)//" Angle (b,c), alpha [degree]: ", alpha, &
             TRIM(my_label)//" Angle (a,c), beta  [degree]: ", beta, &
             TRIM(my_label)//" Angle (a,b), gamma [degree]: ", gamma

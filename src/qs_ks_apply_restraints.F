@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -62,9 +64,6 @@ CONTAINS
       TYPE(pw_pool_type), POINTER                        :: auxbas_pw_pool
       LOGICAL, INTENT(in)                                :: calculate_forces
       TYPE(cdft_control_type), POINTER                   :: cdft_control
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_ks_cdft_constraint', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: iatom, igroup, natom
       LOGICAL                                            :: do_kpoints
@@ -150,9 +149,6 @@ CONTAINS
       TYPE(qs_rho_type), POINTER                         :: rho
       REAL(KIND=dp)                                      :: mulliken_order_p
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_ks_mulliken_restraint', &
-         routineP = moduleN//':'//routineN
-
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: ksmat, rho_ao
 
       energy%mulliken = 0.0_dp
@@ -197,9 +193,6 @@ CONTAINS
       TYPE(qs_energy_type), POINTER                      :: energy
       LOGICAL, INTENT(in)                                :: calculate_forces, just_energy
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_ks_s2_restraint', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
       TYPE(cp_fm_p_type), DIMENSION(:), POINTER          :: fm_mo_derivs
       TYPE(cp_fm_type), POINTER                          :: mo_coeff
@@ -216,6 +209,7 @@ CONTAINS
          CPASSERT(qs_env%requires_mo_derivs)
          ! forces are not implemented (not difficult, but ... )
          CPASSERT(.NOT. calculate_forces)
+         MARK_USED(calculate_forces)
          CALL get_qs_env(qs_env, mo_derivs=mo_derivs, mos=mo_array)
 
          ALLOCATE (fm_mo_derivs(SIZE(mo_derivs, 1))) !fm->dbcsr

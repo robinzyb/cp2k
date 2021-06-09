@@ -4,16 +4,22 @@
 
 # install Ubuntu packages
 apt-get update -qq
-apt-get install -qq --no-install-recommends libfindbin-libs-perl
+apt-get install -qq --no-install-recommends \
+  libfindbin-libs-perl \
+  build-essential \
+  make \
+  perl \
+  python3-{pip,setuptools,wheel,dev} \
+  nodejs \
+  clang-format
+
 rm -rf /var/lib/apt/lists/*
 
-# pre-run prettify
+# install python packages
+pip3 install pre-commit
+
+# register the pre-commit hooks
 cd /workspace/cp2k
-echo -n "Warming cache by trying to run make pretty... "
-if make -j 16 pretty &> /dev/null ; then
-   echo "done."
-else
-   echo "failed."
-fi
+pre-commit install --install-hooks
 
 #EOF

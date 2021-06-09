@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -97,9 +99,6 @@ CONTAINS
 
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'optimize_lri_basis', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iunit, nkind
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -192,8 +191,7 @@ CONTAINS
       TYPE(lri_environment_type), POINTER                :: lri_env
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_lri_overlap_aabb', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_lri_overlap_aabb'
 
       INTEGER                                            :: handle, iac, iatom, ikind, ilist, jatom, &
                                                             jkind, jneighbor, nba, nbb, nkind, &
@@ -234,7 +232,7 @@ CONTAINS
                                    nlist=nlist, ilist=ilist, nnode=nneighbor, inode=jneighbor, &
                                    iatom=iatom, jatom=jatom, r=rab)
 
-            iac = ikind+nkind*(jkind-1)
+            iac = ikind + nkind*(jkind - 1)
             dab = SQRT(SUM(rab*rab))
 
             obasa => lri_env%orb_basis(ikind)%gto_basis_set
@@ -283,9 +281,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:), POINTER               :: x, zet_init
       INTEGER, INTENT(IN)                                :: nkind, iunit
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'init_optimization', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ikind, iset, ishell, n, nset
       INTEGER, DIMENSION(:), POINTER                     :: npgf, nshell
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: zet
@@ -314,18 +309,18 @@ CONTAINS
                                    npgf=npgf, nset=nset, zet=zet)
             DO iset = 1, nset
                IF (lri_opt%use_geometric_seq .AND. npgf(iset) > 2) THEN
-                  opt_state%nvar = opt_state%nvar+2
+                  opt_state%nvar = opt_state%nvar + 2
                   CALL reallocate(x, 1, opt_state%nvar)
-                  x(n+1) = MAXVAL(zet(1:npgf(iset), iset))
-                  x(n+2) = MINVAL(zet(1:npgf(iset), iset))
-                  n = n+2
+                  x(n + 1) = MAXVAL(zet(1:npgf(iset), iset))
+                  x(n + 2) = MINVAL(zet(1:npgf(iset), iset))
+                  n = n + 2
                ELSE
-                  opt_state%nvar = opt_state%nvar+npgf(iset)
+                  opt_state%nvar = opt_state%nvar + npgf(iset)
                   CALL reallocate(x, 1, opt_state%nvar)
-                  x(n+1:n+npgf(iset)) = zet(1:npgf(iset), iset)
-                  n = n+npgf(iset)
+                  x(n + 1:n + npgf(iset)) = zet(1:npgf(iset), iset)
+                  n = n + npgf(iset)
                ENDIF
-               lri_opt%nexp = lri_opt%nexp+npgf(iset)
+               lri_opt%nexp = lri_opt%nexp + npgf(iset)
             ENDDO
          ENDDO
 
@@ -357,11 +352,11 @@ CONTAINS
             n = opt_state%nvar
             DO iset = 1, nset
                DO ishell = 1, nshell(iset)
-                  opt_state%nvar = opt_state%nvar+npgf(iset)
+                  opt_state%nvar = opt_state%nvar + npgf(iset)
                   CALL reallocate(x, 1, opt_state%nvar)
-                  x(n+1:n+npgf(iset)) = gcc_orig(1:npgf(iset), ishell, iset)
-                  lri_opt%ncoeff = lri_opt%ncoeff+npgf(iset)
-                  n = n+npgf(iset)
+                  x(n + 1:n + npgf(iset)) = gcc_orig(1:npgf(iset), ishell, iset)
+                  lri_opt%ncoeff = lri_opt%ncoeff + npgf(iset)
+                  n = n + npgf(iset)
                ENDDO
             ENDDO
          ENDDO
@@ -390,9 +385,6 @@ CONTAINS
       TYPE(lri_opt_type), POINTER                        :: lri_opt
       TYPE(section_vals_type), POINTER                   :: lri_optbas_section
       TYPE(opt_state_type)                               :: opt_state
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_optimization_parameter', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: degree_freedom
       TYPE(section_vals_type), POINTER                   :: constrain_exp_section
@@ -460,9 +452,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:), POINTER               :: x, zet_init
       INTEGER, INTENT(IN)                                :: nkind
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_exponents', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ikind, iset, ishell, n, nset, nvar_exp
       INTEGER, DIMENSION(:), POINTER                     :: npgf, nshell
       REAL(KIND=dp)                                      :: zet_max, zet_min
@@ -473,7 +462,7 @@ CONTAINS
       NULLIFY (fbas, gcc_orig, npgf, nshell, zet_trans, zet)
 
       ! nvar_exp: number of exponents that are variables
-      nvar_exp = SIZE(x)-lri_opt%ncoeff
+      nvar_exp = SIZE(x) - lri_opt%ncoeff
       ALLOCATE (zet_trans(nvar_exp))
 
       ! *** update exponents
@@ -490,14 +479,14 @@ CONTAINS
             CALL get_gto_basis_set(gto_basis_set=fbas, npgf=npgf, nset=nset)
             DO iset = 1, nset
                IF (lri_opt%use_geometric_seq .AND. npgf(iset) > 2) THEN
-                  zet_max = MAXVAL(zet_trans(n+1:n+2))
-                  zet_min = MINVAL(zet_trans(n+1:n+2))
+                  zet_max = MAXVAL(zet_trans(n + 1:n + 2))
+                  zet_min = MINVAL(zet_trans(n + 1:n + 2))
                   zet => fbas%zet(1:npgf(iset), iset)
                   CALL geometric_progression(zet, zet_max, zet_min, npgf(iset))
-                  n = n+2
+                  n = n + 2
                ELSE
-                  fbas%zet(1:npgf(iset), iset) = zet_trans(n+1:n+npgf(iset))
-                  n = n+npgf(iset)
+                  fbas%zet(1:npgf(iset), iset) = zet_trans(n + 1:n + npgf(iset))
+                  n = n + npgf(iset)
                ENDIF
             ENDDO
          ENDDO
@@ -513,8 +502,8 @@ CONTAINS
                                    nshell=nshell, npgf=npgf, nset=nset)
             DO iset = 1, nset
                DO ishell = 1, nshell(iset)
-                  gcc_orig(1:npgf(iset), ishell, iset) = x(n+1:n+npgf(iset))
-                  n = n+npgf(iset)
+                  gcc_orig(1:npgf(iset), ishell, iset) = x(n + 1:n + npgf(iset))
+                  n = n + npgf(iset)
                ENDDO
             ENDDO
             ! *** Gram Schmidt orthonormalization
@@ -539,19 +528,17 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:), POINTER               :: zet, zet_init, zet_trans
       INTEGER, INTENT(IN)                                :: nvar
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'transfer_exp', routineP = moduleN//':'//routineN
-
       REAL(KIND=dp)                                      :: a
       REAL(KIND=dp), DIMENSION(:), POINTER               :: zet_max, zet_min
 
       ALLOCATE (zet_max(nvar), zet_min(nvar))
 
-      zet_min(:) = zet_init(:)*(1.0_dp-lri_opt%scale_exp)
-      zet_max(:) = zet_init(:)*(1.0_dp+lri_opt%scale_exp)
+      zet_min(:) = zet_init(:)*(1.0_dp - lri_opt%scale_exp)
+      zet_max(:) = zet_init(:)*(1.0_dp + lri_opt%scale_exp)
 
       a = lri_opt%fermi_exp
 
-      zet_trans = zet_min+(zet_max-zet_min)/(1+EXP(-a*(zet-zet_init)))
+      zet_trans = zet_min + (zet_max - zet_min)/(1 + EXP(-a*(zet - zet_init)))
 
       DEALLOCATE (zet_max, zet_min)
 
@@ -570,18 +557,15 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: zet_max, zet_min
       INTEGER, INTENT(IN)                                :: nexp
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'geometric_progression', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, n
       REAL(KIND=dp)                                      :: q
 
-      n = nexp-1
+      n = nexp - 1
 
       q = (zet_min/zet_max)**(1._dp/REAL(n, dp))
 
       DO i = 1, nexp
-         zet(i) = zet_max*q**(i-1)
+         zet(i) = zet_max*q**(i - 1)
       ENDDO
 
    END SUBROUTINE geometric_progression
@@ -610,9 +594,6 @@ CONTAINS
       TYPE(dbcsr_p_type), DIMENSION(:, :), POINTER       :: pmatrix
       TYPE(cp_para_env_type), POINTER                    :: para_env
       INTEGER, INTENT(IN)                                :: nkind
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calc_lri_integrals_get_objective', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ikind, nset
       INTEGER, DIMENSION(:), POINTER                     :: npgf
@@ -662,8 +643,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       REAL(KIND=dp), INTENT(OUT)                         :: fobj
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_objective', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_objective'
 
       INTEGER :: handle, iac, iatom, ikind, ilist, isgfa, ispin, jatom, jkind, jneighbor, jsgfa, &
          ksgfb, lsgfb, mepos, nba, nbb, nfa, nfb, nkind, nlist, nn, nneighbor, nspin, nthread
@@ -714,7 +694,7 @@ CONTAINS
                CALL get_iterator_info(nl_iterator, mepos=mepos, ikind=ikind, jkind=jkind, iatom=iatom, &
                                       jatom=jatom, nlist=nlist, ilist=ilist, nnode=nneighbor, inode=jneighbor)
 
-               iac = ikind+nkind*(jkind-1)
+               iac = ikind + nkind*(jkind - 1)
 
                IF (.NOT. ASSOCIATED(lri_env%lri_ints%lri_atom(iac)%lri_node)) CYCLE
 
@@ -725,7 +705,7 @@ CONTAINS
                nfb = lrii%nfb
                nba = lrii%nba
                nbb = lrii%nbb
-               nn = nfa+nfb
+               nn = nfa + nfb
 
                rhoexact_sq = 0._dp
                rhomix = 0._dp
@@ -748,7 +728,7 @@ CONTAINS
                      DO jsgfa = 1, nba
                         DO ksgfb = 1, nbb
                            DO lsgfb = 1, nbb
-                              rhoexact_sq = rhoexact_sq+pbij(ksgfb, isgfa)*pbij(lsgfb, jsgfa) &
+                              rhoexact_sq = rhoexact_sq + pbij(ksgfb, isgfa)*pbij(lsgfb, jsgfa) &
                                             *lriir%soaabb(isgfa, jsgfa, ksgfb, lsgfb)
                            END DO
                         END DO
@@ -759,7 +739,7 @@ CONTAINS
                      DO jsgfa = 1, nba
                         DO ksgfb = 1, nbb
                            DO lsgfb = 1, nbb
-                              rhoexact_sq = rhoexact_sq+pbij(isgfa, ksgfb)*pbij(jsgfa, lsgfb) &
+                              rhoexact_sq = rhoexact_sq + pbij(isgfa, ksgfb)*pbij(jsgfa, lsgfb) &
                                             *lriir%soaabb(isgfa, jsgfa, ksgfb, lsgfb)
                            END DO
                         END DO
@@ -770,20 +750,20 @@ CONTAINS
                ! *** calculate integral of the square of the fitted density rhofit_sq
                DO isgfa = 1, nfa
                   DO jsgfa = 1, nfa
-                     rhofit_sq = rhofit_sq+lrho%avec(isgfa)*lrho%avec(jsgfa) &
+                     rhofit_sq = rhofit_sq + lrho%avec(isgfa)*lrho%avec(jsgfa) &
                                  *lri_env%bas_prop(ikind)%ri_ovlp(isgfa, jsgfa)
                   ENDDO
                ENDDO
                IF (iatom /= jatom) THEN
                   DO ksgfb = 1, nfb
                      DO lsgfb = 1, nfb
-                        rhofit_sq = rhofit_sq+lrho%avec(nfa+ksgfb)*lrho%avec(nfa+lsgfb) &
+                        rhofit_sq = rhofit_sq + lrho%avec(nfa + ksgfb)*lrho%avec(nfa + lsgfb) &
                                     *lri_env%bas_prop(jkind)%ri_ovlp(ksgfb, lsgfb)
                      ENDDO
                   ENDDO
                   DO isgfa = 1, nfa
                      DO ksgfb = 1, nfb
-                        rhofit_sq = rhofit_sq+2._dp*lrho%avec(isgfa)*lrho%avec(nfa+ksgfb) &
+                        rhofit_sq = rhofit_sq + 2._dp*lrho%avec(isgfa)*lrho%avec(nfa + ksgfb) &
                                     *lrii%sab(isgfa, ksgfb)
                      ENDDO
                   ENDDO
@@ -799,17 +779,17 @@ CONTAINS
                ! *** calculate contribution to the objective function for pair ab
                ! *** taking density matrix symmetry in account, double-count for off-diagonal blocks
                IF (iatom == jatom) THEN
-                  obj_ab = rhoexact_sq-2._dp*rhomix+rhofit_sq
+                  obj_ab = rhoexact_sq - 2._dp*rhomix + rhofit_sq
                ELSE
-                  obj_ab = 2.0_dp*(rhoexact_sq-2._dp*rhomix+rhofit_sq)
+                  obj_ab = 2.0_dp*(rhoexact_sq - 2._dp*rhomix + rhofit_sq)
                ENDIF
 
 !$OMP CRITICAL(addfun)
                IF (lri_opt%use_condition_number) THEN
-                  fobj = fobj+obj_ab+lri_opt%cond_weight*LOG(lrii%cond_num)
-                  lri_opt%rho_diff = lri_opt%rho_diff+obj_ab
+                  fobj = fobj + obj_ab + lri_opt%cond_weight*LOG(lrii%cond_num)
+                  lri_opt%rho_diff = lri_opt%rho_diff + obj_ab
                ELSE
-                  fobj = fobj+obj_ab
+                  fobj = fobj + obj_ab
                ENDIF
 !$OMP END CRITICAL(addfun)
 
@@ -835,8 +815,7 @@ CONTAINS
 
       TYPE(lri_environment_type), POINTER                :: lri_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_condition_number_of_overlap', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_condition_number_of_overlap'
 
       INTEGER                                            :: handle, iac, iatom, ikind, ilist, info, &
                                                             jatom, jkind, jneighbor, lwork, mepos, &
@@ -873,13 +852,13 @@ CONTAINS
          CALL get_iterator_info(nl_iterator, mepos=mepos, ikind=ikind, jkind=jkind, iatom=iatom, &
                                 jatom=jatom, nlist=nlist, ilist=ilist, nnode=nneighbor, inode=jneighbor)
 
-         iac = ikind+nkind*(jkind-1)
+         iac = ikind + nkind*(jkind - 1)
          IF (.NOT. ASSOCIATED(lri_env%lri_ints%lri_atom(iac)%lri_node)) CYCLE
          lrii => lri_env%lri_ints%lri_atom(iac)%lri_node(ilist)%lri_int(jneighbor)
 
          nfa = lrii%nfa
          nfb = lrii%nfb
-         nn = nfa+nfb
+         nn = nfa + nfb
 
          ! build the overlap matrix
          IF (iatom == jatom) THEN
@@ -889,14 +868,14 @@ CONTAINS
          ENDIF
          smat(1:nfa, 1:nfa) = lri_env%bas_prop(ikind)%ri_ovlp(1:nfa, 1:nfa)
          IF (iatom /= jatom) THEN
-            nn = nfa+nfb
-            smat(1:nfa, nfa+1:nn) = lrii%sab(1:nfa, 1:nfb)
-            smat(nfa+1:nn, 1:nfa) = TRANSPOSE(lrii%sab(1:nfa, 1:nfb))
-            smat(nfa+1:nn, nfa+1:nn) = lri_env%bas_prop(jkind)%ri_ovlp(1:nfb, 1:nfb)
+            nn = nfa + nfb
+            smat(1:nfa, nfa + 1:nn) = lrii%sab(1:nfa, 1:nfb)
+            smat(nfa + 1:nn, 1:nfa) = TRANSPOSE(lrii%sab(1:nfa, 1:nfb))
+            smat(nfa + 1:nn, nfa + 1:nn) = lri_env%bas_prop(jkind)%ri_ovlp(1:nfb, 1:nfb)
          ENDIF
 
          IF (iatom == jatom) nn = nfa
-         ALLOCATE (diag(nn), off_diag(nn-1), tau(nn-1), work(1))
+         ALLOCATE (diag(nn), off_diag(nn - 1), tau(nn - 1), work(1))
          diag = 0.0_dp
          off_diag = 0.0_dp
          tau = 0.0_dp
@@ -934,9 +913,6 @@ CONTAINS
       TYPE(lri_opt_type), POINTER                        :: lri_opt
       INTEGER, INTENT(IN)                                :: iunit
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'print_optimization_update', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: n10
 
       n10 = MAX(opt_state%maxfun/100, 1)
@@ -973,9 +949,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: nkind
       TYPE(lri_opt_type), POINTER                        :: lri_opt
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_optimized_lri_basis', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_path_length)                 :: filename
       INTEGER                                            :: cc_l, ikind, ipgf, iset, ishell, nset, &
@@ -1026,8 +999,8 @@ CONTAINS
                   cc_l = 1
                   DO ishell = 1, nshell(iset)
                      IF (ishell /= nshell(iset)) THEN
-                        IF (l(ishell, iset) == l(ishell+1, iset)) THEN
-                           cc_l = cc_l+1
+                        IF (l(ishell, iset) == l(ishell + 1, iset)) THEN
+                           cc_l = cc_l + 1
                         ELSE
                            WRITE (output_file, '(1X,I0)', advance='no') cc_l
                            cc_l = 1

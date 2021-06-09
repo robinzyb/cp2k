@@ -1,10 +1,12 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
-!> \brief Rountines to calculate CPHF like update and solve Z-vector equation
+!> \brief Routines to calculate CPHF like update and solve Z-vector equation
 !>        for MP2 gradients (only GPW)
 !> \par History
 !>      11.2013 created [Mauro Del Ben]
@@ -43,7 +45,6 @@ MODULE mp2_cphf
                                               hfx_container_type,&
                                               hfx_init_container,&
                                               hfx_type
-   USE input_constants,                 ONLY: hfx_do_eval_energy
    USE input_section_types,             ONLY: section_vals_get,&
                                               section_vals_get_subs_vals,&
                                               section_vals_type,&
@@ -54,6 +55,7 @@ MODULE mp2_cphf
    USE machine,                         ONLY: m_walltime
    USE mathconstants,                   ONLY: fourpi
    USE message_passing,                 ONLY: mp_sum
+   USE mp2_eri_gpw,                     ONLY: calc_potential_gpw
    USE mp2_types,                       ONLY: mp2_type
    USE pw_env_types,                    ONLY: pw_env_get,&
                                               pw_env_type
@@ -141,19 +143,18 @@ CONTAINS
       INTEGER, OPTIONAL                                  :: homo_beta
       TYPE(cp_fm_type), OPTIONAL, POINTER                :: mo_coeff_beta
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'solve_z_vector_eq', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'solve_z_vector_eq'
 
       INTEGER :: alpha, beta, bin, dimen, handle, handle2, i, i_global, i_thread, iiB, ikind, &
          irep, ispin, j_global, jjB, my_bin_size, n_rep_hf, n_threads, ncol_local, nrow_local, &
-         transf_type_in, transf_type_out, virtual, virtual_beta
+         potential_type, transf_type_in, transf_type_out, virtual, virtual_beta
       INTEGER, DIMENSION(3)                              :: comp
       INTEGER, DIMENSION(:), POINTER                     :: col_indices, row_indices
       LOGICAL                                            :: alpha_beta, do_dynamic_load_balancing, &
                                                             do_hfx, hfx_treat_lsd_in_core, &
                                                             restore_p_screen, use_virial
-      REAL(KIND=dp)                                      :: e_hartree, factor, out_alpha, &
-                                                            pair_energy, tot_rho_r
+      REAL(KIND=dp)                                      :: e_hartree, factor, omega, out_alpha, &
+                                                            tot_rho_r
       REAL(KIND=dp), DIMENSION(3, 3)                     :: h_stress
       TYPE(cp_blacs_env_type), POINTER                   :: blacs_env
       TYPE(cp_fm_struct_type), POINTER                   :: fm_struct_tmp
@@ -191,8 +192,10 @@ CONTAINS
 
       ! start collecting stuff
       dimen = nmo
-      virtual = dimen-homo
-      IF (alpha_beta) virtual_beta = dimen-homo_beta
+      virtual = dimen - homo
+      potential_type = mp2_env%potential_parameter%potential_type
+      omega = mp2_env%potential_parameter%omega
+      IF (alpha_beta) virtual_beta = dimen - homo_beta
       NULLIFY (input, pw_env, matrix_s, blacs_env, rho, energy, force, virial, matrix_w_mp2, &
                matrix_p_mp2, matrix_ks, rho_core, sab_orb)
       CALL get_qs_env(qs_env, &
@@ -297,7 +300,7 @@ CONTAINS
       CALL cp_fm_set_all(mo_coeff_v, 0.0_dp)
       CALL cp_fm_to_fm_submat(msource=mo_coeff, mtarget=mo_coeff_v, &
                               nrow=dimen, ncol=virtual, &
-                              s_firstrow=1, s_firstcol=homo+1, &
+                              s_firstrow=1, s_firstcol=homo + 1, &
                               t_firstrow=1, t_firstcol=1)
 
       IF (alpha_beta) THEN
@@ -320,7 +323,7 @@ CONTAINS
          CALL cp_fm_set_all(mo_coeff_v_beta, 0.0_dp)
          CALL cp_fm_to_fm_submat(msource=mo_coeff_beta, mtarget=mo_coeff_v_beta, &
                                  nrow=dimen, ncol=virtual_beta, &
-                                 s_firstrow=1, s_firstcol=homo_beta+1, &
+                                 s_firstrow=1, s_firstcol=homo_beta + 1, &
                                  t_firstrow=1, t_firstcol=1)
       ENDIF
 
@@ -336,8 +339,8 @@ CONTAINS
 !$       n_threads = omp_get_max_threads()
 
          DO irep = 1, n_rep_hf
-            DO i_thread = 0, n_threads-1
-               actual_x_data => qs_env%x_data(irep, i_thread+1)
+            DO i_thread = 0, n_threads - 1
+               actual_x_data => qs_env%x_data(irep, i_thread + 1)
 
                do_dynamic_load_balancing = .TRUE.
                IF (n_threads == 1 .OR. actual_x_data%memory_parameter%do_disk_storage) do_dynamic_load_balancing = .FALSE.
@@ -349,11 +352,11 @@ CONTAINS
                END IF
 
                IF (.NOT. actual_x_data%memory_parameter%do_all_on_the_fly) THEN
-                  CALL alloc_containers(actual_x_data, my_bin_size, hfx_do_eval_energy)
+                  CALL alloc_containers(actual_x_data%store_ints, my_bin_size)
 
                   DO bin = 1, my_bin_size
-                     maxval_container => actual_x_data%maxval_container(bin)
-                     integral_containers => actual_x_data%integral_containers(:, bin)
+                     maxval_container => actual_x_data%store_ints%maxval_container(bin)
+                     integral_containers => actual_x_data%store_ints%integral_containers(:, bin)
                      CALL hfx_init_container(maxval_container, actual_x_data%memory_parameter%actual_memory_usage, .FALSE.)
                      DO i = 1, 64
                         CALL hfx_init_container(integral_containers(i), actual_x_data%memory_parameter%actual_memory_usage, .FALSE.)
@@ -514,7 +517,7 @@ CONTAINS
       CALL cp_fm_to_fm_submat(msource=P_ia, mtarget=P_mo, &
                               nrow=homo, ncol=virtual, &
                               s_firstrow=1, s_firstcol=1, &
-                              t_firstrow=1, t_firstcol=homo+1)
+                              t_firstrow=1, t_firstcol=homo + 1)
       CALL cp_fm_release(P_ia)
       ! transpose P_MO matrix (easy way to symmetrize)
       CALL cp_fm_set_all(fm_back, 0.0_dp)
@@ -525,7 +528,7 @@ CONTAINS
          CALL cp_fm_to_fm_submat(msource=P_ia_beta, mtarget=P_mo_beta, &
                                  nrow=homo_beta, ncol=virtual_beta, &
                                  s_firstrow=1, s_firstcol=1, &
-                                 t_firstrow=1, t_firstcol=homo_beta+1)
+                                 t_firstrow=1, t_firstcol=homo_beta + 1)
          CALL cp_fm_release(P_ia_beta)
          ! transpose P_MO matrix (easy way to symmetrize)
          CALL cp_fm_set_all(fm_back, 0.0_dp)
@@ -544,17 +547,17 @@ CONTAINS
          IF (j_global <= homo) THEN
             DO iiB = 1, nrow_local
                i_global = row_indices(iiB)
-               W_mo%local_data(iiB, jjB) = W_mo%local_data(iiB, jjB)-P_mo%local_data(iiB, jjB)*Eigenval(j_global)
+               W_mo%local_data(iiB, jjB) = W_mo%local_data(iiB, jjB) - P_mo%local_data(iiB, jjB)*Eigenval(j_global)
             END DO
          ELSE
             DO iiB = 1, nrow_local
                i_global = row_indices(iiB)
                IF (i_global <= homo) THEN
                   ! virt-occ
-                  W_mo%local_data(iiB, jjB) = W_mo%local_data(iiB, jjB)-P_mo%local_data(iiB, jjB)*Eigenval(i_global)
+                  W_mo%local_data(iiB, jjB) = W_mo%local_data(iiB, jjB) - P_mo%local_data(iiB, jjB)*Eigenval(i_global)
                ELSE
                   ! virt-virt
-                  W_mo%local_data(iiB, jjB) = W_mo%local_data(iiB, jjB)-P_mo%local_data(iiB, jjB)*Eigenval(j_global)
+                  W_mo%local_data(iiB, jjB) = W_mo%local_data(iiB, jjB) - P_mo%local_data(iiB, jjB)*Eigenval(j_global)
                END IF
             END DO
          END IF
@@ -571,7 +574,7 @@ CONTAINS
                DO iiB = 1, nrow_local
                   i_global = row_indices(iiB)
                   W_mo_beta%local_data(iiB, jjB) = &
-                     W_mo_beta%local_data(iiB, jjB)-P_mo_beta%local_data(iiB, jjB)*Eigenval_beta(j_global)
+                     W_mo_beta%local_data(iiB, jjB) - P_mo_beta%local_data(iiB, jjB)*Eigenval_beta(j_global)
                END DO
             ELSE
                DO iiB = 1, nrow_local
@@ -579,11 +582,11 @@ CONTAINS
                   IF (i_global <= homo_beta) THEN
                      ! virt-occ
                      W_mo_beta%local_data(iiB, jjB) = &
-                        W_mo_beta%local_data(iiB, jjB)-P_mo_beta%local_data(iiB, jjB)*Eigenval_beta(i_global)
+                        W_mo_beta%local_data(iiB, jjB) - P_mo_beta%local_data(iiB, jjB)*Eigenval_beta(i_global)
                   ELSE
                      ! virt-virt
                      W_mo_beta%local_data(iiB, jjB) = &
-                        W_mo_beta%local_data(iiB, jjB)-P_mo_beta%local_data(iiB, jjB)*Eigenval_beta(j_global)
+                        W_mo_beta%local_data(iiB, jjB) - P_mo_beta%local_data(iiB, jjB)*Eigenval_beta(j_global)
                   END IF
                END DO
             END IF
@@ -776,11 +779,8 @@ CONTAINS
                               total_rho=tot_rho_r, &
                               ks_env=ks_env, &
                               soft_valid=.FALSE.)
-      ! calculate the MP2 potential
-      CALL pw_transfer(rho_r%pw, rho_g%pw)
-      CALL pw_poisson_solve(poisson_env, rho_g%pw, pair_energy, pot_g%pw)
-      CALL pw_transfer(pot_g%pw, rho_r%pw)
-      CALL pw_scale(rho_r%pw, rho_r%pw%pw_grid%dvol)
+
+      CALL calc_potential_gpw(rho_r, rho_g, poisson_env, pot_g, potential_type, omega)
 
       ! calculate core forces
       CALL integrate_v_core_rspace(rho_r, qs_env)
@@ -798,7 +798,7 @@ CONTAINS
 
       IF (use_virial) THEN
          ! update virial if necessary with the volume term
-         ! first create pw auxilliary stuff
+         ! first create pw auxiliary stuff
          CALL timeset(routineN//"_Virial", handle2)
          NULLIFY (temp_pw_g%pw)
          CALL pw_pool_create_pw(auxbas_pw_pool, temp_pw_g%pw, &
@@ -832,7 +832,7 @@ CONTAINS
          CALL pw_transfer(rho_r%pw, rho_g%pw)
          ! don't forget the core density
          CALL pw_axpy(rho_core%pw, rho_g%pw)
-         CALL pw_poisson_solve(poisson_env, rho_g%pw, pair_energy, pot_g%pw)
+         CALL pw_poisson_solve(poisson_env, rho_g%pw, vhartree=pot_g%pw)
 
          ! finally update virial with the volume contribution
          e_hartree = pw_integral_ab(temp_pw_g%pw, pot_g%pw)
@@ -845,11 +845,12 @@ CONTAINS
             h_stress(alpha, alpha) = -e_hartree
             DO beta = alpha, 3
                h_stress(alpha, beta) = h_stress(alpha, beta) &
-                                       -2.0_dp*pw_integral_ab(rho_g%pw, dvg(beta)%pw)/fourpi
+                                       - 2.0_dp*pw_integral_ab(rho_g%pw, dvg(beta)%pw)/fourpi
                h_stress(beta, alpha) = h_stress(alpha, beta)
             END DO
          END DO
-         virial%pv_virial = virial%pv_virial+h_stress/REAL(para_env%num_pe, dp)
+         virial%pv_mp2 = virial%pv_mp2 + h_stress/REAL(para_env%num_pe, dp)
+         virial%pv_virial = virial%pv_virial + h_stress/REAL(para_env%num_pe, dp)
 
          ! free stuff
          CALL pw_pool_give_back_pw(auxbas_pw_pool, temp_pw_g%pw)
@@ -957,16 +958,16 @@ CONTAINS
       INTEGER, OPTIONAL                                  :: homo_beta, virtual_beta
       REAL(KIND=dp), OPTIONAL                            :: factor
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'cphf_like_update', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'cphf_like_update'
 
       INTEGER                                            :: handle, i_global, iiB, irep, j_global, &
                                                             jjB, ncol_local, nrow_local, ns
       INTEGER, DIMENSION(:), POINTER                     :: col_indices, row_indices
       LOGICAL                                            :: alpha_beta, my_recalc_hfx_integrals
-      REAL(KIND=dp)                                      :: ehfx, pair_energy, total_rho
+      REAL(KIND=dp)                                      :: ehfx, total_rho
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: rho_work_ao
       TYPE(dbcsr_p_type), DIMENSION(:, :), POINTER       :: mat_2d, rho_ao_2d
+      TYPE(hfx_type), DIMENSION(:, :), POINTER           :: x_data
       TYPE(qs_ks_env_type), POINTER                      :: ks_env
 
       alpha_beta = .FALSE.
@@ -978,7 +979,7 @@ CONTAINS
       my_recalc_hfx_integrals = .FALSE.
       IF (PRESENT(recalc_hfx_integrals)) my_recalc_hfx_integrals = recalc_hfx_integrals
 
-      CALL get_qs_env(qs_env, ks_env=ks_env)
+      CALL get_qs_env(qs_env, ks_env=ks_env, x_data=x_data)
       ! perform back transformation
       SELECT CASE (transf_type_in)
       CASE (1)
@@ -1032,8 +1033,8 @@ CONTAINS
                          mo_coeff_v, fm_mo, 0.0_dp, fm_back, &
                          a_first_col=1, &
                          a_first_row=1, &
-                         b_first_col=homo+1, &
-                         b_first_row=homo+1, &
+                         b_first_col=homo + 1, &
+                         b_first_row=homo + 1, &
                          c_first_col=1, &
                          c_first_row=1)
             CALL cp_fm_set_all(fm_ao, 0.0_dp)
@@ -1051,8 +1052,8 @@ CONTAINS
                          mo_coeff_v_beta, fm_mo, 0.0_dp, fm_back, &
                          a_first_col=1, &
                          a_first_row=1, &
-                         b_first_col=homo_beta+1, &
-                         b_first_row=homo_beta+1, &
+                         b_first_col=homo_beta + 1, &
+                         b_first_row=homo_beta + 1, &
                          c_first_col=1, &
                          c_first_row=1)
             CALL cp_fm_set_all(fm_ao, 0.0_dp)
@@ -1116,7 +1117,7 @@ CONTAINS
                DO iiB = 1, nrow_local
                   i_global = row_indices(iiB)
                   fm_mo_out%local_data(iiB, jjB) = fm_mo_out%local_data(iiB, jjB)* &
-                                                   (Eigenval(j_global+homo)-Eigenval(i_global))
+                                                   (Eigenval(j_global + homo) - Eigenval(i_global))
                END DO
             END DO
          ELSE
@@ -1215,7 +1216,7 @@ CONTAINS
                               total_rho=total_rho, &
                               ks_env=ks_env)
       ! and calculate potential
-      CALL pw_poisson_solve(poisson_env, rho_g%pw, pair_energy, pot_g%pw)
+      CALL pw_poisson_solve(poisson_env, rho_g%pw, vhartree=pot_g%pw)
       CALL pw_transfer(pot_g%pw, rho_r%pw)
       CALL pw_scale(rho_r%pw, rho_r%pw%pw_grid%dvol)
       ! integrate the potential
@@ -1236,7 +1237,7 @@ CONTAINS
             rho_ao_2d(1:ns, 1:1) => rho_work_ao(1:ns)
             ns = SIZE(mat_mu_nu)
             mat_2d(1:ns, 1:1) => mat_mu_nu(1:ns)
-            CALL integrate_four_center(qs_env, mat_2d, ehfx, rho_ao_2d, hfx_sections, &
+            CALL integrate_four_center(qs_env, x_data, mat_2d, ehfx, rho_ao_2d, hfx_sections, &
                                        para_env, my_recalc_hfx_integrals, irep, .TRUE., &
                                        ispin=1)
          END DO
@@ -1254,7 +1255,7 @@ CONTAINS
       ! transform to MO basis, here we always sum the result into the input matrix
       SELECT CASE (transf_type_out)
          ! In alpha-beta case the density is contracted with the orbitals of different
-         ! spin. Thus, there's branching at forward trasform and no branching here,
+         ! spin. Thus, there's branching at forward transform and no branching here,
          ! at back transform.
       CASE (1)
          ! occ-virt block
@@ -1369,8 +1370,7 @@ CONTAINS
                                                             mo_coeff_o_beta, mo_coeff_v_beta, &
                                                             L_jb_beta
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'solve_z_vector_eq_low', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'solve_z_vector_eq_low'
 
       INTEGER :: cycle_counter, handle, i_global, iiB, iiter, j_global, jjB, max_num_iter, &
          ncol_local, ncol_local_b, nrow_local, nrow_local_b, transf_type_in, transf_type_out, &
@@ -1393,7 +1393,7 @@ CONTAINS
       factor = 4.0_dp
       IF (PRESENT(homo_beta) .AND. PRESENT(Eigenval_beta)) alpha_beta = .TRUE.
       IF (alpha_beta) THEN
-         virtual_beta = dimen-homo_beta
+         virtual_beta = dimen - homo_beta
          factor = 2.0_dp
       ENDIF
 
@@ -1445,7 +1445,7 @@ CONTAINS
          DO iiB = 1, nrow_local
             i_global = row_indices(iiB)
             precond%local_data(iiB, jjB) = precond%local_data(iiB, jjB)/ &
-                                           (Eigenval(j_global+homo)-Eigenval(i_global))
+                                           (Eigenval(j_global + homo) - Eigenval(i_global))
          END DO
       END DO
 
@@ -1498,7 +1498,7 @@ CONTAINS
             DO iiB = 1, nrow_local_b
                i_global = row_indices(iiB)
                precond_b%local_data(iiB, jjB) = precond_b%local_data(iiB, jjB)/ &
-                                                (Eigenval_beta(j_global+homo_beta)-Eigenval_beta(i_global))
+                                                (Eigenval_beta(j_global + homo_beta) - Eigenval_beta(i_global))
             END DO
          END DO
 
@@ -1522,7 +1522,7 @@ CONTAINS
 
       cycle_counter = 0
       DO iiter = 1, max_num_iter
-         cycle_counter = cycle_counter+1
+         cycle_counter = cycle_counter + 1
 
          t1 = m_walltime()
 
@@ -1534,8 +1534,8 @@ CONTAINS
          IF (.NOT. alpha_beta) THEN
             ! first compute the projection of the actual b_i into all previous x_i
             ! already scaled with the norm of each x_i
-            ALLOCATE (proj_bi_xj(iiter-1))
-            DO iiB = 1, iiter-1
+            ALLOCATE (proj_bi_xj(iiter - 1))
+            DO iiB = 1, iiter - 1
                proj_bi_xj(iiB) = 0.0_dp
                proj_bi_xj(iiB) = accurate_sum(b_i%local_data(1:nrow_local, 1:ncol_local)* &
                                               xn(iiB)%matrix%local_data(1:nrow_local, 1:ncol_local))
@@ -1545,8 +1545,8 @@ CONTAINS
 
             ! update actual x_i
             xn(iiter)%matrix%local_data(:, :) = b_i%local_data(:, :)
-            DO iiB = 1, iiter-1
-               xn(iiter)%matrix%local_data(:, :) = xn(iiter)%matrix%local_data(:, :)- &
+            DO iiB = 1, iiter - 1
+               xn(iiter)%matrix%local_data(:, :) = xn(iiter)%matrix%local_data(:, :) - &
                                                    xn(iiB)%matrix%local_data(:, :)*proj_bi_xj(iiB)
             END DO
             DEALLOCATE (proj_bi_xj)
@@ -1559,25 +1559,25 @@ CONTAINS
 
             ! first compute the projection of the actual b_i into all previous x_i
             ! already scaled with the norm of each x_i
-            ALLOCATE (proj_bi_xj(iiter-1))
-            DO iiB = 1, iiter-1
+            ALLOCATE (proj_bi_xj(iiter - 1))
+            DO iiB = 1, iiter - 1
                proj_bi_xj(iiB) = 0.0_dp
                proj_bi_xj(iiB) = &
                   accurate_sum(b_i%local_data(1:nrow_local, 1:ncol_local)* &
-                               xn(iiB)%matrix%local_data(1:nrow_local, 1:ncol_local))+ &
+                               xn(iiB)%matrix%local_data(1:nrow_local, 1:ncol_local)) + &
                   accurate_sum(b_i_b%local_data(1:nrow_local_b, 1:ncol_local_b)* &
                                xn_b(iiB)%matrix%local_data(1:nrow_local_b, 1:ncol_local_b))
-               proj_bi_xj(iiB) = proj_bi_xj(iiB)/(x_norm(iib)+x_norm_b(iib))
+               proj_bi_xj(iiB) = proj_bi_xj(iiB)/(x_norm(iib) + x_norm_b(iib))
             END DO
             CALL mp_sum(proj_bi_xj, para_env%group)
 
             ! update actual x_i
             xn(iiter)%matrix%local_data(:, :) = b_i%local_data(:, :)
             xn_b(iiter)%matrix%local_data(:, :) = b_i_b%local_data(:, :)
-            DO iiB = 1, iiter-1
-               xn(iiter)%matrix%local_data(:, :) = xn(iiter)%matrix%local_data(:, :)- &
+            DO iiB = 1, iiter - 1
+               xn(iiter)%matrix%local_data(:, :) = xn(iiter)%matrix%local_data(:, :) - &
                                                    xn(iiB)%matrix%local_data(:, :)*proj_bi_xj(iiB)
-               xn_b(iiter)%matrix%local_data(:, :) = xn_b(iiter)%matrix%local_data(:, :)- &
+               xn_b(iiter)%matrix%local_data(:, :) = xn_b(iiter)%matrix%local_data(:, :) - &
                                                      xn_b(iiB)%matrix%local_data(:, :)*proj_bi_xj(iiB)
             END DO
             DEALLOCATE (proj_bi_xj)
@@ -1644,44 +1644,44 @@ CONTAINS
          ! iiter+1 -> <x_i|b>
          ! iiter+2 -> <x_i|x_i>
 
-         ALLOCATE (temp_vals(iiter+2))
+         ALLOCATE (temp_vals(iiter + 2))
          temp_vals = 0.0_dp
          ! <Ax_i|x_j>
          DO iiB = 1, iiter
             temp_vals(iiB) = accurate_sum(Ax(iiter)%matrix%local_data(1:nrow_local, 1:ncol_local)* &
                                           xn(iiB)%matrix%local_data(1:nrow_local, 1:ncol_local))
             IF (alpha_beta) THEN
-               temp_vals(iiB) = temp_vals(iib)+ &
+               temp_vals(iiB) = temp_vals(iib) + &
                                 accurate_sum(Ax_ab(iiter)%matrix%local_data(1:nrow_local, 1:ncol_local)* &
-                                             xn(iiB)%matrix%local_data(1:nrow_local, 1:ncol_local))+ &
+                                             xn(iiB)%matrix%local_data(1:nrow_local, 1:ncol_local)) + &
                                 accurate_sum(Ax_bb(iiter)%matrix%local_data(1:nrow_local_b, 1:ncol_local_b)* &
-                                             xn_b(iiB)%matrix%local_data(1:nrow_local_b, 1:ncol_local_b))+ &
+                                             xn_b(iiB)%matrix%local_data(1:nrow_local_b, 1:ncol_local_b)) + &
                                 accurate_sum(Ax_ba(iiter)%matrix%local_data(1:nrow_local_b, 1:ncol_local_b)* &
                                              xn_b(iiB)%matrix%local_data(1:nrow_local_b, 1:ncol_local_b))
             ENDIF
          END DO
          ! <x_i|b>
-         temp_vals(iiter+1) = accurate_sum(xn(iiter)%matrix%local_data(1:nrow_local, 1:ncol_local)* &
-                                           L_jb%local_data(1:nrow_local, 1:ncol_local))
+         temp_vals(iiter + 1) = accurate_sum(xn(iiter)%matrix%local_data(1:nrow_local, 1:ncol_local)* &
+                                             L_jb%local_data(1:nrow_local, 1:ncol_local))
          ! norm
-         temp_vals(iiter+2) = accurate_sum(xn(iiter)%matrix%local_data(1:nrow_local, 1:ncol_local)* &
-                                           xn(iiter)%matrix%local_data(1:nrow_local, 1:ncol_local))
+         temp_vals(iiter + 2) = accurate_sum(xn(iiter)%matrix%local_data(1:nrow_local, 1:ncol_local)* &
+                                             xn(iiter)%matrix%local_data(1:nrow_local, 1:ncol_local))
          IF (alpha_beta) THEN
             ! <x_i_b|b_b>
-            temp_vals(iiter+1) = temp_vals(iiter+1)+ &
-                                 accurate_sum(xn_b(iiter)%matrix%local_data(1:nrow_local_b, 1:ncol_local_b)* &
-                                              L_jb_beta%local_data(1:nrow_local_b, 1:ncol_local_b))
+            temp_vals(iiter + 1) = temp_vals(iiter + 1) + &
+                                   accurate_sum(xn_b(iiter)%matrix%local_data(1:nrow_local_b, 1:ncol_local_b)* &
+                                                L_jb_beta%local_data(1:nrow_local_b, 1:ncol_local_b))
             ! norm
-            temp_vals(iiter+2) = temp_vals(iiter+2)+ &
-                                 accurate_sum(xn_b(iiter)%matrix%local_data(1:nrow_local_b, 1:ncol_local_b)* &
-                                              xn_b(iiter)%matrix%local_data(1:nrow_local_b, 1:ncol_local_b))
+            temp_vals(iiter + 2) = temp_vals(iiter + 2) + &
+                                   accurate_sum(xn_b(iiter)%matrix%local_data(1:nrow_local_b, 1:ncol_local_b)* &
+                                                xn_b(iiter)%matrix%local_data(1:nrow_local_b, 1:ncol_local_b))
          ENDIF
          CALL mp_sum(temp_vals, para_env%group)
          ! update <Ax_i|x_j>,  <x_i|b> and norm <x_i|x_i>
          xi_Axi(iiter, 1:iiter) = temp_vals(1:iiter)
          xi_Axi(1:iiter, iiter) = temp_vals(1:iiter)
-         xi_b(iiter) = temp_vals(iiter+1)
-         x_norm(iiter) = temp_vals(iiter+2)
+         xi_b(iiter) = temp_vals(iiter + 1)
+         x_norm(iiter) = temp_vals(iiter + 2)
          DEALLOCATE (temp_vals)
 
          ! solve reduced system
@@ -1699,10 +1699,10 @@ CONTAINS
          IF (.NOT. alpha_beta) THEN
             DO iiB = 1, iiter
                residual%local_data(1:nrow_local, 1:ncol_local) = &
-                  residual%local_data(1:nrow_local, 1:ncol_local)+ &
+                  residual%local_data(1:nrow_local, 1:ncol_local) + &
                   b_small(iiB, 1)*Ax(iiB)%matrix%local_data(1:nrow_local, 1:ncol_local)
             END DO
-            residual%local_data(1:nrow_local, 1:ncol_local) = residual%local_data(1:nrow_local, 1:ncol_local)- &
+            residual%local_data(1:nrow_local, 1:ncol_local) = residual%local_data(1:nrow_local, 1:ncol_local) - &
                                                               L_jb%local_data(1:nrow_local, 1:ncol_local)
             conv = 0.0_dp
             conv = accurate_sum(residual%local_data(1:nrow_local, 1:ncol_local)* &
@@ -1714,34 +1714,34 @@ CONTAINS
             CALL cp_fm_set_all(residual_b, 0.0_dp)
             DO iiB = 1, iiter
                residual%local_data(1:nrow_local, 1:ncol_local) = &
-                  residual%local_data(1:nrow_local, 1:ncol_local)+ &
-                  b_small(iiB, 1)*Ax(iiB)%matrix%local_data(1:nrow_local, 1:ncol_local)+ &
+                  residual%local_data(1:nrow_local, 1:ncol_local) + &
+                  b_small(iiB, 1)*Ax(iiB)%matrix%local_data(1:nrow_local, 1:ncol_local) + &
                   b_small(iiB, 1)*Ax_ab(iiB)%matrix%local_data(1:nrow_local, 1:ncol_local)
                residual_b%local_data(1:nrow_local_b, 1:ncol_local_b) = &
-                  residual_b%local_data(1:nrow_local_b, 1:ncol_local_b)+ &
-                  b_small(iiB, 1)*Ax_bb(iiB)%matrix%local_data(1:nrow_local_b, 1:ncol_local_b)+ &
+                  residual_b%local_data(1:nrow_local_b, 1:ncol_local_b) + &
+                  b_small(iiB, 1)*Ax_bb(iiB)%matrix%local_data(1:nrow_local_b, 1:ncol_local_b) + &
                   b_small(iiB, 1)*Ax_ba(iiB)%matrix%local_data(1:nrow_local_b, 1:ncol_local_b)
             END DO
-            residual%local_data(1:nrow_local, 1:ncol_local) = residual%local_data(1:nrow_local, 1:ncol_local)- &
+            residual%local_data(1:nrow_local, 1:ncol_local) = residual%local_data(1:nrow_local, 1:ncol_local) - &
                                                               L_jb%local_data(1:nrow_local, 1:ncol_local)
             conv = 0.0_dp
             conv = accurate_sum(residual%local_data(1:nrow_local, 1:ncol_local)* &
                                 residual%local_data(1:nrow_local, 1:ncol_local))
             CALL mp_sum(conv, para_env%group)
             conv = SQRT(conv)
-            residual_b%local_data(1:nrow_local_b, 1:ncol_local_b) = residual_b%local_data(1:nrow_local_b, 1:ncol_local_b)- &
+            residual_b%local_data(1:nrow_local_b, 1:ncol_local_b) = residual_b%local_data(1:nrow_local_b, 1:ncol_local_b) - &
                                                                     L_jb_beta%local_data(1:nrow_local_b, 1:ncol_local_b)
             conv_b = 0.0_dp
             conv_b = accurate_sum(residual_b%local_data(1:nrow_local_b, 1:ncol_local_b)* &
                                   residual_b%local_data(1:nrow_local_b, 1:ncol_local_b))
             CALL mp_sum(conv_b, para_env%group)
-            conv = conv+SQRT(conv_b)
+            conv = conv + SQRT(conv_b)
          ENDIF
 
          t2 = m_walltime()
 
          IF (unit_nr > 0) THEN
-            WRITE (unit_nr, '(T3,I5,T13,F6.1,11X,F14.8)') iiter, t2-t1, conv
+            WRITE (unit_nr, '(T3,I5,T13,F6.1,11X,F14.8)') iiter, t2 - t1, conv
          END IF
 
          IF (conv <= eps_conv) THEN
@@ -1755,9 +1755,9 @@ CONTAINS
          ELSE
             b_i%local_data(:, :) = precond%local_data(:, :)* &
                                    (Ax(iiter)%matrix%local_data(:, :) &
-                                    +Ax_ab(iiter)%matrix%local_data(:, :))
+                                    + Ax_ab(iiter)%matrix%local_data(:, :))
             b_i_b%local_data(:, :) = precond_b%local_data(:, :)* &
-                                     (Ax_bb(iiter)%matrix%local_data(:, :)+ &
+                                     (Ax_bb(iiter)%matrix%local_data(:, :) + &
                                       Ax_ba(iiter)%matrix%local_data(:, :))
          ENDIF
 
@@ -1765,12 +1765,12 @@ CONTAINS
 
       ! store solution into P_ia
       DO iiter = 1, cycle_counter
-         P_ia%local_data(1:nrow_local, 1:ncol_local) = P_ia%local_data(1:nrow_local, 1:ncol_local)+ &
+         P_ia%local_data(1:nrow_local, 1:ncol_local) = P_ia%local_data(1:nrow_local, 1:ncol_local) + &
                                                        b_small(iiter, 1)*xn(iiter)%matrix%local_data(1:nrow_local, 1:ncol_local)
          ! The same for beta
          IF (alpha_beta) THEN
             P_ia_beta%local_data(1:nrow_local_b, 1:ncol_local_b) = &
-               P_ia_beta%local_data(1:nrow_local_b, 1:ncol_local_b)+ &
+               P_ia_beta%local_data(1:nrow_local_b, 1:ncol_local_b) + &
                b_small(iiter, 1)*xn_b(iiter)%matrix%local_data(1:nrow_local_b, 1:ncol_local_b)
          ENDIF
       END DO

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -15,6 +17,7 @@ MODULE xtb_parameters
                                               gto_basis_set_type,&
                                               set_sto_basis_set,&
                                               sto_basis_set_type
+   USE cp_control_types,                ONLY: xtb_control_type
    USE cp_linked_list_input,            ONLY: cp_sll_val_next,&
                                               cp_sll_val_type
    USE cp_para_types,                   ONLY: cp_para_env_type
@@ -133,7 +136,29 @@ MODULE xtb_parameters
                                      2.42_dp, 2.11_dp, 2.01_dp, &
                                      1.90_dp, 1.84_dp, 1.83_dp, 1.80_dp, 1.80_dp, 1.51_dp, 0.96_dp, 1.54_dp, &
                                      1.83_dp, 1.50_dp, 1.50_dp, 1.50_dp, 1.50_dp, 1.50_dp, & !  Actinides
-                                     1.50_dp, 1.50_dp,10.50_dp/)
+                                     1.50_dp, 1.50_dp, 1.50_dp/)
+!&>
+
+!&<
+   ! Charge Limits (Mulliken)
+   REAL(KIND=dp), DIMENSION(0:nelem), &
+      PARAMETER, PRIVATE :: clmt = (/0.00_dp, & ! 0
+                                     1.00_dp, 0.50_dp, & ! 2
+                                     1.00_dp, 2.00_dp, 3.00_dp, 4.00_dp, 3.00_dp, 2.00_dp, 1.00_dp, 0.50_dp, & ! 10
+                                     1.00_dp, 2.00_dp, 3.00_dp, 4.00_dp, 3.00_dp, 2.00_dp, 1.00_dp, 0.50_dp, & ! 18
+                                     1.00_dp, 2.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, &
+                                     3.00_dp, 3.00_dp, 3.00_dp, 2.00_dp, 2.03_dp, 2.00_dp, 2.00_dp, 2.00_dp, 1.00_dp, 0.50_dp, & ! 36
+                                     1.00_dp, 2.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, &
+                                     3.00_dp, 3.00_dp, 3.00_dp, 2.00_dp, 2.00_dp, 2.00_dp, 2.00_dp, 2.00_dp, 1.00_dp, 0.50_dp, & ! 54
+                                     1.00_dp, 2.00_dp, 3.00_dp, &
+                                     3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, &
+                                     3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, & ! Lanthanides
+                                     3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, &
+                                     2.00_dp, 2.00_dp, 2.00_dp, 2.00_dp, 2.00_dp, 1.00_dp, 0.50_dp, & ! 86
+                                     1.00_dp, 2.00_dp, 3.00_dp, &
+                                     3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, &
+                                     3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, 3.00_dp, & !  Actinides
+                                     3.00_dp, 3.00_dp, 3.00_dp/)
 !&>
 
 ! *** Global parameters ***
@@ -162,9 +187,6 @@ CONTAINS
       CHARACTER(LEN=2), INTENT(IN)                       :: element_symbol
       CHARACTER(LEN=*), INTENT(IN)                       :: parameter_file_path, parameter_file_name
       TYPE(cp_para_env_type), POINTER                    :: para_env
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'xtb_parameters_init', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(len=2)                                   :: enam, esym
       CHARACTER(len=default_string_length)               :: aname, filename
@@ -200,8 +222,8 @@ CONTAINS
                   CALL parser_get_object(parser, param%hen(i))
                   CALL parser_get_object(parser, param%zeta(i))
                   param%nshell = i
-                  param%nval(i) = ia-48
-                  SELECT CASE (aname (2:2))
+                  param%nval(i) = ia - 48
+                  SELECT CASE (aname(2:2))
                   CASE ("s", "S")
                      param%lval(i) = 0
                   CASE ("p", "P")
@@ -233,7 +255,7 @@ CONTAINS
          param%natorb = 0
          DO i = 1, param%nshell
             l = param%lval(i)
-            param%natorb = param%natorb+(2*l+1)
+            param%natorb = param%natorb + (2*l + 1)
          END DO
          param%zeff = zval(ia)
       ELSE
@@ -256,9 +278,6 @@ CONTAINS
       TYPE(xtb_atom_type), POINTER                       :: param
       CHARACTER(LEN=2), INTENT(IN)                       :: element_symbol
       TYPE(section_vals_type), POINTER                   :: xtb_section
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'xtb_parameters_read', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=2)                                   :: label
       CHARACTER(len=20*default_string_length)            :: line_att
@@ -287,10 +306,10 @@ CONTAINS
                CALL remove_word(line_att)
                ia = ICHAR(label(1:1))
                IF (ia >= 49 .AND. ia <= 57) THEN
-                  nshell = nshell+1
+                  nshell = nshell + 1
                   k = nshell
-                  param%nval(k) = ia-48
-                  SELECT CASE (label (2:2))
+                  param%nval(k) = ia - 48
+                  SELECT CASE (label(2:2))
                   CASE ("s", "S")
                      param%lval(k) = 0
                   CASE ("p", "P")
@@ -319,7 +338,7 @@ CONTAINS
                CALL remove_word(line_att)
                IF (label == element_symbol) THEN
                   found = .TRUE.
-                  nshell = nshell+1
+                  nshell = nshell + 1
                   k = nshell
                   READ (line_att, *) param%eta
                   CALL remove_word(line_att)
@@ -333,8 +352,8 @@ CONTAINS
                   CALL remove_word(line_att)
                   ia = ICHAR(label(1:1))
                   CPASSERT((ia >= 49 .AND. ia <= 57))
-                  param%nval(k) = ia-48
-                  SELECT CASE (label (2:2))
+                  param%nval(k) = ia - 48
+                  SELECT CASE (label(2:2))
                   CASE ("s", "S")
                      param%lval(k) = 0
                   CASE ("p", "P")
@@ -370,7 +389,7 @@ CONTAINS
             param%nshell = nshell
             DO i = 1, param%nshell
                l = param%lval(i)
-               param%natorb = param%natorb+(2*l+1)
+               param%natorb = param%natorb + (2*l + 1)
             END DO
             param%zeff = zval(ia)
          END IF
@@ -386,9 +405,6 @@ CONTAINS
 
       TYPE(xtb_atom_type), POINTER                       :: param
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'xtb_parameters_set', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, is, l, na
       REAL(KIND=dp), DIMENSION(5)                        :: kp
 
@@ -398,8 +414,8 @@ CONTAINS
          na = 0
          DO is = 1, param%nshell
             l = param%lval(is)
-            DO i = 1, 2*l+1
-               na = na+1
+            DO i = 1, 2*l + 1
+               na = na + 1
                param%nao(na) = is
                param%lao(na) = l
             END DO
@@ -413,7 +429,7 @@ CONTAINS
          ! shell occupances
          param%occupation(:) = occupation(:, i)
          ! check for consistency
-         IF (ABS(param%zeff-SUM(param%occupation)) > 1.E-10_dp) THEN
+         IF (ABS(param%zeff - SUM(param%occupation)) > 1.E-10_dp) THEN
             CALL cp_abort(__LOCATION__, "Element <"//TRIM(param%aname)//"> has inconsistent shell occupations")
          END IF
          ! orbital energies [evolt] -> [a.u.]
@@ -429,10 +445,10 @@ CONTAINS
          param%kappa(:) = 0.0_dp
          DO is = 1, param%nshell
             l = param%lval(is)
-            IF (param%kappa(l+1) == 0.0_dp) THEN
-               param%kappa(l+1) = kp(is)
+            IF (param%kappa(l + 1) == 0.0_dp) THEN
+               param%kappa(l + 1) = kp(is)
             ELSE
-               CPASSERT(ABS(param%kappa(l+1)-kp(is)) < 1.e-10_dp)
+               CPASSERT(ABS(param%kappa(l + 1) - kp(is)) < 1.e-10_dp)
             END IF
          END DO
          ! kx
@@ -449,6 +465,8 @@ CONTAINS
                param%kx = 0.1_dp*0.220000_dp
             END SELECT
          END IF
+         ! chmax
+         param%chmax = clmt(i)
       END IF
 
    END SUBROUTINE xtb_parameters_set
@@ -465,8 +483,6 @@ CONTAINS
       TYPE(gto_basis_set_type), POINTER                  :: gto_basis_set
       INTEGER, INTENT(IN)                                :: ngauss
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'init_xtb_basis', routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=6), DIMENSION(:), POINTER            :: symbol
       INTEGER                                            :: i, nshell
       INTEGER, DIMENSION(:), POINTER                     :: lq, nq
@@ -481,7 +497,7 @@ CONTAINS
          ALLOCATE (symbol(1:nshell))
          symbol = ""
          DO i = 1, nshell
-            SELECT CASE (param%lval (i))
+            SELECT CASE (param%lval(i))
             CASE (0)
                WRITE (symbol(i), '(I1,A1)') param%nval(i), "S"
             CASE (1)
@@ -519,68 +535,86 @@ CONTAINS
 !> \brief ...
 !> \param za ...
 !> \param zb ...
+!> \param xtb_control ...
 !> \return ...
 ! **************************************************************************************************
-   FUNCTION xtb_set_kab(za, zb) RESULT(kab)
+   FUNCTION xtb_set_kab(za, zb, xtb_control) RESULT(kab)
 
       INTEGER, INTENT(IN)                                :: za, zb
+      TYPE(xtb_control_type), INTENT(IN), POINTER        :: xtb_control
       REAL(KIND=dp)                                      :: kab
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'xtb_set_kab', routineP = moduleN//':'//routineN
-
-      INTEGER                                            :: z
+      INTEGER                                            :: j, z
+      LOGICAL                                            :: custom
 
       kab = 1.0_dp
-      IF (za == 1 .OR. zb == 1) THEN
-         ! hydrogen
-         z = za+zb-1
-         SELECT CASE (z)
-         CASE (1)
-            kab = 0.96_dp
-         CASE (5)
-            kab = 0.95_dp
-         CASE (7)
-            kab = 1.04_dp
-         CASE (28)
-            kab = 0.90_dp
-         CASE (75)
-            kab = 0.80_dp
-         CASE (78)
-            kab = 0.80_dp
-         END SELECT
-      ELSEIF (za == 5 .OR. zb == 5) THEN
-         ! Boron
-         z = za+zb-5
-         SELECT CASE (z)
-         CASE (15)
-            kab = 0.97_dp
-         END SELECT
-      ELSEIF (za == 7 .OR. zb == 7) THEN
-         ! Nitrogen
-         z = za+zb-7
-         SELECT CASE (z)
-         CASE (14)
-            !xtb orig code parameter file
-            ! in the paper this is Kab for B-Si
-            kab = 1.01_dp
-         END SELECT
-      ELSEIF (za > 20 .AND. za < 30) THEN
-         ! 3d
-         IF (zb > 20 .AND. zb < 30) THEN
+      custom = .FALSE.
+
+      IF (xtb_control%kab_nval .GT. 0) THEN
+         DO j = 1, xtb_control%kab_nval
+            IF ((za == xtb_control%kab_types(1, j) .AND. &
+                 zb == xtb_control%kab_types(2, j)) .OR. &
+                (za == xtb_control%kab_types(2, j) .AND. &
+                 zb == xtb_control%kab_types(1, j))) THEN
+               custom = .TRUE.
+               kab = xtb_control%kab_vals(j)
+               EXIT
+            END IF
+         END DO
+      END IF
+
+      IF (.NOT. custom) THEN
+         IF (za == 1 .OR. zb == 1) THEN
+            ! hydrogen
+            z = za + zb - 1
+            SELECT CASE (z)
+            CASE (1)
+               kab = 0.96_dp
+            CASE (5)
+               kab = 0.95_dp
+            CASE (7)
+               kab = 1.04_dp
+            CASE (28)
+               kab = 0.90_dp
+            CASE (75)
+               kab = 0.80_dp
+            CASE (78)
+               kab = 0.80_dp
+            END SELECT
+         ELSEIF (za == 5 .OR. zb == 5) THEN
+            ! Boron
+            z = za + zb - 5
+            SELECT CASE (z)
+            CASE (15)
+               kab = 0.97_dp
+            END SELECT
+         ELSEIF (za == 7 .OR. zb == 7) THEN
+            ! Nitrogen
+            z = za + zb - 7
+            SELECT CASE (z)
+            CASE (14)
+               !xtb orig code parameter file
+               ! in the paper this is Kab for B-Si
+               kab = 1.01_dp
+            END SELECT
+         ELSEIF (za > 20 .AND. za < 30) THEN
             ! 3d
-            kab = 1.10_dp
-         ELSEIF ((zb > 38 .AND. zb < 48) .OR. (zb > 56 .AND. zb < 80)) THEN
+            IF (zb > 20 .AND. zb < 30) THEN
+               ! 3d
+               kab = 1.10_dp
+            ELSEIF ((zb > 38 .AND. zb < 48) .OR. (zb > 56 .AND. zb < 80)) THEN
+               ! 4d/5d/4f
+               kab = 0.50_dp*(1.20_dp + 1.10_dp)
+            END IF
+         ELSEIF ((za > 38 .AND. za < 48) .OR. (za > 56 .AND. za < 80)) THEN
             ! 4d/5d/4f
-            kab = 0.50_dp*(1.20_dp+1.10_dp)
-         END IF
-      ELSEIF ((za > 38 .AND. za < 48) .OR. (za > 56 .AND. za < 80)) THEN
-         ! 4d/5d/4f
-         IF (zb > 20 .AND. zb < 30) THEN
-            ! 3d
-            kab = 0.50_dp*(1.20_dp+1.10_dp)
-         ELSEIF ((zb > 38 .AND. zb < 48) .OR. (zb > 56 .AND. zb < 80)) THEN
-            ! 4d/5d/4f
-            kab = 1.20_dp
+            IF (zb > 20 .AND. zb < 30) THEN
+               ! 3d
+               kab = 0.50_dp*(1.20_dp + 1.10_dp)
+            ELSEIF ((zb > 38 .AND. zb < 48) .OR. (zb > 56 .AND. zb < 80)) THEN
+               ! 4d/5d/4f
+               kab = 1.20_dp
+            END IF
          END IF
       END IF
 

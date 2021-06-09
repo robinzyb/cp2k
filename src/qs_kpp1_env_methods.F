@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -19,6 +21,7 @@ MODULE qs_kpp1_env_methods
    USE cp_output_handling,              ONLY: cp_print_key_finished_output,&
                                               cp_print_key_should_output,&
                                               cp_print_key_unit_nr
+   USE cp_para_types,                   ONLY: cp_para_env_type
    USE dbcsr_api,                       ONLY: dbcsr_add,&
                                               dbcsr_copy,&
                                               dbcsr_p_type,&
@@ -110,22 +113,20 @@ CONTAINS
    SUBROUTINE kpp1_create(kpp1_env)
       TYPE(qs_kpp1_env_type), POINTER                    :: kpp1_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'kpp1_create', routineP = moduleN//':'//routineN
-
       ALLOCATE (kpp1_env)
       NULLIFY (kpp1_env%v_rspace, kpp1_env%v_ao, kpp1_env%drho_r, &
-               kpp1_env%rho_set, &
-               kpp1_env%deriv_set, kpp1_env%spin_pot, kpp1_env%grad_pot, &
+               kpp1_env%rho_set, kpp1_env%deriv_set, kpp1_env%spin_pot, kpp1_env%grad_pot, &
+               kpp1_env%rho_set_admm, kpp1_env%deriv_set_admm, &
                kpp1_env%ndiag_term)
       kpp1_env%ref_count = 1
-      last_kpp1_id_nr = last_kpp1_id_nr+1
+      last_kpp1_id_nr = last_kpp1_id_nr + 1
       kpp1_env%id_nr = last_kpp1_id_nr
       kpp1_env%iter = 0
       kpp1_env%print_count = 0
    END SUBROUTINE kpp1_create
 
 ! **************************************************************************************************
-!> \brief calcualtes the k_p_p1 kernel of the pertubation theory
+!> \brief calcualtes the k_p_p1 kernel of the perturbation theory
 !> \param kpp1_env the kpp1 environment in which perform the calculation
 !> \param p_env ...
 !> \param qs_env kpp1's qs_env
@@ -145,16 +146,16 @@ CONTAINS
       TYPE(qs_rho_type), POINTER                         :: rho, rho1
       TYPE(qs_rho_type), OPTIONAL, POINTER               :: rho1_xc
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'kpp1_calc_k_p_p1', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'kpp1_calc_k_p_p1'
 
       INTEGER                                            :: excitations, handle, ispin, ns, nspins, &
                                                             output_unit, res_etype
       INTEGER, DIMENSION(2, 3)                           :: bo
-      LOGICAL                                            :: explicit, gapw, gapw_xc, ionode, lsd, &
+      LOGICAL                                            :: explicit, gapw, gapw_xc, lsd, &
                                                             lsd_singlets
       REAL(KIND=dp)                                      :: energy_hartree, energy_hartree_1c, fac
       TYPE(cp_logger_type), POINTER                      :: logger
+      TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: rho_ao
       TYPE(dbcsr_p_type), DIMENSION(:, :), POINTER       :: ksmat, psmat
       TYPE(pw_env_type), POINTER                         :: pw_env
@@ -172,11 +173,9 @@ CONTAINS
 
       CALL timeset(routineN, handle)
 
-      NULLIFY (auxbas_pw_pool, pw_pools, pw_env, v_rspace_new, &
-               rho1_r, rho1_g_pw, tau_pw, v_xc, rho1_set, &
-               poisson_env, input, scf_section, rho1_g, rho_ao)
+      NULLIFY (auxbas_pw_pool, input, para_env, poisson_env, pw_env, pw_pools, rho1_g, rho1_g_pw, &
+               rho1_r, rho1_r_pw, rho1_set, rho_ao, scf_section, tau_pw, v_rspace_new, v_xc)
       logger => cp_get_default_logger()
-      ionode = logger%para_env%mepos == logger%para_env%source
 
       CPASSERT(ASSOCIATED(kpp1_env))
       CPASSERT(ASSOCIATED(k_p_p1))
@@ -187,7 +186,8 @@ CONTAINS
       CALL kpp1_check_i_alloc(kpp1_env, qs_env=qs_env)
       CALL get_qs_env(qs_env=qs_env, &
                       pw_env=pw_env, &
-                      input=input)
+                      input=input, &
+                      para_env=para_env)
 
       CALL qs_rho_get(rho, rho_ao=rho_ao)
       CALL qs_rho_get(rho1, rho_g=rho1_g)
@@ -219,7 +219,7 @@ CONTAINS
       CALL section_vals_val_get(input, "DFT%TDDFPT%RES_ETYPE", &
                                 i_val=res_etype)
 
-      kpp1_env%iter = kpp1_env%iter+1
+      kpp1_env%iter = kpp1_env%iter + 1
 
 ! gets the tmp grids
       CPASSERT(ASSOCIATED(pw_env))
@@ -342,7 +342,7 @@ CONTAINS
       END DO
       DEALLOCATE (v_xc)
 
-      IF (gapw) CALL calculate_xc_2nd_deriv_atom(p_env, qs_env, xc_section)
+      IF (gapw) CALL calculate_xc_2nd_deriv_atom(p_env%local_rho_set, qs_env, xc_section, para_env, do_tddft=.TRUE.)
 
       CALL xc_rho_set_release(rho1_set)
 
@@ -456,9 +456,13 @@ CONTAINS
       IF (gapw) THEN
          IF (.NOT. (excitations == tddfpt_excitations .AND. (nspins == 1 .AND. &
                                                              res_etype == tddfpt_triplet))) THEN
-            CALL Vh_1c_gg_integrals(qs_env, energy_hartree_1c, .TRUE., p_env=p_env)
-            CALL integrate_vhg0_rspace(qs_env, v_hartree_rspace, &
-                                       .FALSE., .TRUE., p_env=p_env)
+            CALL Vh_1c_gg_integrals(qs_env, energy_hartree_1c, &
+                                    p_env%hartree_local%ecoul_1c, &
+                                    p_env%local_rho_set, &
+                                    para_env, tddft=.TRUE.)
+            CALL integrate_vhg0_rspace(qs_env, v_hartree_rspace, para_env, &
+                                       calculate_forces=.FALSE., &
+                                       local_rho_set=p_env%local_rho_set)
          END IF
 !         ***  Add single atom contributions to the KS matrix ***
          ! remap pointer
@@ -466,7 +470,8 @@ CONTAINS
          ksmat(1:ns, 1:1) => k_p_p1(1:ns)
          ns = SIZE(rho_ao)
          psmat(1:ns, 1:1) => rho_ao(1:ns)
-         CALL update_ks_atom(qs_env, ksmat, psmat, .FALSE., .TRUE., p_env)
+         CALL update_ks_atom(qs_env, ksmat, psmat, forces=.FALSE., tddft=.TRUE., &
+                             rho_atom_external=p_env%local_rho_set%rho_atom_set)
       END IF
 
       CALL pw_pool_give_back_pw(auxbas_pw_pool, v_hartree_gspace%pw)
@@ -480,7 +485,7 @@ CONTAINS
    END SUBROUTINE kpp1_calc_k_p_p1
 
 ! **************************************************************************************************
-!> \brief calcualtes the k_p_p1 kernel of the pertubation theory with finite
+!> \brief calcualtes the k_p_p1 kernel of the perturbation theory with finite
 !>      differences
 !> \param qs_env kpp1's qs_env
 !> \param k_p_p1 the sparse matrix that will contain the kernel k_p_p1
@@ -502,9 +507,6 @@ CONTAINS
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: k_p_p1
       TYPE(qs_rho_type), POINTER                         :: rho, rho1
       REAL(KIND=dp), INTENT(in), OPTIONAL                :: diff
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'kpp1_calc_k_p_p1_fdiff', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ispin, nspins
       REAL(KIND=dp)                                      :: my_diff
@@ -528,7 +530,7 @@ CONTAINS
          CALL dbcsr_add(rho_ao(ispin)%matrix, rho1_ao(ispin)%matrix, &
                         alpha_scalar=1.0_dp, beta_scalar=my_diff)
          rho_r(ispin)%pw%cr3d = rho_r(ispin)%pw%cr3d+my_diff*rho1_r(ispin)%pw%cr3d
-         rho_g(ispin)%pw%cc = rho_g(ispin)%pw%cc+my_diff*rho1_g(ispin)%pw%cc
+         rho_g(ispin)%pw%cc = rho_g(ispin)%pw%cc + my_diff*rho1_g(ispin)%pw%cc
       END DO
 
       CALL qs_ks_build_kohn_sham_matrix(qs_env, &
@@ -549,7 +551,7 @@ CONTAINS
          CALL dbcsr_add(rho_ao(ispin)%matrix, rho1_ao(ispin)%matrix, &
                         alpha_scalar=1.0_dp, beta_scalar=my_diff)
          rho_r(ispin)%pw%cr3d = rho_r(ispin)%pw%cr3d+my_diff*rho1_r(ispin)%pw%cr3d
-         rho_g(ispin)%pw%cc = rho_g(ispin)%pw%cc+my_diff*rho1_g(ispin)%pw%cc
+         rho_g(ispin)%pw%cc = rho_g(ispin)%pw%cc + my_diff*rho1_g(ispin)%pw%cc
       END DO
 
       CALL qs_ks_build_kohn_sham_matrix(qs_env, &
@@ -563,7 +565,7 @@ CONTAINS
          CALL dbcsr_add(rho_ao(ispin)%matrix, rho1_ao(ispin)%matrix, &
                         alpha_scalar=1.0_dp, beta_scalar=my_diff)
          rho_r(ispin)%pw%cr3d = rho_r(ispin)%pw%cr3d+my_diff*rho1_r(ispin)%pw%cr3d
-         rho_g(ispin)%pw%cc = rho_g(ispin)%pw%cc+my_diff*rho1_g(ispin)%pw%cc
+         rho_g(ispin)%pw%cc = rho_g(ispin)%pw%cc + my_diff*rho1_g(ispin)%pw%cc
       END DO
 
       ! k_p_p1=(H(rho0+h/2 rho1)-H(rho0-h/2 rho1))/h
@@ -589,9 +591,6 @@ CONTAINS
 
       TYPE(qs_kpp1_env_type), POINTER                    :: kpp1_env
       TYPE(qs_environment_type), POINTER                 :: qs_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'kpp1_check_i_alloc', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: excitations, ispin, nspins, res_etype
       LOGICAL                                            :: explicit, lsd_singlets
@@ -660,11 +659,9 @@ CONTAINS
          END IF
 
          xc_section => section_vals_get_subs_vals(input, "DFT%XC")
-         CALL section_vals_val_get(input, "DFT%EXCITATIONS", &
-                                   i_val=excitations)
+         CALL section_vals_val_get(input, "DFT%EXCITATIONS", i_val=excitations)
          IF (excitations == tddfpt_excitations) THEN
             xc_section => section_vals_get_subs_vals(input, "DFT%TDDFPT%XC")
-!FM this check should already had happened and section made explicit, give an error?
             CALL section_vals_get(xc_section, explicit=explicit)
             IF (.NOT. explicit) THEN
                xc_section => section_vals_get_subs_vals(input, "DFT%XC")
@@ -699,9 +696,6 @@ CONTAINS
       TYPE(qs_kpp1_env_type), POINTER                    :: kpp1_env
       LOGICAL, INTENT(in), OPTIONAL                      :: s_struct_changed, grid_changed, &
                                                             psi0_changed
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'kpp1_did_change', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
       LOGICAL                                            :: my_psi0_changed, my_s_struct_changed
@@ -761,9 +755,6 @@ CONTAINS
       TYPE(qs_rho_type), POINTER                         :: rho1
       TYPE(pw_p_type), INTENT(IN)                        :: rho1_tot_gspace
       INTEGER                                            :: output_unit
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'print_densities', &
-         routineP = moduleN//':'//routineN
 
       REAL(KIND=dp)                                      :: total_rho_gspace
       REAL(KIND=dp), DIMENSION(:), POINTER               :: tot_rho1_r

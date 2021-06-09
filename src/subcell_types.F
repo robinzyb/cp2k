@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -56,9 +58,6 @@ CONTAINS
       INTEGER, INTENT(IN), OPTIONAL                      :: maxatom
       TYPE(cell_type), OPTIONAL, POINTER                 :: cell
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_subcell', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, j, k, na, nb, nc
       REAL(dp)                                           :: a_max, a_min, b_max, b_min, c_max, &
                                                             c_min, delta_a, delta_b, delta_c
@@ -76,13 +75,13 @@ CONTAINS
       c_min = -0.5_dp
 
       DO k = 1, nc
-         c_max = c_min+delta_c
+         c_max = c_min + delta_c
          b_min = -0.5_dp
          DO j = 1, nb
-            b_max = b_min+delta_b
+            b_max = b_min + delta_b
             a_min = -0.5_dp
             DO i = 1, na
-               a_max = a_min+delta_a
+               a_max = a_min + delta_a
                subcell(i, j, k)%s_min(1) = a_min
                subcell(i, j, k)%s_min(2) = b_min
                subcell(i, j, k)%s_min(3) = c_min
@@ -123,9 +122,6 @@ CONTAINS
 
       TYPE(subcell_type), DIMENSION(:, :, :), POINTER    :: subcell
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_subcell', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, j, k
 
       IF (ASSOCIATED(subcell)) THEN
@@ -164,18 +160,18 @@ CONTAINS
 
       i0 = 1
       j0 = SIZE(atom_list)
-      i1 = j0+1
+      i1 = j0 + 1
       j1 = 2*j0
-      i2 = j1+1
+      i2 = j1 + 1
       j2 = 3*j0
       ! Sort kind
       DO i = 1, SIZE(atom_list)
-         work(i0+i-1) = kind_of(atom_list(i))
+         work(i0 + i - 1) = kind_of(atom_list(i))
       END DO
       CALL sort(work(i0:j0), SIZE(atom_list), work(i1:j1))
       work(i2:j2) = atom_list
       DO i = 1, SIZE(atom_list)
-         atom_list(i) = work(i2+work(i1+i-1)-1)
+         atom_list(i) = work(i2 + work(i1 + i - 1) - 1)
       END DO
    END SUBROUTINE reorder_atoms_subcell
 
@@ -201,10 +197,10 @@ CONTAINS
 
       r_pbc = r
       CALL real_to_scaled(s_pbc, r_pbc, cell)
-      s(:) = s_pbc+0.5_dp
-      i = INT(s(1)*REAL(nsubcell(1), KIND=dp))+1
-      j = INT(s(2)*REAL(nsubcell(2), KIND=dp))+1
-      k = INT(s(3)*REAL(nsubcell(3), KIND=dp))+1
+      s(:) = s_pbc + 0.5_dp
+      i = INT(s(1)*REAL(nsubcell(1), KIND=dp)) + 1
+      j = INT(s(2)*REAL(nsubcell(2), KIND=dp)) + 1
+      k = INT(s(3)*REAL(nsubcell(3), KIND=dp)) + 1
       i = MIN(MAX(i, 1), nsubcell(1))
       j = MIN(MAX(j, 1), nsubcell(2))
       k = MIN(MAX(k, 1), nsubcell(3))

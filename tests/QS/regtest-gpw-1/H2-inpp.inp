@@ -6,7 +6,7 @@
  @SET VAL 4.0
  @SET inc empty
  @SET new blank
- @SET	    X !  y
+ @SET      X !  y
 &FORCE_EVAL
   METHOD Quickstep
   &DFT
@@ -36,8 +36,8 @@
     &END XC
   &END DFT
   &SUBSYS
-@SET 2VAL 8.0 ${VAL}
-@IF ${2VAL}
+@SET VAL2 8.0 ${VAL}
+@IF ${VAL2}
 @SET VAL 6.0
 @ENDIF
 @IF 1 /= 0
@@ -46,11 +46,11 @@
 @if 0
 @SET VAL 4.0
 @ENDIF
-   @if 
+   @if
    XXXXXXX
    @ENDIF
     &CELL
-      ABC ${2VAL} ${VAL} 
+      ABC ${VAL2} ${VAL}
     &END CELL
     &COORD
     H     0.000000  0.000000  0.000000

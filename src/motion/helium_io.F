@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -57,7 +59,8 @@ MODULE helium_io
    USE message_passing,                 ONLY: mp_bcast,&
                                               mp_gather,&
                                               mp_sum
-   USE physcon,                         ONLY: angstrom
+   USE physcon,                         ONLY: angstrom,&
+                                              massunit
    USE pint_types,                      ONLY: pint_env_type
 #include "../base/base_uses.f90"
 
@@ -108,8 +111,7 @@ CONTAINS
       CHARACTER(LEN=default_path_length)                 :: file_name
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'helium_read_xyz', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'helium_read_xyz'
 
       CHARACTER(LEN=default_string_length)               :: strtmp
       INTEGER                                            :: frame, handle, istat, j, natom
@@ -143,7 +145,7 @@ CONTAINS
       Frames: DO
          ! Atom number
          CALL parser_get_object(parser, natom)
-         frame = frame+1
+         frame = frame + 1
          IF (frame == 1) THEN
             ALLOCATE (coords(3*natom))
          ELSE
@@ -158,12 +160,12 @@ CONTAINS
          DO j = 1, natom
             ! Atom coordinates
             READ (parser%input_line, *) strtmp, &
-               coords(3*(j-1)+1), &
-               coords(3*(j-1)+2), &
-               coords(3*(j-1)+3)
-            coords(3*(j-1)+1) = cp_unit_to_cp2k(coords(3*(j-1)+1), "angstrom")
-            coords(3*(j-1)+2) = cp_unit_to_cp2k(coords(3*(j-1)+2), "angstrom")
-            coords(3*(j-1)+3) = cp_unit_to_cp2k(coords(3*(j-1)+3), "angstrom")
+               coords(3*(j - 1) + 1), &
+               coords(3*(j - 1) + 2), &
+               coords(3*(j - 1) + 3)
+            coords(3*(j - 1) + 1) = cp_unit_to_cp2k(coords(3*(j - 1) + 1), "angstrom")
+            coords(3*(j - 1) + 2) = cp_unit_to_cp2k(coords(3*(j - 1) + 2), "angstrom")
+            coords(3*(j - 1) + 3) = cp_unit_to_cp2k(coords(3*(j - 1) + 3), "angstrom")
             ! If there's a white line or end of file exit.. otherwise go on
             CALL parser_get_next_line(parser, 1, at_end=my_end)
             my_end = my_end .OR. (LEN_TRIM(parser%input_line) == 0)
@@ -191,9 +193,6 @@ CONTAINS
    SUBROUTINE helium_write_setup(helium)
 
       TYPE(helium_solvent_type), POINTER                 :: helium
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'helium_write_setup', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(len=default_string_length)               :: msg_str, my_label, stmp, stmp1, stmp2, &
                                                             unit_str
@@ -227,6 +226,11 @@ CONTAINS
          WRITE (unit_nr, '(T2,A,F12.6)') TRIM(my_label)//" Density   ["// &
             TRIM(unit_str)//"]:", rtmp
 
+         unit_str = "a.m.u."
+         rtmp = helium%he_mass_au/massunit
+         WRITE (unit_nr, '(T2,A,F12.6)') TRIM(my_label)//" He Mass   ["// &
+            TRIM(unit_str)//"]: ", rtmp
+
          unit_str = "angstrom"
          rtmp = cp_unit_from_cp2k(helium%cell_size, &
                                   unit_str)
@@ -253,24 +257,28 @@ CONTAINS
 
          ! first step gets incremented during first iteration
          WRITE (unit_nr, '(T2,A,1X,I0)') TRIM(my_label)// &
-            " First MC step                      :", helium%first_step+1
+            " First MC step                      :", helium%first_step + 1
          WRITE (unit_nr, '(T2,A,1X,I0)') TRIM(my_label)// &
             " Last MC step                       :", helium%last_step
          WRITE (unit_nr, '(T2,A,1X,I0)') TRIM(my_label)// &
             " Total number of MC steps           :", helium%num_steps
          WRITE (unit_nr, '(T2,A,1X,I0)') TRIM(my_label)// &
             " Number of outer MC trials per step :", helium%iter_rot
-         WRITE (unit_nr, '(T2,A,1X,I0)') TRIM(my_label)// &
-            " Number of inner MC trials per step :", helium%iter_norot
          i8tmp = INT(helium%iter_rot, int_8)
-         i8tmp = i8tmp*INT(helium%iter_norot, int_8)
+         IF (helium%sampling_method == helium_sampling_ceperley) THEN
+            WRITE (unit_nr, '(T2,A,1X,I0)') TRIM(my_label)// &
+               " Number of inner MC trials per step :", helium%iter_norot
+            i8tmp = i8tmp*INT(helium%iter_norot, int_8)
+         END IF
          stmp = ""
          WRITE (stmp, *) i8tmp
          WRITE (unit_nr, '(T2,A)') TRIM(my_label)// &
             " Total number of MC trials per step : "//TRIM(ADJUSTL(stmp))
          i8tmp = INT(helium%num_steps, int_8)
          i8tmp = i8tmp*INT(helium%iter_rot, int_8)
-         i8tmp = i8tmp*INT(helium%iter_norot, int_8)
+         IF (helium%sampling_method == helium_sampling_ceperley) THEN
+            i8tmp = i8tmp*INT(helium%iter_norot, int_8)
+         END IF
          stmp = ""
          WRITE (stmp, *) i8tmp
          WRITE (unit_nr, '(T2,A)') TRIM(my_label)// &
@@ -308,60 +316,29 @@ CONTAINS
             stmp1 = ""
             stmp2 = ""
             CALL helium_write_line(stmp1)
-            WRITE (stmp1, *) helium%worm_centroid_move_drmax
+            WRITE (stmp1, *) helium%worm_centroid_drmax
             WRITE (stmp2, *) "WORM| Centroid move max. displacement: "// &
                TRIM(ADJUSTL(stmp1))
             CALL helium_write_line(stmp2)
             stmp1 = ""
             stmp2 = ""
-            WRITE (stmp1, *) helium%worm_centroid_move_freq
-            WRITE (stmp2, *) "WORM| Centroid move frequency: "//TRIM(ADJUSTL(stmp1))
+            WRITE (stmp1, *) helium%worm_staging_l
+            WRITE (stmp2, *) "WORM| Maximal staging length: "//TRIM(ADJUSTL(stmp1))
             CALL helium_write_line(stmp2)
             stmp1 = ""
             stmp2 = ""
-            WRITE (stmp1, *) helium%worm_staging_move_l
-            WRITE (stmp2, *) "WORM| Staging move l: "//TRIM(ADJUSTL(stmp1))
+            WRITE (stmp1, *) helium%worm_open_close_scale
+            WRITE (stmp2, *) "WORM| Open/Close scaling: "//TRIM(ADJUSTL(stmp1))
             CALL helium_write_line(stmp2)
             stmp1 = ""
             stmp2 = ""
-            WRITE (stmp1, *) helium%worm_staging_move_rep
-            WRITE (stmp2, *) "WORM| Staging move repetitions: "//TRIM(ADJUSTL(stmp1))
+            WRITE (stmp1, *) helium%worm_allow_open
+            WRITE (stmp2, *) "WORM| Open worm sector: "//TRIM(ADJUSTL(stmp1))
             CALL helium_write_line(stmp2)
             stmp1 = ""
             stmp2 = ""
-            WRITE (stmp1, *) helium%worm_open_close_move_C
-            WRITE (stmp2, *) "WORM| Open/Close move C: "//TRIM(ADJUSTL(stmp1))
-            CALL helium_write_line(stmp2)
-            stmp1 = ""
-            stmp2 = ""
-            WRITE (stmp1, *) helium%worm_open_close_move_lmax
-            WRITE (stmp2, *) "WORM| Open/Close move lmax: "//TRIM(ADJUSTL(stmp1))
-            CALL helium_write_line(stmp2)
-            stmp1 = ""
-            stmp2 = ""
-            WRITE (stmp1, *) helium%worm_head_tail_move_lmax
-            WRITE (stmp2, *) "WORM| Head/Tail move lmax: "//TRIM(ADJUSTL(stmp1))
-            CALL helium_write_line(stmp2)
-            stmp1 = ""
-            stmp2 = ""
-            WRITE (stmp1, *) helium%worm_swap_move_lmax
-            WRITE (stmp2, *) "WORM| Swap move lmax: "//TRIM(ADJUSTL(stmp1))
-            CALL helium_write_line(stmp2)
-            stmp1 = ""
-            stmp2 = ""
-            WRITE (stmp1, *) helium%worm_gsector_move_rep
-            WRITE (stmp2, *) "WORM| G-sector moves repetitions: "// &
-               TRIM(ADJUSTL(stmp1))
-            CALL helium_write_line(stmp2)
-            stmp1 = ""
-            stmp2 = ""
-            WRITE (stmp1, *) helium%worm_gsector_move
-            WRITE (stmp2, *) "WORM| G-sector moves: "//TRIM(ADJUSTL(stmp1))
-            CALL helium_write_line(stmp2)
-            stmp1 = ""
-            stmp2 = ""
-            WRITE (stmp1, *) helium%worm_write
-            WRITE (stmp2, *) "WORM| Print: "//TRIM(ADJUSTL(stmp1))
+            WRITE (stmp1, *) helium%worm_show_statistics
+            WRITE (stmp2, *) "WORM| Print statistics: "//TRIM(ADJUSTL(stmp1))
             CALL helium_write_line(stmp2)
             stmp1 = ""
             CALL helium_write_line(stmp1)
@@ -413,7 +390,7 @@ CONTAINS
 
       ! RDF related settings
       IF (helium%rdf_present) THEN
-         WRITE (stmp, '(I6)') helium%rdf_num_ctr
+         WRITE (stmp, '(I6)') helium%rdf_num
          CALL helium_write_line("RDF| number of centers: "//TRIM(stmp))
          rtmp = cp_unit_from_cp2k(helium%rdf_delr, "angstrom")
          WRITE (stmp, '(1X,F12.6)') rtmp
@@ -468,9 +445,6 @@ CONTAINS
 
       CHARACTER(len=*), INTENT(IN)                       :: line
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'helium_write_line', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(len=default_string_length)               :: my_label
       INTEGER                                            :: unit_nr
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -499,12 +473,11 @@ CONTAINS
 
       TYPE(helium_solvent_p_type), DIMENSION(:), POINTER :: helium_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'helium_print_energy', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'helium_print_energy'
 
       INTEGER                                            :: handle, iteration, k, m, unit_nr
-      LOGICAL                                            :: file_is_new, should_output
-      REAL(KIND=dp)                                      :: naccptd
+      LOGICAL                                            :: cepsample, file_is_new, should_output
+      REAL(KIND=dp)                                      :: naccptd, ntot
       REAL(KIND=dp), DIMENSION(:), POINTER               :: my_energy
       TYPE(cp_logger_type), POINTER                      :: logger
       TYPE(section_vals_type), POINTER                   :: print_key
@@ -520,19 +493,31 @@ CONTAINS
          should_output = BTEST(cp_print_key_should_output( &
                                iteration_info=logger%iter_info, &
                                basis_section=print_key), cp_p_file)
+         cepsample = helium_env(1)%helium%sampling_method == helium_sampling_ceperley
       END IF
       CALL mp_bcast(should_output, logger%para_env%source, helium_env(1)%comm)
+      CALL mp_bcast(cepsample, logger%para_env%source, helium_env(1)%comm)
 
       IF (should_output) THEN
 
          naccptd = 0.0_dp
-         DO k = 1, SIZE(helium_env)
-            DO m = 1, helium_env(k)%helium%maxcycle
-               naccptd = naccptd+helium_env(k)%helium%num_accepted(helium_env(k)%helium%bisctlog2+2, m)
+         IF (cepsample) THEN
+            ntot = 0.0_dp
+            DO k = 1, SIZE(helium_env)
+               ntot = ntot + helium_env(1)%helium%iter_norot*helium_env(1)%helium%iter_rot
+               DO m = 1, helium_env(k)%helium%maxcycle
+                  naccptd = naccptd + helium_env(k)%helium%num_accepted(helium_env(k)%helium%bisctlog2 + 2, m)
+               END DO
             END DO
-         END DO
+         ELSE !(wormsample)
+            ntot = 0.0_dp
+            DO k = 1, SIZE(helium_env)
+               naccptd = naccptd + helium_env(k)%helium%num_accepted(1, 1)
+               ntot = ntot + helium_env(k)%helium%num_accepted(2, 1)
+            END DO
+         END IF
          CALL mp_sum(naccptd, helium_env(1)%comm)
-         naccptd = naccptd/REAL(helium_env(1)%helium%num_env, dp)
+         CALL mp_sum(ntot, helium_env(1)%comm)
 
          IF (logger%para_env%ionode) THEN
             my_energy => helium_env(1)%helium%energy_avrg
@@ -546,9 +531,9 @@ CONTAINS
                       is_new_file=file_is_new)
 
             IF (file_is_new) THEN
-               WRITE (unit_nr, '(A9,1X,A12,6(1X,A20))') &
+               WRITE (unit_nr, '(A9,7(1X,A20))') &
                   "#    Step", &
-                  "     Naccptd", &
+                  "            AccRatio", &
                   "               E_pot", &
                   "               E_kin", &
                   "            E_thermo", &
@@ -557,9 +542,9 @@ CONTAINS
                   "               E_tot"
             END IF
 
-            WRITE (unit_nr, "(I9,1X,F12.1,6(1X,F20.9))") &
+            WRITE (unit_nr, "(I9,7(1X,F20.9))") &
                iteration, &
-               naccptd, &
+               naccptd/ntot, &
                my_energy(e_id_potential), &
                my_energy(e_id_kinetic), &
                my_energy(e_id_thermo), &
@@ -579,7 +564,7 @@ CONTAINS
    END SUBROUTINE helium_print_energy
 
 ! ***************************************************************************
-!> \brief  Print a 3D real vector accoring to printkey <pkey>
+!> \brief  Print a 3D real vector according to printkey <pkey>
 !> \param helium_env ...
 !> \param pkey ...
 !> \param DATA ...
@@ -605,8 +590,7 @@ CONTAINS
       CHARACTER(len=*), OPTIONAL                         :: fpos
       LOGICAL, OPTIONAL                                  :: avg
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'helium_print_vector', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'helium_print_vector'
 
       CHARACTER(len=default_string_length)               :: my_fpos
       INTEGER                                            :: handle, i, irank, msglen, nenv, offset, &
@@ -648,8 +632,8 @@ CONTAINS
          ! average data over all processors and environments
          avg_data(:) = 0.0_dp
          msglen = SIZE(avg_data)
-         DO i = 0, SIZE(helium_env)-1
-            avg_data(:) = avg_data(:)+DATA(msglen*i+1:msglen*(i+1))
+         DO i = 0, SIZE(helium_env) - 1
+            avg_data(:) = avg_data(:) + DATA(msglen*i + 1:msglen*(i + 1))
          END DO
          CALL mp_sum(avg_data, helium_env(1)%comm)
          nenv = helium_env(1)%helium%num_env
@@ -658,13 +642,13 @@ CONTAINS
          ! gather data from all processors
          offset = 0
          DO i = 1, logger%para_env%mepos
-            offset = offset+helium_env(1)%env_all(i)
+            offset = offset + helium_env(1)%env_all(i)
          END DO
 
          helium_env(1)%helium%rtmp_3_np_1d = 0.0_dp
          msglen = SIZE(avg_data)
-         DO i = 0, SIZE(helium_env)-1
-            helium_env(1)%helium%rtmp_3_np_1d(msglen*(offset+i)+1:msglen*(offset+i+1)) = DATA(msglen*i+1:msglen*(i+1))
+         DO i = 0, SIZE(helium_env) - 1
+            helium_env(1)%helium%rtmp_3_np_1d(msglen*(offset + i) + 1:msglen*(offset + i + 1)) = DATA(msglen*i + 1:msglen*(i + 1))
          END DO
          CALL mp_sum(helium_env(1)%helium%rtmp_3_np_1d, &
                      helium_env(1)%comm)
@@ -706,8 +690,8 @@ CONTAINS
             DO irank = 1, helium_env(1)%helium%num_env
                ! unpack data (actually point to the right fragment only)
                msglen = SIZE(avg_data)
-               offset = (irank-1)*msglen
-               data_p => helium_env(1)%helium%rtmp_3_np_1d(offset+1:offset+msglen)
+               offset = (irank - 1)*msglen
+               data_p => helium_env(1)%helium%rtmp_3_np_1d(offset + 1:offset + msglen)
                ! write out the data
                DO i = 1, 3
                   WRITE (unit_nr, '(E27.20)', ADVANCE='NO') uconv*data_p(i)
@@ -741,8 +725,7 @@ CONTAINS
 
       TYPE(helium_solvent_p_type), DIMENSION(:), POINTER :: helium_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'helium_print_accepts', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'helium_print_accepts'
 
       INTEGER                                            :: handle, i, j, unit_nr
       LOGICAL                                            :: file_is_new, should_output
@@ -782,7 +765,7 @@ CONTAINS
 
             DO i = 1, helium_env(1)%helium%maxcycle
                WRITE (unit_nr, '(I3)', ADVANCE='NO') i
-               DO j = 1, helium_env(1)%helium%bisctlog2+2
+               DO j = 1, helium_env(1)%helium%bisctlog2 + 2
                   WRITE (unit_nr, '(1X,F20.2)', ADVANCE='NO') helium_env(1)%helium%num_accepted(j, i)
                END DO
                WRITE (unit_nr, '(A)') ""
@@ -811,8 +794,7 @@ CONTAINS
 
       TYPE(helium_solvent_p_type), DIMENSION(:), POINTER :: helium_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'helium_print_perm', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'helium_print_perm'
 
       CHARACTER                                          :: left_delim, right_delim
       CHARACTER(len=default_string_length)               :: msg_str, my_middle_name, stmp
@@ -832,7 +814,7 @@ CONTAINS
       ! determine offset for arrays
       offset = 0
       DO i = 1, logger%para_env%mepos
-         offset = offset+helium_env(1)%env_all(i)
+         offset = offset + helium_env(1)%env_all(i)
       END DO
 
       print_key => section_vals_get_subs_vals(helium_env(1)%helium%input, &
@@ -853,7 +835,7 @@ CONTAINS
          helium_env(1)%helium%rtmp_3_atoms_beads_np_1d = 0.0_dp
          j = SIZE(helium_env(1)%helium%rtmp_3_atoms_beads_1d)
          DO i = 1, SIZE(helium_env)
-            helium_env(1)%helium%rtmp_3_atoms_beads_np_1d(j*(offset+i-1)+1:j*(offset+i)) = &
+            helium_env(1)%helium%rtmp_3_atoms_beads_np_1d(j*(offset + i - 1) + 1:j*(offset + i)) = &
                PACK(helium_env(i)%helium%pos(:, :, 1:helium_env(1)%helium%beads), .TRUE.)
          END DO
          CALL mp_sum(helium_env(1)%helium%rtmp_3_atoms_beads_np_1d, &
@@ -866,7 +848,7 @@ CONTAINS
       helium_env(1)%helium%itmp_atoms_np_1d(:) = 0
       msglen = SIZE(helium_env(1)%helium%permutation)
       DO i = 1, SIZE(helium_env)
-         helium_env(1)%helium%itmp_atoms_np_1d(msglen*(offset+i-1)+1:msglen*(offset+i)) = helium_env(i)%helium%permutation
+         helium_env(1)%helium%itmp_atoms_np_1d(msglen*(offset + i - 1) + 1:msglen*(offset + i)) = helium_env(i)%helium%permutation
       END DO
 
       CALL mp_sum(helium_env(1)%helium%itmp_atoms_np_1d, &
@@ -888,7 +870,7 @@ CONTAINS
                       extension=".dat")
 
             ! unpack permutation state (actually point to the right section only)
-            lb = (irank-1)*helium_env(1)%helium%atoms+1
+            lb = (irank - 1)*helium_env(1)%helium%atoms + 1
             ub = irank*helium_env(1)%helium%atoms
             my_perm => helium_env(1)%helium%itmp_atoms_np_1d(lb:ub)
 
@@ -899,9 +881,9 @@ CONTAINS
 
                ! unpack coordinates (necessary only for winding path delimiters)
                msglen = SIZE(helium_env(1)%helium%rtmp_3_atoms_beads_1d)
-               offset = (irank-1)*msglen
+               offset = (irank - 1)*msglen
                helium_env(1)%helium%work(:, :, 1:helium_env(1)%helium%beads) = &
-                  UNPACK(helium_env(1)%helium%rtmp_3_atoms_beads_np_1d(offset+1:offset+msglen), &
+                  UNPACK(helium_env(1)%helium%rtmp_3_atoms_beads_np_1d(offset + 1:offset + msglen), &
                          MASK=helium_env(1)%helium%ltmp_3_atoms_beads_3d, FIELD=0.0_dp)
 
                curat = 1
@@ -913,11 +895,11 @@ CONTAINS
                   my_cycle => helium_cycle_of(curat, my_perm)
 
                   ! include the current cycle in the pool of "used" indices
-                  nused = nused+SIZE(my_cycle)
+                  nused = nused + SIZE(my_cycle)
                   CALL reallocate(used_indices, 1, nused)
-                  used_indices(nused-SIZE(my_cycle)+1:nused) = my_cycle(1:SIZE(my_cycle))
+                  used_indices(nused - SIZE(my_cycle) + 1:nused) = my_cycle(1:SIZE(my_cycle))
 
-                  ! select delimiters accoring to the cycle's winding state
+                  ! select delimiters according to the cycle's winding state
                   IF (helium_is_winding(helium_env(1)%helium, curat, helium_env(1)%helium%work, my_perm)) THEN
                      left_delim = "["
                      right_delim = "]"
@@ -952,7 +934,7 @@ CONTAINS
 
                   ! try to increment the current atom index
                   DO WHILE (ANY(used_indices .EQ. curat))
-                     curat = curat+1
+                     curat = curat + 1
                   END DO
 
                END DO
@@ -1008,8 +990,7 @@ CONTAINS
       TYPE(pint_env_type), POINTER                       :: pint_env
       TYPE(helium_solvent_p_type), DIMENSION(:), POINTER :: helium_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'helium_print_action', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'helium_print_action'
 
       CHARACTER(len=default_string_length)               :: my_middle_name, stmp
       INTEGER                                            :: handle, i, irank, iteration, k, offset, &
@@ -1028,7 +1009,7 @@ CONTAINS
       ! determine offset for arrays
       offset = 0
       DO i = 1, logger%para_env%mepos
-         offset = offset+helium_env(1)%env_all(i)
+         offset = offset + helium_env(1)%env_all(i)
       END DO
 
       print_key => section_vals_get_subs_vals(helium_env(1)%helium%input, &
@@ -1059,9 +1040,9 @@ CONTAINS
       tmp_inter_action(:) = 0.0_dp
       ! gather Action from all processors to logger%para_env%source
       DO k = 1, SIZE(helium_env)
-         tmp_link_action(offset+k) = helium_env(k)%helium%link_action
-         tmp_pair_action(offset+k) = helium_env(k)%helium%pair_action
-         tmp_inter_action(offset+k) = helium_env(k)%helium%inter_action
+         tmp_link_action(offset + k) = helium_env(k)%helium%link_action
+         tmp_pair_action(offset + k) = helium_env(k)%helium%pair_action
+         tmp_inter_action(offset + k) = helium_env(k)%helium%inter_action
       END DO
       CALL mp_sum(tmp_link_action, helium_env(1)%comm)
       CALL mp_sum(tmp_pair_action, helium_env(1)%comm)
@@ -1127,8 +1108,7 @@ CONTAINS
 
       TYPE(helium_solvent_p_type), DIMENSION(:), POINTER :: helium_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'helium_print_coordinates', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'helium_print_coordinates'
 
       CHARACTER(3)                                       :: resName
       CHARACTER(len=default_string_length)               :: fmt_string, my_middle_name, stmp
@@ -1151,7 +1131,7 @@ CONTAINS
       ! determine offset for arrays
       offset = 0
       DO i = 1, logger%para_env%mepos
-         offset = offset+helium_env(1)%env_all(i)
+         offset = offset + helium_env(1)%env_all(i)
       END DO
 
       print_key => section_vals_get_subs_vals(helium_env(1)%helium%input, &
@@ -1170,18 +1150,18 @@ CONTAINS
          r0(:) = helium_env(k)%helium%center(:)
          DO ia = 1, helium_env(k)%helium%atoms
             DO ib = 1, helium_env(k)%helium%beads
-               r1(:) = helium_env(k)%helium%pos(:, ia, ib)-r0(:)
-               r2(:) = helium_env(k)%helium%pos(:, ia, ib)-r0(:)
+               r1(:) = helium_env(k)%helium%pos(:, ia, ib) - r0(:)
+               r2(:) = helium_env(k)%helium%pos(:, ia, ib) - r0(:)
                CALL helium_pbc(helium_env(k)%helium, r2)
                ltmp = .FALSE.
                DO ic = 1, 3
-                  IF (ABS(r1(ic)-r2(ic)) .GT. 100.0_dp*EPSILON(0.0_dp)) THEN
+                  IF (ABS(r1(ic) - r2(ic)) .GT. 100.0_dp*EPSILON(0.0_dp)) THEN
                      ltmp = .TRUE.
                      CYCLE
                   END IF
                END DO
                IF (ltmp) THEN
-                  helium_env(k)%helium%work(:, ia, ib) = r0(:)+r2(:)
+                  helium_env(k)%helium%work(:, ia, ib) = r0(:) + r2(:)
                ELSE
                   helium_env(k)%helium%work(:, ia, ib) = helium_env(k)%helium%pos(:, ia, ib)
                END IF
@@ -1193,7 +1173,7 @@ CONTAINS
       helium_env(1)%helium%rtmp_3_atoms_beads_np_1d = 0.0_dp
       j = SIZE(helium_env(1)%helium%rtmp_3_atoms_beads_1d)
       DO i = 1, SIZE(helium_env)
-         helium_env(1)%helium%rtmp_3_atoms_beads_np_1d(j*(offset+i-1)+1:j*(offset+i)) = &
+         helium_env(1)%helium%rtmp_3_atoms_beads_np_1d(j*(offset + i - 1) + 1:j*(offset + i)) = &
             PACK(helium_env(i)%helium%pos(:, :, 1:helium_env(1)%helium%beads), .TRUE.)
       END DO
       CALL mp_sum(helium_env(1)%helium%rtmp_3_atoms_beads_np_1d, &
@@ -1203,7 +1183,7 @@ CONTAINS
       helium_env(1)%helium%itmp_atoms_np_1d(:) = 0
       j = SIZE(helium_env(1)%helium%permutation)
       DO i = 1, SIZE(helium_env)
-         helium_env(1)%helium%itmp_atoms_np_1d(j*(offset+i-1)+1:j*(offset+i)) = helium_env(i)%helium%permutation
+         helium_env(1)%helium%itmp_atoms_np_1d(j*(offset + i - 1) + 1:j*(offset + i)) = helium_env(i)%helium%permutation
       END DO
 
       CALL mp_sum(helium_env(1)%helium%itmp_atoms_np_1d, &
@@ -1231,7 +1211,7 @@ CONTAINS
             fmt_string = "(A6,3F9.3,3F7.2,1X,A11,1X,I3)"
             xtmp = helium_env(1)%helium%cell_size
             xtmp = cp_unit_from_cp2k(xtmp, "angstrom")
-            SELECT CASE (helium_env (1)%helium%cell_shape)
+            SELECT CASE (helium_env(1)%helium%cell_shape)
             CASE (helium_cell_shape_cube)
                stmp = "C          "
             CASE (helium_cell_shape_octahedron)
@@ -1246,15 +1226,15 @@ CONTAINS
 
             ! unpack coordinates
             msglen = SIZE(helium_env(1)%helium%rtmp_3_atoms_beads_1d)
-            offset = (irank-1)*msglen
+            offset = (irank - 1)*msglen
             helium_env(1)%helium%work(:, :, 1:helium_env(1)%helium%beads) = &
-               UNPACK(helium_env(1)%helium%rtmp_3_atoms_beads_np_1d(offset+1:offset+msglen), &
+               UNPACK(helium_env(1)%helium%rtmp_3_atoms_beads_np_1d(offset + 1:offset + msglen), &
                       MASK=helium_env(1)%helium%ltmp_3_atoms_beads_3d, FIELD=0.0_dp)
 
             ! unpack permutation state (actually point to the right section only)
             msglen = SIZE(helium_env(1)%helium%permutation)
-            offset = (irank-1)*msglen
-            my_perm => helium_env(1)%helium%itmp_atoms_np_1d(offset+1:offset+msglen)
+            offset = (irank - 1)*msglen
+            my_perm => helium_env(1)%helium%itmp_atoms_np_1d(offset + 1:offset + msglen)
 
             ! write out coordinates
             fmt_string = &
@@ -1275,7 +1255,7 @@ CONTAINS
                   ztmp = helium_env(1)%helium%work(3, ia, ib)
                   ztmp = cp_unit_from_cp2k(ztmp, "angstrom")
                   WRITE (unit_nr, fmt_string) "ATOM  ", &
-                     (ia-1)*helium_env(1)%helium%beads+ib, &
+                     (ia - 1)*helium_env(1)%helium%beads + ib, &
                      " He ", " ", resName, "X", &
                      icycle, &
                      " ", &
@@ -1293,14 +1273,14 @@ CONTAINS
                   CYCLE
                END IF
 
-               DO ib = 1, helium_env(1)%helium%beads-1
+               DO ib = 1, helium_env(1)%helium%beads - 1
                   ! check wheather the consecutive beads belong to the same box
-                  r1(:) = helium_env(1)%helium%work(:, ia, ib)-helium_env(1)%helium%work(:, ia, ib+1)
+                  r1(:) = helium_env(1)%helium%work(:, ia, ib) - helium_env(1)%helium%work(:, ia, ib + 1)
                   r2(:) = r1(:)
                   CALL helium_pbc(helium_env(1)%helium, r2)
                   are_connected = .TRUE.
                   DO ic = 1, 3
-                     IF (ABS(r1(ic)-r2(ic)) .GT. 100.0_dp*EPSILON(0.0_dp)) THEN
+                     IF (ABS(r1(ic) - r2(ic)) .GT. 100.0_dp*EPSILON(0.0_dp)) THEN
                         ! if the distance betw ib and ib+1 changes upon applying
                         ! PBC do not connect them
                         are_connected = .FALSE.
@@ -1308,8 +1288,8 @@ CONTAINS
                      END IF
                   END DO
                   IF (are_connected) THEN
-                     tmp1 = (ia-1)*helium_env(1)%helium%beads+ib
-                     tmp2 = (ia-1)*helium_env(1)%helium%beads+ib+1
+                     tmp1 = (ia - 1)*helium_env(1)%helium%beads + ib
+                     tmp2 = (ia - 1)*helium_env(1)%helium%beads + ib + 1
                      ! smaller value has to go first
                      IF (tmp1 .LT. tmp2) THEN
                         ib1 = tmp1
@@ -1324,12 +1304,12 @@ CONTAINS
 
                ! last bead of atom <ia> connects to the first bead
                ! of the next atom in the permutation cycle
-               r1(:) = helium_env(1)%helium%work(:, ia, helium_env(1)%helium%beads)-helium_env(1)%helium%work(:, my_perm(ia), 1)
+               r1(:) = helium_env(1)%helium%work(:, ia, helium_env(1)%helium%beads) - helium_env(1)%helium%work(:, my_perm(ia), 1)
                r2(:) = r1(:)
                CALL helium_pbc(helium_env(1)%helium, r2)
                are_connected = .TRUE.
                DO ic = 1, 3
-                  IF (ABS(r1(ic)-r2(ic)) .GT. 100.0_dp*EPSILON(0.0_dp)) THEN
+                  IF (ABS(r1(ic) - r2(ic)) .GT. 100.0_dp*EPSILON(0.0_dp)) THEN
                      ! if the distance betw ib and ib+1 changes upon applying
                      ! PBC do not connect them
                      are_connected = .FALSE.
@@ -1338,7 +1318,7 @@ CONTAINS
                END DO
                IF (are_connected) THEN
                   tmp1 = ia*helium_env(1)%helium%beads
-                  tmp2 = (my_perm(ia)-1)*helium_env(1)%helium%beads+1
+                  tmp2 = (my_perm(ia) - 1)*helium_env(1)%helium%beads + 1
                   IF (tmp1 .LT. tmp2) THEN
                      ib1 = tmp1
                      ib2 = tmp2
@@ -1375,15 +1355,14 @@ CONTAINS
 
       TYPE(helium_solvent_p_type), DIMENSION(:), POINTER :: helium_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'helium_print_rdf', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'helium_print_rdf'
 
-      CHARACTER(len=default_string_length)               :: comment, stmp
+      CHARACTER(len=default_string_length)               :: stmp
       INTEGER                                            :: handle, ia, ic, id, itmp, iweight, k, &
                                                             nsteps, unit_nr
       LOGICAL                                            :: should_output
-      REAL(KIND=dp)                                      :: inv_norm, rtmp
-      REAL(KIND=dp), DIMENSION(:, :, :), POINTER         :: message
+      REAL(KIND=dp)                                      :: inv_norm, rtmp, rtmp2
+      REAL(KIND=dp), DIMENSION(:, :), POINTER            :: message
       TYPE(cp_logger_type), POINTER                      :: logger
       TYPE(section_vals_type), POINTER                   :: print_key
 
@@ -1404,38 +1383,46 @@ CONTAINS
       IF (should_output) THEN
          ! work on the temporary array so that accumulated data remains intact
          ! save accumulated data of different env on same core in first temp
-         helium_env(1)%helium%rdf_inst(:, :, :) = 0.0_dp
+         helium_env(1)%helium%rdf_inst(:, :) = 0.0_dp
          DO k = 1, SIZE(helium_env)
-            helium_env(1)%helium%rdf_inst(:, :, :) = helium_env(1)%helium%rdf_inst(:, :, :)+ &
-                                                     helium_env(k)%helium%rdf_accu(:, :, :)
+            helium_env(1)%helium%rdf_inst(:, :) = helium_env(1)%helium%rdf_inst(:, :) + &
+                                                  helium_env(k)%helium%rdf_accu(:, :)
          END DO
 
          ! average over processors
          NULLIFY (message)
-         message => helium_env(1)%helium%rdf_inst(:, :, :)
+         message => helium_env(1)%helium%rdf_inst(:, :)
          CALL mp_sum(message, helium_env(1)%comm)
          itmp = helium_env(1)%helium%num_env
          inv_norm = 1.0_dp/REAL(itmp, dp)
-         helium_env(1)%helium%rdf_inst(:, :, :) = helium_env(1)%helium%rdf_inst(:, :, :)*inv_norm
+         helium_env(1)%helium%rdf_inst(:, :) = helium_env(1)%helium%rdf_inst(:, :)*inv_norm
 
          ! average over steps performed so far in this run
-         nsteps = helium_env(1)%helium%current_step-helium_env(1)%helium%first_step
+         nsteps = helium_env(1)%helium%current_step - helium_env(1)%helium%first_step
          inv_norm = 1.0_dp/REAL(nsteps, dp)
-         helium_env(1)%helium%rdf_inst(:, :, :) = helium_env(1)%helium%rdf_inst(:, :, :)*inv_norm
+         helium_env(1)%helium%rdf_inst(:, :) = helium_env(1)%helium%rdf_inst(:, :)*inv_norm
 
          iweight = helium_env(1)%helium%rdf_iweight
          ! average over the old and the current density (observe the weights!)
-         helium_env(1)%helium%rdf_inst(:, :, :) = nsteps*helium_env(1)%helium%rdf_inst(:, :, :)+ &
-                                                  iweight*helium_env(1)%helium%rdf_rstr(:, :, :)
-         helium_env(1)%helium%rdf_inst(:, :, :) = helium_env(1)%helium%rdf_inst(:, :, :)/REAL(nsteps+iweight, dp)
+         helium_env(1)%helium%rdf_inst(:, :) = nsteps*helium_env(1)%helium%rdf_inst(:, :) + &
+                                               iweight*helium_env(1)%helium%rdf_rstr(:, :)
+         helium_env(1)%helium%rdf_inst(:, :) = helium_env(1)%helium%rdf_inst(:, :)/REAL(nsteps + iweight, dp)
 
          IF (logger%para_env%ionode) THEN
 
-            DO id = 1, helium_env(1)%helium%rdf_num ! loop over estimators ---
+            ia = 0
+            rtmp = cp_unit_from_cp2k(1.0_dp, "angstrom")
+            rtmp2 = 1.0_dp
+            IF (.NOT. helium_env(1)%helium%periodic) THEN
+               ! RDF in non-periodic case has unit 1/bohr**3, convert to Angstrom:
+               rtmp2 = rtmp**(-3)
+            END IF
 
+            IF (helium_env(1)%helium%rdf_he_he) THEN
                ! overwrite RDF file each time it is written
+               ia = 1
                stmp = ""
-               WRITE (stmp, *) id
+               WRITE (stmp, *) "He-He"
                unit_nr = cp_print_key_unit_nr( &
                          logger, &
                          print_key, &
@@ -1444,22 +1431,39 @@ CONTAINS
                          file_position="REWIND", &
                          do_backup=.FALSE.)
 
-               comment = "Radial distribution function"
+               DO ic = 1, helium_env(1)%helium%rdf_nbin
+                  WRITE (unit_nr, '(F20.10)', ADVANCE='NO') (REAL(ic, dp) - 0.5_dp)*helium_env(1)%helium%rdf_delr*rtmp
+                  WRITE (unit_nr, '(F20.10)', ADVANCE='NO') helium_env(1)%helium%rdf_inst(ia, ic)*rtmp2
+                  WRITE (unit_nr, *)
+               END DO
+
+               CALL m_flush(unit_nr)
+               CALL cp_print_key_finished_output(unit_nr, logger, print_key)
+            END IF
+
+            IF (helium_env(1)%helium%rdf_sol_he) THEN
+               ! overwrite RDF file each time it is written
+               stmp = ""
+               WRITE (stmp, *) "Solute-He"
+               unit_nr = cp_print_key_unit_nr( &
+                         logger, &
+                         print_key, &
+                         middle_name="helium-rdf-"//TRIM(ADJUSTL(stmp)), &
+                         extension=".dat", &
+                         file_position="REWIND", &
+                         do_backup=.FALSE.)
 
                DO ic = 1, helium_env(1)%helium%rdf_nbin
-                  rtmp = (REAL(ic, dp)-0.5_dp)*helium_env(1)%helium%rdf_delr
-                  rtmp = cp_unit_from_cp2k(rtmp, "angstrom")
-                  WRITE (unit_nr, '(F20.10)', ADVANCE='NO') rtmp
-                  DO ia = 1, helium_env(1)%helium%rdf_num_ctr
-                     WRITE (unit_nr, '(F20.10)', ADVANCE='NO') helium_env(1)%helium%rdf_inst(id, ic, ia)
+                  WRITE (unit_nr, '(F20.10)', ADVANCE='NO') (REAL(ic, dp) - 0.5_dp)*helium_env(1)%helium%rdf_delr*rtmp
+                  DO id = 1 + ia, helium_env(1)%helium%rdf_num
+                     WRITE (unit_nr, '(F20.10)', ADVANCE='NO') helium_env(1)%helium%rdf_inst(id, ic)*rtmp2
                   END DO
                   WRITE (unit_nr, *)
                END DO
 
                CALL m_flush(unit_nr)
                CALL cp_print_key_finished_output(unit_nr, logger, print_key)
-
-            END DO ! loop over estimators ---
+            END IF
 
          END IF
       END IF
@@ -1474,7 +1478,7 @@ CONTAINS
 !> \param helium_env ...
 !> \date   2011-06-21
 !> \par History
-!>      08.2015 cleaned code from unneded arrays
+!>      08.2015 cleaned code from unneeded arrays
 !>         2016-07-14 Modified to work with independent helium_env [cschran]
 !> \author Lukasz Walewski
 ! **************************************************************************************************
@@ -1482,8 +1486,7 @@ CONTAINS
 
       TYPE(helium_solvent_p_type), DIMENSION(:), POINTER :: helium_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'helium_print_rho', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'helium_print_rho'
 
       CHARACTER(len=default_string_length)               :: comment, fname
       INTEGER                                            :: handle, ic, id, itmp, iweight, k, &
@@ -1515,7 +1518,7 @@ CONTAINS
       ! save accumulated data of different env on same core in first temp
       helium_env(1)%helium%rho_inst(:, :, :, :) = 0.0_dp
       DO k = 1, SIZE(helium_env)
-         helium_env(1)%helium%rho_inst(:, :, :, :) = helium_env(1)%helium%rho_inst(:, :, :, :)+ &
+         helium_env(1)%helium%rho_inst(:, :, :, :) = helium_env(1)%helium%rho_inst(:, :, :, :) + &
                                                      helium_env(k)%helium%rho_accu(:, :, :, :)
       END DO
 
@@ -1526,15 +1529,15 @@ CONTAINS
       helium_env(1)%helium%rho_inst(:, :, :, :) = helium_env(1)%helium%rho_inst(:, :, :, :)*invproc
 
       ! average over steps performed so far in this run
-      nsteps = helium_env(1)%helium%current_step-helium_env(1)%helium%first_step
+      nsteps = helium_env(1)%helium%current_step - helium_env(1)%helium%first_step
       inv_norm = 1.0_dp/REAL(nsteps, dp)
       helium_env(1)%helium%rho_inst(:, :, :, :) = helium_env(1)%helium%rho_inst(:, :, :, :)*inv_norm
 
       iweight = helium_env(1)%helium%rho_iweight
       ! average over the old and the current density (observe the weights!)
-      helium_env(1)%helium%rho_inst(:, :, :, :) = nsteps*helium_env(1)%helium%rho_inst(:, :, :, :)+ &
+      helium_env(1)%helium%rho_inst(:, :, :, :) = nsteps*helium_env(1)%helium%rho_inst(:, :, :, :) + &
                                                   iweight*helium_env(1)%helium%rho_rstr(:, :, :, :)
-      helium_env(1)%helium%rho_inst(:, :, :, :) = helium_env(1)%helium%rho_inst(:, :, :, :)/REAL(nsteps+iweight, dp)
+      helium_env(1)%helium%rho_inst(:, :, :, :) = helium_env(1)%helium%rho_inst(:, :, :, :)/REAL(nsteps + iweight, dp)
 
       ! set center of the cubefile
       IF (helium_env(1)%helium%solute_present) THEN
@@ -1579,7 +1582,7 @@ CONTAINS
                CALL helium_write_cubefile( &
                   unit_nr, &
                   comment, &
-                  center-0.5_dp*(helium_env(1)%helium%rho_maxr-helium_env(1)%helium%rho_delr), &
+                  center - 0.5_dp*(helium_env(1)%helium%rho_maxr - helium_env(1)%helium%rho_delr), &
                   helium_env(1)%helium%rho_delr, &
                   helium_env(1)%helium%rho_nbin, &
                   cubdata)
@@ -1616,8 +1619,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :, :), INTENT(IN), &
          POINTER                                         :: DATA
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'helium_write_cubefile', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'helium_write_cubefile'
 
       INTEGER                                            :: handle, ix, iy, iz, nw
       REAL(KIND=dp)                                      :: delr, inva3
@@ -1644,7 +1646,7 @@ CONTAINS
          DO iy = 1, ndim
             DO iz = 1, ndim
                WRITE (unit, '(1X,E13.5)', ADVANCE='NO') inva3*DATA(ix, iy, iz)
-               nw = nw+1
+               nw = nw + 1
                IF (MOD(nw, 6) .EQ. 0) THEN
                   nw = 0
                   WRITE (unit, *)
@@ -1652,7 +1654,7 @@ CONTAINS
             END DO
          END DO
       END DO
-      ! some compilers write over the first entry on a line loosing all previous
+      ! some compilers write over the first entry on a line losing all previous
       ! values written on that line unless line terminator is written at the end
       ! so make sure that the last WRITE statement runs without ADVANCE='NO'
       ! (observed for ifort 14.0.1 and 14.0.2 but not for gfortran 4.8.2)
@@ -1676,8 +1678,7 @@ CONTAINS
 
       TYPE(helium_solvent_p_type), DIMENSION(:), POINTER :: helium_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'helium_print_plength', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'helium_print_plength'
 
       INTEGER                                            :: handle, i, unit_nr
       LOGICAL                                            :: is_new, should_output
@@ -1736,8 +1737,7 @@ CONTAINS
 
       TYPE(helium_solvent_p_type), DIMENSION(:), POINTER :: helium_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'helium_print_force', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'helium_print_force'
 
       CHARACTER(len=default_string_length)               :: msgstr
       INTEGER                                            :: handle, ia, ib, ic, idim, unit_nr
@@ -1782,7 +1782,7 @@ CONTAINS
             idim = 0
             DO ia = 1, helium_env(1)%helium%solute_atoms
                DO ic = 1, 3
-                  idim = idim+1
+                  idim = idim + 1
                   WRITE (unit_nr, '(F20.10)', ADVANCE='NO') helium_env(1)%helium%force_avrg(ib, idim)
                END DO
             END DO
@@ -1868,13 +1868,13 @@ CONTAINS
                          extension=".dat")
 
                ! unpack and actually print the forces - all components in one line
-               offset = (irank-1)*SIZE(helium%rtmp_p_ndim_1d)
+               offset = (irank - 1)*SIZE(helium%rtmp_p_ndim_1d)
                idim = 0
                DO ib = 1, helium%solute_beads
                   DO ia = 1, helium%solute_atoms
                      DO ic = 1, 3
-                        idim = idim+1
-                        WRITE (unit_nr, '(F20.10)', ADVANCE='NO') helium%rtmp_p_ndim_np_1d(offset+idim)
+                        idim = idim + 1
+                        WRITE (unit_nr, '(F20.10)', ADVANCE='NO') helium%rtmp_p_ndim_np_1d(offset + idim)
                      END DO
                   END DO
                END DO

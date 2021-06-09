@@ -11,13 +11,12 @@
     &END MGRID
     &QS
       EPS_DEFAULT 1.0E-12
-      MAP_CONSISTENT
     &END QS
     &SCF
       MAX_SCF 1
       SCF_GUESS ATOMIC
       EPS_SCF 1.0E-6
-      &OT 
+      &OT
          PRECONDITIONER FULL_ALL
          ENERGY_GAP 0.001
       &END OT
@@ -27,7 +26,7 @@
       &END XC_FUNCTIONAL
     &END XC
     &POISSON
-       PERIODIC XYZ 
+       PERIODIC XYZ
        PSOLVER PERIODIC
     &END
   &END DFT

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -62,8 +64,7 @@ CONTAINS
 
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'calc_et_coupling', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'calc_et_coupling'
 
       INTEGER                                            :: handle, i, iw, j, k, nao, ncol_local, &
                                                             nmo, nrow_local
@@ -168,7 +169,7 @@ CONTAINS
 
          DO j = 1, ncol_local
             DO k = 1, nrow_local
-               b(i) = b(i)+rest_MO(2)%matrix%local_data(k, j)*inverse_mat%local_data(k, j)
+               b(i) = b(i) + rest_MO(2)%matrix%local_data(k, j)*inverse_mat%local_data(k, j)
             END DO
          END DO
 
@@ -176,7 +177,7 @@ CONTAINS
          a(i) = 0.0_dp
          DO j = 1, ncol_local
             DO k = 1, nrow_local
-               a(i) = a(i)+rest_MO(1)%matrix%local_data(k, j)*Tinverse%local_data(k, j)
+               a(i) = a(i) + rest_MO(1)%matrix%local_data(k, j)*Tinverse%local_data(k, j)
             END DO
          END DO
          IF (is_spin_constraint) THEN
@@ -200,10 +201,10 @@ CONTAINS
 
       IF (dft_control%nspins == 2) THEN
          Sda = S_det(1)*S_det(2)
-         Wda = ((a(1)+a(2))+(b(1)+b(2)))*0.5_dp*Sda
+         Wda = ((a(1) + a(2)) + (b(1) + b(2)))*0.5_dp*Sda
       ELSE
          Sda = S_det(1)**2
-         Wda = (a(1)+b(1))*Sda
+         Wda = (a(1) + b(1))*Sda
       END IF
 
       IF (dft_control%qs_control%ddapc_restraint) THEN
@@ -239,9 +240,9 @@ CONTAINS
       CALL get_qs_env(qs_env, energy=energy)
       W_mat(1, 1) = energy%total
       W_mat(2, 2) = qs_env%et_coupling%energy
-      a(1) = (energy%total+strength*Wbb)*Sda-strength*Wda
-      a(2) = (qs_env%et_coupling%energy+qs_env%et_coupling%e1*Waa)*Sda-qs_env%et_coupling%e1*Wda
-      W_mat(1, 2) = (a(1)+a(2))*0.5_dp
+      a(1) = (energy%total + strength*Wbb)*Sda - strength*Wda
+      a(2) = (qs_env%et_coupling%energy + qs_env%et_coupling%e1*Waa)*Sda - qs_env%et_coupling%e1*Wda
+      W_mat(1, 2) = (a(1) + a(2))*0.5_dp
       W_mat(2, 1) = W_mat(1, 2)
 
       S_mat = MATMUL(W_mat, (tmp_mat))

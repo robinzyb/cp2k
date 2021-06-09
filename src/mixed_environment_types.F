@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -158,8 +160,6 @@ CONTAINS
       TYPE(cp_result_type), OPTIONAL, POINTER            :: results
       TYPE(mixed_cdft_type), OPTIONAL, POINTER           :: cdft_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_mixed_env', routineP = moduleN//':'//routineN
-
       TYPE(atomic_kind_list_type), POINTER               :: atomic_kinds
       TYPE(molecule_kind_list_type), POINTER             :: molecule_kinds
       TYPE(molecule_list_type), POINTER                  :: molecules
@@ -220,7 +220,7 @@ CONTAINS
       CALL cp_para_env_retain(para_env)
       mixed_env%para_env => para_env
       mixed_env%ref_count = 1
-      last_mixed_env_id_nr = last_mixed_env_id_nr+1
+      last_mixed_env_id_nr = last_mixed_env_id_nr + 1
       mixed_env%id_nr = last_mixed_env_id_nr
 
    END SUBROUTINE init_mixed_env
@@ -259,8 +259,6 @@ CONTAINS
       TYPE(cp_para_env_p_type), DIMENSION(:), OPTIONAL, &
          POINTER                                         :: sub_para_env
       TYPE(mixed_cdft_type), OPTIONAL, POINTER           :: cdft_control
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_mixed_env', routineP = moduleN//':'//routineN
 
       TYPE(atomic_kind_list_type), POINTER               :: atomic_kinds
       TYPE(molecule_kind_list_type), POINTER             :: molecule_kinds
@@ -334,9 +332,6 @@ CONTAINS
       TYPE(mixed_environment_type), POINTER              :: mixed_env
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mixed_env_create', &
-         routineP = moduleN//':'//routineN
-
       ALLOCATE (mixed_env)
       CALL init_mixed_env(mixed_env, para_env=para_env)
    END SUBROUTINE mixed_env_create
@@ -349,12 +344,9 @@ CONTAINS
    SUBROUTINE mixed_env_retain(mixed_env)
       TYPE(mixed_environment_type), POINTER              :: mixed_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mixed_env_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(mixed_env))
       CPASSERT(mixed_env%ref_count > 0)
-      mixed_env%ref_count = mixed_env%ref_count+1
+      mixed_env%ref_count = mixed_env%ref_count + 1
    END SUBROUTINE mixed_env_retain
 
 ! **************************************************************************************************
@@ -365,14 +357,11 @@ CONTAINS
    SUBROUTINE mixed_env_release(mixed_env)
       TYPE(mixed_environment_type), POINTER              :: mixed_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mixed_env_release', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, ngroups
 
       IF (ASSOCIATED(mixed_env)) THEN
          CPASSERT(mixed_env%ref_count > 0)
-         mixed_env%ref_count = mixed_env%ref_count-1
+         mixed_env%ref_count = mixed_env%ref_count - 1
          IF (mixed_env%ref_count < 1) THEN
             ngroups = SIZE(mixed_env%sub_para_env)
             DO i = 1, ngroups

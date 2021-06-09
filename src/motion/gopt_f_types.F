@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -39,6 +41,8 @@ MODULE gopt_f_types
    USE kinds,                           ONLY: default_string_length,&
                                               dp
    USE particle_list_types,             ONLY: particle_list_type
+   USE space_groups_types,              ONLY: release_spgr_type,&
+                                              spgr_type
 #include "../base/base_uses.f90"
 
    IMPLICIT NONE
@@ -69,6 +73,7 @@ MODULE gopt_f_types
       TYPE(gopt_f_type), POINTER               :: gopt_dimer_env
       TYPE(gopt_param_type), POINTER           :: gopt_dimer_param
       TYPE(cell_opt_env_type), POINTER         :: cell_env
+      TYPE(spgr_type), POINTER                 :: spgr
       REAL(KIND=dp), DIMENSION(3, 3)           :: h_ref
       LOGICAL                                  :: require_consistent_energy_force
    END TYPE gopt_f_type
@@ -97,8 +102,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: geo_opt_section
       LOGICAL, INTENT(IN), OPTIONAL                      :: eval_opt_geo
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'gopt_f_create', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: natom, nshell
       TYPE(cp_subsys_type), POINTER                      :: subsys
       TYPE(particle_list_type), POINTER                  :: particles, shell_particles
@@ -108,12 +111,13 @@ CONTAINS
       ALLOCATE (gopt_env)
       nshell = 0
 
-      NULLIFY (gopt_env%dimer_env, gopt_env%gopt_dimer_env, gopt_env%gopt_dimer_param, gopt_env%cell_env)
+      NULLIFY (gopt_env%dimer_env, gopt_env%gopt_dimer_env, gopt_env%gopt_dimer_param, gopt_env%cell_env, gopt_env%spgr)
       gopt_env%ref_count = 1
-      last_gopt_f_id = last_gopt_f_id+1
+      last_gopt_f_id = last_gopt_f_id + 1
       gopt_env%id_nr = last_gopt_f_id
       gopt_env%dimer_rotation = .FALSE.
       gopt_env%do_line_search = .FALSE.
+      ALLOCATE (gopt_env%spgr)
       CALL force_env_retain(force_env)
       gopt_env%force_env => force_env
       gopt_env%motion_section => section_vals_get_subs_vals(force_env%root_section, "MOTION")
@@ -132,7 +136,7 @@ CONTAINS
                             shell_particles=shell_particles)
          IF (ASSOCIATED(shell_particles)) nshell = shell_particles%n_els
          ! The same number of shell and core particles is assumed
-         gopt_env%nfree = particles%n_els+nshell
+         gopt_env%nfree = particles%n_els + nshell
          gopt_env%label = "GEO_OPT"
          gopt_env%tag = "GEOMETRY"
          SELECT CASE (gopt_param%type_id)
@@ -183,11 +187,9 @@ CONTAINS
    SUBROUTINE gopt_f_retain(gopt_env)
       TYPE(gopt_f_type), POINTER                         :: gopt_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'gopt_f_retain', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(gopt_env))
       CPASSERT(gopt_env%ref_count > 0)
-      gopt_env%ref_count = gopt_env%ref_count+1
+      gopt_env%ref_count = gopt_env%ref_count + 1
    END SUBROUTINE gopt_f_retain
 
 ! **************************************************************************************************
@@ -199,11 +201,9 @@ CONTAINS
    RECURSIVE SUBROUTINE gopt_f_release(gopt_env)
       TYPE(gopt_f_type), POINTER                         :: gopt_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'gopt_f_release', routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(gopt_env)) THEN
          CPASSERT(gopt_env%ref_count > 0)
-         gopt_env%ref_count = gopt_env%ref_count-1
+         gopt_env%ref_count = gopt_env%ref_count - 1
          IF (gopt_env%ref_count == 0) THEN
             CALL force_env_release(gopt_env%force_env)
             NULLIFY (gopt_env%force_env, &
@@ -214,6 +214,7 @@ CONTAINS
             CALL dimer_env_release(gopt_env%dimer_env)
             CALL gopt_f_release(gopt_env%gopt_dimer_env)
             CALL gopt_param_release(gopt_env%gopt_dimer_param)
+            CALL release_spgr_type(gopt_env%spgr)
             DEALLOCATE (gopt_env)
          END IF
       END IF

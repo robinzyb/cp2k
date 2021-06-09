@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -20,9 +22,14 @@ MODULE qs_initial_guess
                                               copy_fm_to_dbcsr,&
                                               cp_dbcsr_sm_fm_multiply,&
                                               cp_fm_to_dbcsr_row_template
+   USE cp_fm_cholesky,                  ONLY: cp_fm_cholesky_decompose
+   USE cp_fm_struct,                    ONLY: cp_fm_struct_create,&
+                                              cp_fm_struct_get,&
+                                              cp_fm_struct_release,&
+                                              cp_fm_struct_type
    USE cp_fm_types,                     ONLY: &
-        cp_fm_create, cp_fm_get_submatrix, cp_fm_init_random, cp_fm_p_type, cp_fm_release, &
-        cp_fm_set_all, cp_fm_set_submatrix, cp_fm_to_fm, cp_fm_type
+        cp_fm_create, cp_fm_get_info, cp_fm_get_submatrix, cp_fm_init_random, cp_fm_p_type, &
+        cp_fm_release, cp_fm_set_all, cp_fm_set_submatrix, cp_fm_to_fm, cp_fm_type
    USE cp_log_handling,                 ONLY: cp_get_default_logger,&
                                               cp_logger_get_default_io_unit,&
                                               cp_logger_type,&
@@ -31,14 +38,15 @@ MODULE qs_initial_guess
                                               cp_print_key_unit_nr
    USE cp_para_types,                   ONLY: cp_para_env_type
    USE dbcsr_api,                       ONLY: &
-        dbcsr_add_on_diag, dbcsr_checksum, dbcsr_copy, dbcsr_filter, dbcsr_get_diag, &
+        dbcsr_add_on_diag, dbcsr_checksum, dbcsr_copy, dbcsr_dot, dbcsr_filter, dbcsr_get_diag, &
         dbcsr_get_info, dbcsr_get_num_blocks, dbcsr_get_occupation, dbcsr_iterator_blocks_left, &
         dbcsr_iterator_next_block, dbcsr_iterator_start, dbcsr_iterator_stop, dbcsr_iterator_type, &
         dbcsr_multiply, dbcsr_nfullrows_total, dbcsr_p_type, dbcsr_release, dbcsr_scale, &
-        dbcsr_set, dbcsr_set_diag, dbcsr_trace, dbcsr_type, dbcsr_verify_matrix
+        dbcsr_set, dbcsr_set_diag, dbcsr_type, dbcsr_verify_matrix
    USE external_potential_types,        ONLY: all_potential_type,&
                                               gth_potential_type,&
                                               sgp_potential_type
+   USE hfx_types,                       ONLY: hfx_type
    USE input_constants,                 ONLY: atomic_guess,&
                                               core_guess,&
                                               history_guess,&
@@ -47,6 +55,7 @@ MODULE qs_initial_guess
                                               random_guess,&
                                               restart_guess,&
                                               sparse_guess
+   USE input_cp2k_hfx,                  ONLY: ri_mo
    USE input_section_types,             ONLY: section_vals_get_subs_vals,&
                                               section_vals_type
    USE kinds,                           ONLY: default_path_length,&
@@ -72,7 +81,8 @@ MODULE qs_initial_guess
    USE qs_mo_occupation,                ONLY: set_mo_occupation
    USE qs_mo_types,                     ONLY: get_mo_set,&
                                               mo_set_p_type,&
-                                              mo_set_restrict
+                                              mo_set_restrict,&
+                                              reassign_allocated_mos
    USE qs_mom_methods,                  ONLY: do_mom_guess
    USE qs_rho_methods,                  ONLY: qs_rho_update_rho
    USE qs_rho_types,                    ONLY: qs_rho_get,&
@@ -81,6 +91,7 @@ MODULE qs_initial_guess
                                               eigensolver_simple
    USE qs_scf_types,                    ONLY: block_davidson_diag_method_nr,&
                                               block_krylov_diag_method_nr,&
+                                              general_diag_method_nr,&
                                               ot_diag_method_nr,&
                                               qs_scf_env_type
    USE qs_wf_history_methods,           ONLY: wfi_update
@@ -114,6 +125,7 @@ CONTAINS
 !>      03.2006 moved here from qs_scf [Joost VandeVondele]
 !>      06.2007 allow to skip the initial guess [jgh]
 !>      08.2014 kpoints [JGH]
+!>      10.2019 tot_corr_zeff, switch_surf_dip [SGh]
 !> \note
 !>      badly needs to be split in subroutines each doing one of the possible
 !>      schemes
@@ -123,30 +135,31 @@ CONTAINS
       TYPE(qs_scf_env_type), POINTER                     :: scf_env
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_first_density_matrix', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_first_density_matrix'
 
       CHARACTER(LEN=default_path_length)                 :: file_name, filename
       INTEGER :: atom_a, blk, density_guess, group, handle, homo, i, iatom, ic, icol, id_nr, &
          ikind, irow, iseed(4), ispin, istart_col, istart_row, j, last_read, n, n_cols, n_rows, &
-         nao, natom, natoms, natoms_tmp, nelectron, nmo, nmo_tmp, not_read, nsgf, nspin, nvec, &
-         ounit, qs_env_id, safe_density_guess, size_atomic_kind_set, z
+         nao, natom, natoms, natoms_tmp, nblocks, nelectron, nmo, nmo_tmp, not_read, nsgf, nspin, &
+         nvec, ounit, qs_env_id, safe_density_guess, size_atomic_kind_set, z
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: first_sgf, kind_of, last_sgf
       INTEGER, DIMENSION(2)                              :: nelectron_spin
       INTEGER, DIMENSION(:), POINTER                     :: atom_list, elec_conf, nelec_kind, &
                                                             sort_kind
-      LOGICAL                                            :: did_guess, do_kpoints, do_std_diag, &
-                                                            exist, has_unit_metric, &
-                                                            natom_mismatch, ofgpw
+      LOGICAL                                            :: did_guess, do_hfx_ri_mo, do_kpoints, &
+                                                            do_std_diag, exist, has_unit_metric, &
+                                                            natom_mismatch, need_mos, need_wm, &
+                                                            ofgpw
       REAL(dp), ALLOCATABLE, DIMENSION(:, :)             :: buff, buff2
       REAL(dp), DIMENSION(:, :), POINTER                 :: pdata
       REAL(KIND=dp)                                      :: checksum, eps, length, maxocc, occ, &
-                                                            rscale, trps1, zeff
+                                                            rscale, tot_corr_zeff, trps1, zeff
       REAL(KIND=dp), DIMENSION(0:3)                      :: edftb
       TYPE(atom_matrix_type), DIMENSION(:), POINTER      :: pmat
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
       TYPE(atomic_kind_type), POINTER                    :: atomic_kind
       TYPE(cp_fm_p_type), DIMENSION(:), POINTER          :: work1
+      TYPE(cp_fm_struct_type), POINTER                   :: ao_ao_struct, ao_mo_struct
       TYPE(cp_fm_type), POINTER                          :: mo_coeff, moa, mob, ortho, sv, work2
       TYPE(cp_logger_type), POINTER                      :: logger
       TYPE(cp_para_env_type), POINTER                    :: para_env
@@ -158,8 +171,9 @@ CONTAINS
       TYPE(dbcsr_type)                                   :: mo_dbcsr, mo_tmp_dbcsr
       TYPE(dft_control_type), POINTER                    :: dft_control
       TYPE(gto_basis_set_type), POINTER                  :: orb_basis_set
+      TYPE(hfx_type), DIMENSION(:, :), POINTER           :: x_data
       TYPE(kpoint_type), POINTER                         :: kpoints
-      TYPE(mo_set_p_type), DIMENSION(:), POINTER         :: mo_array
+      TYPE(mo_set_p_type), DIMENSION(:), POINTER         :: mo_array, mos_last_converged
       TYPE(particle_type), DIMENSION(:), POINTER         :: particle_set
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
       TYPE(qs_kind_type), POINTER                        :: qs_kind
@@ -171,12 +185,14 @@ CONTAINS
       NULLIFY (atomic_kind, qs_kind, mo_coeff, sv, orb_basis_set, atomic_kind_set, &
                qs_kind_set, particle_set, ortho, work2, work1, mo_array, s_sparse, &
                scf_control, dft_control, p_rmpv, ortho, work2, work1, para_env, &
-               s_sparse, scf_control, dft_control, h_core_sparse, matrix_ks, rho)
+               s_sparse, scf_control, dft_control, h_core_sparse, matrix_ks, rho, &
+               mos_last_converged)
       NULLIFY (dft_section, input, subsys_section)
       NULLIFY (matrix_s_kp, matrix_h_kp, matrix_ks_kp, rho_ao_kp)
       NULLIFY (moa, mob)
       NULLIFY (atom_list, elec_conf, kpoints)
       edftb = 0.0_dp
+      tot_corr_zeff = 0.0_dp
 
       CALL timeset(routineN, handle)
 
@@ -197,9 +213,14 @@ CONTAINS
                       kpoints=kpoints, &
                       rho=rho, &
                       nelectron_spin=nelectron_spin, &
-                      para_env=para_env)
+                      para_env=para_env, &
+                      x_data=x_data)
 
       CALL qs_rho_get(rho, rho_ao_kp=rho_ao_kp)
+
+      IF (dft_control%switch_surf_dip) THEN
+         CALL get_qs_env(qs_env, mos_last_converged=mos_last_converged)
+      ENDIF
 
       ! just initialize the first image, the other density are set to zero
       DO ispin = 1, dft_control%nspins
@@ -223,25 +244,46 @@ CONTAINS
       density_guess = scf_control%density_guess
       do_std_diag = .FALSE.
 
+      do_hfx_ri_mo = .FALSE.
+      IF (ASSOCIATED(x_data)) THEN
+         IF (x_data(1, 1)%do_hfx_ri) THEN
+            IF (x_data(1, 1)%ri_data%flavor == ri_mo) do_hfx_ri_mo = .TRUE.
+         ENDIF
+      ENDIF
+
+      IF (ASSOCIATED(scf_env%krylov_space)) do_std_diag = (scf_env%krylov_space%eps_std_diag > 0.0_dp)
+
+      need_mos = scf_control%use_ot .OR. scf_env%method == ot_diag_method_nr .OR. &
+                 (scf_env%method == block_krylov_diag_method_nr .AND. .NOT. do_std_diag) &
+                 .OR. dft_control%do_admm .OR. scf_env%method == block_davidson_diag_method_nr &
+                 .OR. do_hfx_ri_mo
+
       safe_density_guess = atomic_guess
-      IF (dft_control%qs_control%semi_empirical .OR. &
-          dft_control%qs_control%dftb .OR. &
-          dft_control%qs_control%xtb) THEN
+      IF (dft_control%qs_control%semi_empirical .OR. dft_control%qs_control%dftb) THEN
          IF (density_guess == atomic_guess) density_guess = mopac_guess
-         ! in case we need to bail to a safe restart type later on
          safe_density_guess = mopac_guess
+      END IF
+      IF (dft_control%qs_control%xtb) THEN
+         IF (do_kpoints) THEN
+            IF (density_guess == atomic_guess) density_guess = mopac_guess
+            safe_density_guess = mopac_guess
+         ELSE
+            IF (density_guess == atomic_guess) density_guess = core_guess
+            safe_density_guess = core_guess
+         END IF
       END IF
 
       IF (scf_control%use_ot .AND. &
           (.NOT. ((density_guess == random_guess) .OR. &
                   (density_guess == atomic_guess) .OR. &
+                  (density_guess == core_guess) .OR. &
                   (density_guess == mopac_guess) .OR. &
                   (density_guess == sparse_guess) .OR. &
                   (((density_guess == restart_guess) .OR. &
                     (density_guess == history_guess)) .AND. &
                    (scf_control%level_shift == 0.0_dp))))) THEN
          CALL cp_abort(__LOCATION__, &
-                       "OT needs GUESS ATOMIC / RANDOM / SPARSE / RESTART / HISTORY RESTART: other options NYI")
+                       "OT needs GUESS ATOMIC / CORE / RANDOM / SPARSE / RESTART / HISTORY RESTART: other options NYI")
       END IF
 
       ! if a restart was requested, check that the file exists,
@@ -280,10 +322,10 @@ CONTAINS
          CALL mp_bcast(exist, para_env%source, para_env%group)
          CALL mp_bcast(file_name, para_env%source, para_env%group)
          nvec = qs_env%wf_history%memory_depth
-         not_read = nvec+1
+         not_read = nvec + 1
          ! At this level we read the saved backup RESTART files..
          DO i = 1, nvec
-            j = i-1
+            j = i - 1
             filename = TRIM(file_name)
             IF (j /= 0) filename = TRIM(file_name)//".bak-"//ADJUSTL(cp_to_string(j))
             IF (para_env%ionode) &
@@ -309,10 +351,23 @@ CONTAINS
                density_guess = safe_density_guess
             END IF
          END IF
-         last_read = not_read-1
+         last_read = not_read - 1
       END IF
 
       did_guess = .FALSE.
+
+      IF (dft_control%correct_el_density_dip) THEN
+         tot_corr_zeff = qs_env%total_zeff_corr
+         !WRITE(*,*) "tot_corr_zeff = ", tot_corr_zeff
+         IF ((ABS(tot_corr_zeff) > 0.0_dp) .AND. (density_guess /= restart_guess)) THEN
+            CALL cp_warn(__LOCATION__, &
+                         "Use SCF_GUESS RESTART in conjunction with "// &
+                         "CORE_CORRECTION /= 0.0 and SURFACE_DIPOLE_CORRECTION TRUE. "// &
+                         "It is always advisable to perform SURFACE_DIPOLE_CORRECTION "// &
+                         "after a simulation without the surface dipole correction "// &
+                         "and using the ensuing wavefunction restart file. ")
+         ENDIF
+      ENDIF
 
       IF (density_guess == restart_guess) THEN
 
@@ -354,8 +409,18 @@ CONTAINS
                ENDDO
                IF (dft_control%restricted) CALL mo_set_restrict(mo_array)
 
-               IF (.NOT. scf_control%diagonalization%mom) &
-                  CALL set_mo_occupation(mo_array, smear=qs_env%scf_control%smear)
+               IF (.NOT. scf_control%diagonalization%mom) THEN
+                  IF (dft_control%correct_surf_dip) THEN
+                     IF (ABS(tot_corr_zeff) > 0.0_dp) THEN
+                        CALL set_mo_occupation(mo_array, smear=qs_env%scf_control%smear, &
+                                               tot_zeff_corr=tot_corr_zeff)
+                     ELSE
+                        CALL set_mo_occupation(mo_array, smear=qs_env%scf_control%smear)
+                     ENDIF
+                  ELSE
+                     CALL set_mo_occupation(mo_array, smear=qs_env%scf_control%smear)
+                  ENDIF
+               ENDIF
 
                DO ispin = 1, nspin
 
@@ -382,7 +447,7 @@ CONTAINS
       IF (density_guess == history_guess) THEN
          IF (not_read > 1) THEN
             DO i = 1, last_read
-               j = last_read-i
+               j = last_read - i
                CALL read_mo_set(mo_array, atomic_kind_set, qs_kind_set, particle_set, para_env, &
                                 id_nr=j, multiplicity=dft_control%multiplicity, &
                                 dft_section=dft_section)
@@ -468,6 +533,35 @@ CONTAINS
             CPABORT("calculate_first_density_matrix: core_guess not implemented for k-points")
          ENDIF
 
+         IF (.NOT. ASSOCIATED(work1)) THEN
+            need_wm = .TRUE.
+            CPASSERT(.NOT. ASSOCIATED(work2))
+            CPASSERT(.NOT. ASSOCIATED(ortho))
+         ELSE
+            need_wm = .FALSE.
+            CPASSERT(ASSOCIATED(work2))
+         END IF
+
+         IF (need_wm) THEN
+            CALL get_mo_set(mo_set=mo_array(1)%mo_set, mo_coeff=moa)
+            CALL cp_fm_get_info(moa, matrix_struct=ao_mo_struct)
+            CALL cp_fm_struct_get(ao_mo_struct, nrow_global=nao, nrow_block=nblocks)
+            CALL cp_fm_struct_create(fmstruct=ao_ao_struct, &
+                                     nrow_block=nblocks, &
+                                     ncol_block=nblocks, &
+                                     nrow_global=nao, &
+                                     ncol_global=nao, &
+                                     template_fmstruct=ao_mo_struct)
+            ALLOCATE (work1(1))
+            NULLIFY (work1(1)%matrix)
+            CALL cp_fm_create(work1(1)%matrix, ao_ao_struct)
+            CALL cp_fm_create(work2, ao_ao_struct)
+            CALL cp_fm_create(ortho, ao_ao_struct)
+            CALL copy_dbcsr_to_fm(matrix_s_kp(1, 1)%matrix, ortho)
+            CALL cp_fm_cholesky_decompose(ortho)
+            CALL cp_fm_struct_release(ao_ao_struct)
+         END IF
+
          ispin = 1
          ! Load core Hamiltonian into work matrix
          CALL copy_dbcsr_to_fm(h_core_sparse(1)%matrix, work1(ispin)%matrix)
@@ -507,6 +601,15 @@ CONTAINS
             CALL calculate_density_matrix(mo_array(ispin)%mo_set, p_rmpv(ispin)%matrix)
          END DO
 
+         ! release intermediate matrices
+         IF (need_wm) THEN
+            CALL cp_fm_release(ortho)
+            CALL cp_fm_release(work2)
+            CALL cp_fm_release(work1(1)%matrix)
+            DEALLOCATE (work1)
+            NULLIFY (work1, work2, ortho)
+         END IF
+
          did_guess = .TRUE.
       END IF
 
@@ -531,10 +634,8 @@ CONTAINS
             IF (ofgpw .AND. (scf_control%use_ot .OR. scf_env%method == ot_diag_method_nr)) THEN
                ! get orbitals later
             ELSE
-               IF (ASSOCIATED(scf_env%krylov_space)) do_std_diag = (scf_env%krylov_space%eps_std_diag > 0.0_dp)
-               IF (scf_control%use_ot .OR. scf_env%method == ot_diag_method_nr .OR. &
-                   (scf_env%method == block_krylov_diag_method_nr .AND. .NOT. do_std_diag) &
-                   .OR. dft_control%do_admm .OR. scf_env%method == block_davidson_diag_method_nr) THEN
+               IF (need_mos) THEN
+
                   IF (dft_control%restricted .AND. (ispin == 2)) THEN
                      CALL mo_set_restrict(mo_array)
                   ELSE
@@ -573,6 +674,45 @@ CONTAINS
                   CALL calculate_density_matrix(mo_array(ispin)%mo_set, &
                                                 p_rmpv(ispin)%matrix)
                END IF
+               ! adjust el_density in case surface_dipole_correction is switched
+               ! on and CORE_CORRECTION is non-zero
+               IF (scf_env%method == general_diag_method_nr) THEN
+                  IF (dft_control%correct_surf_dip) THEN
+                     IF (ABS(tot_corr_zeff) > 0.0_dp) THEN
+                        CALL get_mo_set(mo_set=mo_array(ispin)%mo_set, &
+                                        mo_coeff=mo_coeff, &
+                                        nmo=nmo, nao=nao, homo=homo)
+
+                        CALL cp_fm_set_all(mo_coeff, 0.0_dp)
+                        CALL cp_fm_init_random(mo_coeff, nmo)
+
+                        CALL cp_fm_create(sv, mo_coeff%matrix_struct, "SV")
+                        ! multiply times PS
+                        IF (has_unit_metric) THEN
+                           CALL cp_fm_to_fm(mo_coeff, sv)
+                        ELSE
+                           ! PS*C(:,1:nomo)+C(:,nomo+1:nmo) (nomo=NINT(nelectron/maxocc))
+                           CALL cp_dbcsr_sm_fm_multiply(s_sparse(1)%matrix, mo_coeff, sv, nmo)
+                        END IF
+                        CALL cp_dbcsr_sm_fm_multiply(p_rmpv(ispin)%matrix, sv, mo_coeff, homo)
+
+                        CALL cp_fm_release(sv)
+                        ! and ortho the result
+                        IF (has_unit_metric) THEN
+                           CALL make_basis_simple(mo_coeff, nmo)
+                        ELSE
+                           CALL make_basis_sm(mo_coeff, nmo, s_sparse(1)%matrix)
+                        END IF
+
+                        CALL set_mo_occupation(mo_set=mo_array(ispin)%mo_set, smear=qs_env%scf_control%smear, &
+                                               tot_zeff_corr=tot_corr_zeff)
+
+                        CALL calculate_density_matrix(mo_array(ispin)%mo_set, &
+                                                      p_rmpv(ispin)%matrix)
+                     ENDIF
+                  ENDIF
+               ENDIF
+
             END IF
 
          END DO
@@ -653,10 +793,10 @@ CONTAINS
                ikind = kind_of(irow)
                IF (icol .EQ. irow) THEN
                   IF (ispin == 1) THEN
-                     pdata(:, :) = pmat(ikind)%mat(:, :, 1)*rscale+ &
+                     pdata(:, :) = pmat(ikind)%mat(:, :, 1)*rscale + &
                                    pmat(ikind)%mat(:, :, 2)*rscale
                   ELSE
-                     pdata(:, :) = pmat(ikind)%mat(:, :, 1)*rscale- &
+                     pdata(:, :) = pmat(ikind)%mat(:, :, 1)*rscale - &
                                    pmat(ikind)%mat(:, :, 2)*rscale
                   END IF
                END IF
@@ -674,7 +814,7 @@ CONTAINS
             occ = dbcsr_get_occupation(p_rmpv(ispin)%matrix)
             IF (ounit > 0) WRITE (ounit, *) 'P_init occ', occ, ' checksum', checksum
 
-            CALL dbcsr_trace(p_rmpv(ispin)%matrix, s_sparse(1)%matrix, trps1)
+            CALL dbcsr_dot(p_rmpv(ispin)%matrix, s_sparse(1)%matrix, trps1)
             rscale = REAL(nelectron, dp)/trps1
             CALL dbcsr_scale(p_rmpv(ispin)%matrix, rscale)
 
@@ -693,7 +833,7 @@ CONTAINS
                                nmo=nmo, nao=nao, homo=homo)
                CALL cp_fm_set_all(mo_coeff, 0.0_dp)
 
-               n = MAXVAL(last_sgf-first_sgf)+1
+               n = MAXVAL(last_sgf - first_sgf) + 1
                size_atomic_kind_set = SIZE(atomic_kind_set)
 
                ALLOCATE (buff(n, n), sort_kind(size_atomic_kind_set), &
@@ -727,14 +867,14 @@ CONTAINS
                      !
                      atom_a = atom_list(iatom)
                      istart_row = first_sgf(atom_a)
-                     n_rows = last_sgf(atom_a)-first_sgf(atom_a)+1
+                     n_rows = last_sgf(atom_a) - first_sgf(atom_a) + 1
                      !
                      ! compute the "potential" nbr of states for this atom
                      n_cols = MAX(INT(REAL(nmo_tmp, dp)/REAL(natoms_tmp, dp)), 1)
                      IF (n_cols .GT. n_rows) n_cols = n_rows
                      !
-                     nmo_tmp = nmo_tmp-n_cols
-                     natoms_tmp = natoms_tmp-1
+                     nmo_tmp = nmo_tmp - n_cols
+                     natoms_tmp = natoms_tmp - 1
                      IF (nmo_tmp .LT. 0 .OR. natoms_tmp .LT. 0) THEN
                         CPABORT("Wrong1!")
                      END IF
@@ -743,7 +883,7 @@ CONTAINS
                      ENDDO
                      CALL cp_fm_set_submatrix(mo_coeff, buff, istart_row, istart_col, &
                                               n_rows, n_cols)
-                     istart_col = istart_col+n_cols
+                     istart_col = istart_col + n_cols
                   ENDDO
                ENDDO
 
@@ -762,11 +902,11 @@ CONTAINS
                      ENDIF
                      length = SQRT(DOT_PRODUCT(buff(:, 1), buff(:, 1)))
                      buff(:, :) = buff(:, :)/length
-                     DO j = i+1, nmo
+                     DO j = i + 1, nmo
                         CALL cp_fm_get_submatrix(mo_coeff, buff2, 1, j, nao, 1)
                         length = SQRT(DOT_PRODUCT(buff2(:, 1), buff2(:, 1)))
                         buff2(:, :) = buff2(:, :)/length
-                        IF (ABS(DOT_PRODUCT(buff(:, 1), buff2(:, 1))-1.0_dp) .LT. 1E-10_dp) THEN
+                        IF (ABS(DOT_PRODUCT(buff(:, 1), buff2(:, 1)) - 1.0_dp) .LT. 1E-10_dp) THEN
                            WRITE (*, *) 'wrong2', i, j, DOT_PRODUCT(buff(:, 1), buff2(:, 1))
                            DO ikind = 1, nao
                               IF (ABS(mo_coeff%local_data(ikind, i)) .GT. 1e-10_dp) THEN
@@ -871,9 +1011,7 @@ CONTAINS
          DO ispin = 1, nspin
             ! The orbital transformation method (OT) requires not only an
             ! initial density matrix, but also an initial wavefunction (MO set)
-            IF (ASSOCIATED(scf_env%krylov_space)) do_std_diag = (scf_env%krylov_space%eps_std_diag > 0.0_dp)
-            IF (scf_control%use_ot .OR. scf_env%method == ot_diag_method_nr .OR. &
-                (scf_env%method == block_krylov_diag_method_nr .AND. .NOT. do_std_diag)) THEN
+            IF (need_mos) THEN
                IF (dft_control%restricted .AND. (ispin == 2)) THEN
                   CALL mo_set_restrict(mo_array)
                ELSE
@@ -911,6 +1049,13 @@ CONTAINS
 
          did_guess = .TRUE.
       END IF
+! switch_surf_dip [SGh]
+      IF (dft_control%switch_surf_dip) THEN
+         DO ispin = 1, nspin
+            CALL reassign_allocated_mos(mos_last_converged(ispin)%mo_set, &
+                                        mo_array(ispin)%mo_set)
+         ENDDO
+      ENDIF
 
       IF (density_guess == no_guess) THEN
          did_guess = .TRUE.
@@ -948,8 +1093,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: ounit
       TYPE(cp_para_env_type)                             :: para_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_atomic_block_dm', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_atomic_block_dm'
 
       INTEGER                                            :: blk, group, handle, icol, ikind, irow, &
                                                             ispin, natom, nc, nkind, nocc(2)
@@ -1004,18 +1148,18 @@ CONTAINS
             ikind = kind_of(irow)
             IF (icol .EQ. irow) THEN
                IF (ispin == 1) THEN
-                  pdata(:, :) = pmat(ikind)%mat(:, :, 1)*rscale+ &
+                  pdata(:, :) = pmat(ikind)%mat(:, :, 1)*rscale + &
                                 pmat(ikind)%mat(:, :, 2)*rscale
                ELSE
-                  pdata(:, :) = pmat(ikind)%mat(:, :, 1)*rscale- &
+                  pdata(:, :) = pmat(ikind)%mat(:, :, 1)*rscale - &
                                 pmat(ikind)%mat(:, :, 2)*rscale
                END IF
-               nocc(ispin) = nocc(ispin)+nok(ispin, ikind)
+               nocc(ispin) = nocc(ispin) + nok(ispin, ikind)
             END IF
          ENDDO
          CALL dbcsr_iterator_stop(iter)
 
-         CALL dbcsr_trace(matrix_p, matrix_s, trps1)
+         CALL dbcsr_dot(matrix_p, matrix_s, trps1)
          rds = 0.0_dp
          ! could be a ghost-atoms-only simulation
          IF (nelectron_spin(ispin) > 0) THEN
@@ -1041,7 +1185,7 @@ CONTAINS
             IF (nelectron_spin(ispin) > nocc(ispin)) THEN
                rds = 0.99_dp
                CALL dbcsr_scale(matrix_p, rds)
-               rds = (1.0_dp-rds)*nelectron_spin(ispin)
+               rds = (1.0_dp - rds)*nelectron_spin(ispin)
                CALL dbcsr_get_info(matrix_p, nfullcols_total=nc)
                rds = rds/REAL(nc, KIND=dp)
                CALL dbcsr_add_on_diag(matrix_p, rds)
@@ -1084,8 +1228,7 @@ CONTAINS
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
       INTEGER, INTENT(IN)                                :: ounit
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_atomic_fock_matrix', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_atomic_fock_matrix'
 
       INTEGER                                            :: handle, icol, ikind, irow
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: kind_of
@@ -1163,8 +1306,7 @@ CONTAINS
       INTEGER, DIMENSION(:), INTENT(IN)                  :: nelectron_spin
       TYPE(cp_para_env_type)                             :: para_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_mopac_dm', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_mopac_dm'
 
       INTEGER                                            :: atom_a, group, handle, iatom, ikind, &
                                                             iset, isgf, isgfa, ishell, ispin, la, &
@@ -1249,7 +1391,7 @@ CONTAINS
             ELSEIF (has_pot) THEN
                CALL get_atomic_kind(atomic_kind_set(ikind), z=z)
                CALL get_qs_kind(qs_kind_set(ikind), nsgf=nsgf, elec_conf=elec_conf, zeff=zeff)
-               maxll = MIN(SIZE(elec_conf)-1, maxl)
+               maxll = MIN(SIZE(elec_conf) - 1, maxl)
                econf(:) = 0.0_dp
                econf(0:maxll) = 0.5_dp*maxocc*REAL(elec_conf(0:maxll), dp)
             ELSE
@@ -1266,23 +1408,23 @@ CONTAINS
                      CASE (0)
                         pdiag(isgfa) = econf(0)
                      CASE (1)
-                        pdiag(isgfa+1) = econf(1)/3._dp
-                        pdiag(isgfa+2) = econf(1)/3._dp
-                        pdiag(isgfa+3) = econf(1)/3._dp
+                        pdiag(isgfa + 1) = econf(1)/3._dp
+                        pdiag(isgfa + 2) = econf(1)/3._dp
+                        pdiag(isgfa + 3) = econf(1)/3._dp
                      CASE (2)
-                        pdiag(isgfa+4) = econf(2)/5._dp
-                        pdiag(isgfa+5) = econf(2)/5._dp
-                        pdiag(isgfa+6) = econf(2)/5._dp
-                        pdiag(isgfa+7) = econf(2)/5._dp
-                        pdiag(isgfa+8) = econf(2)/5._dp
+                        pdiag(isgfa + 4) = econf(2)/5._dp
+                        pdiag(isgfa + 5) = econf(2)/5._dp
+                        pdiag(isgfa + 6) = econf(2)/5._dp
+                        pdiag(isgfa + 7) = econf(2)/5._dp
+                        pdiag(isgfa + 8) = econf(2)/5._dp
                      CASE (3)
-                        pdiag(isgfa+9) = econf(3)/7._dp
-                        pdiag(isgfa+10) = econf(3)/7._dp
-                        pdiag(isgfa+11) = econf(3)/7._dp
-                        pdiag(isgfa+12) = econf(3)/7._dp
-                        pdiag(isgfa+13) = econf(3)/7._dp
-                        pdiag(isgfa+14) = econf(3)/7._dp
-                        pdiag(isgfa+15) = econf(3)/7._dp
+                        pdiag(isgfa + 9) = econf(3)/7._dp
+                        pdiag(isgfa + 10) = econf(3)/7._dp
+                        pdiag(isgfa + 11) = econf(3)/7._dp
+                        pdiag(isgfa + 12) = econf(3)/7._dp
+                        pdiag(isgfa + 13) = econf(3)/7._dp
+                        pdiag(isgfa + 14) = econf(3)/7._dp
+                        pdiag(isgfa + 15) = econf(3)/7._dp
                      CASE DEFAULT
                         CPABORT("")
                      END SELECT
@@ -1295,8 +1437,8 @@ CONTAINS
                   DO isgf = 1, nsgf
                      na = naox(isgf)
                      la = laox(isgf)
-                     occ = REAL(occupation(na), dp)/REAL(2*la+1, dp)
-                     pdiag(isgfa+isgf-1) = occ
+                     occ = REAL(occupation(na), dp)/REAL(2*la + 1, dp)
+                     pdiag(isgfa + isgf - 1) = occ
                   END DO
                END DO
             ELSEIF (dft_control%qs_control%semi_empirical) THEN
@@ -1306,49 +1448,49 @@ CONTAINS
                   isgfa = first_sgf(atom_a)
                   SELECT CASE (nsgf)
                   CASE (1) ! s-basis
-                     pdiag(isgfa) = (zeff-yy)*0.5_dp*maxocc
+                     pdiag(isgfa) = (zeff - yy)*0.5_dp*maxocc
                   CASE (4) ! sp-basis
                      IF (z == 1) THEN
                         ! special case: hydrogen with sp basis
-                        pdiag(isgfa) = (zeff-yy)*0.5_dp*maxocc
-                        pdiag(isgfa+1) = 0._dp
-                        pdiag(isgfa+2) = 0._dp
-                        pdiag(isgfa+3) = 0._dp
+                        pdiag(isgfa) = (zeff - yy)*0.5_dp*maxocc
+                        pdiag(isgfa + 1) = 0._dp
+                        pdiag(isgfa + 2) = 0._dp
+                        pdiag(isgfa + 3) = 0._dp
                      ELSE
-                        pdiag(isgfa) = (zeff*0.25_dp-yy)*0.5_dp*maxocc
-                        pdiag(isgfa+1) = (zeff*0.25_dp-yy)*0.5_dp*maxocc
-                        pdiag(isgfa+2) = (zeff*0.25_dp-yy)*0.5_dp*maxocc
-                        pdiag(isgfa+3) = (zeff*0.25_dp-yy)*0.5_dp*maxocc
+                        pdiag(isgfa) = (zeff*0.25_dp - yy)*0.5_dp*maxocc
+                        pdiag(isgfa + 1) = (zeff*0.25_dp - yy)*0.5_dp*maxocc
+                        pdiag(isgfa + 2) = (zeff*0.25_dp - yy)*0.5_dp*maxocc
+                        pdiag(isgfa + 3) = (zeff*0.25_dp - yy)*0.5_dp*maxocc
                      END IF
                   CASE (9) ! spd-basis
                      IF (z < 21 .OR. z > 30 .AND. z < 39 .OR. z > 48 .AND. z < 57) THEN
                         !   Main Group Element:  The "d" shell is formally empty.
-                        pdiag(isgfa) = (zeff*0.25_dp-yy)*0.5_dp*maxocc
-                        pdiag(isgfa+1) = (zeff*0.25_dp-yy)*0.5_dp*maxocc
-                        pdiag(isgfa+2) = (zeff*0.25_dp-yy)*0.5_dp*maxocc
-                        pdiag(isgfa+3) = (zeff*0.25_dp-yy)*0.5_dp*maxocc
-                        pdiag(isgfa+4) = (-yy)*0.5_dp*maxocc
-                        pdiag(isgfa+5) = (-yy)*0.5_dp*maxocc
-                        pdiag(isgfa+6) = (-yy)*0.5_dp*maxocc
-                        pdiag(isgfa+7) = (-yy)*0.5_dp*maxocc
-                        pdiag(isgfa+8) = (-yy)*0.5_dp*maxocc
+                        pdiag(isgfa) = (zeff*0.25_dp - yy)*0.5_dp*maxocc
+                        pdiag(isgfa + 1) = (zeff*0.25_dp - yy)*0.5_dp*maxocc
+                        pdiag(isgfa + 2) = (zeff*0.25_dp - yy)*0.5_dp*maxocc
+                        pdiag(isgfa + 3) = (zeff*0.25_dp - yy)*0.5_dp*maxocc
+                        pdiag(isgfa + 4) = (-yy)*0.5_dp*maxocc
+                        pdiag(isgfa + 5) = (-yy)*0.5_dp*maxocc
+                        pdiag(isgfa + 6) = (-yy)*0.5_dp*maxocc
+                        pdiag(isgfa + 7) = (-yy)*0.5_dp*maxocc
+                        pdiag(isgfa + 8) = (-yy)*0.5_dp*maxocc
                      ELSE IF (z < 99) THEN
-                        my_sum = zeff-9.0_dp*yy
+                        my_sum = zeff - 9.0_dp*yy
                         !   First, put 2 electrons in the 's' shell
                         pdiag(isgfa) = (MAX(0.0_dp, MIN(my_sum, 2.0_dp)))*0.5_dp*maxocc
-                        my_sum = my_sum-2.0_dp
+                        my_sum = my_sum - 2.0_dp
                         IF (my_sum > 0.0_dp) THEN
                            !   Now put as many electrons as possible into the 'd' shell
-                           pdiag(isgfa+4) = (MAX(0.0_dp, MIN(my_sum*0.2_dp, 2.0_dp)))*0.5_dp*maxocc
-                           pdiag(isgfa+5) = (MAX(0.0_dp, MIN(my_sum*0.2_dp, 2.0_dp)))*0.5_dp*maxocc
-                           pdiag(isgfa+6) = (MAX(0.0_dp, MIN(my_sum*0.2_dp, 2.0_dp)))*0.5_dp*maxocc
-                           pdiag(isgfa+7) = (MAX(0.0_dp, MIN(my_sum*0.2_dp, 2.0_dp)))*0.5_dp*maxocc
-                           pdiag(isgfa+8) = (MAX(0.0_dp, MIN(my_sum*0.2_dp, 2.0_dp)))*0.5_dp*maxocc
-                           my_sum = MAX(0.0_dp, my_sum-10.0_dp)
+                           pdiag(isgfa + 4) = (MAX(0.0_dp, MIN(my_sum*0.2_dp, 2.0_dp)))*0.5_dp*maxocc
+                           pdiag(isgfa + 5) = (MAX(0.0_dp, MIN(my_sum*0.2_dp, 2.0_dp)))*0.5_dp*maxocc
+                           pdiag(isgfa + 6) = (MAX(0.0_dp, MIN(my_sum*0.2_dp, 2.0_dp)))*0.5_dp*maxocc
+                           pdiag(isgfa + 7) = (MAX(0.0_dp, MIN(my_sum*0.2_dp, 2.0_dp)))*0.5_dp*maxocc
+                           pdiag(isgfa + 8) = (MAX(0.0_dp, MIN(my_sum*0.2_dp, 2.0_dp)))*0.5_dp*maxocc
+                           my_sum = MAX(0.0_dp, my_sum - 10.0_dp)
                            !   Put the remaining electrons in the 'p' shell
-                           pdiag(isgfa+1) = (my_sum/3.0_dp)*0.5_dp*maxocc
-                           pdiag(isgfa+2) = (my_sum/3.0_dp)*0.5_dp*maxocc
-                           pdiag(isgfa+3) = (my_sum/3.0_dp)*0.5_dp*maxocc
+                           pdiag(isgfa + 1) = (my_sum/3.0_dp)*0.5_dp*maxocc
+                           pdiag(isgfa + 2) = (my_sum/3.0_dp)*0.5_dp*maxocc
+                           pdiag(isgfa + 3) = (my_sum/3.0_dp)*0.5_dp*maxocc
                         END IF
                      END IF
                   CASE DEFAULT
@@ -1366,25 +1508,25 @@ CONTAINS
                DO iset = 1, nset
                   DO ishell = 1, nshell(iset)
                      la = l(ishell, iset)
-                     nelec = maxocc*REAL(2*la+1, dp)
+                     nelec = maxocc*REAL(2*la + 1, dp)
                      IF (econf(la) > 0.0_dp) THEN
                         IF (econf(la) >= nelec) THEN
                            paa = maxocc
-                           econf(la) = econf(la)-nelec
+                           econf(la) = econf(la) - nelec
                         ELSE
                            paa = maxocc*econf(la)/nelec
                            econf(la) = 0.0_dp
-                           ncount = ncount+NINT(nelec/maxocc)
+                           ncount = ncount + NINT(nelec/maxocc)
                         END IF
                         DO isgfa = first_sgfa(ishell, iset), last_sgfa(ishell, iset)
                            DO iatom = 1, natom
                               atom_a = atom_list(iatom)
-                              isgf = first_sgf(atom_a)+isgfa-1
+                              isgf = first_sgf(atom_a) + isgfa - 1
                               pdiag(isgf) = paa
                               IF (paa == maxocc) THEN
-                                 trps1 = trps1+paa*sdiag(isgf)
+                                 trps1 = trps1 + paa*sdiag(isgf)
                               ELSE
-                                 trps2 = trps2+paa*sdiag(isgf)
+                                 trps2 = trps2 + paa*sdiag(isgf)
                               END IF
                            END DO
                         END DO
@@ -1407,7 +1549,7 @@ CONTAINS
          ELSE
             DO ispin = 1, nspin
                IF (nelectron_spin(ispin) /= 0) THEN
-                  rscale = (REAL(nelectron_spin(ispin), dp)-trps1)/trps2
+                  rscale = (REAL(nelectron_spin(ispin), dp) - trps1)/trps2
                   DO isgf = 1, nao
                      IF (pdiag(isgf) < maxocc) pdiag(isgf) = rscale*pdiag(isgf)
                   END DO

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -60,7 +62,7 @@ MODULE cell_opt_types
       INTEGER                                    :: constraint_id, id_nr, ref_count
       LOGICAL                                    :: keep_angles, &
                                                     keep_symmetry
-      REAL(KIND=dp)                              :: pres_ext, pres_int, pres_tol
+      REAL(KIND=dp)                              :: pres_ext, pres_int, pres_tol, pres_constr
       REAL(KIND=dp), DIMENSION(3, 3)             :: mtrx
       REAL(KIND=dp), DIMENSION(3, 3)             :: rot_matrix
       TYPE(cell_type), POINTER                   :: ref_cell
@@ -82,9 +84,6 @@ CONTAINS
       TYPE(force_env_type), POINTER                      :: force_env
       TYPE(section_vals_type), POINTER                   :: geo_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cell_opt_env_create', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=4)                                   :: label
       INTEGER                                            :: ip, output_unit
       REAL(KIND=dp), DIMENSION(3)                        :: r
@@ -97,7 +96,7 @@ CONTAINS
       ALLOCATE (cell_env)
       NULLIFY (cell_env%ref_cell, cell, subsys, particles)
       cell_env%ref_count = 1
-      last_cell_opt_env_id = last_cell_opt_env_id+1
+      last_cell_opt_env_id = last_cell_opt_env_id + 1
       cell_env%id_nr = last_cell_opt_env_id
       CALL force_env_get(force_env, cell=cell, subsys=subsys)
       CALL cell_create(cell_env%ref_cell)
@@ -178,12 +177,9 @@ CONTAINS
    SUBROUTINE cell_opt_env_release(cell_env)
       TYPE(cell_opt_env_type), POINTER                   :: cell_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cell_opt_env_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(cell_env)) THEN
          CPASSERT(cell_env%ref_count > 0)
-         cell_env%ref_count = cell_env%ref_count-1
+         cell_env%ref_count = cell_env%ref_count - 1
          IF (cell_env%ref_count == 0) THEN
             CALL cell_release(cell_env%ref_cell)
             DEALLOCATE (cell_env)

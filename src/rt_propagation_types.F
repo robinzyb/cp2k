@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -97,7 +99,7 @@ MODULE rt_propagation_types
       REAL(KIND=dp)                               :: mixing_factor
       LOGICAL                                     :: mixing
       LOGICAL                                     :: do_hfx
-      LOGICAL                                     :: magnetic
+      LOGICAL                                     :: track_imag_density
       INTEGER, DIMENSION(:, :), ALLOCATABLE          :: orders
       INTEGER                                     :: nsteps, istep, i_start, max_steps
       INTEGER                                     :: iter
@@ -144,8 +146,6 @@ CONTAINS
       TYPE(dbcsr_type), POINTER                          :: template
       LOGICAL                                            :: linear_scaling
       TYPE(mo_set_p_type), DIMENSION(:), POINTER         :: mos_aux
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'rt_prop_create', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, j, nao, nrow_block, nspin
       TYPE(cp_fm_pool_p_type), DIMENSION(:), POINTER     :: ao_mo_fm_pools
@@ -200,23 +200,23 @@ CONTAINS
          END IF
          DO i = 1, nspin
             DO j = 1, 2
-               NULLIFY (rtp%mos%old(2*(i-1)+j)%matrix)
-               NULLIFY (rtp%mos%new(2*(i-1)+j)%matrix)
-               NULLIFY (rtp%mos%next(2*(i-1)+j)%matrix)
-               CALL cp_fm_create(rtp%mos%old(2*(i-1)+j)%matrix, &
+               NULLIFY (rtp%mos%old(2*(i - 1) + j)%matrix)
+               NULLIFY (rtp%mos%new(2*(i - 1) + j)%matrix)
+               NULLIFY (rtp%mos%next(2*(i - 1) + j)%matrix)
+               CALL cp_fm_create(rtp%mos%old(2*(i - 1) + j)%matrix, &
                                  matrix_struct=mos(i)%mo_set%mo_coeff%matrix_struct, &
-                                 name="mos_old"//TRIM(ADJUSTL(cp_to_string(2*(i-1)+j))))
-               CALL cp_fm_create(rtp%mos%new(2*(i-1)+j)%matrix, &
+                                 name="mos_old"//TRIM(ADJUSTL(cp_to_string(2*(i - 1) + j))))
+               CALL cp_fm_create(rtp%mos%new(2*(i - 1) + j)%matrix, &
                                  matrix_struct=mos(i)%mo_set%mo_coeff%matrix_struct, &
-                                 name="mos_new"//TRIM(ADJUSTL(cp_to_string(2*(i-1)+j))))
-               CALL cp_fm_create(rtp%mos%next(2*(i-1)+j)%matrix, &
+                                 name="mos_new"//TRIM(ADJUSTL(cp_to_string(2*(i - 1) + j))))
+               CALL cp_fm_create(rtp%mos%next(2*(i - 1) + j)%matrix, &
                                  matrix_struct=mos(i)%mo_set%mo_coeff%matrix_struct, &
-                                 name="mos_next"//TRIM(ADJUSTL(cp_to_string(2*(i-1)+j))))
+                                 name="mos_next"//TRIM(ADJUSTL(cp_to_string(2*(i - 1) + j))))
                IF (dft_control%do_admm) THEN
-                  NULLIFY (rtp%mos%admm(2*(i-1)+j)%matrix)
-                  CALL cp_fm_create(rtp%mos%admm(2*(i-1)+j)%matrix, &
+                  NULLIFY (rtp%mos%admm(2*(i - 1) + j)%matrix)
+                  CALL cp_fm_create(rtp%mos%admm(2*(i - 1) + j)%matrix, &
                                     matrix_struct=mos_aux(i)%mo_set%mo_coeff%matrix_struct, &
-                                    name="mos_admm"//TRIM(ADJUSTL(cp_to_string(2*(i-1)+j))))
+                                    name="mos_admm"//TRIM(ADJUSTL(cp_to_string(2*(i - 1) + j))))
                END IF
             END DO
          END DO
@@ -283,7 +283,7 @@ CONTAINS
       rtp%istep = 0
       rtp%iter = 0
       rtp%do_hfx = .FALSE.
-      rtp%magnetic = .FALSE.
+      rtp%track_imag_density = .FALSE.
 
    END SUBROUTINE rt_prop_create
 
@@ -340,8 +340,6 @@ CONTAINS
       TYPE(cp_fm_p_type), DIMENSION(:), OPTIONAL, &
          POINTER                                         :: admm_mos
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_rtp', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(rtp))
       IF (PRESENT(exp_H_old)) exp_H_old => rtp%exp_H_old
       IF (PRESENT(exp_H_new)) exp_H_new => rtp%exp_H_new
@@ -379,9 +377,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE rt_prop_release(rtp)
       TYPE(rt_prop_type), INTENT(inout)                  :: rtp
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'rt_prop_release', &
-         routineP = moduleN//':'//routineN
 
       CALL dbcsr_deallocate_matrix_set(rtp%exp_H_old)
       CALL dbcsr_deallocate_matrix_set(rtp%exp_H_new)
@@ -435,9 +430,6 @@ CONTAINS
       TYPE(rt_prop_type), INTENT(inout)                  :: rtp
       INTEGER, INTENT(in)                                :: aspc_order
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'rtp_history_create', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, j, nmat
       TYPE(rtp_history_type), POINTER                    :: history
 
@@ -484,9 +476,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE rtp_history_release(rtp)
       TYPE(rt_prop_type), INTENT(inout)                  :: rtp
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'rtp_history_release', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, j
 

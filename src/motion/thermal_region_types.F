@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -51,9 +53,6 @@ CONTAINS
    SUBROUTINE allocate_thermal_regions(thermal_regions)
       TYPE(thermal_regions_type), POINTER                :: thermal_regions
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_thermal_regions', &
-         routineP = moduleN//':'//routineN
-
       LOGICAL                                            :: check
 
       check = .NOT. ASSOCIATED(thermal_regions)
@@ -75,12 +74,9 @@ CONTAINS
 
       TYPE(thermal_regions_type), POINTER                :: thermal_regions
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'retain_thermal_regions', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(thermal_regions)) THEN
          CPASSERT(thermal_regions%ref_count > 0)
-         thermal_regions%ref_count = thermal_regions%ref_count+1
+         thermal_regions%ref_count = thermal_regions%ref_count + 1
       END IF
 
    END SUBROUTINE retain_thermal_regions
@@ -94,9 +90,6 @@ CONTAINS
 
       TYPE(thermal_regions_type), POINTER                :: thermal_regions
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'release_thermal_regions', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ireg
       LOGICAL                                            :: check
 
@@ -104,7 +97,7 @@ CONTAINS
       IF (check) THEN
          check = thermal_regions%ref_count > 0
          CPASSERT(check)
-         thermal_regions%ref_count = thermal_regions%ref_count-1
+         thermal_regions%ref_count = thermal_regions%ref_count - 1
          IF (thermal_regions%ref_count < 1) THEN
             IF (ASSOCIATED(thermal_regions%thermal_region)) THEN
                DO ireg = 1, SIZE(thermal_regions%thermal_region)

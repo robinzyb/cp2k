@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2018  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -45,8 +47,8 @@ MODULE cp2k_info
    CHARACTER(LEN=*), PARAMETER :: compile_revision = "unknown"
 #endif
 
-   CHARACTER(LEN=*), PARAMETER :: version_nr = "6.1"
-   CHARACTER(LEN=*), PARAMETER :: cp2k_year = "2018"
+   CHARACTER(LEN=*), PARAMETER :: version_nr = "9.0"
+   CHARACTER(LEN=*), PARAMETER :: cp2k_year = "2021"
    CHARACTER(LEN=*), PARAMETER :: cp2k_version = "CP2K version "//TRIM(version_nr)
    CHARACTER(LEN=*), PARAMETER :: cp2k_home = "https://www.cp2k.org/"
 
@@ -109,11 +111,7 @@ CONTAINS
       flags = TRIM(flags)//" pexsi"
 #endif
 #if defined(__ELPA)
-      CALL integer_to_string(__ELPA, tmp_str)
-      flags = TRIM(flags)//" elpa="//TRIM(tmp_str)
-#if (__ELPA==201502) || (__ELPA==201505) || (__ELPA==201511) || (__ELPA==201605) || (__ELPA==201611) || (__ELPA==201705) || (__ELPA==201711)
-      flags = TRIM(flags)//" elpa_qr"
-#endif
+      flags = TRIM(flags)//" elpa"
 #endif
 #if defined(__parallel)
       flags = TRIM(flags)//" parallel"
@@ -126,8 +124,8 @@ CONTAINS
 #if defined(__SCALAPACK)
       flags = TRIM(flags)//" scalapack"
 #endif
-#if defined(__SCALAPACK2)
-      flags = TRIM(flags)//" scalapack2"
+#if defined(__COSMA)
+      flags = TRIM(flags)//" cosma"
 #endif
 
 #if defined(__QUIP)
@@ -138,149 +136,151 @@ CONTAINS
       flags = TRIM(flags)//" deepmd"
 #endif
 
-#if defined(__ACC)
-      flags = TRIM(flags)//" acc"
-#endif
 #if defined(__PW_CUDA)
       flags = TRIM(flags)//" pw_cuda"
+#endif
+#if defined(__PW_FPGA)
+      flags = TRIM(flags)//" pw_fpga"
+#endif
+#if defined(__PW_FPGA_SP)
+      flags = TRIM(flags)//" pw_fpga_sp"
 #endif
 #if defined(__HAS_PATCHED_CUFFT_70)
       flags = TRIM(flags)//" patched_cufft_70"
 #endif
 
-#if defined __HAS_smm_vec
+#if defined(__HAS_smm_vec)
       flags = TRIM(flags)//" smm_vec"
 #endif
-#if defined __HAS_smm_snn
+#if defined(__HAS_smm_snn)
       flags = TRIM(flags)//" smm_snn"
 #endif
-#if defined __HAS_smm_snt
+#if defined(__HAS_smm_snt)
       flags = TRIM(flags)//" smm_snt"
 #endif
-#if defined __HAS_smm_stn
+#if defined(__HAS_smm_stn)
       flags = TRIM(flags)//" smm_stn"
 #endif
-#if defined __HAS_smm_stt
+#if defined(__HAS_smm_stt)
       flags = TRIM(flags)//" smm_stt"
 #endif
-#if defined __HAS_smm_znn
+#if defined(__HAS_smm_znn)
       flags = TRIM(flags)//" smm_znn"
 #endif
-#if defined __HAS_smm_znt
+#if defined(__HAS_smm_znt)
       flags = TRIM(flags)//" smm_znt"
 #endif
-#if defined __HAS_smm_ztn
+#if defined(__HAS_smm_ztn)
       flags = TRIM(flags)//" smm_ztn"
 #endif
-#if defined __HAS_smm_ztt
+#if defined(__HAS_smm_ztt)
       flags = TRIM(flags)//" smm_ztt"
 #endif
-#if defined __HAS_smm_cnn
+#if defined(__HAS_smm_cnn)
       flags = TRIM(flags)//" smm_cnn"
 #endif
-#if defined __HAS_smm_cnt
+#if defined(__HAS_smm_cnt)
       flags = TRIM(flags)//" smm_cnt"
 #endif
-#if defined __HAS_smm_ctn
+#if defined(__HAS_smm_ctn)
       flags = TRIM(flags)//" smm_ctn"
 #endif
-#if defined __HAS_smm_ctt
+#if defined(__HAS_smm_ctt)
       flags = TRIM(flags)//" smm_ctt"
 #endif
-#if defined __HAS_smm_dnn
+#if defined(__HAS_smm_dnn)
       flags = TRIM(flags)//" smm_dnn"
 #endif
-#if defined __HAS_smm_dnt
+#if defined(__HAS_smm_dnt)
       flags = TRIM(flags)//" smm_dnt"
 #endif
-#if defined __HAS_smm_dtn
+#if defined(__HAS_smm_dtn)
       flags = TRIM(flags)//" smm_dtn"
 #endif
-#if defined __HAS_smm_dtt
+#if defined(__HAS_smm_dtt)
       flags = TRIM(flags)//" smm_dtt"
 #endif
       IF (INDEX(flags, " smm_") > 0) THEN
          flags = TRIM(flags)//" smm"
-      ENDIF
+      END IF
 
-#if defined __LIBXSMM
+#if defined(__LIBXSMM)
       flags = TRIM(flags)//" xsmm"
 #endif
 
-#if defined __CRAY_PM_ACCEL_ENERGY
+#if defined(__CRAY_PM_ACCEL_ENERGY)
       flags = TRIM(flags)//" cray_pm_accel_energy"
 #endif
-#if defined __CRAY_PM_ENERGY
+#if defined(__CRAY_PM_ENERGY)
       flags = TRIM(flags)//" cray_pm_energy"
 #endif
-#if defined __CRAY_PM_FAKE_ENERGY
+#if defined(__CRAY_PM_FAKE_ENERGY)
       flags = TRIM(flags)//" cray_pm_fake_energy"
 #endif
-#if defined __CUDA_PROFILING
+#if defined(__CUDA_PROFILING)
       flags = TRIM(flags)//" cuda_profiling"
 #endif
-#if defined __DBCSR_ACC
+#if defined(__DBCSR_ACC)
       flags = TRIM(flags)//" dbcsr_acc"
 #endif
-#if defined __HAS_LIBGRID
-      flags = TRIM(flags)//" libgrid"
-#endif
-#if defined __HAS_NO_CUDA_STREAM_PRIORITIES
-      flags = TRIM(flags)//" has_no_cuda_stream_priorities"
-#endif
-#if defined __HAS_NO_MPI_MOD
-      flags = TRIM(flags)//" has_no_mpi_mod"
-#endif
-#if defined __HAS_NO_SHARED_GLIBC
-      flags = TRIM(flags)//" has_no_shared_glibc"
-#endif
-#if defined __LIBDERIV_MAX_AM1
-      CALL integer_to_string(__LIBDERIV_MAX_AM1, tmp_str)
-      flags = TRIM(flags)//" libderiv_max_am1="//TRIM(tmp_str)
-#endif
-#if defined __LIBINT_MAX_AM
-      CALL integer_to_string(__LIBINT_MAX_AM, tmp_str)
-      flags = TRIM(flags)//" libint_max_am="//TRIM(tmp_str)
-#endif
-#if defined __MAX_CONTR
+#if defined(__MAX_CONTR)
       CALL integer_to_string(__MAX_CONTR, tmp_str)
       flags = TRIM(flags)//" max_contr="//TRIM(tmp_str)
 #endif
-#if defined __NO_IPI_DRIVER
+#if defined(__NO_IPI_DRIVER)
       flags = TRIM(flags)//" no_ipi_driver"
 #endif
-#if defined __NO_MPI_THREAD_SUPPORT_CHECK
+#if defined(__NO_MPI_THREAD_SUPPORT_CHECK)
       flags = TRIM(flags)//" no_mpi_thread_support_check"
 #endif
-#if defined __NO_STATM_ACCESS
+#if defined(__NO_STATM_ACCESS)
       flags = TRIM(flags)//" no_statm_access"
 #endif
-#if defined __PW_CUDA_NO_HOSTALLOC
+#if defined(__MINGW)
+      flags = TRIM(flags)//" mingw"
+#endif
+#if defined(__PW_CUDA_NO_HOSTALLOC)
       flags = TRIM(flags)//" pw_cuda_no_hostalloc"
 #endif
-#if defined __STATM_RESIDENT
+#if defined(__STATM_RESIDENT)
       flags = TRIM(flags)//" statm_resident"
 #endif
-#if defined __STATM_TOTAL
+#if defined(__STATM_TOTAL)
       flags = TRIM(flags)//" statm_total"
 #endif
-#if defined __PLUMED2
+#if defined(__PLUMED2)
       flags = TRIM(flags)//" plumed2"
 #endif
-#if defined __HAS_IEEE_EXCEPTIONS
+#if defined(__HAS_IEEE_EXCEPTIONS)
       flags = TRIM(flags)//" has_ieee_exceptions"
 #endif
-#if defined __NO_ABORT
+#if defined(__NO_ABORT)
       flags = TRIM(flags)//" no_abort"
 #endif
-#if defined __SPGLIB
+#if defined(__SPGLIB)
       flags = TRIM(flags)//" spglib"
 #endif
-#if defined __ACCELERATE
+#if defined(__ACCELERATE)
       flags = TRIM(flags)//" accelerate"
 #endif
-#if defined __MKL
+#if defined(__MKL)
       flags = TRIM(flags)//" mkl"
+#endif
+#if defined(__SIRIUS)
+      flags = TRIM(flags)//" sirius"
+#endif
+#if defined(__CHECK_DIAG)
+      flags = TRIM(flags)//" check_diag"
+#endif
+#if defined(__LIBVORI)
+      flags = TRIM(flags)//" libvori"
+      flags = TRIM(flags)//" libbqb"
+#endif
+#if defined(__LIBMAXWELL)
+      flags = TRIM(flags)//" libmaxwell"
+#endif
+#if defined(__GRID_CUDA)
+      flags = TRIM(flags)//" grid_cuda"
 #endif
 
    END FUNCTION cp2k_flags
@@ -299,7 +299,8 @@ CONTAINS
       WRITE (iunit, '(T2,A)') '!   Copyright (C) 2004, 2005, 2006, 2007  CP2K developers group               !'
       WRITE (iunit, '(T2,A)') '!   Copyright (C) 2008, 2009, 2010, 2011  CP2K developers group               !'
       WRITE (iunit, '(T2,A)') '!   Copyright (C) 2012, 2013, 2014, 2015  CP2K developers group               !'
-      WRITE (iunit, '(T2,A)') '!   Copyright (C) 2016                    CP2K developers group               !'
+      WRITE (iunit, '(T2,A)') '!   Copyright (C) 2016, 2017, 2018, 2019  CP2K developers group               !'
+      WRITE (iunit, '(T2,A)') '!   Copyright (C) 2020                    CP2K developers group               !'
       WRITE (iunit, '(T2,A)') '!                                                                             !'
       WRITE (iunit, '(T2,A)') '!   This program is free software; you can redistribute it and/or modify      !'
       WRITE (iunit, '(T2,A)') '!   it under the terms of the GNU General Public License as published by      !'
@@ -353,9 +354,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE write_restart_header(iunit)
       INTEGER, INTENT(IN)                                :: iunit
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_restart_header', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=256)                                 :: cwd, datx
 

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -44,7 +46,8 @@ MODULE gopt_f_methods
                                               default_cell_method_id,&
                                               default_minimization_method_id,&
                                               default_shellcore_method_id,&
-                                              default_ts_method_id
+                                              default_ts_method_id,&
+                                              fix_none
    USE input_cp2k_restarts,             ONLY: write_restart
    USE input_section_types,             ONLY: section_vals_type
    USE kinds,                           ONLY: default_string_length,&
@@ -64,7 +67,7 @@ MODULE gopt_f_methods
 
    IMPLICIT NONE
    PRIVATE
-#include "gopt_f77_methods.h"
+#include "gopt_f77_methods.f90"
 
    LOGICAL, PRIVATE, PARAMETER :: debug_this_module = .TRUE.
    CHARACTER(len=*), PARAMETER, PRIVATE :: moduleN = 'gopt_f_methods'
@@ -88,9 +91,6 @@ CONTAINS
 
       TYPE(gopt_f_type), POINTER                         :: gopt_env
       REAL(KIND=dp), DIMENSION(:), POINTER               :: x0
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'gopt_f_create_x0', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, idg, j, nparticle
       TYPE(cell_type), POINTER                           :: cell
@@ -122,12 +122,12 @@ CONTAINS
             IF (gopt_env%force_env%in_use == use_qmmmx) &
                CALL apply_qmmmx_translate(gopt_env%force_env%qmmmx_env)
             nparticle = force_env_get_nparticle(gopt_env%force_env)
-            ALLOCATE (x0(3*nparticle+6))
+            ALLOCATE (x0(3*nparticle + 6))
             CALL pack_subsys_particles(subsys=subsys, r=x0)
             idg = 3*nparticle
             DO i = 1, 3
                DO j = 1, i
-                  idg = idg+1
+                  idg = idg + 1
                   x0(idg) = cell%hmat(j, i)
                END DO
             END DO
@@ -137,7 +137,7 @@ CONTAINS
             idg = 0
             DO i = 1, 3
                DO j = 1, i
-                  idg = idg+1
+                  idg = idg + 1
                   x0(idg) = cell%hmat(j, i)
                END DO
             END DO
@@ -186,8 +186,6 @@ CONTAINS
       CHARACTER(LEN=5)                                   :: wildcard
       INTEGER, INTENT(IN)                                :: its
       REAL(KIND=dp)                                      :: used_time
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'gopt_f_io_init', routineP = moduleN//':'//routineN
 
       REAL(KIND=dp)                                      :: pres_int
 
@@ -255,9 +253,8 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN), OPTIONAL                :: pred, rat, step, rad
       REAL(KIND=dp)                                      :: used_time
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'gopt_f_io', routineP = moduleN//':'//routineN
-
-      REAL(KIND=dp)                                      :: pres_diff, pres_int, pres_tol
+      REAL(KIND=dp)                                      :: pres_diff, pres_diff_constr, pres_int, &
+                                                            pres_tol
 
       SELECT CASE (gopt_env%type_id)
       CASE (default_ts_method_id, default_minimization_method_id)
@@ -265,7 +262,7 @@ CONTAINS
          IF (.NOT. gopt_env%dimer_rotation) THEN
             CALL geo_opt_io(force_env=force_env, root_section=root_section, &
                             motion_section=gopt_env%motion_section, its=its, opt_energy=opt_energy)
-            CALL write_cycle_infos(output_unit, its, etot=opt_energy, ediff=opt_energy-eold, &
+            CALL write_cycle_infos(output_unit, its, etot=opt_energy, ediff=opt_energy - eold, &
                                    pred=pred, rat=rat, step=step, rad=rad, emin=emin, wildcard=wildcard, used_time=used_time)
             ! Possibly check convergence
             IF (PRESENT(conv)) THEN
@@ -277,7 +274,7 @@ CONTAINS
          ELSE
             CALL update_dimer_vec(gopt_env%dimer_env, gopt_env%motion_section)
             CALL write_restart(force_env=force_env, root_section=root_section)
-            CALL write_rot_cycle_infos(output_unit, its, opt_energy, opt_energy-eold, emin, gopt_env%dimer_env, &
+            CALL write_rot_cycle_infos(output_unit, its, opt_energy, opt_energy - eold, emin, gopt_env%dimer_env, &
                                        used_time=used_time, wildcard=wildcard)
             ! Possibly check convergence
             IF (PRESENT(conv)) THEN
@@ -287,12 +284,12 @@ CONTAINS
          END IF
       CASE (default_cell_method_id)
          ! Cell Optimization
-         pres_diff = gopt_env%cell_env%pres_int-gopt_env%cell_env%pres_ext
+         pres_diff = gopt_env%cell_env%pres_int - gopt_env%cell_env%pres_ext
          pres_int = gopt_env%cell_env%pres_int
          pres_tol = gopt_env%cell_env%pres_tol
          CALL geo_opt_io(force_env=force_env, root_section=root_section, &
                          motion_section=gopt_env%motion_section, its=its, opt_energy=opt_energy)
-         CALL write_cycle_infos(output_unit, its, etot=opt_energy, ediff=opt_energy-eold, &
+         CALL write_cycle_infos(output_unit, its, etot=opt_energy, ediff=opt_energy - eold, &
                                 pred=pred, rat=rat, step=step, rad=rad, emin=emin, pres_int=pres_int, wildcard=wildcard, &
                                 used_time=used_time)
          ! Possibly check convergence
@@ -300,10 +297,15 @@ CONTAINS
             CPASSERT(PRESENT(ndf))
             CPASSERT(PRESENT(dx))
             CPASSERT(PRESENT(xi))
-            CALL check_converg(ndf, dx, xi, output_unit, conv, gopt_param, pres_diff, pres_tol)
+            IF (gopt_env%cell_env%constraint_id == fix_none) THEN
+               CALL check_converg(ndf, dx, xi, output_unit, conv, gopt_param, pres_diff, pres_tol)
+            ELSE
+               pres_diff_constr = gopt_env%cell_env%pres_constr - gopt_env%cell_env%pres_ext
+               CALL check_converg(ndf, dx, xi, output_unit, conv, gopt_param, pres_diff, pres_tol, pres_diff_constr)
+            END IF
          END IF
       CASE (default_shellcore_method_id)
-         CALL write_cycle_infos(output_unit, its, etot=opt_energy, ediff=opt_energy-eold, &
+         CALL write_cycle_infos(output_unit, its, etot=opt_energy, ediff=opt_energy - eold, &
                                 pred=pred, rat=rat, step=step, rad=rad, emin=emin, wildcard=wildcard, used_time=used_time)
          ! Possibly check convergence
          IF (PRESENT(conv)) THEN
@@ -338,9 +340,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: root_section
       TYPE(cp_para_env_type), POINTER                    :: para_env
       INTEGER, INTENT(IN)                                :: master, output_unit
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'gopt_f_io_finalize', &
-         routineP = moduleN//':'//routineN
 
       IF (gopt_env%eval_opt_geo) THEN
          IF (.NOT. gopt_env%dimer_rotation) THEN
@@ -378,9 +377,6 @@ CONTAINS
                                                             pres_int
       CHARACTER(LEN=5), OPTIONAL                         :: wildcard
       REAL(KIND=dp), INTENT(IN)                          :: used_time
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_cycle_infos', &
-         routineP = moduleN//':'//routineN
 
       REAL(KIND=dp)                                      :: tmp_r1
 
@@ -455,9 +451,6 @@ CONTAINS
       REAL(KIND=dp)                                      :: used_time
       CHARACTER(LEN=5), OPTIONAL                         :: wildcard
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_rot_cycle_infos', &
-         routineP = moduleN//':'//routineN
-
       IF (output_unit > 0) THEN
          WRITE (UNIT=output_unit, FMT="(/,T2,4('-'),A,I5,1X,5('-'))") &
             "  Informations at rotational step = ", it
@@ -498,17 +491,17 @@ CONTAINS
 !> \param gopt_param ...
 !> \param pres_diff ...
 !> \param pres_tol ...
+!> \param pres_diff_constr ...
 ! **************************************************************************************************
-   SUBROUTINE check_converg(ndf, dr, g, output_unit, conv, gopt_param, pres_diff, pres_tol)
+   SUBROUTINE check_converg(ndf, dr, g, output_unit, conv, gopt_param, pres_diff, &
+                            pres_tol, pres_diff_constr)
 
       INTEGER, INTENT(IN)                                :: ndf
       REAL(KIND=dp), INTENT(IN)                          :: dr(ndf), g(ndf)
       INTEGER, INTENT(IN)                                :: output_unit
       LOGICAL, INTENT(OUT)                               :: conv
       TYPE(gopt_param_type), POINTER                     :: gopt_param
-      REAL(KIND=dp), INTENT(IN), OPTIONAL                :: pres_diff, pres_tol
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'check_converg', routineP = moduleN//':'//routineN
+      REAL(KIND=dp), INTENT(IN), OPTIONAL                :: pres_diff, pres_tol, pres_diff_constr
 
       INTEGER                                            :: indf
       LOGICAL                                            :: conv_dx, conv_g, conv_p, conv_rdx, &
@@ -531,7 +524,7 @@ CONTAINS
       dumm = 0.0_dp
       DO indf = 1, ndf
          IF (indf == 1) maxdum(1) = ABS(dr(indf))
-         dumm = dumm+dr(indf)**2
+         dumm = dumm + dr(indf)**2
          IF (ABS(dr(indf)) > dxcon) conv_dx = .FALSE.
          IF (ABS(dr(indf)) > maxdum(1)) maxdum(1) = ABS(dr(indf))
       END DO
@@ -542,7 +535,7 @@ CONTAINS
       dumm = 0.0_dp
       DO indf = 1, ndf
          IF (indf == 1) maxdum(3) = ABS(g(indf))
-         dumm = dumm+g(indf)**2
+         dumm = dumm + g(indf)**2
          IF (ABS(g(indf)) > gcon) conv_g = .FALSE.
          IF (ABS(g(indf)) > maxdum(3)) maxdum(3) = ABS(g(indf))
       END DO
@@ -550,7 +543,11 @@ CONTAINS
       IF (dumm > (rmsgcon*rmsgcon*ndf)) conv_rg = .FALSE.
       maxdum(4) = SQRT(dumm/ndf)
 
-      IF (PRESENT(pres_diff) .AND. PRESENT(pres_tol)) conv_p = ABS(pres_diff) < ABS(pres_tol)
+      IF (PRESENT(pres_diff_constr) .AND. PRESENT(pres_tol)) THEN
+         conv_p = ABS(pres_diff_constr) < ABS(pres_tol)
+      ELSEIF (PRESENT(pres_diff) .AND. PRESENT(pres_tol)) THEN
+         conv_p = ABS(pres_diff) < ABS(pres_tol)
+      END IF
 
       IF (output_unit > 0) THEN
          WRITE (UNIT=output_unit, FMT="(/,T2,A)") &
@@ -610,8 +607,18 @@ CONTAINS
          END IF
          IF (PRESENT(pres_diff) .AND. PRESENT(pres_tol)) THEN
             tmp_r1 = cp_unit_from_cp2k(pres_diff, "bar")
-            WRITE (UNIT=output_unit, FMT="(T2,A,F20.10)") &
-               " Pressure Deviation [bar]   = ", tmp_r1
+            IF (PRESENT(pres_diff_constr)) THEN
+               WRITE (UNIT=output_unit, FMT="(T2,A,F20.10)") &
+                  " Pressure Deviation [bar]   = ", tmp_r1, &
+                  " (without constraint)"
+               tmp_r1 = cp_unit_from_cp2k(pres_diff_constr, "bar")
+               WRITE (UNIT=output_unit, FMT="(T2,A,F20.10)") &
+                  " Pressure Deviation [bar]   = ", tmp_r1, &
+                  " (with constraint)"
+            ELSE
+               WRITE (UNIT=output_unit, FMT="(T2,A,F20.10)") &
+                  " Pressure Deviation [bar]   = ", tmp_r1
+            END IF
             tmp_r1 = cp_unit_from_cp2k(pres_tol, "bar")
             WRITE (UNIT=output_unit, FMT="(T2,A,F20.10)") &
                " Pressure Tolerance [bar]   = ", tmp_r1
@@ -652,8 +659,6 @@ CONTAINS
       TYPE(dimer_env_type), POINTER                      :: dimer_env
       INTEGER, INTENT(IN)                                :: output_unit
       LOGICAL, INTENT(OUT)                               :: conv
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'check_rot_conv', routineP = moduleN//':'//routineN
 
       conv = (ABS(dimer_env%rot%angle2) < dimer_env%rot%angle_tol)
       IF (output_unit > 0) THEN
@@ -712,9 +717,6 @@ CONTAINS
       TYPE(force_env_type), POINTER                      :: force_env
       TYPE(section_vals_type), POINTER                   :: motion_section, root_section
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_final_info', &
-         routineP = moduleN//':'//routineN
-
       REAL(KIND=dp)                                      :: etot
       TYPE(cell_type), POINTER                           :: cell
       TYPE(cp_subsys_type), POINTER                      :: subsys
@@ -725,7 +727,7 @@ CONTAINS
       CALL cp_subsys_get(subsys=subsys, particles=particles)
       particle_set => particles%els
       IF (conv) THEN
-         it = it+1
+         it = it + 1
          CALL write_structure_data(particle_set, cell, motion_section)
          CALL write_restart(force_env=force_env, root_section=root_section)
 
@@ -756,8 +758,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: root_section
       INTEGER, INTENT(IN)                                :: it
       REAL(KIND=dp), INTENT(IN)                          :: etot
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_geo_traj', routineP = moduleN//':'//routineN
 
       LOGICAL                                            :: shell_adiabatic, shell_present
       TYPE(atomic_kind_list_type), POINTER               :: atomic_kinds
@@ -816,9 +816,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: output_unit
       CHARACTER(LEN=*), INTENT(IN)                       :: label
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'print_geo_opt_header', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length)               :: my_format, my_label
       INTEGER                                            :: ix
 
@@ -830,13 +827,13 @@ CONTAINS
             my_label = "STARTING "//gopt_env%tag(1:8)//" OPTIMIZATION"
          END IF
 
-         ix = (80-7-LEN_TRIM(my_label))/2
-         ix = ix+5
+         ix = (80 - 7 - LEN_TRIM(my_label))/2
+         ix = ix + 5
          my_format = "(T2,A,T"//cp_to_string(ix)//",A,T78,A)"
          WRITE (UNIT=output_unit, FMT=TRIM(my_format)) "***", TRIM(my_label), "***"
 
-         ix = (80-7-LEN_TRIM(label))/2
-         ix = ix+5
+         ix = (80 - 7 - LEN_TRIM(label))/2
+         ix = ix + 5
          my_format = "(T2,A,T"//cp_to_string(ix)//",A,T78,A)"
          WRITE (UNIT=output_unit, FMT=TRIM(my_format)) "***", TRIM(label), "***"
 
@@ -890,8 +887,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: its
       REAL(KIND=dp), INTENT(IN)                          :: opt_energy
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'geo_opt_io', routineP = moduleN//':'//routineN
-
       TYPE(atomic_kind_list_type), POINTER               :: atomic_kinds
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
       TYPE(cell_type), POINTER                           :: cell
@@ -944,9 +939,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:), POINTER               :: x
       LOGICAL, INTENT(IN)                                :: update_forces
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'apply_cell_change', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, iatom, idg, j, natom, nparticle, &
                                                             shell_index
       REAL(KIND=dp)                                      :: fc, fs, mass
@@ -983,16 +975,16 @@ CONTAINS
       CASE (default_cell_geo_opt_id, default_cell_md_id)
          idg = 0
       END SELECT
-      CPASSERT((SIZE(x) == idg+6))
+      CPASSERT((SIZE(x) == idg + 6))
 
       IF (update_forces) THEN
 
          ! Transform particle forces back to reference cell
          idg = 1
          DO iatom = 1, natom
-            CALL real_to_scaled(s, x(idg:idg+2), cell)
-            CALL scaled_to_real(x(idg:idg+2), s, cell_ref)
-            idg = idg+3
+            CALL real_to_scaled(s, x(idg:idg + 2), cell)
+            CALL scaled_to_real(x(idg:idg + 2), s, cell_ref)
+            idg = idg + 3
          END DO
 
       ELSE
@@ -1000,7 +992,7 @@ CONTAINS
          ! Update cell
          DO i = 1, 3
             DO j = 1, i
-               idg = idg+1
+               idg = idg + 1
                cell%hmat(j, i) = x(idg)
             END DO
          END DO
@@ -1012,23 +1004,23 @@ CONTAINS
          CASE (default_cell_direct_id)
             idg = 1
             DO iatom = 1, natom
-               CALL real_to_scaled(s, x(idg:idg+2), cell_ref)
+               CALL real_to_scaled(s, x(idg:idg + 2), cell_ref)
                shell_index = particles%els(iatom)%shell_index
                IF (shell_index == 0) THEN
                   CALL scaled_to_real(particles%els(iatom)%r, s, cell)
                ELSE
                   CALL scaled_to_real(core_particles%els(shell_index)%r, s, cell)
-                  i = 3*(natom+shell_index-1)+1
-                  CALL real_to_scaled(s, x(i:i+2), cell_ref)
+                  i = 3*(natom + shell_index - 1) + 1
+                  CALL real_to_scaled(s, x(i:i + 2), cell_ref)
                   CALL scaled_to_real(shell_particles%els(shell_index)%r, s, cell)
                   ! Update atomic position due to core and shell motion
                   mass = particles%els(iatom)%atomic_kind%mass
                   fc = core_particles%els(shell_index)%atomic_kind%shell%mass_core/mass
                   fs = shell_particles%els(shell_index)%atomic_kind%shell%mass_shell/mass
-                  particles%els(iatom)%r(1:3) = fc*core_particles%els(shell_index)%r(1:3)+ &
+                  particles%els(iatom)%r(1:3) = fc*core_particles%els(shell_index)%r(1:3) + &
                                                 fs*shell_particles%els(shell_index)%r(1:3)
                END IF
-               idg = idg+3
+               idg = idg + 3
             END DO
          CASE (default_cell_geo_opt_id, default_cell_md_id)
             DO iatom = 1, natom
@@ -1039,14 +1031,14 @@ CONTAINS
                ELSE
                   CALL real_to_scaled(s, core_particles%els(shell_index)%r, cell_ref)
                   CALL scaled_to_real(core_particles%els(shell_index)%r, s, cell)
-                  i = 3*(natom+shell_index-1)+1
+                  i = 3*(natom + shell_index - 1) + 1
                   CALL real_to_scaled(s, shell_particles%els(shell_index)%r, cell_ref)
                   CALL scaled_to_real(shell_particles%els(shell_index)%r, s, cell)
                   ! Update atomic position due to core and shell motion
                   mass = particles%els(iatom)%atomic_kind%mass
                   fc = core_particles%els(shell_index)%atomic_kind%shell%mass_core/mass
                   fs = shell_particles%els(shell_index)%atomic_kind%shell%mass_shell/mass
-                  particles%els(iatom)%r(1:3) = fc*core_particles%els(shell_index)%r(1:3)+ &
+                  particles%els(iatom)%r(1:3) = fc*core_particles%els(shell_index)%r(1:3) + &
                                                 fs*shell_particles%els(shell_index)%r(1:3)
                END IF
             END DO

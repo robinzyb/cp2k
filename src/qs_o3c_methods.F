@@ -1,11 +1,14 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 ! **************************************************************************************************
 !> \brief Methods used with 3-center overlap type integrals containers
 !> \par History
 !>      - none
+!>      - 11.2018 fixed OMP race condition in contract3_o3c routine (A.Bussy)
 ! **************************************************************************************************
 MODULE qs_o3c_methods
    USE ai_contraction_sphi,             ONLY: abc_contract
@@ -47,8 +50,7 @@ CONTAINS
       TYPE(dbcsr_p_type), DIMENSION(:), OPTIONAL, &
          POINTER                                         :: matrix_p
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_o3c_integrals', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calculate_o3c_integrals'
 
       INTEGER :: egfa, egfb, egfc, handle, i, iatom, icol, ikind, irow, iset, ispin, j, jatom, &
          jkind, jset, katom, kkind, kset, mepos, ncoa, ncob, ncoc, ni, nj, nk, nseta, nsetb, &
@@ -171,17 +173,17 @@ CONTAINS
          ALLOCATE (tvec(nk, nspin))
          tvec(:, :) = 0.0_dp
 
-         rjk(1:3) = rik(1:3)-rij(1:3)
-         dij = SQRT(SUM(rij**2))
-         dik = SQRT(SUM(rik**2))
-         djk = SQRT(SUM(rjk**2))
+         rjk(1:3) = rik(1:3) - rij(1:3)
+         dij = NORM2(rij)
+         dik = NORM2(rik)
+         djk = NORM2(rjk)
 
          DO iset = 1, nseta
             DO jset = 1, nsetb
-               IF (set_radius_a(iset)+set_radius_b(jset) < dij) CYCLE
+               IF (set_radius_a(iset) + set_radius_b(jset) < dij) CYCLE
                DO kset = 1, nsetc
-                  IF (set_radius_a(iset)+set_radius_c(kset) < dik) CYCLE
-                  IF (set_radius_b(jset)+set_radius_c(kset) < djk) CYCLE
+                  IF (set_radius_a(iset) + set_radius_c(kset) < dik) CYCLE
+                  IF (set_radius_b(jset) + set_radius_c(kset) < djk) CYCLE
 
                   ncoa = npgfa(iset)*ncoset(la_max(iset))
                   ncob = npgfb(jset)*ncoset(lb_max(jset))
@@ -191,9 +193,9 @@ CONTAINS
                   sgfb = first_sgfb(1, jset)
                   sgfc = first_sgfc(1, kset)
 
-                  egfa = sgfa+nsgfa(iset)-1
-                  egfb = sgfb+nsgfb(jset)-1
-                  egfc = sgfc+nsgfc(kset)-1
+                  egfa = sgfa + nsgfa(iset) - 1
+                  egfb = sgfb + nsgfb(jset) - 1
+                  egfc = sgfc + nsgfc(kset) - 1
 
                   IF (ncoa*ncob*ncoc > 0) THEN
                      ALLOCATE (sabc(ncoa, ncob, ncoc))
@@ -236,8 +238,8 @@ CONTAINS
                      END IF
 
                      DEALLOCATE (sabc_contr)
+                     DEALLOCATE (sabc)
                   END IF
-                  DEALLOCATE (sabc)
                   IF (do_force) THEN
                      DEALLOCATE (sdabc, sabdc)
                   END IF
@@ -246,7 +248,7 @@ CONTAINS
          END DO
          IF (do_force) THEN
             ! translational invariance
-            iadbc(:, :, :, :) = -idabc(:, :, :, :)-iabdc(:, :, :, :)
+            iadbc(:, :, :, :) = -idabc(:, :, :, :) - iabdc(:, :, :, :)
             !
             ! get the atom indices
             CALL get_o3c_iterator_info(o3c_iterator, mepos=mepos, &
@@ -274,9 +276,9 @@ CONTAINS
                                       row=irow, col=icol, BLOCK=pblock, found=found)
                IF (found) THEN
                   IF (trans) THEN
-                     pmat(:, :) = pmat(:, :)+TRANSPOSE(pblock(:, :))
+                     pmat(:, :) = pmat(:, :) + TRANSPOSE(pblock(:, :))
                   ELSE
-                     pmat(:, :) = pmat(:, :)+pblock(:, :)
+                     pmat(:, :) = pmat(:, :) + pblock(:, :)
                   END IF
                END IF
             END DO
@@ -313,7 +315,7 @@ CONTAINS
       TYPE(o3c_container_type), POINTER                  :: o3c
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: matrix_p
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'contract12_o3c', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'contract12_o3c'
 
       INTEGER                                            :: handle, iatom, icol, ik, irow, ispin, &
                                                             jatom, mepos, nk, nspin, nthread
@@ -394,13 +396,14 @@ CONTAINS
    SUBROUTINE contract3_o3c(o3c, vec, matrix)
       TYPE(o3c_container_type), POINTER                  :: o3c
       TYPE(o3c_vec_type), DIMENSION(:), POINTER          :: vec
-      TYPE(dbcsr_type), POINTER                          :: matrix
+      TYPE(dbcsr_type)                                   :: matrix
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'contract3_o3c', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'contract3_o3c'
 
       INTEGER                                            :: handle, iatom, icol, ik, irow, jatom, &
-                                                            katom, mepos, nk, nthread
+                                                            katom, mepos, nk, nthread, s1, s2
       LOGICAL                                            :: found, ijsymmetric, trans
+      REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :)        :: work
       REAL(KIND=dp), DIMENSION(:), POINTER               :: v
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: pblock
       REAL(KIND=dp), DIMENSION(:, :, :), POINTER         :: iabc
@@ -417,7 +420,7 @@ CONTAINS
 
 !$OMP PARALLEL DEFAULT(NONE) &
 !$OMP SHARED (nthread,o3c_iterator,vec,matrix)&
-!$OMP PRIVATE (mepos,iabc,iatom,jatom,katom,irow,icol,trans,pblock,v,found,ik,nk)
+!$OMP PRIVATE (mepos,iabc,iatom,jatom,katom,irow,icol,trans,pblock,v,found,ik,nk,work,s1,s2)
 
       mepos = 0
 !$    mepos = omp_get_thread_num()
@@ -439,18 +442,33 @@ CONTAINS
             trans = .TRUE.
          END IF
 
-         CALL dbcsr_get_block_p(matrix=matrix, &
-                                row=irow, col=icol, BLOCK=pblock, found=found)
+         CALL dbcsr_get_block_p(matrix=matrix, row=irow, col=icol, BLOCK=pblock, found=found)
+
          IF (found) THEN
+            s1 = SIZE(pblock, 1); s2 = SIZE(pblock, 2)
+            ALLOCATE (work(s1, s2))
+            work(:, :) = 0.0_dp
+
             IF (trans) THEN
                DO ik = 1, nk
-                  pblock(:, :) = pblock(:, :)+v(ik)*TRANSPOSE(iabc(:, :, ik))
+                  CALL daxpy(s1*s2, v(ik), TRANSPOSE(iabc(:, :, ik)), 1, work(:, :), 1)
                END DO
             ELSE
                DO ik = 1, nk
-                  pblock(:, :) = pblock(:, :)+v(ik)*iabc(:, :, ik)
+                  CALL daxpy(s1*s2, v(ik), iabc(:, :, ik), 1, work(:, :), 1)
                END DO
             END IF
+
+            ! Multiple threads with same irow, icol but different katom (same even in PBCs) can try
+            ! to access the dbcsr block at the same time. Prevent that by CRITICAL section but keep
+            ! computations before hand in order to retain speed
+
+!$OMP CRITICAL
+            CALL dbcsr_get_block_p(matrix=matrix, row=irow, col=icol, BLOCK=pblock, found=found)
+            CALL daxpy(s1*s2, 1.0_dp, work(:, :), 1, pblock(:, :), 1)
+!$OMP END CRITICAL
+
+            DEALLOCATE (work)
          END IF
 
       END DO
@@ -460,7 +478,5 @@ CONTAINS
       CALL timestop(handle)
 
    END SUBROUTINE contract3_o3c
-
-! **************************************************************************************************
 
 END MODULE qs_o3c_methods

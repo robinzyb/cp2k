@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -14,8 +16,8 @@ MODULE qs_active_space_types
    USE cp_dbcsr_operations,             ONLY: dbcsr_deallocate_matrix_set
    USE cp_fm_types,                     ONLY: cp_fm_p_type,&
                                               cp_fm_release
-   USE dbcsr_api,                       ONLY: csr_destroy,&
-                                              csr_p_type,&
+   USE dbcsr_api,                       ONLY: dbcsr_csr_destroy,&
+                                              dbcsr_csr_p_type,&
                                               dbcsr_p_type
    USE kinds,                           ONLY: dp
    USE qs_mo_types,                     ONLY: deallocate_mo_set,&
@@ -52,7 +54,7 @@ MODULE qs_active_space_types
       REAL(KIND=dp)                 :: cutoff_radius
       REAL(KIND=dp)                 :: eps_integral
       TYPE(eri_gpw_type)            :: eri_gpw
-      TYPE(csr_p_type), &
+      TYPE(dbcsr_csr_p_type), &
          DIMENSION(:), POINTER      :: eri => NULL()
       INTEGER                       :: norb
 
@@ -69,10 +71,10 @@ MODULE qs_active_space_types
    END TYPE eri_type_eri_element_func
 
    TYPE active_space_type
-      INTEGER                       :: nactive
-      INTEGER                       :: ninactive
-      INTEGER, DIMENSION(2)         :: ninspin
-      INTEGER, DIMENSION(2)         :: nelectrons
+      INTEGER                       :: nelec_active
+      INTEGER                       :: nelec_inactive
+      INTEGER, DIMENSION(2)         :: nelec_inactive_spinwise
+      INTEGER, DIMENSION(2)         :: nelec_total
       INTEGER                       :: multiplicity
       INTEGER                       :: nspins
       LOGICAL                       :: molecule
@@ -84,7 +86,7 @@ MODULE qs_active_space_types
       TYPE(mo_set_p_type), DIMENSION(:), POINTER  :: mos_active
       TYPE(mo_set_p_type), DIMENSION(:), POINTER  :: mos_inactive
       TYPE(eri_type)                :: eri
-      TYPE(cp_fm_p_type), DIMENSION(:), POINTER   :: p_ref
+      TYPE(cp_fm_p_type), DIMENSION(:), POINTER   :: p_active
       TYPE(cp_fm_p_type), DIMENSION(:), POINTER   :: ks_sub
       TYPE(cp_fm_p_type), DIMENSION(:), POINTER   :: vxc_sub
       TYPE(cp_fm_p_type), DIMENSION(:), POINTER   :: h_sub
@@ -116,14 +118,11 @@ MODULE qs_active_space_types
 CONTAINS
 
 ! **************************************************************************************************
-!> \brief ...
-!> \param active_space_env ...
+!> \brief Creates an active space environment type, nullifying all quantities.
+!> \param active_space_env the active space environment to be initialized
 ! **************************************************************************************************
    SUBROUTINE create_active_space_type(active_space_env)
       TYPE(active_space_type), POINTER                   :: active_space_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_active_space_type', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(active_space_env)) THEN
          CALL release_active_space_type(active_space_env)
@@ -131,21 +130,18 @@ CONTAINS
 
       ALLOCATE (active_space_env)
       NULLIFY (active_space_env%mos_active, active_space_env%mos_inactive)
-      NULLIFY (active_space_env%ks_sub, active_space_env%p_ref)
+      NULLIFY (active_space_env%ks_sub, active_space_env%p_active)
       NULLIFY (active_space_env%vxc_sub, active_space_env%h_sub)
       NULLIFY (active_space_env%fock_sub, active_space_env%pmat_inactive)
 
    END SUBROUTINE create_active_space_type
 
 ! **************************************************************************************************
-!> \brief ...
-!> \param active_space_env ...
+!> \brief Releases all quantities in the active space environment.
+!> \param active_space_env the active space environment to be released
 ! **************************************************************************************************
    SUBROUTINE release_active_space_type(active_space_env)
       TYPE(active_space_type), POINTER                   :: active_space_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'release_active_space_type', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: imo, isp
 
@@ -167,11 +163,11 @@ CONTAINS
 
          CALL release_eri_type(active_space_env%eri)
 
-         IF (ASSOCIATED(active_space_env%p_ref)) THEN
-            DO isp = 1, SIZE(active_space_env%p_ref)
-               CALL cp_fm_release(active_space_env%p_ref(isp)%matrix)
+         IF (ASSOCIATED(active_space_env%p_active)) THEN
+            DO isp = 1, SIZE(active_space_env%p_active)
+               CALL cp_fm_release(active_space_env%p_active(isp)%matrix)
             END DO
-            DEALLOCATE (active_space_env%p_ref)
+            DEALLOCATE (active_space_env%p_active)
          END IF
 
          IF (ASSOCIATED(active_space_env%ks_sub)) THEN
@@ -211,21 +207,18 @@ CONTAINS
    END SUBROUTINE release_active_space_type
 
 ! **************************************************************************************************
-!> \brief ...
-!> \param eri_env ...
+!> \brief Releases the ERI environment type.
+!> \param eri_env the ERI environment to be released
 ! **************************************************************************************************
    SUBROUTINE release_eri_type(eri_env)
       TYPE(eri_type)                                     :: eri_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'release_eri_type', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
 
       IF (ASSOCIATED(eri_env%eri)) THEN
 
          DO i = 1, SIZE(eri_env%eri)
-            CALL csr_destroy(eri_env%eri(i)%csr_mat)
+            CALL dbcsr_csr_destroy(eri_env%eri(i)%csr_mat)
             DEALLOCATE (eri_env%eri(i)%csr_mat)
          END DO
          DEALLOCATE (eri_env%eri)
@@ -250,9 +243,9 @@ CONTAINS
       CPASSERT(i <= n)
       CPASSERT(j <= n)
 
-      ij = (i-1)*n-((i-1)*(i-2))/2+(j-i+1)
+      ij = (i - 1)*n - ((i - 1)*(i - 2))/2 + (j - i + 1)
 
-      CPASSERT(ij <= (n*(n+1))/2)
+      CPASSERT(ij <= (n*(n + 1))/2)
 
    END FUNCTION csr_idx_to_combined
 
@@ -273,8 +266,8 @@ CONTAINS
 
       m = MAX(ij/n, 1)
       DO i = m, n
-         m0 = (i-1)*n-((i-1)*(i-2))/2
-         j = ij-m0+i-1
+         m0 = (i - 1)*n - ((i - 1)*(i - 2))/2
+         j = ij - m0 + i - 1
          IF (j <= n) EXIT
       END DO
 
@@ -286,8 +279,8 @@ CONTAINS
 
 ! **************************************************************************************************
 !> \brief calculates index range for processor in group mp_group
-!> \param nindex ...
-!> \param mp_group ...
+!> \param nindex the number of indices
+!> \param mp_group message-passing group ID
 !> \return a range tuple
 !> \par History
 !>      04.2016 created [JGH]
@@ -310,13 +303,13 @@ CONTAINS
             irange(1) = 1
             irange(2) = 0
          ELSE
-            irange(1) = taskid+1
-            irange(2) = taskid+1
+            irange(1) = taskid + 1
+            irange(2) = taskid + 1
          END IF
       ELSE
          rat = REAL(nindex, KIND=dp)/REAL(numtask, KIND=dp)
-         irange(1) = NINT(rat*taskid)+1
-         irange(2) = NINT(rat*taskid+rat)
+         irange(1) = NINT(rat*taskid) + 1
+         irange(2) = NINT(rat*taskid + rat)
       END IF
 
    END FUNCTION get_irange_csr
@@ -342,7 +335,7 @@ CONTAINS
       REAL(KIND=dp)                            :: erint
 
       ASSOCIATE (eri=>this%eri(nspin)%csr_mat, norb=>this%norb)
-         nindex = (norb*(norb+1))/2
+         nindex = (norb*(norb + 1))/2
          irange = get_irange_csr(nindex, eri%mp_group)
          ALLOCATE (erival(nindex), colind(nindex))
 
@@ -351,11 +344,11 @@ CONTAINS
                i12 = csr_idx_to_combined(i1, i2, norb)
 
                IF (i12 >= irange(1) .AND. i12 <= irange(2)) THEN
-                  i12l = i12-irange(1)+1
+                  i12l = i12 - irange(1) + 1
                   irptr = eri%rowptr_local(i12l)
                   nindex = eri%nzerow_local(i12l)
-                  colind(1:nindex) = eri%colind_local(irptr:irptr+nindex-1)
-                  erival(1:nindex) = eri%nzval_local%r_dp(irptr:irptr+nindex-1)
+                  colind(1:nindex) = eri%colind_local(irptr:irptr + nindex - 1)
+                  erival(1:nindex) = eri%nzval_local%r_dp(irptr:irptr + nindex - 1)
                ELSE
                   erival = 0.0_dp
                   colind = 0

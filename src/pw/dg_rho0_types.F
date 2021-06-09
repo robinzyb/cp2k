@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -72,8 +74,6 @@ CONTAINS
       REAL(KIND=dp), OPTIONAL, POINTER                   :: gcc(:), zet(:)
       TYPE(pw_p_type), OPTIONAL                          :: density
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'dg_rho0_set', routineP = moduleN//':'//routineN
-
       IF (PRESENT(grid)) dg_rho0%grid = grid
       IF (PRESENT(kind)) dg_rho0%kind = kind
       IF (PRESENT(density)) dg_rho0%density = density
@@ -97,13 +97,12 @@ CONTAINS
 !> \version 1.0
 ! **************************************************************************************************
    SUBROUTINE dg_rho0_get(dg_rho0, cutoff_radius, TYPE, grid, kind, gcc, zet, density)
-      INTEGER, OPTIONAL                                  :: TYPE, kind, grid
-      TYPE(dg_rho0_type), POINTER                        :: dg_rho0
+      INTEGER, OPTIONAL                                  :: TYPE
       REAL(KIND=dp), OPTIONAL                            :: cutoff_radius
+      TYPE(dg_rho0_type), POINTER                        :: dg_rho0
+      INTEGER, OPTIONAL                                  :: grid, kind
       REAL(KIND=dp), OPTIONAL, POINTER                   :: gcc(:), zet(:)
       TYPE(pw_p_type), OPTIONAL, POINTER                 :: density
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'dg_rho0_get', routineP = moduleN//':'//routineN
 
       IF (PRESENT(grid)) grid = dg_rho0%grid
       IF (PRESENT(kind)) kind = dg_rho0%kind
@@ -123,8 +122,6 @@ CONTAINS
    SUBROUTINE dg_rho0_create(dg_rho0)
       TYPE(dg_rho0_type), POINTER                        :: dg_rho0
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'dg_rho0_create', routineP = moduleN//':'//routineN
-
       ALLOCATE (dg_rho0)
       NULLIFY (dg_rho0%gcc)
       NULLIFY (dg_rho0%zet)
@@ -132,7 +129,7 @@ CONTAINS
       dg_rho0%grid = 0
       dg_rho0%kind = 0
       dg_rho0%type = do_ewald_none
-      last_dg_rho0_id_nr = last_dg_rho0_id_nr+1
+      last_dg_rho0_id_nr = last_dg_rho0_id_nr + 1
       dg_rho0%id_nr = last_dg_rho0_id_nr
       dg_rho0%ref_count = 1
       NULLIFY (dg_rho0%density%pw)
@@ -151,11 +148,9 @@ CONTAINS
    SUBROUTINE dg_rho0_retain(dg_rho0)
       TYPE(dg_rho0_type), POINTER                        :: dg_rho0
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'dg_rho0_retain', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(dg_rho0))
       CPASSERT(dg_rho0%ref_count > 0)
-      dg_rho0%ref_count = dg_rho0%ref_count+1
+      dg_rho0%ref_count = dg_rho0%ref_count + 1
    END SUBROUTINE dg_rho0_retain
 
 ! **************************************************************************************************
@@ -170,12 +165,9 @@ CONTAINS
    SUBROUTINE dg_rho0_release(dg_rho0)
       TYPE(dg_rho0_type), POINTER                        :: dg_rho0
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'dg_rho0_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(dg_rho0)) THEN
          CPASSERT(dg_rho0%ref_count > 0)
-         dg_rho0%ref_count = dg_rho0%ref_count-1
+         dg_rho0%ref_count = dg_rho0%ref_count - 1
          IF (dg_rho0%ref_count == 0) THEN
             IF (ASSOCIATED(dg_rho0%gcc)) THEN
                DEALLOCATE (dg_rho0%gcc)
@@ -201,8 +193,6 @@ CONTAINS
       TYPE(dg_rho0_type), POINTER                        :: dg_rho0
       TYPE(pw_grid_type), POINTER                        :: pw_grid
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'dg_rho0_init', routineP = moduleN//':'//routineN
-
       CALL pw_release(dg_rho0%density%pw)
       SELECT CASE (dg_rho0%type)
       CASE (do_ewald_ewald)
@@ -227,8 +217,6 @@ CONTAINS
       TYPE(pw_p_type), INTENT(INOUT)                     :: dg_rho0
       REAL(KIND=dp), INTENT(IN)                          :: alpha
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'dg_rho0_pme_gauss', &
-         routineP = moduleN//':'//routineN
       INTEGER, PARAMETER                                 :: IMPOSSIBLE = 10000
 
       INTEGER                                            :: gpt, l0, ln, lp, m0, mn, mp, n0, nn, np
@@ -278,12 +266,12 @@ CONTAINS
          e_gsq = EXP(-const*pw_grid%gsq(gpt))/pw_grid%vol
 
          !*apsi
-         lp = lp+bds(1, 1)
-         mp = mp+bds(1, 2)
-         np = np+bds(1, 3)
-         ln = ln+bds(1, 1)
-         mn = mn+bds(1, 2)
-         nn = nn+bds(1, 3)
+         lp = lp + bds(1, 1)
+         mp = mp + bds(1, 2)
+         np = np + bds(1, 3)
+         ln = ln + bds(1, 1)
+         mn = mn + bds(1, 2)
+         nn = nn + bds(1, 3)
 
          rho0(lp, mp, np) = e_gsq
          rho0(ln, mn, nn) = e_gsq

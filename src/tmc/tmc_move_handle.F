@@ -1,11 +1,13 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
 !> \brief acceptance ratio handling of the different Monte Carlo Moves types
-!>        For each move type and each temperature average acceptence is
+!>        For each move type and each temperature average acceptance is
 !>        determined.
 !>        For each move is a weight (mv_weight) defined, which defines the
 !>        probability to perform the move.
@@ -71,9 +73,6 @@ CONTAINS
       TYPE(tmc_param_type), POINTER                      :: tmc_params
       TYPE(section_vals_type), POINTER                   :: tmc_section
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_init_move_types', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length)               :: inp_kind_name
       INTEGER                                            :: i, i_rep, i_tmp, ind, n_items, &
                                                             n_NMC_items, n_rep_val, nmc_steps
@@ -106,7 +105,7 @@ CONTAINS
          DO i_rep = 1, n_items
             CALL section_vals_val_get(move_type_section, "PROB", i_rep_section=i_rep, &
                                       r_val=mv_prob)
-            mv_prob_sum = mv_prob_sum+mv_prob
+            mv_prob_sum = mv_prob_sum + mv_prob
          END DO
       END IF
 
@@ -140,14 +139,14 @@ CONTAINS
          DO i_rep = 1, n_NMC_items
             CALL section_vals_val_get(move_type_section, "PROB", i_rep_section=i_rep, &
                                       r_val=mv_prob)
-            nmc_prob_sum = nmc_prob_sum+mv_prob
+            nmc_prob_sum = nmc_prob_sum + mv_prob
          END DO
       END IF
 
       ! get the total weight/amount of move probabilities
-      mv_prob_sum = mv_prob_sum+nmc_prob
+      mv_prob_sum = mv_prob_sum + nmc_prob
 
-      IF (n_items+n_NMC_items .GT. 0) THEN
+      IF (n_items + n_NMC_items .GT. 0) THEN
          ! initilaize the move array with related sizes, probs, etc.
          CALL move_types_create(tmc_params%move_types, tmc_params%nr_temp)
 
@@ -157,10 +156,10 @@ CONTAINS
                           "in total less equal 0")
 
          ! get the sizes, probs, etc. for each move type and convert units
-         DO i_tmp = 1, n_items+n_NMC_items
-            ! select the corect section
+         DO i_tmp = 1, n_items + n_NMC_items
+            ! select the correct section
             IF (i_tmp .GT. n_items) THEN
-               i_rep = i_tmp-n_items
+               i_rep = i_tmp - n_items
                IF (i_rep .EQ. 1) THEN
                   ! set the NMC stuff (approx potential)
                   tmc_params%move_types%mv_weight(mv_type_NMC_moves) = &
@@ -312,10 +311,10 @@ CONTAINS
       END IF
       mv_prob_sum = SUM(tmc_params%move_types%mv_weight(:))
       flag = .TRUE.
-      CPASSERT(ABS(mv_prob_sum-1.0_dp) .LT. 0.01_dp)
+      CPASSERT(ABS(mv_prob_sum - 1.0_dp) .LT. 0.01_dp)
       IF (ASSOCIATED(tmc_params%nmc_move_types)) THEN
          mv_prob_sum = SUM(tmc_params%nmc_move_types%mv_weight(:))
-         CPASSERT(ABS(mv_prob_sum-1.0_dp) < 10*EPSILON(1.0_dp))
+         CPASSERT(ABS(mv_prob_sum - 1.0_dp) < 10*EPSILON(1.0_dp))
       END IF
    END SUBROUTINE read_init_move_types
 
@@ -330,8 +329,6 @@ CONTAINS
       TYPE(tmc_param_type), POINTER                      :: tmc_params
       TYPE(tmc_move_type), POINTER                       :: move_types
       INTEGER, DIMENSION(:), POINTER                     :: mol_array
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'check_moves', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: atom_j, list_i, ref_k
       LOGICAL                                            :: found
@@ -373,7 +370,7 @@ CONTAINS
                                    ") is not contained in the system. ")
                   ! check if not be swapped with the same atom type
                   IF (ANY(move_types%atom_lists(list_i)%atoms(atom_j) .EQ. &
-                          move_types%atom_lists(list_i)%atoms(atom_j+1:))) THEN
+                          move_types%atom_lists(list_i)%atoms(atom_j + 1:))) THEN
                      CALL cp_abort(__LOCATION__, &
                                    "ATOM_SWAP can not swap two atoms of same kind ("// &
                                    TRIM(move_types%atom_lists(list_i)%atoms(atom_j))// &
@@ -409,9 +406,6 @@ CONTAINS
    SUBROUTINE finalize_mv_types(tmc_params)
       TYPE(tmc_param_type), POINTER                      :: tmc_params
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'finalize_mv_types', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(tmc_params))
       CALL move_types_release(tmc_params%move_types)
       IF (ASSOCIATED(tmc_params%nmc_move_types)) &
@@ -434,9 +428,6 @@ CONTAINS
       INTEGER                                            :: file_io
       TYPE(tmc_param_type), POINTER                      :: tmc_params
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'print_move_types', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=10)                                  :: c_t
       CHARACTER(LEN=50)                                  :: FMT_c, FMT_i, FMT_r
       CHARACTER(LEN=500)                                 :: c_a, c_b, c_c, c_d, c_e, c_tit, c_tmp
@@ -455,7 +446,7 @@ CONTAINS
       CPASSERT(file_io .GT. 0)
       CPASSERT(ASSOCIATED(tmc_params%move_types))
 
-      FLUSH(file_io)
+      FLUSH (file_io)
 
       IF (.NOT. init .AND. &
           tmc_params%move_types%mv_weight(mv_type_NMC_moves) .GT. 0 .AND. &
@@ -477,13 +468,13 @@ CONTAINS
          c_tit = ""; c_a = ""; c_b = ""; c_c = ""
          IF (init .AND. temper .GT. 1) EXIT temp_loop
          WRITE (c_t, "(F10.2)") tmc_params%Temp(temper)
-         typ_loop: DO move = 0, SIZE(tmc_params%move_types%mv_weight)+nr_nmc_moves
+         typ_loop: DO move = 0, SIZE(tmc_params%move_types%mv_weight) + nr_nmc_moves
             ! the NMC moves
             IF (move .LE. SIZE(tmc_params%move_types%mv_weight)) THEN
                typ = move
                move_types => tmc_params%move_types
             ELSE
-               typ = move-SIZE(tmc_params%move_types%mv_weight)
+               typ = move - SIZE(tmc_params%move_types%mv_weight)
                move_types => tmc_params%nmc_move_types
             END IF
             ! total average
@@ -717,7 +708,7 @@ CONTAINS
       LOGICAL, INTENT(IN), OPTIONAL                      :: acc, subbox
       LOGICAL, INTENT(IN)                                :: prob_opt
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'prob_update', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'prob_update'
 
       INTEGER                                            :: change_res, change_sb_type, change_type, &
                                                             conf_moved, handle, mv_type
@@ -770,8 +761,8 @@ CONTAINS
          IF (PRESENT(subbox)) THEN
             ! only update subbox acceptance
             IF (acc) &
-               move_types%subbox_acc_count(mv_type, conf_moved) = move_types%subbox_acc_count(mv_type, conf_moved)+1
-            move_types%subbox_count(mv_type, conf_moved) = move_types%subbox_count(mv_type, conf_moved)+1
+               move_types%subbox_acc_count(mv_type, conf_moved) = move_types%subbox_acc_count(mv_type, conf_moved) + 1
+            move_types%subbox_count(mv_type, conf_moved) = move_types%subbox_count(mv_type, conf_moved) + 1
             ! No more to do
             change_type = 0
             change_res = 0
@@ -790,17 +781,17 @@ CONTAINS
       !-- INcrease or DEcrease accaptance rate
       ! MOVE types
       IF (change_type .GT. 0) THEN
-         move_types%acc_count(mv_type, conf_moved) = move_types%acc_count(mv_type, conf_moved)+1
+         move_types%acc_count(mv_type, conf_moved) = move_types%acc_count(mv_type, conf_moved) + 1
       END IF
 
       ! RESULTs
       IF (change_res .GT. 0) THEN
-         move_types%acc_count(0, conf_moved) = move_types%acc_count(0, conf_moved)+1
+         move_types%acc_count(0, conf_moved) = move_types%acc_count(0, conf_moved) + 1
       END IF
 
-      IF (conf_moved .GT. 0) move_types%mv_count(0, conf_moved) = move_types%mv_count(0, conf_moved)+ABS(change_res)
+      IF (conf_moved .GT. 0) move_types%mv_count(0, conf_moved) = move_types%mv_count(0, conf_moved) + ABS(change_res)
       IF (mv_type .GE. 0 .AND. conf_moved .GT. 0) &
-         move_types%mv_count(mv_type, conf_moved) = move_types%mv_count(mv_type, conf_moved)+ABS(change_type)
+         move_types%mv_count(mv_type, conf_moved) = move_types%mv_count(mv_type, conf_moved) + ABS(change_type)
 
       IF (prob_opt) THEN
          WHERE (move_types%mv_count .GT. 0) &
@@ -827,15 +818,13 @@ CONTAINS
       INTEGER, DIMENSION(:, :), OPTIONAL                 :: mv_counter, acc_counter, subbox_counter, &
                                                             subbox_acc_counter
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'add_mv_prob', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(move_types))
       CPASSERT(PRESENT(mv_counter) .OR. PRESENT(subbox_counter))
 
       IF (PRESENT(mv_counter)) THEN
          CPASSERT(PRESENT(acc_counter))
-         move_types%mv_count(:, :) = move_types%mv_count(:, :)+mv_counter(:, :)
-         move_types%acc_count(:, :) = move_types%acc_count(:, :)+acc_counter(:, :)
+         move_types%mv_count(:, :) = move_types%mv_count(:, :) + mv_counter(:, :)
+         move_types%acc_count(:, :) = move_types%acc_count(:, :) + acc_counter(:, :)
          IF (prob_opt) THEN
             WHERE (move_types%mv_count .GT. 0) &
                move_types%acc_prob(:, :) = move_types%acc_count(:, :)/REAL(move_types%mv_count(:, :), KIND=dp)
@@ -844,8 +833,8 @@ CONTAINS
 
       IF (PRESENT(subbox_counter)) THEN
          CPASSERT(PRESENT(subbox_acc_counter))
-         move_types%subbox_count(:, :) = move_types%subbox_count(:, :)+subbox_counter(:, :)
-         move_types%subbox_acc_count(:, :) = move_types%subbox_acc_count(:, :)+subbox_acc_counter(:, :)
+         move_types%subbox_count(:, :) = move_types%subbox_count(:, :) + subbox_counter(:, :)
+         move_types%subbox_acc_count(:, :) = move_types%subbox_acc_count(:, :) + subbox_acc_counter(:, :)
       END IF
    END SUBROUTINE add_mv_prob
 
@@ -857,9 +846,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE clear_move_probs(move_types)
       TYPE(tmc_move_type), POINTER                       :: move_types
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'clear_move_probs', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(ASSOCIATED(move_types))
 
@@ -884,8 +870,7 @@ CONTAINS
       REAL(KIND=dp)                                      :: rnd
       INTEGER                                            :: mv_type
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'select_random_move_type', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'select_random_move_type'
 
       INTEGER                                            :: handle, i
       REAL(KIND=dp)                                      :: rnd_mv, total_moves

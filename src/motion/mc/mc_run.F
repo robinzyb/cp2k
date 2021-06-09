@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -66,8 +68,6 @@ MODULE mc_run
         mc_sim_par_create, mc_sim_par_destroy, mc_simulation_parameters_p_type, read_mc_section, &
         set_mc_par
    USE parallel_rng_types,              ONLY: UNIFORM,&
-                                              create_rng_stream,&
-                                              delete_rng_stream,&
                                               rng_stream_type
    USE physcon,                         ONLY: angstrom
 #include "../../base/base_uses.f90"
@@ -106,8 +106,6 @@ CONTAINS
       TYPE(section_type), POINTER                        :: input_declaration
       CHARACTER(LEN=*)                                   :: input_file_name
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'do_mon_car', routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=20)                                  :: ensemble
       CHARACTER(LEN=40)                                  :: box2_file, dat_file
       INTEGER                                            :: box_number, ibox, isos, iw, nboxes, &
@@ -126,11 +124,11 @@ CONTAINS
       TYPE(mc_molecule_info_type), POINTER               :: mc_molecule_info
       TYPE(mc_simulation_parameters_p_type), &
          DIMENSION(:), POINTER                           :: mc_par
-      TYPE(rng_stream_type), POINTER                     :: rng_stream
+      TYPE(rng_stream_type)                              :: rng_stream
       TYPE(section_vals_type), POINTER                   :: force_env_section, mc_section, &
                                                             root_section
 
-      NULLIFY (mc_env, mc_par, force_env_2, rng_stream, force_env_section, &
+      NULLIFY (mc_env, mc_par, force_env_2, force_env_section, &
                root_section, mc_molecule_info)
 
       CALL force_env_retain(force_env_1)
@@ -144,10 +142,10 @@ CONTAINS
 ! set some values...will use get_globenv if that ever comes around
 
 ! initialize the random numbers
-      CALL create_rng_stream(rng_stream=rng_stream, &
-                             last_rng_stream=force_env_1%globenv%gaussian_rng_stream, &
-                             name="first", &
-                             distribution_type=UNIFORM)
+      rng_stream = rng_stream_type( &
+                   last_rng_stream=force_env_1%globenv%gaussian_rng_stream, &
+                   name="first", &
+                   distribution_type=UNIFORM)
 
 ! need to figure out how many boxes we have, based on the value
 ! of mc_par % ensemble
@@ -337,9 +335,6 @@ CONTAINS
       DEALLOCATE (mc_par)
       DEALLOCATE (mc_env)
       DEALLOCATE (force_env)
-
-! delete the random numbers
-      CALL delete_rng_stream(rng_stream)
 
    END SUBROUTINE do_mon_car
 

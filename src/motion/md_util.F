@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -53,7 +55,7 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: md_section, root_section
       LOGICAL, INTENT(IN)                                :: forced_io
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'md_output', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'md_output'
 
       INTEGER                                            :: handle
       LOGICAL                                            :: do_print
@@ -102,9 +104,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:), INTENT(OUT)           :: eigenvalues
       REAL(KIND=dp), DIMENSION(:, :), INTENT(OUT)        :: eigenvectors
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_vib_eigs_unformatted', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_path_length)                 :: filename
       INTEGER                                            :: jj, n_rep_val, unit_nr
       LOGICAL                                            :: exist
@@ -119,7 +118,7 @@ CONTAINS
       CALL section_vals_val_get(md_section, "INITIAL_VIBRATION%VIB_EIGS_FILE_NAME", &
                                 n_rep_val=n_rep_val)
       IF (n_rep_val > 0) THEN
-         CALL section_vals_val_get(md_section, "VIB_EIGS_FILE_NAME", c_val=filename)
+         CALL section_vals_val_get(md_section, "INITIAL_VIBRATION%VIB_EIGS_FILE_NAME", c_val=filename)
       ELSE
          print_key => section_vals_get_subs_vals(vib_section, "PRINT%CARTESIAN_EIGS")
          filename = cp_print_key_generate_filename(logger, print_key, extension="eig", &

@@ -1,20 +1,18 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 # author: Ole Schuett
 
-from __future__ import print_function
 import sys
 import math
 
-#===============================================================================
+# ===============================================================================
 def main():
-    if(len(sys.argv) != 2):
+    if len(sys.argv) != 2:
         print("Usage: timings.py <timings.txt>")
         sys.exit(1)
 
     filename = sys.argv[1]
-    with open(filename) as fhandle:
+    with open(filename, encoding="utf8") as fhandle:
         timings = sorted(float(line.split()[0]) for line in fhandle.readlines())
 
     print('Plot: name="timings", title="Timing Distribution", ylabel="time [s]"')
@@ -23,16 +21,18 @@ def main():
         v = percentile(timings, p / 100.0)
         print(tmpl.format(p, p, v))
 
-#===============================================================================
+
+# ===============================================================================
 def percentile(values, percent):
-    k = (len(values)-1) * percent
+    k = (len(values) - 1) * percent
     f = math.floor(k)
     c = math.ceil(k)
     if f == c:
         return values[int(k)]
-    d0 = values[int(f)] * (c-k)
-    d1 = values[int(c)] * (k-f)
+    d0 = values[int(f)] * (c - k)
+    d1 = values[int(c)] * (k - f)
     return d0 + d1
 
-#===============================================================================
+
+# ===============================================================================
 main()

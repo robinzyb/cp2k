@@ -1,11 +1,11 @@
-&GLOBAL                                                                                           
+&GLOBAL
   PROJECT     STRESS_RI-MP2
   PRINT_LEVEL LOW
   RUN_TYPE    CELL_OPT
 &END GLOBAL
 &MOTION
   &CELL_OPT
-    MAX_ITER  1
+    MAX_ITER  0
   &END
 &END MOTION
 &FORCE_EVAL
@@ -13,15 +13,17 @@
   STRESS_TENSOR  ANALYTICAL
   &PRINT
     &FORCES
-    &END
+    &END FORCES
     &STRESS_TENSOR
-    &END
+     COMPONENTS
+    &END STRESS_TENSOR
   &END
   &DFT
+    BASIS_SET_FILE_NAME  GTH_BASIS_SETS
     BASIS_SET_FILE_NAME  HFX_BASIS
     POTENTIAL_FILE_NAME  POTENTIAL
     &MGRID
-      CUTOFF      150
+      CUTOFF      100
       REL_CUTOFF   30
     &END MGRID
     &QS
@@ -43,33 +45,35 @@
       &HF
         FRACTION 1.0000000
         &SCREENING
-          EPS_SCHWARZ 1.0E-9
-          EPS_SCHWARZ_FORCES  1.0E-9
+          EPS_SCHWARZ 1.0E-6
+          EPS_SCHWARZ_FORCES  1.0E-6
           SCREEN_ON_INITIAL_P .FALSE.
         &END SCREENING
         &INTERACTION_POTENTIAL
           POTENTIAL_TYPE  TRUNCATED
-          CUTOFF_RADIUS   2.4999999
+          # One should actually chose half the nearest neighbour distance (here 2.4999)
+          CUTOFF_RADIUS   1.5
           T_C_G_DATA      t_c_g.dat
         &END
       &END HF
       &WF_CORRELATION
-        METHOD  RI_MP2_GPW
         &RI_MP2
           BLOCK_SIZE  1
           EPS_CANONICAL 0.0001
           FREE_HFX_BUFFER .TRUE.
+          &CPHF
+            EPS_CONV  1.0E-4
+            MAX_ITER  30
+          &END
         &END
-        &CPHF
-          EPS_CONV  1.0E-6
-          MAX_ITER  50
-        &END
-        &WFC_GPW
-          CUTOFF      100
-          REL_CUTOFF  30
-          EPS_FILTER  1.0E-6
-          EPS_GRID    1.0E-6
-        &END
+        &INTEGRALS
+          &WFC_GPW
+            CUTOFF      25
+            REL_CUTOFF  10
+            EPS_FILTER  1.0E-6
+            EPS_GRID    1.0E-6
+          &END WFC_GPW
+        &END INTEGRALS
         MEMORY       1.00
         NUMBER_PROC  1
       &END
@@ -77,15 +81,15 @@
   &END DFT
   &SUBSYS
     &CELL
-      ABC [angstrom]  5.000   5.000  5.000
+      ABC [angstrom]  6.0000   6.0000  6.0000
     &END CELL
     &KIND H
-      BASIS_SET         DZVP-GTH
+      BASIS_SET         SZV-GTH
       BASIS_SET RI_AUX  RI_DZVP-GTH
       POTENTIAL         GTH-HF-q1
     &END KIND
     &KIND O
-      BASIS_SET         DZVP-GTH
+      BASIS_SET         SZV-GTH
       BASIS_SET RI_AUX  RI_DZVP-GTH
       POTENTIAL         GTH-HF-q6
     &END KIND

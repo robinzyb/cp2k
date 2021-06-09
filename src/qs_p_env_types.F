@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -46,7 +48,7 @@ MODULE qs_p_env_types
 !> \param kpp 1: the kpp1 matrix (make it temporary?)
 !> \param m_epsilon minus epsilon: -<psi0d|H_rho|psi0d>
 !> \param psi 0d: the dual basis of psi0: psi0 (psi0^T S psi0)^-1
-!> \param S_psi 0: S times psi0, cached for performace reasons
+!> \param S_psi 0: S times psi0, cached for performance reasons
 !> \param Smo_inv inverse of the mo overlap: (psi0^T S psi0)^-1
 !> \param kpp 1_env: environment for the calculation of kpp1
 !> \param rho 1: the density rho1
@@ -60,7 +62,8 @@ MODULE qs_p_env_types
 
       LOGICAL :: orthogonal_orbitals
       INTEGER :: id_nr, ref_count, iter
-      TYPE(dbcsr_p_type), DIMENSION(:), POINTER :: kpp1, p1
+      TYPE(dbcsr_p_type), DIMENSION(:), POINTER :: kpp1, p1, w1
+      TYPE(dbcsr_p_type), DIMENSION(:), POINTER :: p1_admm => NULL()
       TYPE(cp_fm_p_type), DIMENSION(:), POINTER :: m_epsilon, &
                                                    psi0d, S_psi0, Smo_inv
       TYPE(qs_kpp1_env_type), POINTER :: kpp1_env
@@ -112,11 +115,9 @@ CONTAINS
    SUBROUTINE p_env_retain(p_env)
       TYPE(qs_p_env_type), POINTER                       :: p_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'p_env_retain', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(p_env))
       CPASSERT(p_env%ref_count > 0)
-      p_env%ref_count = p_env%ref_count+1
+      p_env%ref_count = p_env%ref_count + 1
    END SUBROUTINE p_env_retain
 
 ! **************************************************************************************************
@@ -130,13 +131,11 @@ CONTAINS
 
       TYPE(qs_p_env_type), POINTER                       :: p_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'p_env_release', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ip
 
       IF (ASSOCIATED(p_env)) THEN
          CPASSERT(p_env%ref_count > 0)
-         p_env%ref_count = p_env%ref_count-1
+         p_env%ref_count = p_env%ref_count - 1
          IF (p_env%ref_count < 1) THEN
             CALL kpp1_release(p_env%kpp1_env)
             CALL cp_fm_vect_dealloc(p_env%S_psi0)
@@ -149,6 +148,8 @@ CONTAINS
             CALL qs_rho_release(p_env%rho1)
             IF (ASSOCIATED(p_env%kpp1)) CALL dbcsr_deallocate_matrix_set(p_env%kpp1)
             IF (ASSOCIATED(p_env%p1)) CALL dbcsr_deallocate_matrix_set(p_env%p1)
+            IF (ASSOCIATED(p_env%w1)) CALL dbcsr_deallocate_matrix_set(p_env%w1)
+            IF (ASSOCIATED(p_env%p1_admm)) CALL dbcsr_deallocate_matrix_set(p_env%p1_admm)
             IF (ASSOCIATED(p_env%local_rho_set)) THEN
                CALL local_rho_set_release(p_env%local_rho_set)
             END IF

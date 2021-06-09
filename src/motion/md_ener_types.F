@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -65,11 +67,9 @@ CONTAINS
    SUBROUTINE create_md_ener(md_ener)
       TYPE(md_ener_type), POINTER                        :: md_ener
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_md_ener', routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(md_ener))
       ALLOCATE (md_ener)
-      last_md_ener_id = last_md_ener_id+1
+      last_md_ener_id = last_md_ener_id + 1
       md_ener%id_nr = last_md_ener_id
 
       md_ener%ref_count = 1
@@ -92,11 +92,9 @@ CONTAINS
    SUBROUTINE retain_md_ener(md_ener)
       TYPE(md_ener_type), POINTER                        :: md_ener
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'retain_md_ener', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(md_ener))
       CPASSERT(md_ener%ref_count > 0)
-      md_ener%ref_count = md_ener%ref_count+1
+      md_ener%ref_count = md_ener%ref_count + 1
    END SUBROUTINE retain_md_ener
 
 ! **************************************************************************************************
@@ -109,12 +107,9 @@ CONTAINS
    SUBROUTINE release_md_ener(md_ener)
       TYPE(md_ener_type), POINTER                        :: md_ener
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'release_md_ener', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(md_ener)) THEN
          CPASSERT(md_ener%ref_count > 0)
-         md_ener%ref_count = md_ener%ref_count-1
+         md_ener%ref_count = md_ener%ref_count - 1
          IF (md_ener%ref_count == 0) THEN
             IF (ASSOCIATED(md_ener%temp_kind)) THEN
                DEALLOCATE (md_ener%temp_kind)

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -109,9 +111,6 @@ CONTAINS
       INTEGER(KIND=int_8), INTENT(IN)                    :: key
       INTEGER, INTENT(IN)                                :: val
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_hash_table_add', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: islot
       LOGICAL                                            :: check_ok
 
@@ -129,7 +128,7 @@ CONTAINS
       ! we are adding a new entry only if islot points to an empty slot,
       ! otherwise just change the val of the existing entry
       IF (hash_table%obj%table(islot)%key == EMPTY_KEY) THEN
-         hash_table%obj%nelements = hash_table%obj%nelements+1
+         hash_table%obj%nelements = hash_table%obj%nelements + 1
          hash_table%obj%table(islot)%key = key
       END IF
       hash_table%obj%table(islot)%val = val
@@ -147,9 +146,6 @@ CONTAINS
       TYPE(fb_hash_table_obj), INTENT(INOUT)             :: hash_table
       INTEGER, INTENT(IN), OPTIONAL                      :: nmax
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_hash_table_create', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: my_nmax
       LOGICAL                                            :: check_ok
 
@@ -166,7 +162,7 @@ CONTAINS
                               nmax=my_nmax)
       ! book keeping stuff
       hash_table%obj%ref_count = 1
-      hash_table%obj%id_nr = last_fb_hash_table_id+1
+      hash_table%obj%id_nr = last_fb_hash_table_id + 1
       last_fb_hash_table_id = hash_table%obj%id_nr
    END SUBROUTINE fb_hash_table_create
 
@@ -183,9 +179,6 @@ CONTAINS
       INTEGER(KIND=int_8), INTENT(IN)                    :: key
       INTEGER, INTENT(OUT)                               :: val
       LOGICAL, INTENT(OUT)                               :: found
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_hash_table_get', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: islot
       LOGICAL                                            :: check_ok
@@ -228,9 +221,6 @@ CONTAINS
       TYPE(fb_hash_table_obj), INTENT(INOUT)             :: hash_table
       INTEGER, INTENT(IN), OPTIONAL                      :: nmax
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_hash_table_init', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ii, my_nmax, power
       LOGICAL                                            :: check_ok
 
@@ -242,7 +232,7 @@ CONTAINS
       ! power that is greater or equal to my_nmax
       power = 0
       DO WHILE (2**power .LT. my_nmax)
-         power = power+1
+         power = power + 1
       END DO
       my_nmax = 2**power
       IF (ASSOCIATED(hash_table%obj%table)) THEN
@@ -285,9 +275,6 @@ CONTAINS
       TYPE(fb_hash_table_obj), INTENT(INOUT)             :: hash_table
       INTEGER, INTENT(IN), OPTIONAL                      :: nmax
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_hash_table_rehash', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ii, my_nmax
       TYPE(fb_hash_table_element), ALLOCATABLE, &
          DIMENSION(:)                                    :: tmp_table
@@ -324,15 +311,12 @@ CONTAINS
    SUBROUTINE fb_hash_table_release(hash_table)
       TYPE(fb_hash_table_obj), INTENT(INOUT)             :: hash_table
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_hash_table_release', &
-         routineP = moduleN//':'//routineN
-
       LOGICAL                                            :: check_ok
 
       IF (ASSOCIATED(hash_table%obj)) THEN
          check_ok = hash_table%obj%ref_count > 0
          CPASSERT(check_ok)
-         hash_table%obj%ref_count = hash_table%obj%ref_count-1
+         hash_table%obj%ref_count = hash_table%obj%ref_count - 1
          IF (hash_table%obj%ref_count == 0) THEN
             hash_table%obj%ref_count = 1
             IF (ASSOCIATED(hash_table%obj%table)) THEN
@@ -356,9 +340,6 @@ CONTAINS
       TYPE(fb_hash_table_obj), INTENT(INOUT)             :: hash_table
       INTEGER(KIND=int_8), INTENT(IN)                    :: key
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_hash_table_remove', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: islot
       LOGICAL                                            :: check_ok
 
@@ -369,7 +350,7 @@ CONTAINS
       IF (islot > 0) THEN
          IF (hash_table%obj%table(islot)%key == key) THEN
             hash_table%obj%table(islot)%key = EMPTY_KEY
-            hash_table%obj%nelements = hash_table%obj%nelements-1
+            hash_table%obj%nelements = hash_table%obj%nelements - 1
             ! must rehash after setting a filled slot to empty, otherwise the
             ! table will not work. Automatic resize if required
             IF (hash_table%obj%nelements*REDUCE_RATIO .LT. &
@@ -391,16 +372,13 @@ CONTAINS
    SUBROUTINE fb_hash_table_retain(hash_table)
       TYPE(fb_hash_table_obj), INTENT(INOUT)             :: hash_table
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_hash_table_retain', &
-         routineP = moduleN//':'//routineN
-
       LOGICAL                                            :: check_ok
 
       check_ok = ASSOCIATED(hash_table%obj)
       CPASSERT(check_ok)
       check_ok = hash_table%obj%ref_count > 0
       CPASSERT(check_ok)
-      hash_table%obj%ref_count = hash_table%obj%ref_count+1
+      hash_table%obj%ref_count = hash_table%obj%ref_count + 1
    END SUBROUTINE fb_hash_table_retain
 
 ! **************************************************************************************************
@@ -414,9 +392,6 @@ CONTAINS
    SUBROUTINE fb_hash_table_status(hash_table, nelements, nmax, prime)
       TYPE(fb_hash_table_obj), INTENT(INOUT)             :: hash_table
       INTEGER, INTENT(OUT), OPTIONAL                     :: nelements, nmax, prime
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_hash_table_status', &
-         routineP = moduleN//':'//routineN
 
       LOGICAL                                            :: check_ok
 
@@ -447,14 +422,14 @@ CONTAINS
 
       guess = fb_hash_table_hash_function(hash_table, key)
       ! then search for key and stop at first empty slot from guess to
-      ! nmax.  using the same linear probe for adding and retreiving
+      ! nmax.  using the same linear probe for adding and retrieving
       ! makes all non-empty keys being put before the first empty slot.
       DO islot = guess, hash_table%obj%nmax
          IF ((hash_table%obj%table(islot)%key == key) .OR. &
              (hash_table%obj%table(islot)%key == EMPTY_KEY)) RETURN
       END DO
       ! if unsuccessful, search from 1 to guess
-      DO islot = 1, guess-1
+      DO islot = 1, guess - 1
          IF ((hash_table%obj%table(islot)%key == key) .OR. &
              (hash_table%obj%table(islot)%key == EMPTY_KEY)) RETURN
       END DO
@@ -480,7 +455,7 @@ CONTAINS
       nmax_8 = INT(hash_table%obj%nmax, int_8)
       prime_8 = INT(hash_table%obj%prime, int_8)
       ! IAND with nmax-1 is equivalent to MOD nmax if nmax is alway a power of 2.
-      hash_8 = IAND(key*prime_8, nmax_8-1)+1_int_8
+      hash_8 = IAND(key*prime_8, nmax_8 - 1) + 1_int_8
       hash = INT(hash_8)
    END FUNCTION fb_hash_table_hash_function
 

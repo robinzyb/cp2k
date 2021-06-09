@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -13,7 +15,6 @@ MODULE hfx_screening_methods
    USE ao_util,                         ONLY: exp_radius_very_extended
    USE basis_set_types,                 ONLY: gto_basis_set_type
    USE hfx_libint_interface,            ONLY: evaluate_eri_screen
-   USE hfx_libint_wrapper_types,        ONLY: lib_int
    USE hfx_types,                       ONLY: hfx_basis_type,&
                                               hfx_p_kind,&
                                               hfx_potential_type,&
@@ -22,6 +23,7 @@ MODULE hfx_screening_methods
                                               powell_min_log
    USE kinds,                           ONLY: dp,&
                                               int_8
+   USE libint_wrapper,                  ONLY: cp_libint_t
    USE machine,                         ONLY: default_output_unit
    USE orbital_pointers,                ONLY: ncoset
    USE powell,                          ONLY: opt_state_type,&
@@ -75,7 +77,7 @@ CONTAINS
                       max_val, potential_parameter, tmp_R_1, &
                       rab2, p_work)
 
-      TYPE(lib_int)                                      :: lib
+      TYPE(cp_libint_t)                                  :: lib
       REAL(dp), INTENT(IN)                               :: ra(3), rb(3)
       REAL(dp), DIMENSION(:), INTENT(IN)                 :: zeta, zetb
       INTEGER, INTENT(IN)                                :: la_min, la_max, lb_min, lb_max, npgfa, &
@@ -93,7 +95,7 @@ CONTAINS
       max_val_temp = max_val
       DO ipgf = 1, npgfa
          DO jpgf = 1, npgfb
-            R1 = MAX(0.0_dp, tmp_R_1(jpgf, ipgf)%x(1)*rab2+tmp_R_1(jpgf, ipgf)%x(2))
+            R1 = MAX(0.0_dp, tmp_R_1(jpgf, ipgf)%x(1)*rab2 + tmp_R_1(jpgf, ipgf)%x(2))
             DO la = la_min, la_max
                DO lb = lb_min, lb_max
                   !Build primitives
@@ -146,8 +148,7 @@ CONTAINS
       INTEGER                                            :: nkind
       INTEGER, DIMENSION(:, :)                           :: is_assoc_atomic_block
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_pmax_mat', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'update_pmax_mat'
 
       INTEGER :: act_atomic_block_offset, act_set_offset, handle, i, img, jatom, jkind, jset, &
          katom, kind_kind_idx, kkind, kset, mb, mc, nimg, nsetb, nsetc
@@ -182,14 +183,14 @@ CONTAINS
                      pmax_tmp = 0.0_dp
                      act_set_offset = set_offset(kset, jset, kkind, jkind)
                      DO img = 1, nimg
-                        i = act_set_offset+act_atomic_block_offset-1
+                        i = act_set_offset + act_atomic_block_offset - 1
                         DO mc = 1, nsgfc(kset)
                            DO mb = 1, nsgfb(jset)
                               pmax_tmp = MAX(pmax_tmp, ABS(full_density_alpha(i, img)))
                               IF (ASSOCIATED(full_density_beta)) THEN
                                  pmax_tmp = MAX(pmax_tmp, ABS(full_density_beta(i, img)))
                               END IF
-                              i = i+1
+                              i = i + 1
                            ENDDO
                         ENDDO
                      ENDDO
@@ -208,13 +209,13 @@ CONTAINS
                      act_set_offset = set_offset(jset, kset, jkind, kkind)
                      DO img = 1, nimg
                         DO mc = 1, nsgfc(kset)
-                           i = act_set_offset+act_atomic_block_offset-1+mc-1
+                           i = act_set_offset + act_atomic_block_offset - 1 + mc - 1
                            DO mb = 1, nsgfb(jset)
                               pmax_tmp = MAX(pmax_tmp, ABS(full_density_alpha(i, img)))
                               IF (ASSOCIATED(full_density_beta)) THEN
                                  pmax_tmp = MAX(pmax_tmp, ABS(full_density_beta(i, img)))
                               END IF
-                              i = i+nsgfc(kset)
+                              i = i + nsgfc(kset)
                            ENDDO
                         ENDDO
                      ENDDO
@@ -302,7 +303,7 @@ CONTAINS
                                        p_work)
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(hfx_basis_type), DIMENSION(:), POINTER        :: basis_parameter
-      TYPE(lib_int)                                      :: lib
+      TYPE(cp_libint_t)                                  :: lib
       TYPE(hfx_potential_type)                           :: potential_parameter
       TYPE(hfx_screen_coeff_type), &
          DIMENSION(:, :, :, :), POINTER                  :: coeffs_set
@@ -313,8 +314,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: max_set, max_pgf, n_threads, i_thread
       REAL(dp), DIMENSION(:), POINTER                    :: p_work
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calc_screening_functions', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calc_screening_functions'
 
       INTEGER                                            :: handle, i, ikind, ipgf, iset, jkind, &
                                                             jpgf, jset, la, lb, ncoa, ncob, nkind, &
@@ -400,19 +400,19 @@ CONTAINS
             DO iset = 1, nseta
                ncoa = npgfa(iset)*ncoset(la_max(iset))
                sgfa = first_sgfa(1, iset)
-               max_contraction_a = MAXVAL((/(SUM(ABS(sphi_a(1:ncoa, i))), i=sgfa, sgfa+nsgfa(iset)-1)/))
+               max_contraction_a = MAXVAL((/(SUM(ABS(sphi_a(1:ncoa, i))), i=sgfa, sgfa + nsgfa(iset) - 1)/))
                DO jset = 1, nsetb
                   ncob = npgfb(jset)*ncoset(lb_max(jset))
                   sgfb = first_sgfb(1, jset)
-                  max_contraction_b = MAXVAL((/(SUM(ABS(sphi_b(1:ncob, i))), i=sgfb, sgfb+nsgfb(jset)-1)/))
-                  radius = set_radius_a(iset)+set_radius_b(jset)
+                  max_contraction_b = MAXVAL((/(SUM(ABS(sphi_b(1:ncob, i))), i=sgfb, sgfb + nsgfb(jset) - 1)/))
+                  radius = set_radius_a(iset) + set_radius_b(jset)
                   DO ipgf = 1, npgfa(iset)
                      DO jpgf = 1, npgfb(jset)
-                        radius = rpgfa(ipgf, iset)+rpgfb(jpgf, jset)
+                        radius = rpgfa(ipgf, iset) + rpgfb(jpgf, jset)
                         DO i = i_thread, 100, n_threads
-                           rb(1) = 0.0_dp+REAL(i, dp)*0.01_dp*radius
+                           rb(1) = 0.0_dp + REAL(i, dp)*0.01_dp*radius
                            max_val = 0.0_dp
-                           R1 = MAX(0.0_dp, radii_pgf(jpgf, ipgf, jset, iset, jkind, ikind)%x(1)*rb(1)**2+ &
+                           R1 = MAX(0.0_dp, radii_pgf(jpgf, ipgf, jset, iset, jkind, ikind)%x(1)*rb(1)**2 + &
                                     radii_pgf(jpgf, ipgf, jset, iset, jkind, ikind)%x(2))
                            DO la = la_min(iset), la_max(iset)
                               DO lb = lb_min(jset), lb_max(jset)
@@ -508,15 +508,15 @@ CONTAINS
             DO iset = 1, nseta
                ncoa = npgfa(iset)*ncoset(la_max(iset))
                sgfa = first_sgfa(1, iset)
-               max_contraction_a = MAXVAL((/(SUM(ABS(sphi_a(1:ncoa, i))), i=sgfa, sgfa+nsgfa(iset)-1)/))
+               max_contraction_a = MAXVAL((/(SUM(ABS(sphi_a(1:ncoa, i))), i=sgfa, sgfa + nsgfa(iset) - 1)/))
                DO jset = 1, nsetb
                   ncob = npgfb(jset)*ncoset(lb_max(jset))
                   sgfb = first_sgfb(1, jset)
-                  max_contraction_b = MAXVAL((/(SUM(ABS(sphi_b(1:ncob, i))), i=sgfb, sgfb+nsgfb(jset)-1)/))
-                  radius = set_radius_a(iset)+set_radius_b(jset)
+                  max_contraction_b = MAXVAL((/(SUM(ABS(sphi_b(1:ncob, i))), i=sgfb, sgfb + nsgfb(jset) - 1)/))
+                  radius = set_radius_a(iset) + set_radius_b(jset)
                   tmp_R_1 => radii_pgf(:, :, jset, iset, jkind, ikind)
                   DO i = i_thread, 100, n_threads
-                     rb(1) = 0.0_dp+REAL(i, dp)*0.01_dp*radius
+                     rb(1) = 0.0_dp + REAL(i, dp)*0.01_dp*radius
                      max_val = 0.0_dp
                      CALL screen4(lib, ra, rb, &
                                   zeta(:, iset), zetb(:, jset), &
@@ -588,17 +588,17 @@ CONTAINS
             sphi_b => basis_parameter(jkind)%sphi
             nsgfb => basis_parameter(jkind)%nsgf
 
-            radius = kind_radius_a+kind_radius_b
+            radius = kind_radius_a + kind_radius_b
             DO iset = 1, nseta
                ncoa = npgfa(iset)*ncoset(la_max(iset))
                sgfa = first_sgfa(1, iset)
-               max_contraction_a = MAXVAL((/(SUM(ABS(sphi_a(1:ncoa, i))), i=sgfa, sgfa+nsgfa(iset)-1)/))
+               max_contraction_a = MAXVAL((/(SUM(ABS(sphi_a(1:ncoa, i))), i=sgfa, sgfa + nsgfa(iset) - 1)/))
                DO jset = 1, nsetb
                   ncob = npgfb(jset)*ncoset(lb_max(jset))
                   sgfb = first_sgfb(1, jset)
-                  max_contraction_b = MAXVAL((/(SUM(ABS(sphi_b(1:ncob, i))), i=sgfb, sgfb+nsgfb(jset)-1)/))
+                  max_contraction_b = MAXVAL((/(SUM(ABS(sphi_b(1:ncob, i))), i=sgfb, sgfb + nsgfb(jset) - 1)/))
                   DO i = i_thread, 100, n_threads
-                     rb(1) = 0.0_dp+REAL(i, dp)*0.01_dp*radius
+                     rb(1) = 0.0_dp + REAL(i, dp)*0.01_dp*radius
                      max_val = 0.0_dp
                      tmp_R_1 => radii_pgf(:, :, jset, iset, jkind, ikind)
                      CALL screen4(lib, ra, rb, &
@@ -666,8 +666,7 @@ CONTAINS
       REAL(dp)                                           :: eps_schwarz
       INTEGER, INTENT(IN)                                :: n_threads, i_thread
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calc_pair_dist_radii', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'calc_pair_dist_radii'
 
       INTEGER                                            :: handle, i, ikind, ipgf, iset, jkind, &
                                                             jpgf, jset, la, lb, ncoa, ncob, nkind, &
@@ -747,32 +746,32 @@ CONTAINS
             DO iset = 1, nseta
                ncoa = npgfa(iset)*ncoset(la_max(iset))
                sgfa = first_sgfa(1, iset)
-               max_contraction_a = MAXVAL((/(SUM(ABS(sphi_a(1:ncoa, i))), i=sgfa, sgfa+nsgfa(iset)-1)/))
+               max_contraction_a = MAXVAL((/(SUM(ABS(sphi_a(1:ncoa, i))), i=sgfa, sgfa + nsgfa(iset) - 1)/))
                DO jset = 1, nsetb
                   ncob = npgfb(jset)*ncoset(lb_max(jset))
                   sgfb = first_sgfb(1, jset)
-                  max_contraction_b = MAXVAL((/(SUM(ABS(sphi_b(1:ncob, i))), i=sgfb, sgfb+nsgfb(jset)-1)/))
+                  max_contraction_b = MAXVAL((/(SUM(ABS(sphi_b(1:ncob, i))), i=sgfb, sgfb + nsgfb(jset) - 1)/))
                   DO ipgf = 1, npgfa(iset)
                      DO jpgf = 1, npgfb(jset)
-                        radius = rpgfa(ipgf, iset)+rpgfb(jpgf, jset)
+                        radius = rpgfa(ipgf, iset) + rpgfb(jpgf, jset)
                         DO i = i_thread, 100, n_threads
-                           rb(1) = 0.0_dp+0.01_dp*radius*i
+                           rb(1) = 0.0_dp + 0.01_dp*radius*i
                            R_max = 0.0_dp
                            DO la = la_min(iset), la_max(iset)
                               DO lb = lb_min(jset), lb_max(jset)
-                                 zetp = zeta(ipgf, iset)+zetb(jpgf, jset)
+                                 zetp = zeta(ipgf, iset) + zetb(jpgf, jset)
                                  ff = zetb(jpgf, jset)/zetp
                                  rab = 0.0_dp
                                  rab(1) = rb(1)
                                  rab2 = rb(1)**2
                                  prefactor = EXP(-zeta(ipgf, iset)*ff*rab2)
                                  rap(:) = ff*rab(:)
-                                 rp(:) = ra(:)+rap(:)
-                                 rb(:) = ra(:)+rab(:)
+                                 rp(:) = ra(:) + rap(:)
+                                 rb(:) = ra(:) + rab(:)
                                  cutoff = 1.0_dp
                                  R1 = exp_radius_very_extended( &
                                       la, la, lb, lb, ra=ra, rb=rb, rp=rp, &
-                                      zetp=zetp, eps=eps_schwarz, prefactor=prefactor, cutoff=cutoff, epsin=1.0E-12_dp)
+                                      zetp=zetp, eps=eps_schwarz, prefactor=prefactor, cutoff=cutoff, epsabs=1.0E-12_dp)
                                  R_max = MAX(R_max, R1)
                               END DO
                            END DO
@@ -851,13 +850,13 @@ CONTAINS
             IF (opt_state%state == 2) THEN
                opt_state%f = 0.0_dp
                DO i = 0, 100
-                  f = x(1)*DATA(1, i)**2+x(2)
+                  f = x(1)*DATA(1, i)**2 + x(2)
                   IF (f > DATA(2, i)) THEN
                      weight = small_weight
                   ELSE
                      weight = large_weight
                   END IF
-                  IF (DATA(2, i) > fmin) opt_state%f = opt_state%f+weight*(f-DATA(2, i))**2
+                  IF (DATA(2, i) > fmin) opt_state%f = opt_state%f + weight*(f - DATA(2, i))**2
                END DO
             END IF
 
@@ -894,7 +893,7 @@ CONTAINS
       INTEGER(int_8)                                     :: min_ij
 
       min_ij = MIN(i, j)
-      get_1D_idx = min_ij*N+MAX(i, j)-(min_ij-1)*min_ij/2-N
+      get_1D_idx = min_ij*N + MAX(i, j) - (min_ij - 1)*min_ij/2 - N
 
    END FUNCTION get_1D_idx
 

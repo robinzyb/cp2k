@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -110,9 +112,6 @@ CONTAINS
       TYPE(xc_rho_cflags_type), INTENT(inout), OPTIONAL  :: needs
       INTEGER, INTENT(out), OPTIONAL                     :: max_deriv
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xbr_pbe_lda_hole_tc_lr_lda_info', &
-         routineP = moduleN//':'//routineN
-
       IF (PRESENT(reference)) THEN
          reference = "{LDA version}"
       END IF
@@ -145,9 +144,6 @@ CONTAINS
       TYPE(xc_rho_cflags_type), INTENT(inout), OPTIONAL  :: needs
       INTEGER, INTENT(out), OPTIONAL                     :: max_deriv
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xbr_pbe_lda_hole_tc_lr_lsd_info', &
-         routineP = moduleN//':'//routineN
-
       IF (PRESENT(reference)) THEN
          reference = "{LDA version}"
       END IF
@@ -170,7 +166,7 @@ CONTAINS
 !> \param rho_set the density where you want to evaluate the functional
 !> \param deriv_set place where to store the functional derivatives (they are
 !>        added to the derivatives)
-!> \param grad_deriv degree of the derivative that should be evalated,
+!> \param grad_deriv degree of the derivative that should be evaluated,
 !>        if positive all the derivatives up to the given degree are evaluated,
 !>        if negative only the given degree is calculated
 !> \param params parameters for functional
@@ -182,8 +178,7 @@ CONTAINS
       INTEGER, INTENT(in)                                :: grad_deriv
       TYPE(section_vals_type), POINTER                   :: params
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xbr_pbe_lda_hole_tc_lr_lda_eval', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'xbr_pbe_lda_hole_tc_lr_lda_eval'
 
       INTEGER                                            :: handle, npoints
       INTEGER, DIMENSION(:, :), POINTER                  :: bo
@@ -205,7 +200,7 @@ CONTAINS
       CALL xc_rho_set_get(rho_set, rho=rho, norm_drho=norm_drho, &
                           tau=tau, laplace_rho=laplace_rho, local_bounds=bo, &
                           rho_cutoff=epsilon_rho)
-      npoints = (bo(2, 1)-bo(1, 1)+1)*(bo(2, 2)-bo(1, 2)+1)*(bo(2, 3)-bo(1, 3)+1)
+      npoints = (bo(2, 1) - bo(1, 1) + 1)*(bo(2, 2) - bo(1, 2) + 1)*(bo(2, 3) - bo(1, 3) + 1)
 
       dummy => rho
 
@@ -274,7 +269,7 @@ CONTAINS
 !> \param e_ndrho derivatives on the grid
 !> \param e_tau derivatives on the grid
 !> \param e_laplace_rho derivatives on the grid
-!> \param grad_deriv degree of the derivative that should be evalated,
+!> \param grad_deriv degree of the derivative that should be evaluated,
 !>        if positive all the derivatives up to the given degree are evaluated,
 !>        if negative only the given degree is calculated
 !> \param npoints number of gridpoints
@@ -292,9 +287,6 @@ CONTAINS
       REAL(kind=dp), DIMENSION(1:npoints), INTENT(inout) :: e_laplace_rho, e_tau, e_ndrho, e_rho, e_0
       REAL(kind=dp), DIMENSION(1:npoints), INTENT(in)    :: tau, laplace_rho, norm_drho, rho
       REAL(kind=dp), INTENT(in)                          :: epsilon_rho, sx, R, gamma
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'xbr_pbe_lda_hole_tc_lr_lda_calc', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ip
       REAL(dp) :: dFermi_dlaplace_rho, dFermi_dndrho, dFermi_drho, dFermi_dtau, e_0_br, e_0_lda, &
@@ -319,7 +311,7 @@ CONTAINS
             t5 = t4*my_rho
             t8 = my_ndrho**2
             t9 = 0.1e1_dp/my_rho
-            t15 = my_laplace_rho/0.6e1_dp-gamma*(2.0_dp*my_tau-t8*t9/0.4e1_dp)/0.3e1_dp
+            t15 = my_laplace_rho/0.6e1_dp - gamma*(2.0_dp*my_tau - t8*t9/0.4e1_dp)/0.3e1_dp
             t16 = 0.1e1_dp/t15
             yval = 0.2e1_dp/0.3e1_dp*t2*t5*t16
 
@@ -376,7 +368,7 @@ CONTAINS
             ss = 0.3466806371753173524216762e0_dp*t6*t8
             IF (ss > scutoff) THEN
                ss2 = ss*ss
-               sscale = (smax*ss2-sconst)/(ss2*ss)
+               sscale = (smax*ss2 - sconst)/(ss2*ss)
             END IF
             e_0_pbe = 0.0_dp
             e_rho_pbe = 0.0_dp
@@ -400,28 +392,28 @@ CONTAINS
 
             Fx = e_0_br/e_0_lda
 
-            Fermi = alpha/(EXP((Fx-mu)/N)+1.0_dp)
+            Fermi = alpha/(EXP((Fx - mu)/N) + 1.0_dp)
 
-            dFermi_drho = -Fermi**2/alpha/N*(e_rho_br/e_0_lda-e_0_br*e_rho_lda/e_0_lda**2)*EXP((Fx-mu)/N)
-            dFermi_dndrho = -Fermi**2/alpha/N*(e_ndrho_br/e_0_lda)*EXP((Fx-mu)/N)
-            dFermi_dtau = -Fermi**2/alpha/N*(e_tau_br/e_0_lda)*EXP((Fx-mu)/N)
-            dFermi_dlaplace_rho = -Fermi**2/alpha/N*(e_laplace_rho_br/e_0_lda)*EXP((Fx-mu)/N)
+            dFermi_drho = -Fermi**2/alpha/N*(e_rho_br/e_0_lda - e_0_br*e_rho_lda/e_0_lda**2)*EXP((Fx - mu)/N)
+            dFermi_dndrho = -Fermi**2/alpha/N*(e_ndrho_br/e_0_lda)*EXP((Fx - mu)/N)
+            dFermi_dtau = -Fermi**2/alpha/N*(e_tau_br/e_0_lda)*EXP((Fx - mu)/N)
+            dFermi_dlaplace_rho = -Fermi**2/alpha/N*(e_laplace_rho_br/e_0_lda)*EXP((Fx - mu)/N)
 
-            e_0(ip) = e_0(ip)+(Fermi*e_0_pbe+(1.0_dp-Fermi)*e_0_br)*sx
+            e_0(ip) = e_0(ip) + (Fermi*e_0_pbe + (1.0_dp - Fermi)*e_0_br)*sx
 
             IF (grad_deriv >= 1 .OR. grad_deriv == -1) THEN
 
-               e_rho(ip) = e_rho(ip)+(Fermi*e_rho_pbe+dFermi_drho*e_0_pbe+ &
-                                      (1.0_dp-Fermi)*e_rho_br-dFermi_drho*e_0_br)*sx
+               e_rho(ip) = e_rho(ip) + (Fermi*e_rho_pbe + dFermi_drho*e_0_pbe + &
+                                        (1.0_dp - Fermi)*e_rho_br - dFermi_drho*e_0_br)*sx
 
-               e_ndrho(ip) = e_ndrho(ip)+(Fermi*e_ndrho_pbe+dFermi_dndrho*e_0_pbe+ &
-                                          (1.0_dp-Fermi)*e_ndrho_br-dFermi_dndrho*e_0_br)*sx
+               e_ndrho(ip) = e_ndrho(ip) + (Fermi*e_ndrho_pbe + dFermi_dndrho*e_0_pbe + &
+                                            (1.0_dp - Fermi)*e_ndrho_br - dFermi_dndrho*e_0_br)*sx
 
-               e_tau(ip) = e_tau(ip)+(dFermi_dtau*e_0_pbe+ &
-                                      (1.0_dp-Fermi)*e_tau_br-dFermi_dtau*e_0_br)*sx
+               e_tau(ip) = e_tau(ip) + (dFermi_dtau*e_0_pbe + &
+                                        (1.0_dp - Fermi)*e_tau_br - dFermi_dtau*e_0_br)*sx
 
-               e_laplace_rho(ip) = e_laplace_rho(ip)+(dFermi_dlaplace_rho*e_0_pbe+ &
-                                                      (1.0_dp-Fermi)*e_laplace_rho_br-dFermi_dlaplace_rho*e_0_br)*sx
+               e_laplace_rho(ip) = e_laplace_rho(ip) + (dFermi_dlaplace_rho*e_0_pbe + &
+                                                        (1.0_dp - Fermi)*e_laplace_rho_br - dFermi_dlaplace_rho*e_0_br)*sx
             END IF
 
          END IF
@@ -436,7 +428,7 @@ CONTAINS
 !> \param rho_set the density where you want to evaluate the functional
 !> \param deriv_set place where to store the functional derivatives (they are
 !>        added to the derivatives)
-!> \param grad_deriv degree of the derivative that should be evalated,
+!> \param grad_deriv degree of the derivative that should be evaluated,
 !>        if positive all the derivatives up to the given degree are evaluated,
 !>        if negative only the given degree is calculated
 !> \param params parameters for functional
@@ -448,8 +440,7 @@ CONTAINS
       INTEGER, INTENT(in)                                :: grad_deriv
       TYPE(section_vals_type), POINTER                   :: params
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'xbr_pbe_lda_hole_tc_lr_lsd_eval', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'xbr_pbe_lda_hole_tc_lr_lsd_eval'
 
       INTEGER                                            :: handle, npoints
       INTEGER, DIMENSION(:, :), POINTER                  :: bo
@@ -472,7 +463,7 @@ CONTAINS
                           norm_drhob=norm_drhob, tau_a=tau_a, tau_b=tau_b, laplace_rhoa=laplace_rhoa, &
                           laplace_rhob=laplace_rhob, local_bounds=bo, &
                           rho_cutoff=epsilon_rho)
-      npoints = (bo(2, 1)-bo(1, 1)+1)*(bo(2, 2)-bo(1, 2)+1)*(bo(2, 3)-bo(1, 3)+1)
+      npoints = (bo(2, 1) - bo(1, 1) + 1)*(bo(2, 2) - bo(1, 2) + 1)*(bo(2, 3) - bo(1, 3) + 1)
 
       dummy => rhoa
 
@@ -568,7 +559,7 @@ CONTAINS
 !> \param e_ndrho derivatives on the grid
 !> \param e_tau derivatives on the grid
 !> \param e_laplace_rho derivatives on the grid
-!> \param grad_deriv degree of the derivative that should be evalated,
+!> \param grad_deriv degree of the derivative that should be evaluated,
 !>        if positive all the derivatives up to the given degree are evaluated,
 !>        if negative only the given degree is calculated
 !> \param npoints number of gridpoints
@@ -586,9 +577,6 @@ CONTAINS
       REAL(kind=dp), DIMENSION(1:npoints), INTENT(inout) :: e_laplace_rho, e_tau, e_ndrho, e_rho, e_0
       REAL(kind=dp), DIMENSION(1:npoints), INTENT(in)    :: tau, laplace_rho, norm_drho, rho
       REAL(kind=dp), INTENT(in)                          :: epsilon_rho, sx, R, gamma
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'xbr_pbe_lda_hole_tc_lr_lsd_calc', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ip
       REAL(dp) :: dFermi_dlaplace_rho, dFermi_dndrho, dFermi_drho, dFermi_dtau, e_0_br, e_0_lda, &
@@ -612,7 +600,7 @@ CONTAINS
             t5 = t4*my_rho
             t8 = my_ndrho**2
             t9 = 0.1e1_dp/my_rho
-            t15 = my_laplace_rho/0.6e1_dp-gamma*(2.0_dp*my_tau-t8*t9/0.4e1_dp)/0.3e1_dp
+            t15 = my_laplace_rho/0.6e1_dp - gamma*(2.0_dp*my_tau - t8*t9/0.4e1_dp)/0.3e1_dp
             t16 = 0.1e1_dp/t15
             yval = 0.2e1_dp/0.3e1_dp*t2*t5*t16
 
@@ -661,7 +649,7 @@ CONTAINS
             ss = 0.3466806371753173524216762e0_dp*t6*t8
             IF (ss > scutoff) THEN
                ss2 = ss*ss
-               sscale = (smax*ss2-sconst)/(ss2*ss)
+               sscale = (smax*ss2 - sconst)/(ss2*ss)
             END IF
             e_0_pbe = 0.0_dp
             e_rho_pbe = 0.0_dp
@@ -688,28 +676,28 @@ CONTAINS
 
             Fx = e_0_br/e_0_lda
 
-            Fermi = alpha/(EXP((Fx-mu)/N)+1.0_dp)
+            Fermi = alpha/(EXP((Fx - mu)/N) + 1.0_dp)
 
-            dFermi_drho = -Fermi**2/alpha/N*(e_rho_br/e_0_lda-e_0_br*e_rho_lda/e_0_lda**2)*EXP((Fx-mu)/N)
-            dFermi_dndrho = -Fermi**2/alpha/N*(e_ndrho_br/e_0_lda)*EXP((Fx-mu)/N)
-            dFermi_dtau = -Fermi**2/alpha/N*(e_tau_br/e_0_lda)*EXP((Fx-mu)/N)
-            dFermi_dlaplace_rho = -Fermi**2/alpha/N*(e_laplace_rho_br/e_0_lda)*EXP((Fx-mu)/N)
+            dFermi_drho = -Fermi**2/alpha/N*(e_rho_br/e_0_lda - e_0_br*e_rho_lda/e_0_lda**2)*EXP((Fx - mu)/N)
+            dFermi_dndrho = -Fermi**2/alpha/N*(e_ndrho_br/e_0_lda)*EXP((Fx - mu)/N)
+            dFermi_dtau = -Fermi**2/alpha/N*(e_tau_br/e_0_lda)*EXP((Fx - mu)/N)
+            dFermi_dlaplace_rho = -Fermi**2/alpha/N*(e_laplace_rho_br/e_0_lda)*EXP((Fx - mu)/N)
 
-            e_0(ip) = e_0(ip)+(Fermi*e_0_pbe+(1.0_dp-Fermi)*e_0_br)*sx
+            e_0(ip) = e_0(ip) + (Fermi*e_0_pbe + (1.0_dp - Fermi)*e_0_br)*sx
 
             IF (grad_deriv >= 1 .OR. grad_deriv == -1) THEN
 
-               e_rho(ip) = e_rho(ip)+(Fermi*e_rho_pbe+dFermi_drho*e_0_pbe+ &
-                                      (1.0_dp-Fermi)*e_rho_br-dFermi_drho*e_0_br)*sx
+               e_rho(ip) = e_rho(ip) + (Fermi*e_rho_pbe + dFermi_drho*e_0_pbe + &
+                                        (1.0_dp - Fermi)*e_rho_br - dFermi_drho*e_0_br)*sx
 
-               e_ndrho(ip) = e_ndrho(ip)+(Fermi*e_ndrho_pbe+dFermi_dndrho*e_0_pbe+ &
-                                          (1.0_dp-Fermi)*e_ndrho_br-dFermi_dndrho*e_0_br)*sx
+               e_ndrho(ip) = e_ndrho(ip) + (Fermi*e_ndrho_pbe + dFermi_dndrho*e_0_pbe + &
+                                            (1.0_dp - Fermi)*e_ndrho_br - dFermi_dndrho*e_0_br)*sx
 
-               e_tau(ip) = e_tau(ip)+(dFermi_dtau*e_0_pbe+ &
-                                      (1.0_dp-Fermi)*e_tau_br-dFermi_dtau*e_0_br)*sx
+               e_tau(ip) = e_tau(ip) + (dFermi_dtau*e_0_pbe + &
+                                        (1.0_dp - Fermi)*e_tau_br - dFermi_dtau*e_0_br)*sx
 
-               e_laplace_rho(ip) = e_laplace_rho(ip)+(dFermi_dlaplace_rho*e_0_pbe+ &
-                                                      (1.0_dp-Fermi)*e_laplace_rho_br-dFermi_dlaplace_rho*e_0_br)*sx
+               e_laplace_rho(ip) = e_laplace_rho(ip) + (dFermi_dlaplace_rho*e_0_pbe + &
+                                                        (1.0_dp - Fermi)*e_laplace_rho_br - dFermi_dlaplace_rho*e_0_br)*sx
             END IF
 
          END IF

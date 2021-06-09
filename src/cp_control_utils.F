@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -11,11 +13,12 @@ MODULE cp_control_utils
         Andreussi2012, Dewar1977, Dewar1985, Elstner1998, Fattebert2002, Grimme2017, Hu2007, &
         Krack2000, Lippert1997, Lippert1999, Porezag1995, Repasky2002, Rocha2006, Schenter2008, &
         Seifert1996, Souza2002, Stengel2009, Stewart1989, Stewart2007, Thiel1992, Umari2002, &
-        VanVoorhis2015, VandeVondele2005a, VandeVondele2005b, Zhechkov2005, cite_reference
+        VanVoorhis2015, VandeVondele2005a, VandeVondele2005b, Yin2017, Zhechkov2005, cite_reference
    USE cp_control_types,                ONLY: &
         admm_control_create, admm_control_type, ddapc_control_create, ddapc_restraint_type, &
-        dft_control_create, dft_control_type, efield_type, qs_control_type, sccs_control_create, &
-        tddfpt2_control_type, tddfpt_control_create, tddfpt_control_type, xtb_control_type
+        dft_control_create, dft_control_type, efield_type, expot_control_create, &
+        maxwell_control_create, qs_control_type, sccs_control_create, tddfpt2_control_type, &
+        tddfpt_control_create, tddfpt_control_type, xtb_control_type
    USE cp_files,                        ONLY: close_file,&
                                               open_file
    USE cp_log_handling,                 ONLY: cp_get_default_logger,&
@@ -24,6 +27,7 @@ MODULE cp_control_utils
                                               cp_print_key_unit_nr
    USE cp_units,                        ONLY: cp_unit_from_cp2k,&
                                               cp_unit_to_cp2k
+   USE force_fields_input,              ONLY: read_gp_section
    USE input_constants,                 ONLY: &
         constant_env, custom_env, do_admm_basis_projection, do_admm_blocked_projection, &
         do_admm_blocking_purify_full, do_admm_charge_constrained_projection, &
@@ -41,8 +45,7 @@ MODULE cp_control_utils
         sic_list_all, sic_list_unpaired, sic_mauri_spz, sic_mauri_us, sic_none, slater, &
         tddfpt_excitations, use_mom_ref_user, xas_dip_len
    USE input_cp2k_check,                ONLY: xc_functionals_expand
-   USE input_cp2k_dft,                  ONLY: create_dft_section,&
-                                              create_qs_section
+   USE input_cp2k_dft,                  ONLY: create_dft_section
    USE input_enumeration_types,         ONLY: enum_i2c,&
                                               enumeration_type
    USE input_keyword_types,             ONLY: keyword_get,&
@@ -53,6 +56,9 @@ MODULE cp_control_utils
    USE kinds,                           ONLY: default_path_length,&
                                               default_string_length,&
                                               dp
+   USE mathconstants,                   ONLY: fourpi
+   USE pair_potential_types,            ONLY: pair_potential_reallocate
+   USE periodic_table,                  ONLY: get_ptable_info
    USE qs_cdft_utils,                   ONLY: read_cdft_control_section
    USE string_utilities,                ONLY: uppercase
    USE util,                            ONLY: sort
@@ -87,9 +93,6 @@ CONTAINS
       TYPE(dft_control_type), POINTER                    :: dft_control
       TYPE(section_vals_type), POINTER                   :: dft_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_dft_control', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(len=default_path_length)                 :: basis_set_file_name, potential_file_name
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: tmpstringlist
@@ -100,7 +103,8 @@ CONTAINS
       REAL(KIND=dp)                                      :: density_cut, gradient_cut, tau_cut
       REAL(KIND=dp), DIMENSION(:), POINTER               :: pol
       TYPE(cp_logger_type), POINTER                      :: logger
-      TYPE(section_vals_type), POINTER                   :: sccs_section, scf_section, tmp_section, &
+      TYPE(section_vals_type), POINTER                   :: maxwell_section, sccs_section, &
+                                                            scf_section, tmp_section, &
                                                             xc_fun_section, xc_section
       TYPE(xc_rho_cflags_type)                           :: needs
 
@@ -181,7 +185,7 @@ CONTAINS
          CALL section_vals_val_get(dft_section, "AUTO_BASIS", i_rep_val=irep, c_vals=tmpstringlist)
          IF (SIZE(tmpstringlist) == 2) THEN
             CALL uppercase(tmpstringlist(2))
-            SELECT CASE (tmpstringlist (2))
+            SELECT CASE (tmpstringlist(2))
             CASE ("X")
                isize = -1
             CASE ("SMALL")
@@ -196,7 +200,7 @@ CONTAINS
                CPWARN("Unknown basis size in AUTO_BASIS keyword:"//TRIM(tmpstringlist(1)))
             END SELECT
             !
-            SELECT CASE (tmpstringlist (1))
+            SELECT CASE (tmpstringlist(1))
             CASE ("X")
             CASE ("RI_AUX")
                dft_control%auto_basis_ri_aux = isize
@@ -206,6 +210,10 @@ CONTAINS
                dft_control%auto_basis_lri_aux = isize
             CASE ("RI_HXC")
                dft_control%auto_basis_ri_hxc = isize
+            CASE ("RI_XAS")
+               dft_control%auto_basis_ri_xas = isize
+            CASE ("RI_HFX")
+               dft_control%auto_basis_ri_hfx = isize
             CASE DEFAULT
                CPWARN("Unknown basis type in AUTO_BASIS keyword:"//TRIM(tmpstringlist(1)))
             END SELECT
@@ -321,6 +329,23 @@ CONTAINS
       dft_control%correct_surf_dip = .FALSE.
       CALL section_vals_val_get(dft_section, "SURFACE_DIPOLE_CORRECTION", l_val=dft_control%correct_surf_dip)
       CALL section_vals_val_get(dft_section, "SURF_DIP_DIR", i_val=dft_control%dir_surf_dip)
+      dft_control%pos_dir_surf_dip = -1.0_dp
+      CALL section_vals_val_get(dft_section, "SURF_DIP_POS", r_val=dft_control%pos_dir_surf_dip)
+! another logical variable, surf_dip_correct_switch, is introduced for
+! implementation of "SURF_DIP_SWITCH" [SGh]
+      dft_control%switch_surf_dip = .FALSE.
+      dft_control%surf_dip_correct_switch = dft_control%correct_surf_dip
+      CALL section_vals_val_get(dft_section, "SURF_DIP_SWITCH", l_val=dft_control%switch_surf_dip)
+      dft_control%correct_el_density_dip = .FALSE.
+      CALL section_vals_val_get(dft_section, "CORE_CORR_DIP", l_val=dft_control%correct_el_density_dip)
+      IF (dft_control%correct_el_density_dip) THEN
+         IF (dft_control%correct_surf_dip) THEN
+            ! Do nothing, move on
+         ELSE
+            dft_control%correct_el_density_dip = .FALSE.
+            CPWARN("CORE_CORR_DIP keyword is activated only if SURFACE_DIPOLE_CORRECTION is TRUE")
+         ENDIF
+      ENDIF
 
       CALL section_vals_val_get(dft_section, "BASIS_SET_FILE_NAME", &
                                 c_val=basis_set_file_name)
@@ -360,6 +385,14 @@ CONTAINS
          ! Override with section parameter
          CALL section_vals_val_get(tmp_section, "_SECTION_PARAMETERS_", &
                                    l_val=dft_control%do_xas_calculation)
+      END IF
+
+      tmp_section => section_vals_get_subs_vals(dft_section, "XAS_TDP")
+      CALL section_vals_get(tmp_section, explicit=dft_control%do_xas_tdp_calculation)
+      IF (dft_control%do_xas_tdp_calculation) THEN
+         ! Override with section parameter
+         CALL section_vals_val_get(tmp_section, "_SECTION_PARAMETERS_", &
+                                   l_val=dft_control%do_xas_tdp_calculation)
       END IF
 
       ! Read the finite field input section
@@ -405,8 +438,33 @@ CONTAINS
       ! Read the external potential input section
       tmp_section => section_vals_get_subs_vals(dft_section, "EXTERNAL_POTENTIAL")
       CALL section_vals_get(tmp_section, explicit=dft_control%apply_external_potential)
+      IF (dft_control%apply_external_potential) THEN
+         CALL expot_control_create(dft_control%expot_control)
+         CALL section_vals_val_get(tmp_section, "READ_FROM_CUBE", &
+                                   l_val=dft_control%expot_control%read_from_cube)
+         CALL section_vals_val_get(tmp_section, "STATIC", &
+                                   l_val=dft_control%expot_control%static)
+         CALL section_vals_val_get(tmp_section, "SCALING_FACTOR", &
+                                   r_val=dft_control%expot_control%scaling_factor)
+         ! External potential using Maxwell equation
+         maxwell_section => section_vals_get_subs_vals(tmp_section, "MAXWELL")
+         CALL section_vals_get(maxwell_section, explicit=is_present)
+         IF (is_present) THEN
+            dft_control%expot_control%maxwell_solver = .TRUE.
+            CALL maxwell_control_create(dft_control%maxwell_control)
+            ! read the input values from Maxwell section
+            CALL section_vals_val_get(maxwell_section, "TEST_REAL", &
+                                      r_val=dft_control%maxwell_control%real_test)
+            CALL section_vals_val_get(maxwell_section, "TEST_INTEGER", &
+                                      i_val=dft_control%maxwell_control%int_test)
+            CALL section_vals_val_get(maxwell_section, "TEST_LOGICAL", &
+                                      l_val=dft_control%maxwell_control%log_test)
+         ELSE
+            dft_control%expot_control%maxwell_solver = .FALSE.
+         END IF
+      END IF
 
-      !MK Read the SCCS input section if present
+      ! Read the SCCS input section if present
       sccs_section => section_vals_get_subs_vals(dft_section, "SCCS")
       CALL section_vals_get(sccs_section, explicit=is_present)
       IF (is_present) THEN
@@ -415,6 +473,8 @@ CONTAINS
                                    l_val=dft_control%do_sccs)
          IF (dft_control%do_sccs) THEN
             CALL sccs_control_create(dft_control%sccs_control)
+            CALL section_vals_val_get(sccs_section, "RELATIVE_PERMITTIVITY", &
+                                      r_val=dft_control%sccs_control%epsilon_solvent)
             CALL section_vals_val_get(sccs_section, "ALPHA", &
                                       r_val=dft_control%sccs_control%alpha_solvent)
             CALL section_vals_val_get(sccs_section, "BETA", &
@@ -425,8 +485,6 @@ CONTAINS
                                       i_val=dft_control%sccs_control%derivative_method)
             CALL section_vals_val_get(sccs_section, "METHOD", &
                                       i_val=dft_control%sccs_control%method_id)
-            CALL section_vals_val_get(sccs_section, "DIELECTRIC_CONSTANT", &
-                                      r_val=dft_control%sccs_control%epsilon_solvent)
             CALL section_vals_val_get(sccs_section, "EPS_SCCS", &
                                       r_val=dft_control%sccs_control%eps_sccs)
             CALL section_vals_val_get(sccs_section, "EPS_SCF", &
@@ -449,6 +507,7 @@ CONTAINS
                                 "The SCCS parameter RHO_MAX is smaller than RHO_MIN. "// &
                                 "Please, check your input!")
                END IF
+               CALL cite_reference(Andreussi2012)
             CASE (sccs_fattebert_gygi)
                tmp_section => section_vals_get_subs_vals(sccs_section, "FATTEBERT-GYGI")
                CALL section_vals_val_get(tmp_section, "BETA", &
@@ -460,11 +519,11 @@ CONTAINS
                END IF
                CALL section_vals_val_get(tmp_section, "RHO_ZERO", &
                                          r_val=dft_control%sccs_control%rho_zero)
+               CALL cite_reference(Fattebert2002)
             CASE DEFAULT
                CPABORT("Invalid SCCS model specified. Please, check your input!")
             END SELECT
-            CALL cite_reference(Fattebert2002)
-            CALL cite_reference(Andreussi2012)
+            CALL cite_reference(Yin2017)
          END IF
       END IF
 
@@ -489,8 +548,7 @@ CONTAINS
       TYPE(qs_control_type), INTENT(INOUT)               :: qs_control
       TYPE(section_vals_type), POINTER                   :: dft_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_mgrid_section', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'read_mgrid_section'
 
       INTEGER                                            :: handle, igrid_level, ngrid_level
       LOGICAL                                            :: explicit, multigrid_set
@@ -533,11 +591,12 @@ CONTAINS
 
          CALL section_vals_val_get(mgrid_section, "MULTIGRID_CUTOFF", r_vals=cutofflist)
          IF (ASSOCIATED(cutofflist)) THEN
-            IF (SIZE(cutofflist, 1) /= ngrid_level) &
-               CPABORT("Inconsistent values for number of multi grids")
+            IF (SIZE(cutofflist, 1) /= ngrid_level) THEN
+               CPABORT("Number of multi-grids requested and number of cutoff values do not match")
+            END IF
             DO igrid_level = 1, ngrid_level
-               qs_control%e_cutoff(igrid_level) = cutofflist(igrid_level)*0.5_dp
-            ENDDO
+               qs_control%e_cutoff(igrid_level) = cutofflist(igrid_level)
+            END DO
          END IF
          ! set cutoff to smallest value in multgrid available with >= cutoff
          DO igrid_level = ngrid_level, 1, -1
@@ -554,15 +613,16 @@ CONTAINS
          IF (qs_control%commensurate_mgrids) qs_control%progression_factor = 4.0_dp
          qs_control%e_cutoff(1) = qs_control%cutoff
          DO igrid_level = 2, ngrid_level
-            qs_control%e_cutoff(igrid_level) = qs_control%e_cutoff(igrid_level-1) &
-                                               /qs_control%progression_factor
+            qs_control%e_cutoff(igrid_level) = qs_control%e_cutoff(igrid_level - 1)/ &
+                                               qs_control%progression_factor
          END DO
       END IF
       ! check that multigrids are ordered
       DO igrid_level = 2, ngrid_level
-         IF (qs_control%e_cutoff(igrid_level) > &
-             qs_control%e_cutoff(igrid_level-1)) THEN
-            CPABORT("Multi-grids not ordered")
+         IF (qs_control%e_cutoff(igrid_level) > qs_control%e_cutoff(igrid_level - 1)) THEN
+            CPABORT("The cutoff values for the multi-grids are not ordered from large to small")
+         ELSE IF (qs_control%e_cutoff(igrid_level) == qs_control%e_cutoff(igrid_level - 1)) THEN
+            CPABORT("The same cutoff value was specified for two multi-grids")
          END IF
       END DO
       CALL timestop(handle)
@@ -578,30 +638,26 @@ CONTAINS
       TYPE(qs_control_type), INTENT(INOUT)               :: qs_control
       TYPE(section_vals_type), POINTER                   :: qs_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_qs_section', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'read_qs_section'
 
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: clist
       INTEGER                                            :: handle, itmp, j, jj, k, n_rep, n_var, &
-                                                            ngauss, nrep
+                                                            ngauss, ngp, nrep
       INTEGER, DIMENSION(:), POINTER                     :: tmplist
       LOGICAL                                            :: explicit, was_present
       REAL(dp)                                           :: tmp, tmpsqrt, value
       REAL(dp), POINTER                                  :: scal(:)
-      TYPE(enumeration_type), POINTER                    :: enum
-      TYPE(keyword_type), POINTER                        :: keyword
-      TYPE(section_type), POINTER                        :: section
       TYPE(section_vals_type), POINTER :: cdft_control_section, ddapc_restraint_section, &
-         dftb_parameter, dftb_section, lri_optbas_section, mull_section, s2_restraint_section, &
-         se_section, xtb_parameter, xtb_section
+         dftb_parameter, dftb_section, genpot_section, lri_optbas_section, mull_section, &
+         nonbonded_section, s2_restraint_section, se_section, xtb_parameter, xtb_section
 
       CALL timeset(routineN, handle)
 
       was_present = .FALSE.
       NULLIFY (mull_section, ddapc_restraint_section, s2_restraint_section, &
                se_section, dftb_section, xtb_section, dftb_parameter, xtb_parameter, lri_optbas_section, &
-               cdft_control_section)
+               cdft_control_section, genpot_section)
 
       mull_section => section_vals_get_subs_vals(qs_section, "MULLIKEN_RESTRAINT")
       ddapc_restraint_section => section_vals_get_subs_vals(qs_section, "DDAPC_RESTRAINT")
@@ -613,6 +669,8 @@ CONTAINS
       xtb_parameter => section_vals_get_subs_vals(xtb_section, "PARAMETER")
       lri_optbas_section => section_vals_get_subs_vals(qs_section, "OPTIMIZE_LRI_BASIS")
       cdft_control_section => section_vals_get_subs_vals(qs_section, "CDFT")
+      nonbonded_section => section_vals_get_subs_vals(xtb_section, "NONBONDED")
+      genpot_section => section_vals_get_subs_vals(nonbonded_section, "GENPOT")
 
       ! Setup all defaults values and overwrite input parameters
       ! EPS_DEFAULT should set the target accuracy in the total energy (~per electron) or a closely related value
@@ -700,7 +758,6 @@ CONTAINS
       CALL section_vals_val_get(qs_section, "KG_METHOD", l_val=qs_control%do_kg)
 
       ! Logicals
-      CALL section_vals_val_get(qs_section, "MAP_CONSISTENT", l_val=qs_control%map_consistent)
       CALL section_vals_val_get(qs_section, "REF_EMBED_SUBSYS", l_val=qs_control%ref_embed_subsys)
       CALL section_vals_val_get(qs_section, "CLUSTER_EMBED_SUBSYS", l_val=qs_control%cluster_embed_subsys)
       CALL section_vals_val_get(qs_section, "HIGH_LEVEL_EMBED_SUBSYS", l_val=qs_control%high_level_embed_subsys)
@@ -741,12 +798,6 @@ CONTAINS
 
       !Method
       CALL section_vals_val_get(qs_section, "METHOD", i_val=qs_control%method_id)
-      NULLIFY (section, keyword, enum)
-      CALL create_qs_section(section)
-      keyword => section_get_keyword(section, "METHOD")
-      CALL keyword_get(keyword, enum=enum)
-      qs_control%method = enum_i2c(enum, qs_control%method_id)
-      CALL section_release(section)
       qs_control%gapw = .FALSE.
       qs_control%gapw_xc = .FALSE.
       qs_control%gpw = .FALSE.
@@ -820,17 +871,17 @@ CONTAINS
          jj = 0
          DO k = 1, n_rep
             CALL section_vals_val_get(mull_section, "ATOMS", i_rep_val=k, i_vals=tmplist)
-            jj = jj+SIZE(tmplist)
+            jj = jj + SIZE(tmplist)
          END DO
          qs_control%mulliken_restraint_control%natoms = jj
          IF (qs_control%mulliken_restraint_control%natoms < 1) &
-            CPABORT("Need at least 1 atom to use mulliken contraints")
+            CPABORT("Need at least 1 atom to use mulliken constraints")
          ALLOCATE (qs_control%mulliken_restraint_control%atoms(qs_control%mulliken_restraint_control%natoms))
          jj = 0
          DO k = 1, n_rep
             CALL section_vals_val_get(mull_section, "ATOMS", i_rep_val=k, i_vals=tmplist)
             DO j = 1, SIZE(tmplist)
-               jj = jj+1
+               jj = jj + 1
                qs_control%mulliken_restraint_control%atoms(jj) = tmplist(j)
             END DO
          END DO
@@ -1087,6 +1138,18 @@ CONTAINS
          CALL section_vals_val_get(xtb_parameter, "HALOGEN_BINDING", r_vals=scal)
          qs_control%xtb_control%kxr = scal(1)
          qs_control%xtb_control%kx2 = scal(2)
+         ! NONBONDED interactions
+         CALL section_vals_val_get(xtb_section, "DO_NONBONDED", &
+                                   l_val=qs_control%xtb_control%do_nonbonded)
+         CALL section_vals_get(nonbonded_section, explicit=explicit)
+         IF (explicit .AND. qs_control%xtb_control%do_nonbonded) THEN
+            CALL section_vals_get(genpot_section, explicit=explicit, n_repetition=ngp)
+            IF (explicit) THEN
+               CALL pair_potential_reallocate(qs_control%xtb_control%nonbonded, 1, ngp, gp=.TRUE.)
+               CALL read_gp_section(qs_control%xtb_control%nonbonded, genpot_section, 0)
+            END IF
+         END IF !nonbonded
+
          ! XB_radius
          CALL section_vals_val_get(xtb_parameter, "XB_RADIUS", r_val=qs_control%xtb_control%xb_radius)
          ! Kab
@@ -1096,13 +1159,25 @@ CONTAINS
                                    l_val=qs_control%xtb_control%coulomb_interaction)
          CALL section_vals_val_get(xtb_section, "TB3_INTERACTION", &
                                    l_val=qs_control%xtb_control%tb3_interaction)
+         ! Check for bad atomic charges
+         CALL section_vals_val_get(xtb_section, "CHECK_ATOMIC_CHARGES", &
+                                   l_val=qs_control%xtb_control%check_atomic_charges)
+
+         qs_control%xtb_control%kab_nval = n_rep
          IF (n_rep > 0) THEN
             ALLOCATE (qs_control%xtb_control%kab_param(3, n_rep))
+            ALLOCATE (qs_control%xtb_control%kab_types(2, n_rep))
+            ALLOCATE (qs_control%xtb_control%kab_vals(n_rep))
             DO j = 1, n_rep
                CALL section_vals_val_get(xtb_parameter, "KAB_PARAM", i_rep_val=j, c_vals=clist)
                qs_control%xtb_control%kab_param(1, j) = clist(1)
+               CALL get_ptable_info(clist(1), &
+                                    ielement=qs_control%xtb_control%kab_types(1, j))
                qs_control%xtb_control%kab_param(2, j) = clist(2)
+               CALL get_ptable_info(clist(2), &
+                                    ielement=qs_control%xtb_control%kab_types(2, j))
                qs_control%xtb_control%kab_param(3, j) = clist(3)
+               READ (clist(3), '(F10.0)') qs_control%xtb_control%kab_vals(j)
             END DO
          END IF
       END IF
@@ -1121,9 +1196,6 @@ CONTAINS
    SUBROUTINE read_tddfpt_control(t_control, dft_section)
       TYPE(tddfpt_control_type)                          :: t_control
       TYPE(section_vals_type), POINTER                   :: dft_section
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_tddfpt_control', &
-         routineP = moduleN//':'//routineN
 
       LOGICAL                                            :: kenergy_den
       TYPE(section_vals_type), POINTER                   :: sic_section, t_section
@@ -1165,14 +1237,13 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: t_section
       TYPE(qs_control_type), POINTER                     :: qs_control
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_tddfpt2_control', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_tddfpt2_control'
 
       INTEGER                                            :: handle
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: inds
       LOGICAL                                            :: explicit, multigrid_set
-      TYPE(section_vals_type), POINTER                   :: dipole_section, mgrid_section, xc_func, &
-                                                            xc_section
+      TYPE(section_vals_type), POINTER                   :: dipole_section, mgrid_section, &
+                                                            stda_section, xc_func, xc_section
 
       CALL timeset(routineN, handle)
 
@@ -1183,6 +1254,10 @@ CONTAINS
       CALL section_vals_val_get(t_section, "MAX_KV", i_val=t_control%nkvs)
       CALL section_vals_val_get(t_section, "NLUMO", i_val=t_control%nlumo)
       CALL section_vals_val_get(t_section, "NPROC_STATE", i_val=t_control%nprocs)
+      CALL section_vals_val_get(t_section, "KERNEL", i_val=t_control%kernel)
+      CALL section_vals_val_get(t_section, "OE_CORR", i_val=t_control%oe_corr)
+      CALL section_vals_val_get(t_section, "EV_SHIFT", r_val=t_control%ev_shift)
+      CALL section_vals_val_get(t_section, "EOS_SHIFT", r_val=t_control%eos_shift)
 
       CALL section_vals_val_get(t_section, "CONVERGENCE", r_val=t_control%conv)
       CALL section_vals_val_get(t_section, "MIN_AMPLITUDE", r_val=t_control%min_excitation_amplitude)
@@ -1277,6 +1352,19 @@ CONTAINS
       IF (explicit) &
          CALL xc_functionals_expand(xc_func, xc_section)
 
+      ! sTDA subsection
+      stda_section => section_vals_get_subs_vals(t_section, "STDA")
+      CALL section_vals_get(stda_section, explicit=explicit)
+      IF (explicit) THEN
+         CALL section_vals_val_get(stda_section, "HFX_FRACTION", r_val=t_control%stda_control%hfx_fraction)
+         CALL section_vals_val_get(stda_section, "EPS_TD_FILTER", r_val=t_control%stda_control%eps_td_filter)
+         CALL section_vals_val_get(stda_section, "DO_EWALD", l_val=t_control%stda_control%do_ewald)
+      ELSE
+         t_control%stda_control%hfx_fraction = 0.0_dp
+         t_control%stda_control%eps_td_filter = 1.e-10_dp
+         t_control%stda_control%do_ewald = .FALSE.
+      END IF
+
       CALL timestop(handle)
    END SUBROUTINE read_tddfpt2_control
 
@@ -1289,8 +1377,7 @@ CONTAINS
       TYPE(dft_control_type), POINTER                    :: dft_control
       TYPE(section_vals_type), POINTER                   :: dft_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'write_dft_control', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'write_dft_control'
 
       CHARACTER(LEN=20)                                  :: tmpStr
       INTEGER                                            :: handle, output_unit
@@ -1414,14 +1501,19 @@ CONTAINS
             END IF
             WRITE (UNIT=output_unit, FMT="(/,T2,A)") &
                "SCCS| Self-consistent continuum solvation model"
+            WRITE (UNIT=output_unit, FMT="(T2,A,T61,ES20.6)") &
+               "SCCS| Relative permittivity of the solvent (medium)", &
+               dft_control%sccs_control%epsilon_solvent, &
+               "SCCS| Absolute permittivity [a.u.]", &
+               dft_control%sccs_control%epsilon_solvent/fourpi
             SELECT CASE (dft_control%sccs_control%method_id)
             CASE (sccs_andreussi)
-               WRITE (UNIT=output_unit, FMT="(T2,A,/,(T2,A,T69,ES12.3))") &
+               WRITE (UNIT=output_unit, FMT="(T2,A,/,(T2,A,T61,ES20.6))") &
                   "SCCS| Dielectric function proposed by Andreussi et al.", &
                   "SCCS|  rho_max", dft_control%sccs_control%rho_max, &
                   "SCCS|  rho_min", dft_control%sccs_control%rho_min
             CASE (sccs_fattebert_gygi)
-               WRITE (UNIT=output_unit, FMT="(T2,A,/,(T2,A,T69,ES12.3))") &
+               WRITE (UNIT=output_unit, FMT="(T2,A,/,(T2,A,T61,ES20.6))") &
                   "SCCS| Dielectric function proposed by Fattebert and Gygi", &
                   "SCCS|  beta", dft_control%sccs_control%beta, &
                   "SCCS|  rho_zero", dft_control%sccs_control%rho_zero
@@ -1430,44 +1522,48 @@ CONTAINS
             END SELECT
             SELECT CASE (dft_control%sccs_control%derivative_method)
             CASE (sccs_derivative_fft)
-               WRITE (UNIT=output_unit, FMT="(T2,A,T46,A35)") "SCCS| Numerical derivative calculation", &
+               WRITE (UNIT=output_unit, FMT="(T2,A,T46,A35)") &
+                  "SCCS| Numerical derivative calculation", &
                   ADJUSTR("FFT")
             CASE (sccs_derivative_cd3)
-               WRITE (UNIT=output_unit, FMT="(T2,A,T46,A35)") "SCCS| Numerical derivative calculation", &
+               WRITE (UNIT=output_unit, FMT="(T2,A,T46,A35)") &
+                  "SCCS| Numerical derivative calculation", &
                   ADJUSTR("3-point stencil central differences")
             CASE (sccs_derivative_cd5)
-               WRITE (UNIT=output_unit, FMT="(T2,A,T46,A35)") "SCCS| Numerical derivative calculation", &
+               WRITE (UNIT=output_unit, FMT="(T2,A,T46,A35)") &
+                  "SCCS| Numerical derivative calculation", &
                   ADJUSTR("5-point stencil central differences")
             CASE (sccs_derivative_cd7)
-               WRITE (UNIT=output_unit, FMT="(T2,A,T46,A35)") "SCCS| Numerical derivative calculation", &
+               WRITE (UNIT=output_unit, FMT="(T2,A,T46,A35)") &
+                  "SCCS| Numerical derivative calculation", &
                   ADJUSTR("7-point stencil central differences")
             CASE DEFAULT
                CALL cp_abort(__LOCATION__, &
                              "Invalid derivative method specified for SCCS model. "// &
                              "Please, check your input!")
             END SELECT
-            WRITE (UNIT=output_unit, FMT="(T2,A,T69,F12.3)") &
+            WRITE (UNIT=output_unit, FMT="(T2,A,T61,ES20.6)") &
                "SCCS| Repulsion parameter alpha [mN/m] = [dyn/cm]", &
                cp_unit_from_cp2k(dft_control%sccs_control%alpha_solvent, "mN/m")
-            WRITE (UNIT=output_unit, FMT="(T2,A,T69,F12.3)") &
+            WRITE (UNIT=output_unit, FMT="(T2,A,T61,ES20.6)") &
                "SCCS| Dispersion parameter beta [GPa]", &
                cp_unit_from_cp2k(dft_control%sccs_control%beta_solvent, "GPa")
-            WRITE (UNIT=output_unit, FMT="(T2,A,T69,F12.3)") &
+            WRITE (UNIT=output_unit, FMT="(T2,A,T61,ES20.6)") &
                "SCCS| Surface tension gamma [mN/m] = [dyn/cm]", &
                cp_unit_from_cp2k(dft_control%sccs_control%gamma_solvent, "mN/m")
-            WRITE (UNIT=output_unit, FMT="(T2,A,T69,F12.3)") &
+            WRITE (UNIT=output_unit, FMT="(T2,A,T61,ES20.6)") &
                "SCCS| Mixing parameter applied during the iteration cycle", &
                dft_control%sccs_control%mixing
-            WRITE (UNIT=output_unit, FMT="(T2,A,T69,ES12.3)") &
+            WRITE (UNIT=output_unit, FMT="(T2,A,T61,ES20.6)") &
                "SCCS| Tolerance for the convergence of the SCCS iteration cycle", &
                dft_control%sccs_control%eps_sccs
-            WRITE (UNIT=output_unit, FMT="(T2,A,T69,I12)") &
+            WRITE (UNIT=output_unit, FMT="(T2,A,T61,I20)") &
                "SCCS| Maximum number of iteration steps", &
                dft_control%sccs_control%max_iter
-            WRITE (UNIT=output_unit, FMT="(T2,A,T69,ES12.3)") &
+            WRITE (UNIT=output_unit, FMT="(T2,A,T61,ES20.6)") &
                "SCCS| SCF convergence threshold for starting the SCCS iteration", &
                dft_control%sccs_control%eps_scf
-            WRITE (UNIT=output_unit, FMT="(T2,A,T69,ES12.3)") &
+            WRITE (UNIT=output_unit, FMT="(T2,A,T61,ES20.6)") &
                "SCCS| Numerical increment for the cavity surface calculation", &
                dft_control%sccs_control%delta_rho
          END IF
@@ -1490,8 +1586,7 @@ CONTAINS
       TYPE(xtb_control_type), POINTER                    :: xtb_control
       TYPE(section_vals_type), POINTER                   :: dft_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'write_xtb_control', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'write_xtb_control'
 
       INTEGER                                            :: handle, output_unit
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -1515,6 +1610,8 @@ CONTAINS
             "xTB| Halogen interaction potential", xtb_control%xb_interaction
          WRITE (UNIT=output_unit, FMT="(T2,A,T71,F10.3)") &
             "xTB| Halogen interaction potential cutoff radius", xtb_control%xb_radius
+         WRITE (UNIT=output_unit, FMT="(T2,A,T71,L10)") &
+            "xTB| Nonbonded interactions", xtb_control%do_nonbonded
          WRITE (UNIT=output_unit, FMT="(T2,A,T31,A50)") &
             "xTB| D3 Dispersion: Parameter file", ADJUSTR(TRIM(xtb_control%dispersion_parameter_file))
          WRITE (UNIT=output_unit, FMT="(T2,A,T51,3F10.3)") &
@@ -1552,34 +1649,44 @@ CONTAINS
       TYPE(qs_control_type), INTENT(IN)                  :: qs_control
       TYPE(section_vals_type), POINTER                   :: dft_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'write_qs_control', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'write_qs_control'
 
+      CHARACTER(len=20)                                  :: method, quadrature
       INTEGER                                            :: handle, i, igrid_level, ngrid_level, &
                                                             output_unit
       TYPE(cp_logger_type), POINTER                      :: logger
       TYPE(ddapc_restraint_type), POINTER                :: ddapc_restraint_control
       TYPE(enumeration_type), POINTER                    :: enum
       TYPE(keyword_type), POINTER                        :: keyword
-      TYPE(section_type), POINTER                        :: section
+      TYPE(section_type), POINTER                        :: qs_section
+      TYPE(section_vals_type), POINTER                   :: print_section_vals, qs_section_vals
 
       IF (qs_control%semi_empirical) RETURN
       IF (qs_control%dftb) RETURN
       IF (qs_control%xtb) RETURN
       CALL timeset(routineN, handle)
-      NULLIFY (logger, enum, keyword, section)
+      NULLIFY (logger, print_section_vals, qs_section, qs_section_vals)
       logger => cp_get_default_logger()
+      print_section_vals => section_vals_get_subs_vals(dft_section, "PRINT")
+      qs_section_vals => section_vals_get_subs_vals(dft_section, "QS")
+      CALL section_vals_get(qs_section_vals, section=qs_section)
 
-      CALL create_qs_section(section)
-      keyword => section_get_keyword(section, "QUADRATURE")
+      NULLIFY (enum, keyword)
+      keyword => section_get_keyword(qs_section, "METHOD")
       CALL keyword_get(keyword, enum=enum)
+      method = enum_i2c(enum, qs_control%method_id)
 
-      output_unit = cp_print_key_unit_nr(logger, dft_section, &
-                                         "PRINT%DFT_CONTROL_PARAMETERS", extension=".Log")
+      NULLIFY (enum, keyword)
+      keyword => section_get_keyword(qs_section, "QUADRATURE")
+      CALL keyword_get(keyword, enum=enum)
+      quadrature = enum_i2c(enum, qs_control%gapw_control%quadrature)
+
+      output_unit = cp_print_key_unit_nr(logger, print_section_vals, &
+                                         "DFT_CONTROL_PARAMETERS", extension=".Log")
       IF (output_unit > 0) THEN
          ngrid_level = SIZE(qs_control%e_cutoff)
-         WRITE (UNIT=output_unit, FMT="(/,T2,A,T71,A)") &
-            "QS| Method:", ADJUSTR(qs_control%method)
+         WRITE (UNIT=output_unit, FMT="(/,T2,A,T61,A20)") &
+            "QS| Method:", ADJUSTR(method)
          IF (qs_control%pw_grid_opt%spherical) THEN
             WRITE (UNIT=output_unit, FMT="(T2,A,T61,A)") &
                "QS| Density plane wave grid type", " SPHERICAL HALFSPACE"
@@ -1614,10 +1721,6 @@ CONTAINS
             "QS| Grid level progression factor:", qs_control%progression_factor
          WRITE (UNIT=output_unit, FMT="(T2,A,T71,F10.1)") &
             "QS| Relative density cutoff [a.u.]:", qs_control%relative_cutoff
-         IF (qs_control%map_consistent) THEN
-            WRITE (UNIT=output_unit, FMT="(T2,A)") &
-               "QS| Consistent realspace mapping and integration "
-         ENDIF
          WRITE (UNIT=output_unit, FMT="(T2,A,T73,ES8.1)") &
             "QS| Interaction thresholds: eps_pgf_orb:", &
             qs_control%eps_pgf_orb, &
@@ -1645,9 +1748,9 @@ CONTAINS
                qs_control%gapw_control%eps_svd, &
                "QS| GAPW|                   eps_cpc:", &
                qs_control%gapw_control%eps_cpc
-            WRITE (UNIT=output_unit, FMT="(T2,A,T55,A30)") &
+            WRITE (UNIT=output_unit, FMT="(T2,A,T61,A20)") &
                "QS| GAPW|   atom-r-grid: quadrature:", &
-               enum_i2c(enum, qs_control%gapw_control%quadrature)
+               ADJUSTR(quadrature)
             WRITE (UNIT=output_unit, FMT="(T2,A,T71,I10)") &
                "QS| GAPW|      atom-s-grid:  max l :", &
                qs_control%gapw_control%lmax_sphere, &
@@ -1731,9 +1834,8 @@ CONTAINS
             END SELECT
          END IF
       END IF
-      CALL cp_print_key_finished_output(output_unit, logger, dft_section, &
-                                        "PRINT%DFT_CONTROL_PARAMETERS")
-      CALL section_release(section)
+      CALL cp_print_key_finished_output(output_unit, logger, print_section_vals, &
+                                        "DFT_CONTROL_PARAMETERS")
 
       CALL timestop(handle)
 
@@ -1754,9 +1856,6 @@ CONTAINS
 
       TYPE(qs_control_type), INTENT(INOUT)               :: qs_control
       TYPE(section_vals_type), OPTIONAL, POINTER         :: qs_section, ddapc_restraint_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_ddapc_section', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, j, jj, k, n_rep
       INTEGER, DIMENSION(:), POINTER                     :: tmplist
@@ -1802,10 +1901,10 @@ CONTAINS
             CALL section_vals_val_get(ddapc_section, "ATOMS", i_rep_section=i, &
                                       i_rep_val=k, i_vals=tmplist)
             DO j = 1, SIZE(tmplist)
-               jj = jj+1
+               jj = jj + 1
             END DO
          END DO
-         IF (jj < 1) CPABORT("Need at least 1 atom to use ddapc contraints")
+         IF (jj < 1) CPABORT("Need at least 1 atom to use ddapc constraints")
          ddapc_restraint_control%natoms = jj
          IF (ASSOCIATED(ddapc_restraint_control%atoms)) &
             DEALLOCATE (ddapc_restraint_control%atoms)
@@ -1815,7 +1914,7 @@ CONTAINS
             CALL section_vals_val_get(ddapc_section, "ATOMS", i_rep_section=i, &
                                       i_rep_val=k, i_vals=tmplist)
             DO j = 1, SIZE(tmplist)
-               jj = jj+1
+               jj = jj + 1
                ddapc_restraint_control%atoms(jj) = tmplist(j)
             END DO
          END DO
@@ -1832,7 +1931,7 @@ CONTAINS
             CALL section_vals_val_get(ddapc_section, "COEFF", i_rep_section=i, &
                                       i_rep_val=k, r_vals=rtmplist)
             DO j = 1, SIZE(rtmplist)
-               jj = jj+1
+               jj = jj + 1
                IF (jj > ddapc_restraint_control%natoms) &
                   CPABORT("Need the same number of coeff as there are atoms ")
                ddapc_restraint_control%coeff(jj) = rtmplist(j)
@@ -1844,7 +1943,7 @@ CONTAINS
       k = 0
       DO i = 1, SIZE(qs_control%ddapc_restraint_control)
          IF (qs_control%ddapc_restraint_control(i)%ddapc_restraint_control%functional_form == &
-             do_ddapc_constraint) k = k+1
+             do_ddapc_constraint) k = k + 1
       END DO
       IF (k == 2) CALL cp_abort(__LOCATION__, &
                                 "Only a single constraint possible yet, try to use restraints instead ")
@@ -1859,9 +1958,6 @@ CONTAINS
    SUBROUTINE read_efield_sections(dft_control, efield_section)
       TYPE(dft_control_type), POINTER                    :: dft_control
       TYPE(section_vals_type), POINTER                   :: efield_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_efield_sections', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(len=default_path_length)                 :: file_name
       INTEGER                                            :: i, io, j, n, unit_nr
@@ -1922,14 +2018,14 @@ CONTAINS
             DO WHILE (.TRUE.)
                READ (unit_nr, *, iostat=io)
                IF (io /= 0) EXIT
-               n = n+1
+               n = n + 1
             END DO
             REWIND (unit_nr)
-            ALLOCATE (efield%envelop_r_vars(n+1))
+            ALLOCATE (efield%envelop_r_vars(n + 1))
             !Store the timestep of the list in the first entry of the r_vars
             CALL section_vals_val_get(tmp_section, "TIMESTEP", r_val=efield%envelop_r_vars(1))
             !Read the file
-            DO j = 2, n+1
+            DO j = 2, n + 1
                READ (unit_nr, *) efield%envelop_r_vars(j)
                efield%envelop_r_vars(j) = cp_unit_to_cp2k(efield%envelop_r_vars(j), "volt/m")
             END DO
@@ -1948,9 +2044,6 @@ CONTAINS
 
       TYPE(dft_control_type), INTENT(INOUT)              :: dft_control
       TYPE(section_vals_type), POINTER                   :: rtp_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_rtp_section', &
-         routineP = moduleN//':'//routineN
 
       INTEGER, DIMENSION(:), POINTER                     :: tmp
 
@@ -2001,9 +2094,6 @@ CONTAINS
    SUBROUTINE read_admm_block_list(admm_control, dft_section)
       TYPE(admm_control_type), POINTER                   :: admm_control
       TYPE(section_vals_type), POINTER                   :: dft_section
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_admm_block_list', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: irep, list_size, n_rep
       INTEGER, DIMENSION(:), POINTER                     :: tmplist

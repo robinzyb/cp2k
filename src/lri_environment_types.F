@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -25,13 +27,13 @@ MODULE lri_environment_types
                                               dp,&
                                               sp
    USE mathlib,                         ONLY: pswitch
-   USE qs_neighbor_list_types,          ONLY: deallocate_neighbor_list_set,&
-                                              get_iterator_info,&
+   USE qs_neighbor_list_types,          ONLY: get_iterator_info,&
                                               neighbor_list_iterate,&
                                               neighbor_list_iterator_create,&
                                               neighbor_list_iterator_p_type,&
                                               neighbor_list_iterator_release,&
-                                              neighbor_list_set_p_type
+                                              neighbor_list_set_p_type,&
+                                              release_neighbor_list_sets
    USE qs_o3c_types,                    ONLY: o3c_container_type,&
                                               release_o3c_container
 #include "./base/base_uses.f90"
@@ -392,11 +394,9 @@ CONTAINS
 
       TYPE(lri_environment_type), POINTER                :: lri_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'lri_env_create', routineP = moduleN//':'//routineN
-
       ALLOCATE (lri_env)
 
-      last_lri_env_id = last_lri_env_id+1
+      last_lri_env_id = last_lri_env_id + 1
       lri_env%id_nr = last_lri_env_id
       lri_env%ref_count = 1
       lri_env%in_use = 0
@@ -442,9 +442,6 @@ CONTAINS
 
       TYPE(lri_environment_type), POINTER                :: lri_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'lri_env_release', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, ikind, j, nkind
 
       IF (ASSOCIATED(lri_env)) THEN
@@ -465,24 +462,9 @@ CONTAINS
             END DO
             DEALLOCATE (lri_env%ri_basis)
          END IF
-         IF (ASSOCIATED(lri_env%soo_list)) THEN
-            DO i = 1, SIZE(lri_env%soo_list)
-               CALL deallocate_neighbor_list_set(lri_env%soo_list(i)%neighbor_list_set)
-            END DO
-            DEALLOCATE (lri_env%soo_list)
-         END IF
-         IF (ASSOCIATED(lri_env%saa_list)) THEN
-            DO i = 1, SIZE(lri_env%saa_list)
-               CALL deallocate_neighbor_list_set(lri_env%saa_list(i)%neighbor_list_set)
-            END DO
-            DEALLOCATE (lri_env%saa_list)
-         END IF
-         IF (ASSOCIATED(lri_env%soa_list)) THEN
-            DO i = 1, SIZE(lri_env%soa_list)
-               CALL deallocate_neighbor_list_set(lri_env%soa_list(i)%neighbor_list_set)
-            END DO
-            DEALLOCATE (lri_env%soa_list)
-         END IF
+         CALL release_neighbor_list_sets(lri_env%soo_list)
+         CALL release_neighbor_list_sets(lri_env%saa_list)
+         CALL release_neighbor_list_sets(lri_env%soa_list)
          IF (ASSOCIATED(lri_env%lri_ints)) THEN
             CALL deallocate_lri_ints(lri_env%lri_ints)
          END IF
@@ -573,12 +555,9 @@ CONTAINS
 
       TYPE(lri_density_type), POINTER                    :: lri_density
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'lri_density_create', &
-         routineP = moduleN//':'//routineN
-
       ALLOCATE (lri_density)
 
-      last_lri_density_id = last_lri_density_id+1
+      last_lri_density_id = last_lri_density_id + 1
       lri_density%id_nr = last_lri_density_id
       lri_density%ref_count = 1
       lri_density%in_use = 0
@@ -596,9 +575,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE lri_density_release(lri_density)
       TYPE(lri_density_type), POINTER                    :: lri_density
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'lri_density_release', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(lri_density)) THEN
          lri_density%ref_count = 0
@@ -624,9 +600,6 @@ CONTAINS
       TYPE(lri_environment_type), POINTER                :: lri_env
       TYPE(lri_list_type), POINTER                       :: lri_ints
       INTEGER, INTENT(IN)                                :: nkind
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'allocate_lri_ints', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, iac, iatom, ikind, ilist, jatom, &
                                                             jkind, jneighbor, nba, nbb, nfa, nfb, &
@@ -662,7 +635,7 @@ CONTAINS
                                 nlist=nlist, ilist=ilist, nnode=nneighbor, inode=jneighbor, &
                                 iatom=iatom, jatom=jatom, r=rab)
 
-         iac = ikind+nkind*(jkind-1)
+         iac = ikind + nkind*(jkind - 1)
          dab = SQRT(SUM(rab*rab))
 
          obasa => lri_env%orb_basis(ikind)%gto_basis_set
@@ -692,7 +665,7 @@ CONTAINS
          nbb = obasb%nsgf
          nfa = fbasa%nsgf
          nfb = fbasb%nsgf
-         nn = nfa+nfb
+         nn = nfa + nfb
 
          IF (iatom == jatom .AND. dab < lri_env%delta) THEN
             e1c = lri_env%exact_1c_terms
@@ -705,12 +678,12 @@ CONTAINS
             lrii%abascr = 0._dp
             ALLOCATE (lrii%abbscr(nfb))
             lrii%abbscr = 0._dp
-            lri_env%stat%oint_mem = lri_env%stat%oint_mem+nfa+nfb
+            lri_env%stat%oint_mem = lri_env%stat%oint_mem + nfa + nfb
          END IF
 
          IF (dpa) THEN
             lrii%wsr = pswitch(dab, ra, rb, 0)
-            lrii%wff = 1.0_dp-lrii%wsr
+            lrii%wff = 1.0_dp - lrii%wsr
             lrii%dwsr = pswitch(dab, ra, rb, 1)
             lrii%dwff = -lrii%dwsr
             lrii%lrisr = (lrii%wsr > 0.0_dp)
@@ -736,24 +709,24 @@ CONTAINS
                NULLIFY (lrii%sinv)
             ELSE
                ALLOCATE (lrii%soo(nba, nbb))
-               lri_env%stat%oint_mem = lri_env%stat%oint_mem+nba*nbb
+               lri_env%stat%oint_mem = lri_env%stat%oint_mem + nba*nbb
                lrii%soo = 0._dp
 
                IF (iatom == jatom .AND. dab < lri_env%delta) THEN
                   ALLOCATE (lrii%sinv(nfa, nfa))
-                  lri_env%stat%oint_mem = lri_env%stat%oint_mem+nfa*nfa
+                  lri_env%stat%oint_mem = lri_env%stat%oint_mem + nfa*nfa
                ELSE
                   ALLOCATE (lrii%sinv(nn, nn))
-                  lri_env%stat%oint_mem = lri_env%stat%oint_mem+nn*nn
+                  lri_env%stat%oint_mem = lri_env%stat%oint_mem + nn*nn
                ENDIF
                lrii%sinv = 0._dp
 
                IF (iatom == jatom .AND. dab < lri_env%delta) THEN
                   ALLOCATE (lrii%n(nfa), lrii%sn(nfa))
-                  lri_env%stat%oint_mem = lri_env%stat%oint_mem+2.*nfa
+                  lri_env%stat%oint_mem = lri_env%stat%oint_mem + 2.*nfa
                ELSE
                   ALLOCATE (lrii%n(nn), lrii%sn(nn))
-                  lri_env%stat%oint_mem = lri_env%stat%oint_mem+2.*nn
+                  lri_env%stat%oint_mem = lri_env%stat%oint_mem + 2.*nn
                ENDIF
                lrii%n = 0._dp
                lrii%sn = 0._dp
@@ -768,16 +741,16 @@ CONTAINS
             lrii%asinv => lri_env%bas_prop(ikind)%ri_ovlp_inv
             lrii%bsinv => lri_env%bas_prop(jkind)%ri_ovlp_inv
             ALLOCATE (lrii%na(nfa), lrii%sna(nfa))
-            lri_env%stat%oint_mem = lri_env%stat%oint_mem+2.*nfa
+            lri_env%stat%oint_mem = lri_env%stat%oint_mem + 2.*nfa
             lrii%na = 0._dp
             lrii%sna = 0._dp
             ALLOCATE (lrii%nb(nfb), lrii%snb(nfb))
-            lri_env%stat%oint_mem = lri_env%stat%oint_mem+2.*nfb
+            lri_env%stat%oint_mem = lri_env%stat%oint_mem + 2.*nfb
             lrii%nb = 0._dp
             lrii%snb = 0._dp
             IF (.NOT. ALLOCATED(lrii%soo)) THEN
                ALLOCATE (lrii%soo(nba, nbb))
-               lri_env%stat%oint_mem = lri_env%stat%oint_mem+nba*nbb
+               lri_env%stat%oint_mem = lri_env%stat%oint_mem + nba*nbb
                lrii%soo = 0._dp
             ELSE
                CPASSERT(SIZE(lrii%soo, 1) == nba .AND. SIZE(lrii%soo, 2) == nbb)
@@ -812,9 +785,6 @@ CONTAINS
       TYPE(lri_ppl_int_type), POINTER                    :: lri_ppl_ints
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'allocate_lri_ppl_ints', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ikind, natom, nfa, nkind
       TYPE(atomic_kind_type), POINTER                    :: atomic_kind
       TYPE(gto_basis_set_type), POINTER                  :: fbasa
@@ -829,7 +799,7 @@ CONTAINS
          atomic_kind => atomic_kind_set(ikind)
          CALL get_atomic_kind(atomic_kind=atomic_kind, natom=natom)
          ALLOCATE (lri_ppl_ints%lri_ppl(ikind)%v_int(natom, nfa))
-         lri_env%stat%ppli_mem = lri_env%stat%ppli_mem+natom*nfa
+         lri_env%stat%ppli_mem = lri_env%stat%ppli_mem + natom*nfa
       END DO
 
    END SUBROUTINE allocate_lri_ppl_ints
@@ -845,9 +815,6 @@ CONTAINS
       TYPE(lri_environment_type), POINTER                :: lri_env
       TYPE(lri_list_type), POINTER                       :: lri_ints_rho
       INTEGER, INTENT(IN)                                :: nkind
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'allocate_lri_ints_rho', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, iac, iatom, ikind, ilist, jatom, &
                                                             jkind, jneighbor, nba, nbb, nlist, &
@@ -874,7 +841,7 @@ CONTAINS
                                 nlist=nlist, ilist=ilist, nnode=nneighbor, inode=jneighbor, &
                                 iatom=iatom, jatom=jatom)
 
-         iac = ikind+nkind*(jkind-1)
+         iac = ikind + nkind*(jkind - 1)
 
          obasa => lri_env%orb_basis(ikind)%gto_basis_set
          obasb => lri_env%orb_basis(jkind)%gto_basis_set
@@ -923,9 +890,6 @@ CONTAINS
       TYPE(lri_list_p_type), DIMENSION(:), POINTER       :: lri_rhos
       INTEGER, INTENT(IN)                                :: nspin, nkind
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'allocate_lri_rhos', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, iac, iatom, ikind, ilist, ispin, &
                                                             jatom, jkind, jneighbor, nfa, nfb, &
                                                             nlist, nn, nneighbor
@@ -962,7 +926,7 @@ CONTAINS
                                    iatom=iatom, jatom=jatom, nlist=nlist, ilist=ilist, &
                                    nnode=nneighbor, inode=jneighbor, r=rab)
 
-            iac = ikind+nkind*(jkind-1)
+            iac = ikind + nkind*(jkind - 1)
             dab = SQRT(SUM(rab*rab))
 
             IF (.NOT. ASSOCIATED(lri_env%lri_ints%lri_atom(iac)%lri_node)) CYCLE
@@ -990,7 +954,7 @@ CONTAINS
 
             nfa = lrho%nfa
             nfb = lrho%nfb
-            nn = nfa+nfb
+            nn = nfa + nfb
 
             NULLIFY (lrho%avec, lrho%tvec)
             IF (lrii%lrisr) THEN
@@ -998,12 +962,12 @@ CONTAINS
                   IF (.NOT. lri_env%exact_1c_terms) THEN
                      ALLOCATE (lrho%avec(nfa))
                      ALLOCATE (lrho%tvec(nfa))
-                     lri_env%stat%rhos_mem = lri_env%stat%rhos_mem+2*nfa
+                     lri_env%stat%rhos_mem = lri_env%stat%rhos_mem + 2*nfa
                   END IF
                ELSE
                   ALLOCATE (lrho%avec(nn))
                   ALLOCATE (lrho%tvec(nn))
-                  lri_env%stat%rhos_mem = lri_env%stat%rhos_mem+2*nn
+                  lri_env%stat%rhos_mem = lri_env%stat%rhos_mem + 2*nn
                ENDIF
             END IF
             NULLIFY (lrho%aveca, lrho%tveca)
@@ -1013,7 +977,7 @@ CONTAINS
                ALLOCATE (lrho%avecb(nfb))
                ALLOCATE (lrho%tveca(nfa))
                ALLOCATE (lrho%tvecb(nfb))
-               lri_env%stat%rhos_mem = lri_env%stat%rhos_mem+2*(nfa+nfb)
+               lri_env%stat%rhos_mem = lri_env%stat%rhos_mem + 2*(nfa + nfb)
             END IF
 
          ENDDO
@@ -1035,9 +999,6 @@ CONTAINS
       TYPE(lri_environment_type), POINTER                :: lri_env
       TYPE(lri_density_type), POINTER                    :: lri_density
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'allocate_lri_coefs', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ikind, ispin, natom, nkind, nsgf, nspin
       TYPE(atomic_kind_type), POINTER                    :: atomic_kind
@@ -1073,7 +1034,7 @@ CONTAINS
             ALLOCATE (lri_coefs(ispin)%lri_kinds(ikind)%v_dfdr(natom, 3))
             lri_coefs(ispin)%lri_kinds(ikind)%v_dfdr = 0._dp
             !
-            lri_env%stat%coef_mem = lri_env%stat%coef_mem+2._dp*natom*(nsgf+3)
+            lri_env%stat%coef_mem = lri_env%stat%coef_mem + 2._dp*natom*(nsgf + 3)
          END DO
       ENDDO
 
@@ -1090,12 +1051,9 @@ CONTAINS
       TYPE(lri_force_type), POINTER                      :: lri_force
       INTEGER, INTENT(IN)                                :: nfa, nfb
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'allocate_lri_force_components', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: nn
 
-      nn = nfa+nfb
+      nn = nfa + nfb
 
       CPASSERT(.NOT. ASSOCIATED(lri_force))
 
@@ -1120,9 +1078,6 @@ CONTAINS
    SUBROUTINE deallocate_bas_properties(lri_env)
 
       TYPE(lri_environment_type), POINTER                :: lri_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_bas_properties', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
 
@@ -1171,9 +1126,6 @@ CONTAINS
    SUBROUTINE deallocate_lri_ints(lri_ints)
 
       TYPE(lri_list_type), POINTER                       :: lri_ints
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_lri_ints', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, iatom, ijkind, inode, natom, nkind, &
                                                             nnode
@@ -1282,9 +1234,6 @@ CONTAINS
 
       TYPE(lri_ppl_int_type), POINTER                    :: lri_ppl_ints
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_lri_ppl_ints', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ikind, nkind
 
       CPASSERT(ASSOCIATED(lri_ppl_ints))
@@ -1308,9 +1257,6 @@ CONTAINS
    SUBROUTINE deallocate_lri_ints_rho(lri_ints_rho)
 
       TYPE(lri_list_type), POINTER                       :: lri_ints_rho
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_lri_ints_rho', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: iatom, ijkind, inode, natom, nkind, nnode
 
@@ -1350,9 +1296,6 @@ CONTAINS
    SUBROUTINE deallocate_lri_rhos(lri_rhos)
 
       TYPE(lri_list_p_type), DIMENSION(:), POINTER       :: lri_rhos
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_lri_rhos', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, iatom, ijkind, inode, natom, nkind, &
                                                             nnode
@@ -1412,9 +1355,6 @@ CONTAINS
    SUBROUTINE deallocate_lri_coefs(lri_coefs)
       TYPE(lri_spin_type), DIMENSION(:), POINTER         :: lri_coefs
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_lri_coefs', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, j
 
       IF (ASSOCIATED(lri_coefs)) THEN
@@ -1448,9 +1388,6 @@ CONTAINS
    SUBROUTINE deallocate_lri_force_components(lri_force)
 
       TYPE(lri_force_type), POINTER                      :: lri_force
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_lri_force_components', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(lri_force)) THEN
 

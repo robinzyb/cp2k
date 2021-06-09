@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -79,12 +81,9 @@ CONTAINS
    SUBROUTINE gopt_param_create(gopt_param)
       TYPE(gopt_param_type), POINTER                     :: gopt_param
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'gopt_param_create', &
-         routineP = moduleN//':'//routineN
-
       ALLOCATE (gopt_param)
 
-      last_gopt_param_id = last_gopt_param_id+1
+      last_gopt_param_id = last_gopt_param_id + 1
       gopt_param%id_nr = last_gopt_param_id
       gopt_param%ref_count = 1
    END SUBROUTINE gopt_param_create
@@ -102,9 +101,6 @@ CONTAINS
       TYPE(gopt_param_type), POINTER                     :: gopt_param
       TYPE(section_vals_type), POINTER                   :: gopt_section
       INTEGER, INTENT(IN), OPTIONAL                      :: type_id
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'gopt_param_read', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(.NOT. ASSOCIATED(gopt_param))
       CPASSERT(ASSOCIATED(gopt_section))
@@ -171,12 +167,9 @@ CONTAINS
    SUBROUTINE gopt_param_retain(gopt_param)
       TYPE(gopt_param_type), POINTER                     :: gopt_param
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'gopt_param_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(gopt_param))
       CPASSERT(gopt_param%ref_count > 0)
-      gopt_param%ref_count = gopt_param%ref_count+1
+      gopt_param%ref_count = gopt_param%ref_count + 1
    END SUBROUTINE gopt_param_retain
 
 ! **************************************************************************************************
@@ -188,12 +181,9 @@ CONTAINS
    SUBROUTINE gopt_param_release(gopt_param)
       TYPE(gopt_param_type), POINTER                     :: gopt_param
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'gopt_param_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(gopt_param)) THEN
          CPASSERT(gopt_param%ref_count > 0)
-         gopt_param%ref_count = gopt_param%ref_count-1
+         gopt_param%ref_count = gopt_param%ref_count - 1
          IF (gopt_param%ref_count == 0) THEN
             DEALLOCATE (gopt_param)
          END IF

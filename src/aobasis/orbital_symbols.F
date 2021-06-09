@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -43,7 +45,6 @@ CONTAINS
       INTEGER, DIMENSION(3), INTENT(IN)                  :: lxyz
       CHARACTER(LEN=12)                                  :: symbol
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cgf_symbol', routineP = moduleN//':'//routineN
       CHARACTER(LEN=1), DIMENSION(3), PARAMETER          :: xyz = (/"x", "y", "z"/)
 
       INTEGER                                            :: i, ipos, l
@@ -69,14 +70,14 @@ CONTAINS
       DO i = 1, 3
          IF (lxyz(i) > 0) THEN
             symbol(ipos:ipos) = xyz(i)
-            ipos = ipos+1
+            ipos = ipos + 1
             IF (lxyz(i) > 1) THEN
                IF (lxyz(i) < 10) THEN
                   WRITE (symbol(ipos:ipos), "(I1)") lxyz(i)
-                  ipos = ipos+1
+                  ipos = ipos + 1
                ELSE IF (lxyz(i) < 100) THEN
-                  WRITE (symbol(ipos:ipos+1), "(I2)") lxyz(i)
-                  ipos = ipos+2
+                  WRITE (symbol(ipos:ipos + 1), "(I2)") lxyz(i)
+                  ipos = ipos + 2
                ELSE
                   CPABORT("Invalid magnetic quantum number specified")
                END IF
@@ -106,7 +107,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: n, l, m
       CHARACTER(LEN=6)                                   :: symbol
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'sgf_symbol', routineP = moduleN//':'//routineN
       CHARACTER(LEN=1), DIMENSION(-1:1), PARAMETER       :: yzx = (/"y", "z", "x"/)
 
       INTEGER                                            :: i
@@ -124,7 +124,7 @@ CONTAINS
 
       IF ((l >= 0) .AND. (l <= 11)) THEN
          symbol(i:i) = l_sym(l)
-         i = i+1
+         i = i + 1
       ELSE
          CPABORT("Invalid angular momentum quantum number specified")
       END IF
@@ -136,9 +136,9 @@ CONTAINS
             IF (m == 0) THEN
                WRITE (symbol(i:i), "(I1)") m
             ELSE IF (ABS(m) < 10) THEN
-               WRITE (symbol(i:i+1), "(SP,I2)") m
+               WRITE (symbol(i:i + 1), "(SP,I2)") m
             ELSE IF (ABS(m) < 100) THEN
-               WRITE (symbol(i:i+2), "(SP,I3)") m
+               WRITE (symbol(i:i + 2), "(SP,I3)") m
             END IF
          END IF
       ELSE

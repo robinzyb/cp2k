@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -85,7 +87,8 @@ MODULE qs_resp
    USE qs_collocate_density,            ONLY: calculate_rho_resp_all,&
                                               calculate_rho_resp_single
    USE qs_environment_types,            ONLY: get_qs_env,&
-                                              qs_environment_type
+                                              qs_environment_type,&
+                                              set_qs_env
    USE qs_kind_types,                   ONLY: qs_kind_type
    USE qs_subsys_types,                 ONLY: qs_subsys_get,&
                                               qs_subsys_type
@@ -138,15 +141,17 @@ CONTAINS
    SUBROUTINE resp_fit(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'resp_fit', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'resp_fit'
 
       INTEGER                                            :: handle, info, my_per, natom, nvar, &
                                                             output_unit
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: ipiv
       LOGICAL                                            :: has_resp
+      REAL(KIND=dp), DIMENSION(:), POINTER               :: rhs_to_save
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
       TYPE(cell_type), POINTER                           :: cell
       TYPE(cp_logger_type), POINTER                      :: logger
+      TYPE(dft_control_type), POINTER                    :: dft_control
       TYPE(particle_list_type), POINTER                  :: particles
       TYPE(particle_type), DIMENSION(:), POINTER         :: particle_set
       TYPE(qs_subsys_type), POINTER                      :: subsys
@@ -181,7 +186,7 @@ CONTAINS
 
          CALL qs_subsys_get(subsys, particles=particles)
          natom = particles%n_els
-         nvar = natom+resp_env%ncons
+         nvar = natom + resp_env%ncons
 
          CALL resp_allocate(resp_env, natom, nvar)
          ALLOCATE (ipiv(nvar))
@@ -221,10 +226,19 @@ CONTAINS
          CALL DGETRS('N', nvar, 1, resp_env%matrix, nvar, ipiv, resp_env%rhs, nvar, info)
          CPASSERT(info == 0)
 
-         IF (resp_env%use_repeat_method) resp_env%offset = resp_env%rhs(natom+1)
+         IF (resp_env%use_repeat_method) resp_env%offset = resp_env%rhs(natom + 1)
          CALL print_resp_charges(qs_env, resp_env, output_unit, natom)
          CALL print_fitting_points(qs_env, resp_env)
          CALL print_pot_from_resp_charges(qs_env, resp_env, particles, natom, output_unit)
+
+         ! In case of density functional embedding we need to save  the charges to qs_env
+         NULLIFY (dft_control)
+         CALL get_qs_env(qs_env, dft_control=dft_control)
+         IF (dft_control%qs_control%ref_embed_subsys) THEN
+            ALLOCATE (rhs_to_save(SIZE(resp_env%rhs)))
+            rhs_to_save = resp_env%rhs
+            CALL set_qs_env(qs_env, rhs=rhs_to_save)
+         ENDIF
 
          DEALLOCATE (ipiv)
          CALL resp_dealloc(resp_env, rep_sys)
@@ -245,9 +259,6 @@ CONTAINS
    SUBROUTINE create_resp_type(resp_env, rep_sys)
       TYPE(resp_type), POINTER                           :: resp_env
       TYPE(resp_p_type), DIMENSION(:), POINTER           :: rep_sys
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_resp_type', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(resp_env)) CALL resp_dealloc(resp_env, rep_sys)
       ALLOCATE (resp_env)
@@ -288,8 +299,6 @@ CONTAINS
       TYPE(resp_type), POINTER                           :: resp_env
       INTEGER, INTENT(IN)                                :: natom, nvar
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'resp_allocate', routineP = moduleN//':'//routineN
-
       IF (.NOT. ASSOCIATED(resp_env%matrix)) THEN
          ALLOCATE (resp_env%matrix(nvar, nvar))
       ENDIF
@@ -313,8 +322,6 @@ CONTAINS
    SUBROUTINE resp_dealloc(resp_env, rep_sys)
       TYPE(resp_type), POINTER                           :: resp_env
       TYPE(resp_p_type), DIMENSION(:), POINTER           :: rep_sys
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'resp_dealloc', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
 
@@ -350,7 +357,7 @@ CONTAINS
    END SUBROUTINE resp_dealloc
 
 ! **************************************************************************************************
-!> \brief intializes the resp fit. Getting the parameters
+!> \brief initializes the resp fit. Getting the parameters
 !> \param resp_env the resp environment
 !> \param rep_sys structure for repeating input sections defining fit points
 !> \param subsys ...
@@ -370,7 +377,7 @@ CONTAINS
       TYPE(cell_type), POINTER                           :: cell
       TYPE(section_vals_type), POINTER                   :: resp_section, cons_section, rest_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_resp', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'init_resp'
 
       INTEGER                                            :: handle, i, nrep
       INTEGER, DIMENSION(:), POINTER                     :: atom_list_cons, my_stride
@@ -390,7 +397,7 @@ CONTAINS
       ! get the general keywords
       CALL section_vals_val_get(resp_section, "INTEGER_TOTAL_CHARGE", &
                                 l_val=resp_env%itc)
-      IF (resp_env%itc) resp_env%ncons = resp_env%ncons+1
+      IF (resp_env%itc) resp_env%ncons = resp_env%ncons + 1
 
       CALL section_vals_val_get(resp_section, "RESTRAIN_HEAVIES_TO_ZERO", &
                                 l_val=resp_env%rheavies)
@@ -415,7 +422,7 @@ CONTAINS
       CALL section_vals_val_get(resp_section, "USE_REPEAT_METHOD", &
                                 l_val=resp_env%use_repeat_method)
       IF (resp_env%use_repeat_method) THEN
-         resp_env%ncons = resp_env%ncons+1
+         resp_env%ncons = resp_env%ncons + 1
          ! restrain heavies should be off
          resp_env%rheavies = .FALSE.
       END IF
@@ -449,7 +456,7 @@ CONTAINS
             IF (rep_sys(i)%p_resp%length <= EPSILON(0.0_dp)) THEN
                CPABORT("Parameter LENGTH in SLAB_SAMPLING has to be larger than zero.")
             END IF
-            !list of atoms specifing the surface
+            !list of atoms specifying the surface
             CALL build_atom_list(slab_section, subsys, rep_sys(i)%p_resp%atom_surf_list, rep=i)
          END DO
       END IF
@@ -464,7 +471,7 @@ CONTAINS
             IF (.NOT. explicit) CYCLE
             CALL build_atom_list(cons_section, subsys, atom_list_cons, i)
             !instead of using EQUAL_CHARGES the constraint sections could be repeated
-            resp_env%ncons = resp_env%ncons+SIZE(atom_list_cons)-2
+            resp_env%ncons = resp_env%ncons + SIZE(atom_list_cons) - 2
             DEALLOCATE (atom_list_cons)
          END DO
       END IF
@@ -472,8 +479,8 @@ CONTAINS
       IF (explicit) THEN
          CALL section_vals_get(rest_section, n_repetition=resp_env%nrest_sec)
       END IF
-      resp_env%ncons = resp_env%ncons+resp_env%ncons_sec
-      resp_env%nres = resp_env%nres+resp_env%nrest_sec
+      resp_env%ncons = resp_env%ncons + resp_env%ncons_sec
+      resp_env%nres = resp_env%nres + resp_env%nrest_sec
 
       CALL timestop(handle)
 
@@ -494,9 +501,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: sphere_section
       TYPE(cell_type), POINTER                           :: cell
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_parameter_molecular_sys', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=2)                                   :: symbol
       CHARACTER(LEN=default_string_length)               :: missing_rmax, missing_rmin
@@ -620,11 +624,11 @@ CONTAINS
                                  element_symbol=symbol, &
                                  kind_number=kind_number)
             IF (.NOT. rmin_is_set(kind_number)) THEN
-               n_rmin_missing = n_rmin_missing+1
+               n_rmin_missing = n_rmin_missing + 1
                missing_rmin = TRIM(missing_rmin)//" "//TRIM(symbol)//","
             END IF
             IF (.NOT. rmax_is_set(kind_number)) THEN
-               n_rmax_missing = n_rmax_missing+1
+               n_rmax_missing = n_rmax_missing + 1
                missing_rmax = TRIM(missing_rmax)//" "//TRIM(symbol)//","
             END IF
          END DO
@@ -691,8 +695,7 @@ CONTAINS
       INTEGER, DIMENSION(:), POINTER                     :: atom_list
       INTEGER, INTENT(IN), OPTIONAL                      :: rep
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'build_atom_list', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'build_atom_list'
 
       INTEGER                                            :: atom_a, atom_b, handle, i, irep, j, &
                                                             max_index, n_var, num_atom
@@ -711,7 +714,7 @@ CONTAINS
       DO i = 1, n_var
          CALL section_vals_val_get(section, "ATOM_LIST", i_rep_section=irep, &
                                    i_rep_val=i, i_vals=indexes)
-         num_atom = num_atom+SIZE(indexes)
+         num_atom = num_atom + SIZE(indexes)
       ENDDO
       ALLOCATE (atom_list(num_atom))
       atom_list = 0
@@ -719,18 +722,18 @@ CONTAINS
       DO i = 1, n_var
          CALL section_vals_val_get(section, "ATOM_LIST", i_rep_section=irep, &
                                    i_rep_val=i, i_vals=indexes)
-         atom_list(num_atom:num_atom+SIZE(indexes)-1) = indexes(:)
-         num_atom = num_atom+SIZE(indexes)
+         atom_list(num_atom:num_atom + SIZE(indexes) - 1) = indexes(:)
+         num_atom = num_atom + SIZE(indexes)
       ENDDO
       !check atom list
-      num_atom = num_atom-1
+      num_atom = num_atom - 1
       CALL qs_subsys_get(subsys, nparticle=max_index)
       CPASSERT(SIZE(atom_list) /= 0)
       index_in_range = (MAXVAL(atom_list) <= max_index) &
                        .AND. (MINVAL(atom_list) > 0)
       CPASSERT(index_in_range)
       DO i = 1, num_atom
-         DO j = i+1, num_atom
+         DO j = i + 1, num_atom
             atom_a = atom_list(i)
             atom_b = atom_list(j)
             IF (atom_a == atom_b) &
@@ -765,8 +768,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:), POINTER               :: rhs
       INTEGER, INTENT(IN)                                :: natom
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'calc_resp_matrix_nonper', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'calc_resp_matrix_nonper'
 
       INTEGER                                            :: bo(2, 3), gbo(2, 3), handle, i, ikind, &
                                                             jx, jy, jz, k, kind_number, l, m, &
@@ -827,22 +829,22 @@ CONTAINS
          IF (.NOT. (MODULO(jy, resp_env%stride(2)) == 0)) CYCLE
          IF (.NOT. (MODULO(jx, resp_env%stride(1)) == 0)) CYCLE
          !bounds bo reach from -np/2 to np/2. shift of np/2 so that r(1,1,1)=(0,0,0)
-         l = jx-gbo(1, 1)
-         k = jy-gbo(1, 2)
-         p = jz-gbo(1, 3)
-         r(3) = p*dh(3, 3)+k*dh(3, 2)+l*dh(3, 1)
-         r(2) = p*dh(2, 3)+k*dh(2, 2)+l*dh(2, 1)
-         r(1) = p*dh(1, 3)+k*dh(1, 2)+l*dh(1, 1)
+         l = jx - gbo(1, 1)
+         k = jy - gbo(1, 2)
+         p = jz - gbo(1, 3)
+         r(3) = p*dh(3, 3) + k*dh(3, 2) + l*dh(3, 1)
+         r(2) = p*dh(2, 3) + k*dh(2, 2) + l*dh(2, 1)
+         r(1) = p*dh(1, 3) + k*dh(1, 2) + l*dh(1, 1)
          IF (r(3) < resp_env%box_low(3) .OR. r(3) > resp_env%box_hi(3)) CYCLE
          IF (r(2) < resp_env%box_low(2) .OR. r(2) > resp_env%box_hi(2)) CYCLE
          IF (r(1) < resp_env%box_low(1) .OR. r(1) > resp_env%box_hi(1)) CYCLE
          ! compute distance from the grid point to all atoms
          not_in_range = .FALSE.
          DO i = 1, natom
-            vec = r-particles%els(i)%r
-            vec_pbc(1) = vec(1)-hmat(1, 1)*ANINT(hmat_inv(1, 1)*vec(1))
-            vec_pbc(2) = vec(2)-hmat(2, 2)*ANINT(hmat_inv(2, 2)*vec(2))
-            vec_pbc(3) = vec(3)-hmat(3, 3)*ANINT(hmat_inv(3, 3)*vec(3))
+            vec = r - particles%els(i)%r
+            vec_pbc(1) = vec(1) - hmat(1, 1)*ANINT(hmat_inv(1, 1)*vec(1))
+            vec_pbc(2) = vec(2) - hmat(2, 2)*ANINT(hmat_inv(2, 2)*vec(2))
+            vec_pbc(3) = vec(3) - hmat(3, 3)*ANINT(hmat_inv(3, 3)*vec(3))
             dist(i) = SQRT(SUM(vec_pbc**2))
             CALL get_atomic_kind(atomic_kind=particle_set(i)%atomic_kind, &
                                  kind_number=kind_number)
@@ -853,13 +855,13 @@ CONTAINS
                   EXIT
                ENDIF
             ENDDO
-            IF (dist(i) < rmin+delta) not_in_range(i, 1) = .TRUE.
-            IF (dist(i) > rmax-delta) not_in_range(i, 2) = .TRUE.
+            IF (dist(i) < rmin + delta) not_in_range(i, 1) = .TRUE.
+            IF (dist(i) > rmax - delta) not_in_range(i, 2) = .TRUE.
          ENDDO
          ! check if the point is sufficiently close and  far. if OK, we can use
          ! the point for fitting, add/subtract 1.0E-13 to get rid of rounding errors when shifting atoms
          IF (ANY(not_in_range(:, 1)) .OR. ALL(not_in_range(:, 2))) CYCLE
-         resp_env%npoints_proc = resp_env%npoints_proc+1
+         resp_env%npoints_proc = resp_env%npoints_proc + 1
          IF (resp_env%npoints_proc > now) THEN
             now = 2*now
             CALL reallocate(resp_env%fitpoints, 1, 3, 1, now)
@@ -870,7 +872,7 @@ CONTAINS
          ! correct for the fact that v_hartree is scaled by dvol, and has the opposite sign
          IF (qs_env%qmmm) THEN
             ! If it's a QM/MM run let's remove the contribution of the MM potential out of the Hartree pot
-            vj = -v_hartree_pw%cr3d(jx, jy, jz)/dvol+qs_env%ks_qmmm_env%v_qmmm_rspace%pw%cr3d(jx, jy, jz)
+            vj = -v_hartree_pw%cr3d(jx, jy, jz)/dvol + qs_env%ks_qmmm_env%v_qmmm_rspace%pw%cr3d(jx, jy, jz)
          ELSE
             vj = -v_hartree_pw%cr3d(jx, jy, jz)/dvol
          END IF
@@ -878,9 +880,9 @@ CONTAINS
 
          DO i = 1, natom
             DO m = 1, natom
-               matrix(m, i) = matrix(m, i)+2.0_dp*dist(i)*dist(m)
+               matrix(m, i) = matrix(m, i) + 2.0_dp*dist(i)*dist(m)
             ENDDO
-            rhs(i) = rhs(i)+2.0_dp*vj*dist(i)
+            rhs(i) = rhs(i) + 2.0_dp*vj*dist(i)
          ENDDO
       ENDDO
       ENDDO
@@ -920,8 +922,7 @@ CONTAINS
       TYPE(cell_type), POINTER                           :: cell
       INTEGER, INTENT(IN)                                :: natom
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'calc_resp_matrix_periodic', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'calc_resp_matrix_periodic'
 
       INTEGER                                            :: handle, i, ip, j, jx, jy, jz
       INTEGER, DIMENSION(3)                              :: periodic
@@ -993,7 +994,7 @@ CONTAINS
       DO i = 1, natom
          DO j = 1, natom
             ! calculate matrix
-            resp_env%matrix(i, j) = resp_env%matrix(i, j)+2.0_dp*SUM(vpot(:, i)*vpot(:, j))
+            resp_env%matrix(i, j) = resp_env%matrix(i, j) + 2.0_dp*SUM(vpot(:, i)*vpot(:, j))
          ENDDO
          ! calculate vector resp_env%rhs
          CALL calculate_rhs(qs_env, resp_env, resp_env%rhs(i), vpot(:, i))
@@ -1037,8 +1038,7 @@ CONTAINS
       TYPE(particle_list_type), POINTER                  :: particles
       TYPE(cell_type), POINTER                           :: cell
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_fitting_points', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'get_fitting_points'
 
       INTEGER                                            :: bo(2, 3), gbo(2, 3), handle, i, iatom, &
                                                             ikind, in_x, in_y, in_z, jx, jy, jz, &
@@ -1088,12 +1088,12 @@ CONTAINS
             DO jx = bo(1, 1), bo(2, 1)
                IF (.NOT. (MODULO(jx, resp_env%stride(1)) == 0)) CYCLE
                !bounds gbo reach from -np/2 to np/2. shift of np/2 so that r(1,1,1)=(0,0,0)
-               l = jx-gbo(1, 1)
-               k = jy-gbo(1, 2)
-               p = jz-gbo(1, 3)
-               r(3) = p*dh(3, 3)+k*dh(3, 2)+l*dh(3, 1)
-               r(2) = p*dh(2, 3)+k*dh(2, 2)+l*dh(2, 1)
-               r(1) = p*dh(1, 3)+k*dh(1, 2)+l*dh(1, 1)
+               l = jx - gbo(1, 1)
+               k = jy - gbo(1, 2)
+               p = jz - gbo(1, 3)
+               r(3) = p*dh(3, 3) + k*dh(3, 2) + l*dh(3, 1)
+               r(2) = p*dh(2, 3) + k*dh(2, 2) + l*dh(2, 1)
+               r(1) = p*dh(1, 3) + k*dh(1, 2) + l*dh(1, 1)
                IF (resp_env%molecular_sys) THEN
                   not_in_range = .FALSE.
                   DO m = 1, natom
@@ -1108,8 +1108,8 @@ CONTAINS
                            EXIT
                         ENDIF
                      ENDDO
-                     IF (dist(m) < rmin+delta) not_in_range(m, 1) = .TRUE.
-                     IF (dist(m) > rmax-delta) not_in_range(m, 2) = .TRUE.
+                     IF (dist(m) < rmin + delta) not_in_range(m, 1) = .TRUE.
+                     IF (dist(m) > rmax - delta) not_in_range(m, 2) = .TRUE.
                   ENDDO
                   IF (ANY(not_in_range(:, 1)) .OR. ALL(not_in_range(:, 2))) CYCLE
                ELSE
@@ -1119,29 +1119,29 @@ CONTAINS
                         in_y = 0
                         in_x = 0
                         iatom = rep_sys(i)%p_resp%atom_surf_list(m)
-                        SELECT CASE (rep_sys (i)%p_resp%my_fit)
+                        SELECT CASE (rep_sys(i)%p_resp%my_fit)
                         CASE (do_resp_x_dir, do_resp_y_dir, do_resp_z_dir)
                            vec_pbc = pbc(particles%els(iatom)%r, r, cell)
                         CASE (do_resp_minus_x_dir, do_resp_minus_y_dir, do_resp_minus_z_dir)
                            vec_pbc = pbc(r, particles%els(iatom)%r, cell)
                         END SELECT
-                        SELECT CASE (rep_sys (i)%p_resp%my_fit)
+                        SELECT CASE (rep_sys(i)%p_resp%my_fit)
                            !subtract delta=1.0E-13 to get rid of rounding errors when shifting atoms
                         CASE (do_resp_x_dir, do_resp_minus_x_dir)
-                           IF (ABS(vec_pbc(3)) < rep_sys(i)%p_resp%length-delta) in_z = 1
-                           IF (ABS(vec_pbc(2)) < rep_sys(i)%p_resp%length-delta) in_y = 1
-                           IF (vec_pbc(1) > rep_sys(i)%p_resp%range_surf(1)+delta .AND. &
-                               vec_pbc(1) < rep_sys(i)%p_resp%range_surf(2)-delta) in_x = 1
+                           IF (ABS(vec_pbc(3)) < rep_sys(i)%p_resp%length - delta) in_z = 1
+                           IF (ABS(vec_pbc(2)) < rep_sys(i)%p_resp%length - delta) in_y = 1
+                           IF (vec_pbc(1) > rep_sys(i)%p_resp%range_surf(1) + delta .AND. &
+                               vec_pbc(1) < rep_sys(i)%p_resp%range_surf(2) - delta) in_x = 1
                         CASE (do_resp_y_dir, do_resp_minus_y_dir)
-                           IF (ABS(vec_pbc(3)) < rep_sys(i)%p_resp%length-delta) in_z = 1
-                           IF (vec_pbc(2) > rep_sys(i)%p_resp%range_surf(1)+delta .AND. &
-                               vec_pbc(2) < rep_sys(i)%p_resp%range_surf(2)-delta) in_y = 1
-                           IF (ABS(vec_pbc(1)) < rep_sys(i)%p_resp%length-delta) in_x = 1
+                           IF (ABS(vec_pbc(3)) < rep_sys(i)%p_resp%length - delta) in_z = 1
+                           IF (vec_pbc(2) > rep_sys(i)%p_resp%range_surf(1) + delta .AND. &
+                               vec_pbc(2) < rep_sys(i)%p_resp%range_surf(2) - delta) in_y = 1
+                           IF (ABS(vec_pbc(1)) < rep_sys(i)%p_resp%length - delta) in_x = 1
                         CASE (do_resp_z_dir, do_resp_minus_z_dir)
-                           IF (vec_pbc(3) > rep_sys(i)%p_resp%range_surf(1)+delta .AND. &
-                               vec_pbc(3) < rep_sys(i)%p_resp%range_surf(2)-delta) in_z = 1
-                           IF (ABS(vec_pbc(2)) < rep_sys(i)%p_resp%length-delta) in_y = 1
-                           IF (ABS(vec_pbc(1)) < rep_sys(i)%p_resp%length-delta) in_x = 1
+                           IF (vec_pbc(3) > rep_sys(i)%p_resp%range_surf(1) + delta .AND. &
+                               vec_pbc(3) < rep_sys(i)%p_resp%range_surf(2) - delta) in_z = 1
+                           IF (ABS(vec_pbc(2)) < rep_sys(i)%p_resp%length - delta) in_y = 1
+                           IF (ABS(vec_pbc(1)) < rep_sys(i)%p_resp%length - delta) in_x = 1
                         END SELECT
                         IF (in_z*in_y*in_x == 1) EXIT
                      ENDDO
@@ -1149,7 +1149,7 @@ CONTAINS
                   ENDDO
                   IF (in_z*in_y*in_x == 0) CYCLE
                ENDIF
-               resp_env%npoints_proc = resp_env%npoints_proc+1
+               resp_env%npoints_proc = resp_env%npoints_proc + 1
                IF (resp_env%npoints_proc > now) THEN
                   now = 2*now
                   CALL reallocate(resp_env%fitpoints, 1, 3, 1, now)
@@ -1185,7 +1185,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(INOUT)                       :: rhs
       REAL(KIND=dp), DIMENSION(:), INTENT(IN)            :: vpot
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_rhs', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'calculate_rhs'
 
       INTEGER                                            :: handle, ip, jx, jy, jz
       REAL(KIND=dp)                                      :: dvol
@@ -1209,9 +1209,9 @@ CONTAINS
          vhartree(ip) = -v_hartree_pw%cr3d(jx, jy, jz)/dvol
          IF (qs_env%qmmm) THEN
             !taking into account that v_qmmm has also opposite sign
-            vhartree(ip) = vhartree(ip)+qs_env%ks_qmmm_env%v_qmmm_rspace%pw%cr3d(jx, jy, jz)
+            vhartree(ip) = vhartree(ip) + qs_env%ks_qmmm_env%v_qmmm_rspace%pw%cr3d(jx, jy, jz)
          ENDIF
-         rhs = rhs+2.0_dp*vhartree(ip)*vpot(ip)
+         rhs = rhs + 2.0_dp*vhartree(ip)*vpot(ip)
       ENDDO
 
       IF (resp_env%use_repeat_method) THEN
@@ -1235,8 +1235,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(resp_type), POINTER                           :: resp_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'print_fitting_points', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'print_fitting_points'
 
       CHARACTER(LEN=2)                                   :: element_symbol
       CHARACTER(LEN=default_path_length)                 :: filename
@@ -1262,7 +1261,7 @@ CONTAINS
       conv = cp_unit_from_cp2k(1.0_dp, "angstrom")
       gbo = v_hartree_pw%pw_grid%bounds
       dh = v_hartree_pw%pw_grid%dh
-      nobjects = SIZE(particle_set)+resp_env%npoints
+      nobjects = SIZE(particle_set) + resp_env%npoints
 
       resp_section => section_vals_get_subs_vals(input, "PROPERTIES%RESP")
       print_key => section_vals_get_subs_vals(resp_section, "PRINT%COORD_FIT_POINTS")
@@ -1293,12 +1292,12 @@ CONTAINS
                jx = resp_env%fitpoints(1, ip)
                jy = resp_env%fitpoints(2, ip)
                jz = resp_env%fitpoints(3, ip)
-               l = jx-gbo(1, 1)
-               k = jy-gbo(1, 2)
-               p = jz-gbo(1, 3)
-               r(3) = p*dh(3, 3)+k*dh(3, 2)+l*dh(3, 1)
-               r(2) = p*dh(2, 3)+k*dh(2, 2)+l*dh(2, 1)
-               r(1) = p*dh(1, 3)+k*dh(1, 2)+l*dh(1, 1)
+               l = jx - gbo(1, 1)
+               k = jy - gbo(1, 2)
+               p = jz - gbo(1, 3)
+               r(3) = p*dh(3, 3) + k*dh(3, 2) + l*dh(3, 1)
+               r(2) = p*dh(2, 3) + k*dh(2, 2) + l*dh(2, 1)
+               r(1) = p*dh(1, 3) + k*dh(1, 2) + l*dh(1, 1)
                r(:) = r(:)*conv
                WRITE (UNIT=output_unit, FMT="(A,2X,3F10.5)") "X", r(1), r(2), r(3)
             ENDDO
@@ -1311,27 +1310,27 @@ CONTAINS
          IF (output_unit > 0) THEN
             my_pos = para_env%mepos
             DO i = 1, para_env%num_pe
-               IF (my_pos == i-1) CYCLE
-               CALL mp_irecv(msgout=tmp_size, source=i-1, comm=para_env%group, &
+               IF (my_pos == i - 1) CYCLE
+               CALL mp_irecv(msgout=tmp_size, source=i - 1, comm=para_env%group, &
                              request=req(1))
                CALL mp_wait(req(1))
                ALLOCATE (tmp_points(3, tmp_size(1)))
-               CALL mp_irecv(msgout=tmp_points, source=i-1, comm=para_env%group, &
+               CALL mp_irecv(msgout=tmp_points, source=i - 1, comm=para_env%group, &
                              request=req(3))
                CALL mp_wait(req(3))
-               CALL mp_irecv(msgout=tmp_npoints, source=i-1, comm=para_env%group, &
+               CALL mp_irecv(msgout=tmp_npoints, source=i - 1, comm=para_env%group, &
                              request=req(5))
                CALL mp_wait(req(5))
                DO ip = 1, tmp_npoints(1)
                   jx = tmp_points(1, ip)
                   jy = tmp_points(2, ip)
                   jz = tmp_points(3, ip)
-                  l = jx-gbo(1, 1)
-                  k = jy-gbo(1, 2)
-                  p = jz-gbo(1, 3)
-                  r(3) = p*dh(3, 3)+k*dh(3, 2)+l*dh(3, 1)
-                  r(2) = p*dh(2, 3)+k*dh(2, 2)+l*dh(2, 1)
-                  r(1) = p*dh(1, 3)+k*dh(1, 2)+l*dh(1, 1)
+                  l = jx - gbo(1, 1)
+                  k = jy - gbo(1, 2)
+                  p = jz - gbo(1, 3)
+                  r(3) = p*dh(3, 3) + k*dh(3, 2) + l*dh(3, 1)
+                  r(2) = p*dh(2, 3) + k*dh(2, 2) + l*dh(2, 1)
+                  r(1) = p*dh(1, 3) + k*dh(1, 2) + l*dh(1, 1)
                   r(:) = r(:)*conv
                   WRITE (UNIT=output_unit, FMT="(A,2X,3F10.5)") "X", r(1), r(2), r(3)
                ENDDO
@@ -1384,8 +1383,7 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: cons_section
       TYPE(particle_type), DIMENSION(:), POINTER         :: particle_set
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'add_restraints_and_constraints', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'add_restraints_and_constraints'
 
       INTEGER                                            :: handle, i, k, m, ncons_v, z
       INTEGER, DIMENSION(:), POINTER                     :: atom_list_cons, atom_list_res
@@ -1414,16 +1412,16 @@ CONTAINS
             IF (explicit_coeff) THEN
                DO k = 1, SIZE(atom_list_res)
                   resp_env%matrix(atom_list_res(m), atom_list_res(k)) = &
-                     resp_env%matrix(atom_list_res(m), atom_list_res(k))+ &
+                     resp_env%matrix(atom_list_res(m), atom_list_res(k)) + &
                      atom_coef(m)*atom_coef(k)*2.0_dp*strength
                ENDDO
-               resp_env%rhs(atom_list_res(m)) = resp_env%rhs(atom_list_res(m))+ &
+               resp_env%rhs(atom_list_res(m)) = resp_env%rhs(atom_list_res(m)) + &
                                                 2.0_dp*TARGET*strength*atom_coef(m)
             ELSE
                resp_env%matrix(atom_list_res(m), atom_list_res(m)) = &
-                  resp_env%matrix(atom_list_res(m), atom_list_res(m))+ &
+                  resp_env%matrix(atom_list_res(m), atom_list_res(m)) + &
                   2.0_dp*strength
-               resp_env%rhs(atom_list_res(m)) = resp_env%rhs(atom_list_res(m))+ &
+               resp_env%rhs(atom_list_res(m)) = resp_env%rhs(atom_list_res(m)) + &
                                                 2.0_dp*TARGET*strength
             ENDIF
          ENDDO
@@ -1435,18 +1433,18 @@ CONTAINS
          DO i = 1, natom
             CALL get_atomic_kind(atomic_kind=particle_set(i)%atomic_kind, z=z)
             IF (z .NE. 1) THEN
-               resp_env%matrix(i, i) = resp_env%matrix(i, i)+2.0_dp*resp_env%rheavies_strength
+               resp_env%matrix(i, i) = resp_env%matrix(i, i) + 2.0_dp*resp_env%rheavies_strength
             ENDIF
          ENDDO
       ENDIF
 
       !*** add the constraints
       ncons_v = 0
-      ncons_v = ncons_v+natom
+      ncons_v = ncons_v + natom
 
       ! REPEAT charges: treat the offset like a constraint
       IF (resp_env%use_repeat_method) THEN
-         ncons_v = ncons_v+1
+         ncons_v = ncons_v + 1
          resp_env%matrix(1:natom, ncons_v) = resp_env%sum_vpot(1:natom)
          resp_env%matrix(ncons_v, 1:natom) = resp_env%sum_vpot(1:natom)
          resp_env%matrix(ncons_v, ncons_v) = 2.0_dp
@@ -1455,17 +1453,17 @@ CONTAINS
 
       ! total charge constraint
       IF (resp_env%itc) THEN
-         ncons_v = ncons_v+1
+         ncons_v = ncons_v + 1
          resp_env%matrix(1:natom, ncons_v) = 1.0_dp
          resp_env%matrix(ncons_v, 1:natom) = 1.0_dp
          resp_env%rhs(ncons_v) = dft_control%charge
       ENDIF
 
-      ! explict constraints
+      ! explicit constraints
       DO i = 1, resp_env%ncons_sec
          CALL build_atom_list(cons_section, subsys, atom_list_cons, i)
          IF (.NOT. resp_env%equal_charges) THEN
-            ncons_v = ncons_v+1
+            ncons_v = ncons_v + 1
             CALL section_vals_val_get(cons_section, "ATOM_COEF", i_rep_section=i, r_vals=atom_coef)
             CALL section_vals_val_get(cons_section, "TARGET", i_rep_section=i, r_val=TARGET)
             CPASSERT(SIZE(atom_list_cons) == SIZE(atom_coef))
@@ -1478,7 +1476,7 @@ CONTAINS
             my_atom_coef(1) = 1.0_dp
             my_atom_coef(2) = -1.0_dp
             DO k = 2, SIZE(atom_list_cons)
-               ncons_v = ncons_v+1
+               ncons_v = ncons_v + 1
                resp_env%matrix(atom_list_cons(1), ncons_v) = my_atom_coef(1)
                resp_env%matrix(ncons_v, atom_list_cons(1)) = my_atom_coef(1)
                resp_env%matrix(atom_list_cons(k), ncons_v) = my_atom_coef(2)
@@ -1506,8 +1504,7 @@ CONTAINS
       TYPE(resp_p_type), DIMENSION(:), POINTER           :: rep_sys
       INTEGER, INTENT(IN)                                :: my_per
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'print_resp_parameter_info', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'print_resp_parameter_info'
 
       CHARACTER(len=2)                                   :: symbol
       INTEGER                                            :: handle, i, ikind, kind_number, nkinds, &
@@ -1544,7 +1541,7 @@ CONTAINS
             WRITE (output_unit, '(T3,A,T75,I6)') "Number of explicit constraints: ", resp_env%ncons_sec
          ELSE
             IF (resp_env%itc) THEN
-               WRITE (output_unit, '(T3,A,T75,I6)') "Number of explicit constraints: ", resp_env%ncons-1
+               WRITE (output_unit, '(T3,A,T75,I6)') "Number of explicit constraints: ", resp_env%ncons - 1
             ELSE
                WRITE (output_unit, '(T3,A,T75,I6)') "Number of explicit constraints: ", resp_env%ncons
             ENDIF
@@ -1627,8 +1624,7 @@ CONTAINS
       TYPE(resp_type), POINTER                           :: resp_env
       INTEGER, INTENT(IN)                                :: output_runinfo, natom
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'print_resp_charges', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'print_resp_charges'
 
       CHARACTER(LEN=default_path_length)                 :: filename
       INTEGER                                            :: handle, output_file
@@ -1693,8 +1689,7 @@ CONTAINS
       TYPE(particle_list_type), POINTER                  :: particles
       INTEGER, INTENT(IN)                                :: natom, output_runinfo
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'print_pot_from_resp_charges', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'print_pot_from_resp_charges'
 
       CHARACTER(LEN=default_path_length)                 :: my_pos_cube
       INTEGER                                            :: handle, ip, jx, jy, jz, unit_nr
@@ -1757,7 +1752,7 @@ CONTAINS
       ! REPEAT: correct for offset, take into account that potentials have reverse sign
       ! and are scaled by dvol
       IF (resp_env%use_repeat_method) THEN
-         v_resp_rspace%pw%cr3d(:, :, :) = v_resp_rspace%pw%cr3d(:, :, :)-resp_env%offset*dvol
+         v_resp_rspace%pw%cr3d(:, :, :) = v_resp_rspace%pw%cr3d(:, :, :) - resp_env%offset*dvol
       ENDIF
       CALL pw_release(v_resp_gspace%pw)
       CALL pw_release(rho_resp%pw)
@@ -1800,9 +1795,9 @@ CONTAINS
          jx = resp_env%fitpoints(1, ip)
          jy = resp_env%fitpoints(2, ip)
          jz = resp_env%fitpoints(3, ip)
-         sum_diff = sum_diff+(v_hartree_rspace%cr3d(jx, jy, jz)- &
-                              v_resp_rspace%pw%cr3d(jx, jy, jz))**2
-         sum_hartree = sum_hartree+v_hartree_rspace%cr3d(jx, jy, jz)**2
+         sum_diff = sum_diff + (v_hartree_rspace%cr3d(jx, jy, jz) - &
+                                v_resp_rspace%pw%cr3d(jx, jy, jz))**2
+         sum_hartree = sum_hartree + v_hartree_rspace%cr3d(jx, jy, jz)**2
       ENDDO
       CALL mp_sum(sum_diff, para_env%group)
       CALL mp_sum(sum_hartree, para_env%group)

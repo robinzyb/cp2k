@@ -1,11 +1,14 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
 !> \par History
 !>      10.2005 split input_cp2k into smaller modules [fawzi]
+!>      01.2020 add keywords related to Space Groups [pcazade]
 !> \author teo & fawzi
 ! **************************************************************************************************
 MODULE input_cp2k_motion
@@ -81,9 +84,6 @@ CONTAINS
    SUBROUTINE create_motion_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_motion_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(section_type), POINTER                        :: subsection
 
       CPASSERT(.NOT. ASSOCIATED(section))
@@ -157,9 +157,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_mc_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_mc_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: subsection
@@ -383,9 +380,6 @@ CONTAINS
    SUBROUTINE create_avbmc_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_avbmc_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
 
       CPASSERT(.NOT. ASSOCIATED(section))
@@ -437,9 +431,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_move_prob_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_move_prob_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: subsection
@@ -520,9 +511,6 @@ CONTAINS
    SUBROUTINE create_mol_prob_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_mol_prob_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
 
       CPASSERT(.NOT. ASSOCIATED(section))
@@ -580,9 +568,6 @@ CONTAINS
    SUBROUTINE create_box_prob_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_box_prob_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
 
       CPASSERT(.NOT. ASSOCIATED(section))
@@ -626,9 +611,6 @@ CONTAINS
    SUBROUTINE create_update_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_update_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
 
       CPASSERT(.NOT. ASSOCIATED(section))
@@ -671,9 +653,6 @@ CONTAINS
    SUBROUTINE create_max_disp_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_max_disp_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(section_type), POINTER                        :: subsection
 
       CPASSERT(.NOT. ASSOCIATED(section))
@@ -702,9 +681,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_mol_disp_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_mol_disp_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
 
@@ -763,9 +739,6 @@ CONTAINS
    SUBROUTINE create_box_disp_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_box_disp_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
 
       CPASSERT(.NOT. ASSOCIATED(section))
@@ -801,15 +774,14 @@ CONTAINS
 !> \param description ...
 !> \param just_optimizers ...
 !> \param use_model_hessian ...
+!> \par History
+!>      01.2020 keywords related to Space Group Symmetry added [pcazade]
 !> \author teo
 ! **************************************************************************************************
    RECURSIVE SUBROUTINE create_geoopt_section(section, location, label, description, just_optimizers, use_model_hessian)
       TYPE(section_type), POINTER                        :: section
       CHARACTER(LEN=*), INTENT(IN)                       :: location, label, description
       LOGICAL, INTENT(IN)                                :: just_optimizers, use_model_hessian
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_geoopt_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: print_key, subsection
@@ -841,7 +813,8 @@ CONTAINS
          enum_c_vals=s2a("BFGS", "LBFGS", "CG"), &
          enum_desc=s2a("Most efficient minimizer, but only for 'small' systems, "// &
                        "as it relies on diagonalization of a full Hessian matrix", &
-                       "Limit memory variant of the above, can also be applied to large systems, not as well fine-tuned", &
+                       "Limited-memory variant of BFGS suitable for large systems. "// &
+                       "Not as well fine-tuned but can be more robust.", &
                        "conjugate gradients, robust minimizer (depending on the line search) also OK for large systems"), &
          enum_i_vals=(/default_bfgs_method_id, default_lbfgs_method_id, default_cg_method_id/), &
          default_i_val=default_bfgs_method_id)
@@ -892,6 +865,57 @@ CONTAINS
       CALL section_add_keyword(section, keyword)
       CALL keyword_release(keyword)
 
+      ! collects keywords related to Space Group Symmetry
+      CALL keyword_create( &
+         keyword, __LOCATION__, name="KEEP_SPACE_GROUP", &
+         description="Detect space group of the system and preserve it during optimization. "// &
+         "The space group symmetry is applied to coordinates, forces, and the stress tensor. "// &
+         "It works for supercell. It does not affect/reduce computational cost. "// &
+         "Use EPS_SYMMETRY to adjust the detection threshold.", &
+         usage="KEEP_SPACE_GROUP .TRUE.", &
+         default_l_val=.FALSE., lone_keyword_l_val=.TRUE., repeats=.FALSE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      ! collects keywords related to precision for finding the space group
+      CALL keyword_create( &
+         keyword, __LOCATION__, name="EPS_SYMMETRY", &
+         description="Accuracy for space group determination. EPS_SYMMETRY is dimensionless. "// &
+       "Roughly speaking, two scaled (fractional) atomic positions v1, v2 are considered identical if |v1 - v2| < EPS_SYMMETRY. ", &
+         usage="EPS_SYMMETRY {REAL}", &
+         default_r_val=1.e-4_dp, repeats=.FALSE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      ! collects keywords related to reduction of symmetry due to an external field
+      CALL keyword_create( &
+         keyword, __LOCATION__, name="SYMM_REDUCTION", &
+         description="Direction of the external static electric field. "// &
+         "Some symmetry operations are not compatible with the direction of an electric field. "// &
+         "These operations are used when enforcing the space group.", &
+         usage="SYMM_REDUCTION  0.0 0.0 0.0", &
+         repeats=.FALSE., n_var=3, &
+         type_of_var=real_t, default_r_vals=(/0.0_dp, 0.0_dp, 0.0_dp/))
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      ! collects keywords related to ranges of atoms to symmetrize
+      CALL keyword_create( &
+         keyword, __LOCATION__, name="SYMM_EXCLUDE_RANGE", &
+         description="Range of atoms to exclude from space group symmetry. "// &
+         "These atoms are excluded from both identification and enforcement. "// &
+         "This keyword can be repeated.", &
+         repeats=.TRUE., usage="SYMM_EXCLUDE_RANGE {Int} {Int}", type_of_var=integer_t, n_var=2)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create( &
+         keyword, __LOCATION__, name="SPGR_PRINT_ATOMS", &
+         description="Print equivalent atoms list for each space group symmetry operation.", &
+         default_l_val=.FALSE., lone_keyword_l_val=.TRUE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
       CALL create_lbfgs_section(subsection)
       CALL section_add_subsection(section, subsection)
       CALL section_release(subsection)
@@ -936,9 +960,6 @@ CONTAINS
    SUBROUTINE create_shellcore_opt_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_shellcore_opt_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(section_type), POINTER                        :: print_key, subsection
 
       CALL create_geoopt_section( &
@@ -975,9 +996,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_cell_opt_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_cell_opt_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: print_key, subsection
@@ -1088,9 +1106,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_ts_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_ts_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: print_key, subsection, subsection2, &
@@ -1220,9 +1235,6 @@ CONTAINS
       TYPE(section_type), POINTER                        :: section
       LOGICAL, INTENT(IN)                                :: use_model_hessian
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_bfgs_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: print_key
 
@@ -1288,9 +1300,6 @@ CONTAINS
    SUBROUTINE create_cg_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_cg_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: subsection, subsubsection
 
@@ -1337,7 +1346,7 @@ CONTAINS
                           usage="TYPE GOLD", &
                           default_i_val=ls_gold, &
                           enum_c_vals=s2a("NONE", "2PNT", "3PNT", "GOLD", "FIT"), &
-                          enum_desc=s2a("take fixed lenght steps", &
+                          enum_desc=s2a("take fixed length steps", &
                                         "extrapolate based on 2 points", &
                                         "extrapolate based on on 3 points", &
                                         "perform 1D golden section search of the minimum (very expensive)", &
@@ -1421,9 +1430,6 @@ CONTAINS
    SUBROUTINE create_lbfgs_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_lbfgs_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
 
 ! create the LBFGS section
@@ -1487,9 +1493,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_fp_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_fp_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: print_key
@@ -1585,9 +1588,6 @@ CONTAINS
    SUBROUTINE create_driver_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_driver_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
 
       CPASSERT(.NOT. ASSOCIATED(section))
@@ -1635,9 +1635,6 @@ CONTAINS
    SUBROUTINE create_pint_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_pint_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: print_key, subsection, subsubsection
 
@@ -1678,6 +1675,12 @@ CONTAINS
                           description="The temperature you want to simulate", &
                           default_r_val=cp_unit_to_cp2k(300._dp, "K"), &
                           unit_str="K")
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+      CALL keyword_create(keyword, __LOCATION__, name="kT_CORRECTION", &
+                          description="Corrects for the loss of temperature due to constrained "// &
+                          "degrees of freedom for Nose-Hover chains and numeric integration", &
+                          repeats=.FALSE., default_l_val=.FALSE.)
       CALL section_add_keyword(section, keyword)
       CALL keyword_release(keyword)
       CALL keyword_create(keyword, __LOCATION__, name="T_tol", variants=(/"temp_to"/), &
@@ -1812,7 +1815,7 @@ CONTAINS
                           " May lead to unphysical motions if constraint e.g. FIXED_ATOMS, is applied."// &
                           " RESTART_HELIUM section has to be .FALSE. when restarting the PIGLET job.", &
                           citations=(/Ceriotti2010/), &
-                          n_keywords=2, n_subsections=1, &
+                          n_keywords=3, n_subsections=1, &
                           repeats=.FALSE.)
       CALL create_rng_section(subsubsection)
       CALL section_add_subsection(subsection, subsubsection)
@@ -1830,6 +1833,13 @@ CONTAINS
                           n_var=1, default_r_val=0.5_dp)
       CALL section_add_keyword(subsection, keyword)
       CALL keyword_release(keyword)
+      CALL keyword_create(keyword, __LOCATION__, name="THERMOSTAT_ENERGY", &
+                          description="Thermostat energy for conserved quantity. "// &
+                          "Only useful in restart files.", &
+                          usage="THERMOSTAT_ENERGY {real}", type_of_var=real_t, &
+                          n_var=1, default_r_val=0.0_dp)
+      CALL section_add_keyword(subsection, keyword)
+      CALL keyword_release(keyword)
       CALL section_add_subsection(section, subsection)
       CALL section_release(subsection)
 
@@ -1837,7 +1847,7 @@ CONTAINS
                           description="Controls the PI Generalized Langevin Equation thermostat."// &
                           " Needs the exact harmonic integrator", &
                           citations=(/Ceriotti2012/), &
-                          n_keywords=3, n_subsections=2, &
+                          n_keywords=4, n_subsections=2, &
                           repeats=.FALSE.)
       CALL create_rng_section(subsubsection)
       CALL section_add_subsection(subsection, subsubsection)
@@ -1861,7 +1871,7 @@ CONTAINS
       CALL keyword_release(keyword)
       CALL keyword_create(keyword, __LOCATION__, name="MATRICES_FILE_NAME", &
                           description="Filename containig the raw matrices from "// &
-                          "https://epfl-cosmo.github.io/gle4md/index.html?page=matrix", &
+                          "https://gle4md.org/index.html?page=matrix", &
                           repeats=.FALSE., default_lc_val="PIGLET.MAT")
       CALL section_add_keyword(subsection, keyword)
       CALL keyword_release(keyword)
@@ -1873,6 +1883,13 @@ CONTAINS
                           enum_i_vals=(/matrix_init_cholesky, matrix_init_diagonal/))
       CALL section_add_keyword(subsection, keyword)
       CALL keyword_release(keyword)
+      CALL keyword_create(keyword, __LOCATION__, name="THERMOSTAT_ENERGY", &
+                          description="Thermostat energy for conserved quantity. "// &
+                          "Only useful in restart files.", &
+                          usage="THERMOSTAT_ENERGY {real}", type_of_var=real_t, &
+                          n_var=1, default_r_val=0.0_dp)
+      CALL section_add_keyword(subsection, keyword)
+      CALL keyword_release(keyword)
       CALL section_add_subsection(section, subsection)
       CALL section_release(subsection)
 
@@ -1880,7 +1897,7 @@ CONTAINS
                           description="Controls the QTB-PILE thermostat."// &
                           " Needs the exact harmonic integrator", &
                           citations=(/Brieuc2016/), &
-                          n_keywords=6, n_subsections=1, &
+                          n_keywords=7, n_subsections=1, &
                           repeats=.FALSE.)
       CALL create_rng_section(subsubsection)
       CALL section_add_subsection(subsection, subsubsection)
@@ -1920,6 +1937,13 @@ CONTAINS
                           description="Number of points used for the convolution product.", &
                           usage="NF {integer}", type_of_var=integer_t, &
                           n_var=1, default_i_val=128)
+      CALL section_add_keyword(subsection, keyword)
+      CALL keyword_release(keyword)
+      CALL keyword_create(keyword, __LOCATION__, name="THERMOSTAT_ENERGY", &
+                          description="Thermostat energy for conserved quantity. "// &
+                          "Only useful in restart files.", &
+                          usage="THERMOSTAT_ENERGY {real}", type_of_var=real_t, &
+                          n_var=1, default_r_val=0.0_dp)
       CALL section_add_keyword(subsection, keyword)
       CALL keyword_release(keyword)
       CALL section_add_subsection(section, subsection)
@@ -2068,9 +2092,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_helium_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_helium_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: print_key, subsection, subsubsection
@@ -2264,91 +2285,78 @@ CONTAINS
 ! worm algorithm parameters:
       NULLIFY (subsection)
       CALL section_create(subsection, __LOCATION__, name="WORM", &
-                          description="Enables sampling with the worm algorithm by Bonisegni", &
-                          n_keywords=13, n_subsections=0, repeats=.FALSE.)
+                          description="Enables sampling via the canonical worm algorithm adapted from Bonisegni", &
+                          n_keywords=11, n_subsections=0, repeats=.FALSE.)
 
-      CALL keyword_create(keyword, __LOCATION__, name="CENTROID_MOVE_DRMAX", &
+      CALL keyword_create(keyword, __LOCATION__, name="CENTROID_DRMAX", &
                           description="Maximum displacement allowed for the centroid moves", &
                           repeats=.FALSE., default_r_val=0.5_dp)
       CALL section_add_keyword(subsection, keyword)
       CALL keyword_release(keyword)
 
-      CALL keyword_create(keyword, __LOCATION__, name="CENTROID_MOVE_FREQ", &
-                          description="Moves are performed each CENTROID_MOVE_FREQ steps", &
-                          repeats=.FALSE., default_i_val=20)
-      CALL section_add_keyword(subsection, keyword)
-      CALL keyword_release(keyword)
-
-      CALL keyword_create(keyword, __LOCATION__, name="STAGING_MOVE_L", &
-                          description="L-1 beads will be moved", &
+      CALL keyword_create(keyword, __LOCATION__, name="STAGING_L", &
+                          description="From 2 up to max. L-1 beads will be moved", &
                           repeats=.FALSE., default_i_val=5)
       CALL section_add_keyword(subsection, keyword)
       CALL keyword_release(keyword)
 
-      CALL keyword_create(keyword, __LOCATION__, name="STAGING_MOVE_REP", &
-                          description="Number of repetitions for staging moves", &
-                          repeats=.FALSE., default_i_val=10)
-      CALL section_add_keyword(subsection, keyword)
-      CALL keyword_release(keyword)
-
-      CALL keyword_create(keyword, __LOCATION__, name="OPEN_CLOSE_MOVE_C", &
+      CALL keyword_create(keyword, __LOCATION__, name="OPEN_CLOSE_SCALE", &
                           description="Open/Close acceptance adjustment parameter", &
                           repeats=.FALSE., default_r_val=0.01_dp)
       CALL section_add_keyword(subsection, keyword)
       CALL keyword_release(keyword)
 
-      CALL keyword_create(keyword, __LOCATION__, name="OPEN_CLOSE_MOVE_LMAX", &
-                          description="1 to OPEN_CLOSE_MOVE_LMAX-1 beads"// &
-                          "will be moved in Open/Close moves", &
-                          repeats=.FALSE., default_i_val=5)
-      CALL section_add_keyword(subsection, keyword)
-      CALL keyword_release(keyword)
-
-      CALL keyword_create(keyword, __LOCATION__, name="HEAD_TAIL_MOVE_LMAX", &
-                          description="1 to HEAD_TAIL_MOVE_LMAX-1 beads"// &
-                          "will be moved in head/tail moves", &
-                          repeats=.FALSE., default_i_val=5)
-      CALL section_add_keyword(subsection, keyword)
-      CALL keyword_release(keyword)
-
-      CALL keyword_create(keyword, __LOCATION__, name="SWAP_MOVE_LMAX", &
-                          description="1 to SWAP_MOVE_LMAX-1 beads"// &
-                          "will be moved in Swap moves", &
-                          repeats=.FALSE., default_i_val=5)
-      CALL section_add_keyword(subsection, keyword)
-      CALL keyword_release(keyword)
-
-      CALL keyword_create(keyword, __LOCATION__, name="G-SECTOR_MOVE_REP", &
-                          description="Repetitions of G-sector moves", &
-                          repeats=.FALSE., default_i_val=20)
-      CALL section_add_keyword(subsection, keyword)
-      CALL keyword_release(keyword)
-
-      CALL keyword_create(keyword, __LOCATION__, name="G-SECTOR_MOVE", &
-                          description="Switch on/off G-sector moves, i.e.,"// &
-                          "switch on/off bosonic symmetry", &
+      CALL keyword_create(keyword, __LOCATION__, name="ALLOW_OPEN", &
+                          description="Enable bosonic exchange sampling", &
                           repeats=.FALSE., default_l_val=.TRUE.)
       CALL section_add_keyword(subsection, keyword)
       CALL keyword_release(keyword)
 
-      CALL keyword_create(keyword, __LOCATION__, name="WRITE", &
-                          description="Switch on/off writing"// &
-                          "statistics of the different moves", &
+      CALL keyword_create(keyword, __LOCATION__, name="SHOW_STATISTICS", &
+                          description="Show sampling statistics in output", &
                           repeats=.FALSE., default_l_val=.TRUE.)
       CALL section_add_keyword(subsection, keyword)
       CALL keyword_release(keyword)
 
-      CALL keyword_create(keyword, __LOCATION__, name="ATOM", &
-                          description="WORM ATOM", &
-                          repeats=.TRUE., usage="<INT> <INT> .. <INT>", &
-                          type_of_var=integer_t, n_var=-1)
+      CALL keyword_create(keyword, __LOCATION__, name="CENTROID_WEIGHT", &
+                          description="Absolute weight of the centroid move", &
+                          repeats=.FALSE., default_i_val=10)
       CALL section_add_keyword(subsection, keyword)
       CALL keyword_release(keyword)
 
-      CALL keyword_create(keyword, __LOCATION__, name="COORD", &
-                          description="WORM ATOM COORDINATES", &
-                          repeats=.TRUE., usage="<REAL> <REAL> .. <REAL>", &
-                          type_of_var=real_t, n_var=-1)
+      CALL keyword_create(keyword, __LOCATION__, name="STAGING_WEIGHT", &
+                          description="Absolute weight of the staging move", &
+                          repeats=.FALSE., default_i_val=30)
+      CALL section_add_keyword(subsection, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="OPEN_CLOSE_WEIGHT", &
+                          description="Absolute weight of the open/close move", &
+                          repeats=.FALSE., default_i_val=10)
+      CALL section_add_keyword(subsection, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="HEAD_TAIL_WEIGHT", &
+                          description="Absolute weight of the head/tail moves (both)", &
+                          repeats=.FALSE., default_i_val=10)
+      CALL section_add_keyword(subsection, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="CRAWL_WEIGHT", &
+                          description="Absolute weight of the crawl bwd/fwd moves (both)", &
+                          repeats=.FALSE., default_i_val=10)
+      CALL section_add_keyword(subsection, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="CRAWL_REPETITION", &
+                          description="Number of repeated crawl moves", &
+                          repeats=.FALSE., default_i_val=4)
+      CALL section_add_keyword(subsection, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="SWAP_WEIGHT", &
+                          description="Absolute weight of the crawl move", &
+                          repeats=.FALSE., default_i_val=10)
       CALL section_add_keyword(subsection, keyword)
       CALL keyword_release(keyword)
 
@@ -2405,7 +2413,7 @@ CONTAINS
 
       CALL section_create(subsection, __LOCATION__, name="RDF", &
                           description="Radial distribution settings", &
-                          n_keywords=4, n_subsections=0, repeats=.FALSE.)
+                          n_keywords=5, n_subsections=0, repeats=.FALSE.)
 
       CALL keyword_create(keyword, __LOCATION__, name="_SECTION_PARAMETERS_", &
                           description="Whether or not to actually calculate this property", &
@@ -2427,9 +2435,16 @@ CONTAINS
       CALL section_add_keyword(subsection, keyword)
       CALL keyword_release(keyword)
 
-      CALL keyword_create(keyword, __LOCATION__, name="CENTERS_FILE_NAME", &
-                          description="Calculate RDFs wrt centers read from a file", &
-                          repeats=.FALSE., default_lc_val="centers.xyz")
+      CALL keyword_create(keyword, __LOCATION__, name="SOLUTE_HE", &
+                          description="Whether or not to calculate solute-He RDFs"// &
+                          "(if solute is present)", &
+                          default_l_val=.TRUE., lone_keyword_l_val=.TRUE.)
+      CALL section_add_keyword(subsection, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="HE_HE", &
+                          description="Whether or not to calculate He-He RDFs", &
+                          default_l_val=.FALSE., lone_keyword_l_val=.TRUE.)
       CALL section_add_keyword(subsection, keyword)
       CALL keyword_release(keyword)
 
@@ -2623,7 +2638,7 @@ CONTAINS
                           n_keywords=16, n_subsections=0, repeats=.FALSE.)
 
       ! *************************************************************************
-      !> Printkeys for properites output
+      !> Printkeys for properties output
       ! *************************************************************************
       NULLIFY (print_key)
 

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -12,13 +14,13 @@
 !
 ! This module acts as a common container for the routines from the low level
 ! modules
+!           grid_api
 !           qs_integrate_potential_product
 !           qs_integrate_potential_single
-!           qs_integrate_potential_low
 !
 ! **************************************************************************************************
 MODULE qs_integrate_potential
-   USE qs_integrate_potential_low,      ONLY: integrate_pgf_product_rspace
+   USE grid_api,                        ONLY: integrate_pgf_product
    USE qs_integrate_potential_product,  ONLY: integrate_v_rspace
    USE qs_integrate_potential_single,   ONLY: integrate_ppl_rspace,&
                                               integrate_rho_nlcc,&
@@ -45,7 +47,7 @@ MODULE qs_integrate_potential
              integrate_ppl_rspace, &
              integrate_rho_nlcc
 
-   ! included from qs_integrate_potential_low
-   PUBLIC :: integrate_pgf_product_rspace
+   ! included from grid_api
+   PUBLIC :: integrate_pgf_product
 
 END MODULE qs_integrate_potential

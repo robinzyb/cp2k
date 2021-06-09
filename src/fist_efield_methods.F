@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -135,8 +137,8 @@ CONTAINS
          ! E = (omega/8Pi)(D - 4Pi*P)^2
          di = dipole/cell%deth
          DO i = 1, 3
-            theta = fieldpol(i)-2._dp*twopi*di(i)
-            qenergy = qenergy+dfilter(i)*theta**2
+            theta = fieldpol(i) - 2._dp*twopi*di(i)
+            qenergy = qenergy + dfilter(i)*theta**2
             fq(i) = -dfilter(i)*theta
          END DO
          qenergy = 0.25_dp*cell%deth/twopi*qenergy
@@ -160,7 +162,7 @@ CONTAINS
                ria = particle_set(ii)%r(:)
                ria = pbc(ria, cell)
                DO j = 1, 3
-                  qpv(j, 1:3) = qpv(j, 1:3)+qforce(j, ii)*ria(1:3)
+                  qpv(j, 1:3) = qpv(j, 1:3) + qforce(j, ii)*ria(1:3)
                END DO
             END DO
          END DO
@@ -226,7 +228,7 @@ CONTAINS
       dipole_deriv = 0.0_dp
       dipole = 0.0_dp
       IF (do_berry) THEN
-         dipole_type = "[BERRY PHASE]"
+         dipole_type = "periodic (Berry phase)"
          rcc = pbc(rcc, cell)
          charge_tot = 0._dp
          IF (use_charges) THEN
@@ -235,14 +237,14 @@ CONTAINS
             DO i = 1, SIZE(particle_set)
                atomic_kind => particle_set(i)%atomic_kind
                CALL get_atomic_kind(atomic_kind=atomic_kind, qeff=q)
-               charge_tot = charge_tot+q
+               charge_tot = charge_tot + q
             END DO
          END IF
          ria = twopi*MATMUL(cell%h_inv, rcc)
          zphase = CMPLX(COS(ria), SIN(ria), dp)**charge_tot
 
          dria = twopi*MATMUL(cell%h_inv, drcc)
-         dzphase = charge_tot*CMPLX(-SIN(ria), COS(ria), dp)**(charge_tot-1.0_dp)*dria
+         dzphase = charge_tot*CMPLX(-SIN(ria), COS(ria), dp)**(charge_tot - 1.0_dp)*dria
 
          ggamma = CMPLX(1.0_dp, 0.0_dp, KIND=dp)
          dggamma = CMPLX(0.0_dp, 0.0_dp, KIND=dp)
@@ -260,19 +262,19 @@ CONTAINS
                   theta = SUM(ria(:)*gvec(:))
                   dtheta = SUM(via(:)*gvec(:))
                   zeta = CMPLX(COS(theta), SIN(theta), KIND=dp)**(-q)
-                  dzeta = -q*CMPLX(-SIN(theta), COS(theta), KIND=dp)**(-q-1.0_dp)*dtheta
-                  dggamma(j) = dggamma(j)*zeta+ggamma(j)*dzeta
+                  dzeta = -q*CMPLX(-SIN(theta), COS(theta), KIND=dp)**(-q - 1.0_dp)*dtheta
+                  dggamma(j) = dggamma(j)*zeta + ggamma(j)*dzeta
                   ggamma(j) = ggamma(j)*zeta
                END DO
             ENDDO
          END DO
-         dggamma = dggamma*zphase+ggamma*dzphase
+         dggamma = dggamma*zphase + ggamma*dzphase
          ggamma = ggamma*zphase
          IF (ALL(REAL(ggamma, KIND=dp) /= 0.0_dp)) THEN
             tmp = AIMAG(ggamma)/REAL(ggamma, KIND=dp)
             ci = ATAN(tmp)
-            dci = (1.0_dp/(1.0_dp+tmp**2))* &
-                  (AIMAG(dggamma)*REAL(ggamma, KIND=dp)-AIMAG(ggamma)*REAL(dggamma, KIND=dp))/(REAL(ggamma, KIND=dp))**2
+            dci = (1.0_dp/(1.0_dp + tmp**2))* &
+                  (AIMAG(dggamma)*REAL(ggamma, KIND=dp) - AIMAG(ggamma)*REAL(dggamma, KIND=dp))/(REAL(ggamma, KIND=dp))**2
 
             dipole = MATMUL(cell%hmat, ci)/twopi
             dipole_deriv = MATMUL(cell%hmat, dci)/twopi
@@ -281,24 +283,29 @@ CONTAINS
          CALL cp_results_erase(results, description)
          CALL put_results(results, description, dipole)
       ELSE
-         dipole_type = "[Non Periodic]"
+         dipole_type = "non-periodic"
          DO i = 1, SIZE(particle_set)
             atomic_kind => particle_set(i)%atomic_kind
             ria = particle_set(i)%r(:) ! no pbc(particle_set(i)%r(:),cell) so that the total dipole
             ! is the sum of the molecular dipoles
             CALL get_atomic_kind(atomic_kind=atomic_kind, qeff=q)
             IF (use_charges) q = charges(i)
-            dipole = dipole-q*(ria-rcc)
-            dipole_deriv(:) = dipole_deriv(:)-q*(particle_set(i)%v(:)-drcc)
+            dipole = dipole - q*(ria - rcc)
+            dipole_deriv(:) = dipole_deriv(:) - q*(particle_set(i)%v(:) - drcc)
          END DO
          CALL fist_env_get(fist_env=fist_env, results=results)
          CALL cp_results_erase(results, description)
          CALL put_results(results, description, dipole)
       END IF
       IF (unit_nr > 0) THEN
-         WRITE (unit_nr, '(1X,A,T48,3F16.6)') "MM DIPOLE "//TRIM(dipole_type)//"(A.U.)|", dipole
-         WRITE (unit_nr, '(1X,A,T48,3F16.6)') "MM DIPOLE "//TRIM(dipole_type)//"(Debye)|", dipole*debye
-         WRITE (unit_nr, '(1X,A,T48,3F16.6)') "MM DIPOLE "//TRIM(dipole_type)//" DERIVATIVE(A.U.)|", dipole_deriv
+         WRITE (unit_nr, '(/,T2,A,T31,A50)') &
+            'MM_DIPOLE| Dipole type', ADJUSTR(TRIM(dipole_type))
+         WRITE (unit_nr, '(T2,A,T30,3(1X,F16.8))') &
+            'MM_DIPOLE| Moment [a.u.]', dipole(1:3)
+         WRITE (unit_nr, '(T2,A,T30,3(1X,F16.8))') &
+            'MM_DIPOLE| Moment [Debye]', dipole(1:3)*debye
+         WRITE (unit_nr, '(T2,A,T30,3(1X,F16.8))') &
+            'MM_DIPOLE| Derivative [a.u.]', dipole_deriv(1:3)
       END IF
 
    END SUBROUTINE fist_dipole

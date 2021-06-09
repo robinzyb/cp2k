@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -17,6 +19,7 @@ MODULE input_constants
    USE kinds,                           ONLY: dp
 
    IMPLICIT NONE
+
    PRIVATE
 
    ! Tags for development/release versions
@@ -49,7 +52,8 @@ MODULE input_constants
                                                do_eip = 5, &
                                                do_mixed = 6, &
                                                do_embed = 7, &
-                                               do_sirius = 8
+                                               do_sirius = 8, &
+                                               do_nnp = 9
 
    ! QMMM
    REAL(KIND=dp), PARAMETER, PUBLIC         :: RADIUS_QMMM_DEFAULT = 0.80_dp, & ! Angstrom
@@ -65,7 +69,7 @@ MODULE input_constants
    INTEGER, PARAMETER, PUBLIC               :: weight_type_unit = 0, &
                                                weight_type_mass = 1
 
-   ! diag methods
+   ! Diagonalization routines of the ScaLAPACK library
    INTEGER, PARAMETER, PUBLIC               :: do_diag_syevd = 1, &
                                                do_diag_syevx = 2
    ! initial matrix methods methods
@@ -217,10 +221,6 @@ MODULE input_constants
                                                almo_frz_crystal = 2, &
                                                almo_frz_both = 3
 
-   INTEGER, PARAMETER, PUBLIC               :: pw_interp = 1, &
-                                               spline3_nopbc_interp = 2, &
-                                               spline3_pbc_interp = 3
-
    INTEGER, PARAMETER, PUBLIC               :: do_gapw_gcs = 1, &
                                                do_gapw_gct = 2, &
                                                do_gapw_log = 3
@@ -312,7 +312,11 @@ MODULE input_constants
 
    ! helium-solute interaction potentials
    INTEGER, PARAMETER, PUBLIC               :: helium_solute_intpot_none = 0, &
-                                               helium_solute_intpot_mwater = 1
+                                               helium_solute_intpot_mwater = 1, &
+                                               helium_solute_intpot_ch5 = 2, &
+                                               helium_solute_intpot_runner_io = 3, &
+                                               helium_solute_intpot_nnp = 4, &
+                                               helium_solute_intpot_cubetable = 5
 
    ! helium force selection
    INTEGER, PARAMETER, PUBLIC               :: helium_forces_average = 0, &
@@ -441,7 +445,8 @@ MODULE input_constants
                                                do_loc_jacobi = 1, &
                                                do_loc_crazy = 2, &
                                                do_loc_direct = 3, &
-                                               do_loc_l1_norm_sd = 4
+                                               do_loc_l1_norm_sd = 4, &
+                                               do_loc_scdm = 5
 
    INTEGER, PARAMETER, PUBLIC               :: do_loc_min = 0, &
                                                do_loc_max = 1, &
@@ -504,23 +509,23 @@ MODULE input_constants
                                                diag_block_davidson = 4, &
                                                diag_filter_matrix = 5
 
-   INTEGER, PUBLIC, PARAMETER               :: default_lbfgs_method_id = 1, &
+   INTEGER, PARAMETER, PUBLIC               :: default_lbfgs_method_id = 1, &
                                                default_bfgs_method_id = 2, &
                                                default_cg_method_id = 3
 
-   INTEGER, PUBLIC, PARAMETER               :: default_minimization_method_id = 1, &
+   INTEGER, PARAMETER, PUBLIC               :: default_minimization_method_id = 1, &
                                                default_ts_method_id = 2, &
                                                default_cell_method_id = 3, &
                                                default_shellcore_method_id = 4
 
-   INTEGER, PUBLIC, PARAMETER               :: none_ts_method_id = 0, &
+   INTEGER, PARAMETER, PUBLIC               :: none_ts_method_id = 0, &
                                                default_dimer_method_id = 1
 
-   INTEGER, PUBLIC, PARAMETER               :: do_first_rotation_step = 0, &
+   INTEGER, PARAMETER, PUBLIC               :: do_first_rotation_step = 0, &
                                                do_second_rotation_step = 1, &
                                                do_third_rotation_step = 2
 
-   INTEGER, PUBLIC, PARAMETER               :: default_cell_geo_opt_id = 0, &
+   INTEGER, PARAMETER, PUBLIC               :: default_cell_geo_opt_id = 0, &
                                                default_cell_md_id = 1, &
                                                default_cell_direct_id = 2
 
@@ -545,14 +550,19 @@ MODULE input_constants
    INTEGER, PARAMETER, PUBLIC               :: sic_list_all = 1, &
                                                sic_list_unpaired = 2
    INTEGER, PARAMETER, PUBLIC               :: tddfpt_singlet = 0, &
-                                               tddfpt_triplet = 1
+                                               tddfpt_triplet = 1, &
+                                               tddfpt_spin_cons = 2, &
+                                               tddfpt_spin_flip = 3
    INTEGER, PARAMETER, PUBLIC               :: tddfpt_lanczos = 0, &
                                                tddfpt_davidson = 1
+   INTEGER, PARAMETER, PUBLIC               :: tddfpt_kernel_full = 1, &
+                                               tddfpt_kernel_stda = 0
    INTEGER, PARAMETER, PUBLIC               :: oe_none = 0, &
                                                oe_lb = 1, &
                                                oe_gllb = 2, &
                                                oe_saop = 3, &
-                                               oe_sic = 4
+                                               oe_sic = 44, &
+                                               oe_shift = 4
    INTEGER, PARAMETER, PUBLIC               :: no_excitations = 0, &
                                                tddfpt_excitations = 1
    INTEGER, PARAMETER, PUBLIC               :: xc_vdw_fun_none = 100, &
@@ -599,6 +609,19 @@ MODULE input_constants
                                                radius_vdw = 13, &
                                                radius_default = 14
 
+   ! Voronoi integration
+   INTEGER, PARAMETER, PUBLIC               :: voro_radii_unity = 100, &
+                                               voro_radii_vdw = 101, &
+                                               voro_radii_cov = 102, &
+                                               voro_radii_user = 103
+
+   ! BQB Format
+   INTEGER, PARAMETER, PUBLIC               :: bqb_opt_off = 100, &
+                                               bqb_opt_quick = 101, &
+                                               bqb_opt_normal = 102, &
+                                               bqb_opt_patient = 103, &
+                                               bqb_opt_exhaustive = 104
+
    ! MAO
    INTEGER, PARAMETER, PUBLIC               :: mao_basis_orb = 2000, &
                                                mao_basis_prim = 2001, &
@@ -613,7 +636,8 @@ MODULE input_constants
                                                xas_tp_xfh = 5, &
                                                xas_dscf = 6, &
                                                xas_tp_flex = 7
-   INTEGER, PARAMETER, PUBLIC               :: xas_1s_type = 1, &
+   INTEGER, PARAMETER, PUBLIC               :: xas_not_excited = 0, &
+                                               xas_1s_type = 1, &
                                                xas_2s_type = 2, &
                                                xas_2p_type = 3, &
                                                xas_3s_type = 4, &
@@ -627,6 +651,12 @@ MODULE input_constants
                                                xas_dip_vel = 2
    INTEGER, PARAMETER, PUBLIC               :: xas_scf_default = 0, &
                                                xas_scf_general = 1
+
+   ! Time-dependent XAS
+   INTEGER, PARAMETER, PUBLIC               :: xas_tdp_by_index = 1, &
+                                               xas_tdp_by_kind = 2, &
+                                               xas_tdp_roks = 1, &
+                                               xas_tdp_uks = 2
 
    ! Form of dipole operator for TDDFPT oscillator strength calculation
    INTEGER, PARAMETER, PUBLIC               :: tddfpt_dipole_berry = 1, &
@@ -730,17 +760,18 @@ MODULE input_constants
                                                clustering_h_on_heavier = 2, &
                                                clustering_small_on_larger = 3
 
-   ! HFX potential type
-   INTEGER, PARAMETER, PUBLIC               :: do_hfx_potential_coulomb = 1, &
-                                               do_hfx_potential_short = 2, &
-                                               do_hfx_potential_long = 3, &
-                                               do_hfx_potential_mix_cl = 4, &
-                                               do_hfx_potential_gaussian = 5, &
-                                               do_hfx_potential_mix_lg = 6, &
-                                               do_hfx_potential_id = 7, &
-                                               do_hfx_potential_truncated = 8, &
-                                               do_hfx_potential_mix_cl_trunc = 9, &
-                                               do_mp2_potential_TShPSC = 1009
+   ! HFX potential type (ri_default for RI but used with potentials)
+   INTEGER, PARAMETER, PUBLIC               :: do_potential_coulomb = 1, &
+                                               do_potential_short = 2, &
+                                               do_potential_long = 3, &
+                                               do_potential_mix_cl = 4, &
+                                               do_potential_gaussian = 5, &
+                                               do_potential_mix_lg = 6, &
+                                               do_potential_id = 7, &
+                                               do_potential_truncated = 8, &
+                                               do_potential_mix_cl_trunc = 9, &
+                                               do_potential_TShPSC = 1009, &
+                                               ri_default = 10001
 
    ! HFX periodic number of shells
    INTEGER, PARAMETER, PUBLIC               :: do_hfx_auto_shells = -1
@@ -754,6 +785,11 @@ MODULE input_constants
    ! HFX evaluation type
    INTEGER, PARAMETER, PUBLIC               :: hfx_do_eval_energy = 1, &
                                                hfx_do_eval_forces = 2
+
+   ! HFX RI matrix methods
+   INTEGER, PARAMETER, PUBLIC               :: hfx_ri_do_2c_iter = 1, &
+                                               hfx_ri_do_2c_diag = 2, &
+                                               hfx_ri_do_2c_cholesky = 3
 
    ! mode selctive vibrational analysis
    INTEGER, PARAMETER, PUBLIC               :: ms_guess_bfgs = 1, &
@@ -816,9 +852,9 @@ MODULE input_constants
                                                broy_mix_new = 5, &
                                                multisec_mix = 6
 
-   ! DIAGONALIZATION library
-   INTEGER, PARAMETER, PUBLIC               :: do_diag_sl = 1, &
-                                               do_diag_elpa = 2
+   ! Diagonalization library
+   INTEGER, PARAMETER, PUBLIC               :: do_diag_elpa = 1, &
+                                               do_diag_scalapack = 2
    ! FFT library
    ! these might need sync with fft_lib.F
    INTEGER, PARAMETER, PUBLIC               :: do_fft_sg = 1, &
@@ -870,7 +906,10 @@ MODULE input_constants
    INTEGER, PARAMETER, PUBLIC               :: ls_scf_sign = 17, ls_scf_trs4 = 18, &
                                                ls_scf_tc2 = 19, ls_scf_pexsi = 20
 
-   INTEGER, PARAMETER, PUBLIC               :: ls_scf_sign_ns = 1, ls_scf_sign_proot = 2
+   INTEGER, PARAMETER, PUBLIC               :: ls_scf_sign_ns = 1, ls_scf_sign_proot = 2, ls_scf_sign_submatrix = 3
+
+   INTEGER, PARAMETER, PUBLIC               :: ls_scf_submatrix_sign_ns = 1, ls_scf_submatrix_sign_direct = 2, &
+                                               ls_scf_submatrix_sign_direct_muadj = 3, ls_scf_submatrix_sign_direct_muadj_lowmem = 4
 
    INTEGER, PARAMETER, PUBLIC               :: ls_scf_line_search_3point = 3, &
                                                ls_scf_line_search_3point_2d = 6
@@ -904,10 +943,12 @@ MODULE input_constants
    INTEGER, PARAMETER, PUBLIC   :: almo_scf_dm_sign = 1, &
                                    almo_scf_diag = 2, &
                                    almo_scf_pcg = 3, &
-                                   almo_scf_skip = 4
+                                   almo_scf_trustr = 4, &
+                                   almo_scf_skip = 0
 
-   INTEGER, PARAMETER, PUBLIC   :: almo_occ_vol_penalty_none = 0, &
-                                   almo_occ_vol_penalty_lndet = 1
+   INTEGER, PARAMETER, PUBLIC   :: penalty_type_none = 0, &
+                                   penalty_type_lndet = 1, &
+                                   penalty_type_nlmo = 2
 
    ! optimizer parameters
    INTEGER, PARAMETER, PUBLIC   :: cg_zero = 0, &
@@ -918,8 +959,12 @@ MODULE input_constants
                                    cg_liu_storey = 5, &
                                    cg_dai_yuan = 6, &
                                    cg_hager_zhang = 7
+   INTEGER, PARAMETER, PUBLIC   :: trustr_steihaug = 1, &
+                                   trustr_cauchy = 2, &
+                                   trustr_dogleg = 3
    INTEGER, PARAMETER, PUBLIC   :: optimizer_diis = 1, &
                                    optimizer_pcg = 2, &
+                                   optimizer_trustr = 4, &
                                    optimizer_lin_eq_pcg = 3
    INTEGER, PARAMETER, PUBLIC   :: xalmo_prec_zero = 0, &
                                    xalmo_prec_domain = 1, &
@@ -945,7 +990,6 @@ MODULE input_constants
 
    ! some MP2 parameters
    INTEGER, PARAMETER, PUBLIC               :: mp2_method_none = 0, &
-                                               mp2_method_laplace = 2, &
                                                mp2_method_direct = 4, &
                                                mp2_method_gpw = 6, &
                                                ri_mp2_method_gpw = 7, &
@@ -953,13 +997,10 @@ MODULE input_constants
                                                ri_mp2_laplace = 9, &
                                                mp2_ri_optimize_basis = 10, &
                                                wfc_mm_style_gemm = 11, &
-                                               wfc_mm_style_syrk = 12, &
-                                               ri_coulomb = 13, &
-                                               ri_overlap = 14
+                                               wfc_mm_style_syrk = 12
 
    ! G0W0 parameter
-   INTEGER, PARAMETER, PUBLIC               :: ri_rpa_g0w0_crossing_none = 0, &
-                                               ri_rpa_g0w0_crossing_z_shot = 1, &
+   INTEGER, PARAMETER, PUBLIC               :: ri_rpa_g0w0_crossing_z_shot = 1, &
                                                ri_rpa_g0w0_crossing_newton = 2, &
                                                ri_rpa_g0w0_crossing_bisection = 3, &
                                                gw_no_print_exx = 5, &
@@ -986,7 +1027,7 @@ MODULE input_constants
                                                do_opt_coeff = 2, &
                                                do_opt_exps = 3
 
-   ! LRI paramters for inverse of overlap
+   ! LRI parameters for inverse of overlap
    INTEGER, PARAMETER, PUBLIC               :: do_lri_inv = 0, &
                                                do_lri_pseudoinv_svd = 1, &
                                                do_lri_pseudoinv_diag = 2, &
@@ -1016,12 +1057,15 @@ MODULE input_constants
                                                kg_tnadd_atomic = 200, &
                                                kg_tnadd_none = 300
 
-   ! kg energy corrections
-   INTEGER, PARAMETER, PUBLIC               :: kg_ec_diagonalization = 1001
-
-   INTEGER, PARAMETER, PUBLIC               :: kg_ec_functional_harris = 2001
-
    INTEGER, PARAMETER, PUBLIC               :: kg_cholesky = 3001
+
+   ! non-scf energy corrections
+   INTEGER, PARAMETER, PUBLIC               :: ec_diagonalization = 1001, &
+                                               ec_curvy_steps = 1002, &
+                                               ec_matrix_sign = 1003, &
+                                               ec_matrix_trs4 = 1004, &
+                                               ec_matrix_tc2 = 1005
+   INTEGER, PARAMETER, PUBLIC               :: ec_functional_harris = 2001
 
    ! swarm parameters
    INTEGER, PARAMETER, PUBLIC               :: swarm_do_glbopt = 1
@@ -1041,8 +1085,9 @@ MODULE input_constants
                                                sccs_derivative_cd7 = 3
 
    ! fm matrix multiplication
-   INTEGER, PARAMETER, PUBLIC               :: do_pdgemm = 1, &
-                                               do_dbcsr = 2
+   INTEGER, PARAMETER, PUBLIC               :: do_scalapack = 1, &
+                                               do_dbcsr = 2, &
+                                               do_cosma = 3
 
    ! Dispersion DFTB
    INTEGER, PARAMETER, PUBLIC               :: dispersion_uff = 100, &
@@ -1089,7 +1134,8 @@ MODULE input_constants
 
    INTEGER, PARAMETER, PUBLIC               :: do_eri_gpw = 0, &
                                                do_eri_mme = 1, &
-                                               do_eri_os = 2
+                                               do_eri_os = 2, &
+                                               eri_default = 3
 
    ! Cell optimisation constraints
    INTEGER, PARAMETER, PUBLIC               :: fix_none = 0, &
@@ -1115,5 +1161,13 @@ MODULE input_constants
                                                embed_level_shift = 2
    INTEGER, PARAMETER, PUBLIC               :: embed_grid_bohr = 0, &
                                                embed_grid_angstrom = 1
+   INTEGER, PARAMETER, PUBLIC               :: embed_none = 0, &
+                                               embed_diff = 1, &
+                                               embed_fa = 2, &
+                                               embed_resp = 3
+
+   ! MOLDEN format
+   INTEGER, PARAMETER, PUBLIC               :: gto_cartesian = 1, &
+                                               gto_spherical = 2
 
 END MODULE input_constants

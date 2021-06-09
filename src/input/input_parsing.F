@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -67,8 +69,7 @@ CONTAINS
       TYPE(cp_unit_set_type), POINTER                    :: default_units
       LOGICAL, INTENT(in), OPTIONAL                      :: root_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'section_vals_parse', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'section_vals_parse'
 
       CHARACTER(len=max_line_length)                     :: token
       INTEGER                                            :: desc_level, handle, ik, imatch, irs, is, &
@@ -192,9 +193,9 @@ CONTAINS
                                          lower_to_upper=.TRUE.)
                   IF (token(1:1) == parser%section_character) THEN
                      IF (token == "&END") THEN
-                        nSub = nSub-1
+                        nSub = nSub - 1
                      ELSE
-                        nSub = nSub+1
+                        nSub = nSub + 1
                      END IF
                   END IF
                END DO
@@ -228,7 +229,7 @@ CONTAINS
             ELSE ! token is a "normal" keyword
                ik = section_get_keyword_index(section, token)
                IF (ik < 1) THEN ! don't accept pseudo keyword names
-                  parser%icol = parser%icol1-1 ! re-read also the actual token
+                  parser%icol = parser%icol1 - 1 ! re-read also the actual token
                   ik = 0
                   IF (.NOT. ASSOCIATED(section%keywords(0)%keyword)) THEN
                      IF (output_unit > 0) THEN
@@ -251,6 +252,24 @@ CONTAINS
                END IF
                keyword => section%keywords(ik)%keyword
                IF (ASSOCIATED(keyword)) THEN
+                  IF (keyword%removed) THEN
+                     IF (ALLOCATED(keyword%deprecation_notice)) THEN
+                        CALL cp_abort(__LOCATION__, &
+                                      "The specified keyword '"//TRIM(token)//"' is not available anymore: "// &
+                                      keyword%deprecation_notice)
+                     ELSE
+                        CALL cp_abort(__LOCATION__, &
+                                      "The specified keyword '"//TRIM(token)// &
+                                      "' is not available anymore, please consult the manual.")
+                     END IF
+                  END IF
+
+                  IF (ALLOCATED(keyword%deprecation_notice)) &
+                     CALL cp_warn(__LOCATION__, &
+                                  "The specified keyword '"//TRIM(token)// &
+                                  "' is deprecated and may be removed in a future version: "// &
+                                  keyword%deprecation_notice//".")
+
                   NULLIFY (el)
                   IF (ik /= 0 .AND. keyword%type_of_var == lchar_t) &
                      CALL parser_skip_space(parser)
@@ -312,8 +331,7 @@ CONTAINS
       TYPE(cp_unit_set_type), POINTER                    :: default_units
       TYPE(val_type), OPTIONAL, POINTER                  :: default_value
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'val_create_parsing', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'val_create_parsing'
 
       CHARACTER(len=default_string_length)               :: c_val, info, location
       CHARACTER(len=default_string_length), &
@@ -633,23 +651,21 @@ CONTAINS
       CHARACTER(len=default_string_length), &
          INTENT(INOUT)                                   :: c_val
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_r_val', routineP = moduleN//':'//routineN
-
-      LOGICAL                                            :: check
       TYPE(cp_unit_type), POINTER                        :: my_unit
 
       NULLIFY (my_unit)
       IF (ASSOCIATED(unit)) THEN
          IF ('STR' == parser_test_next_token(parser)) THEN
             CALL parser_get_object(parser, c_val)
-            check = c_val(1:1) == "["
-            CPASSERT(check)
-            check = c_val(LEN_TRIM(c_val):LEN_TRIM(c_val)) == "]"
-            CPASSERT(check)
-            CALL cp_unit_create(my_unit, c_val(2:LEN_TRIM(c_val)-1))
+            IF (c_val(1:1) /= "[" .OR. c_val(LEN_TRIM(c_val):LEN_TRIM(c_val)) /= "]") THEN
+               CALL cp_abort(__LOCATION__, &
+                             "Invalid unit specifier found when parsing a number: "// &
+                             c_val)
+            END IF
+            CALL cp_unit_create(my_unit, c_val(2:LEN_TRIM(c_val) - 1))
          ELSE
             IF (c_val /= "") THEN
-               CALL cp_unit_create(my_unit, c_val(2:LEN_TRIM(c_val)-1))
+               CALL cp_unit_create(my_unit, c_val(2:LEN_TRIM(c_val) - 1))
             ELSE
                my_unit => unit
             END IF

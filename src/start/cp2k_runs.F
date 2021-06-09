@@ -1,12 +1,12 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
 MODULE cp2k_runs
-   USE dbcsr_acc_device,                ONLY: acc_get_ndevices,&
-                                              acc_set_active_device
    USE atom,                            ONLY: atom_code
    USE bibliography,                    ONLY: Hutter2014,&
                                               cite_reference
@@ -21,8 +21,7 @@ MODULE cp2k_runs
    USE cp_dbcsr_cp2k_link,              ONLY: cp_dbcsr_config
    USE cp_files,                        ONLY: close_file,&
                                               open_file
-   USE cp_log_handling,                 ONLY: cp_failure_level,&
-                                              cp_get_default_logger,&
+   USE cp_log_handling,                 ONLY: cp_get_default_logger,&
                                               cp_logger_get_default_io_unit,&
                                               cp_logger_type,&
                                               cp_logger_would_log,&
@@ -46,7 +45,8 @@ MODULE cp2k_runs
    USE cuda_profiling,                  ONLY: cuda_nvtx_init
    USE dbcsr_api,                       ONLY: dbcsr_finalize_lib,&
                                               dbcsr_init_lib,&
-                                              dbcsr_print_config
+                                              dbcsr_print_config,&
+                                              dbcsr_print_statistics
    USE environment,                     ONLY: cp2k_finalize,&
                                               cp2k_init,&
                                               cp2k_read,&
@@ -75,24 +75,25 @@ MODULE cp2k_runs
                                               globenv_create,&
                                               globenv_release,&
                                               globenv_retain
+   USE grid_api,                        ONLY: grid_library_print_stats,&
+                                              grid_library_set_config
    USE input_constants,                 ONLY: &
-        bsse_run, cell_opt_run, debug_run, do_atom, do_band, do_cp2k, do_farming, do_fist, &
-        do_mixed, do_opt_basis, do_optimize_input, do_qmmm, do_qs, do_sirius, do_swarm, do_tamc, do_test, &
-        do_embed, do_tree_mc, do_tree_mc_ana, driver_run, ehrenfest, electronic_spectra_run, &
-        energy_force_run, energy_run, geo_opt_run, linear_response_run, mol_dyn_run, mon_car_run, &
-        none_run, pint_run, real_time_propagation, tree_mc_run, vib_anal, negf_run
+        bsse_run, cell_opt_run, debug_run, do_atom, do_band, do_cp2k, do_embed, do_farming, &
+        do_fist, do_mixed, do_nnp, do_opt_basis, do_optimize_input, do_qmmm, do_qs, do_sirius, &
+        do_swarm, do_tamc, do_test, do_tree_mc, do_tree_mc_ana, driver_run, ehrenfest, &
+        electronic_spectra_run, energy_force_run, energy_run, geo_opt_run, linear_response_run, &
+        mol_dyn_run, mon_car_run, negf_run, none_run, pint_run, real_time_propagation, &
+        tree_mc_run, vib_anal
    USE input_cp2k,                      ONLY: create_cp2k_root_section
    USE input_cp2k_check,                ONLY: check_cp2k_input
    USE input_cp2k_global,               ONLY: create_global_section
-   USE input_cp2k_read,                 ONLY: empty_initial_variables,&
-                                              read_input
+   USE input_cp2k_read,                 ONLY: read_input
    USE input_keyword_types,             ONLY: keyword_release
    USE input_parsing,                   ONLY: section_vals_parse
    USE input_section_types,             ONLY: &
-        section_describe_html, section_describe_index_html, section_release, section_type, &
-        section_vals_create, section_vals_get_subs_vals, section_vals_release, &
-        section_vals_retain, section_vals_type, section_vals_val_get, section_vals_write, &
-        write_section_xml
+        section_release, section_type, section_vals_create, section_vals_get_subs_vals, &
+        section_vals_release, section_vals_retain, section_vals_type, section_vals_val_get, &
+        section_vals_write, write_section_xml
    USE ipi_driver,                      ONLY: run_driver
    USE kinds,                           ONLY: default_path_length,&
                                               default_string_length,&
@@ -115,18 +116,23 @@ MODULE cp2k_runs
                                               loop_over_molecules
    USE neb_methods,                     ONLY: neb
    USE negf_methods,                    ONLY: do_negf
+   USE offload_api,                     ONLY: offload_get_device_count,&
+                                              offload_get_device_id
    USE optimize_basis,                  ONLY: run_optimize_basis
    USE optimize_input,                  ONLY: run_optimize_input
    USE pint_methods,                    ONLY: do_pint_run
    USE pw_cuda,                         ONLY: pw_cuda_finalize,&
                                               pw_cuda_init
+   USE pw_fpga,                         ONLY: pw_fpga_finalize,&
+                                              pw_fpga_init
    USE qs_environment_types,            ONLY: get_qs_env
    USE qs_linres_module,                ONLY: linres_calculation
    USE qs_tddfpt_module,                ONLY: tddfpt_calculation
    USE reference_manager,               ONLY: print_all_references,&
                                               print_format_html
    USE rt_propagation,                  ONLY: rt_prop_setup
-   USE sirius_interface,                ONLY: cp_sirius_init, cp_sirius_finalize
+   USE sirius_interface,                ONLY: cp_sirius_finalize,&
+                                              cp_sirius_init
    USE string_utilities,                ONLY: html_entity_table,&
                                               write_html_tables
    USE swarm,                           ONLY: run_swarm
@@ -139,18 +145,17 @@ MODULE cp2k_runs
    IMPLICIT NONE
 
    PRIVATE
-   PUBLIC :: write_cp2k_html_manual, write_xml_file, run_input
+   PUBLIC :: write_xml_file, run_input
    CHARACTER(len=*), PARAMETER, PRIVATE :: moduleN = 'cp2k_runs'
 CONTAINS
 
 ! **************************************************************************************************
 !> \brief performs an instance of a cp2k run
-!>      cp2k_run_OK == .TRUE. if everything went fine
 !> \param input_declaration ...
 !> \param input_file_name name of the file to be opened for input
 !> \param output_unit unit to which output should be written
 !> \param mpi_comm ...
-!> \return ...
+!> \param initial_variables key-value list of initial preprocessor variables
 !> \author Joost VandeVondele
 !> \note
 !>      para_env should be a valid communicator
@@ -167,19 +172,19 @@ CONTAINS
 !>      able to run simultaneously / multithreaded / sequential / parallel / ...
 !>      and able to fail safe
 ! **************************************************************************************************
-   RECURSIVE FUNCTION cp2k_run(input_declaration, input_file_name, output_unit, mpi_comm) RESULT(cp2k_run_OK)
+   RECURSIVE SUBROUTINE cp2k_run(input_declaration, input_file_name, output_unit, mpi_comm, initial_variables)
       TYPE(section_type), POINTER                        :: input_declaration
       CHARACTER(LEN=*), INTENT(IN)                       :: input_file_name
       INTEGER, INTENT(IN)                                :: output_unit, mpi_comm
-      LOGICAL                                            :: cp2k_run_OK
+      CHARACTER(len=default_path_length), &
+         DIMENSION(:, :), INTENT(IN)                     :: initial_variables
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'cp2k_run', routineP = moduleN//':'//routineN
-
-      INTEGER                                            :: f_env_handle, ierr, iter_level, &
-                                                            method_name_id, new_env_id, &
-                                                            prog_name_id, run_type_id
+      INTEGER                                            :: f_env_handle, grid_backend, ierr, &
+                                                            iter_level, method_name_id, &
+                                                            new_env_id, prog_name_id, run_type_id
       INTEGER(KIND=int_8)                                :: m_memory_max_mpi
-      LOGICAL                                            :: echo_input, I_was_ionode, was_present
+      LOGICAL                                            :: echo_input, grid_apply_cutoff, &
+                                                            grid_validate, I_was_ionode
       TYPE(cp_logger_type), POINTER                      :: logger, sublogger
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(dft_control_type), POINTER                    :: dft_control
@@ -188,20 +193,21 @@ CONTAINS
       TYPE(global_environment_type), POINTER             :: globenv
       TYPE(section_vals_type), POINTER                   :: glob_section, input_file, root_section
 
-      cp2k_run_OK = .FALSE.
-      was_present = .FALSE.
       NULLIFY (para_env, f_env, dft_control)
-      CALL cp_para_env_create(para_env, group=mpi_comm, &
-                              owns_group=.FALSE.)
+      CALL cp_para_env_create(para_env, group=mpi_comm, owns_group=.FALSE.)
 
-      IF (acc_get_ndevices() > 0) &
-         CALL acc_set_active_device(MOD(para_env%mepos, acc_get_ndevices()))
+      IF (offload_get_device_count() > 0) THEN
+         CALL dbcsr_init_lib(mpi_comm, io_unit=output_unit, &
+                             accdrv_active_device_id=offload_get_device_id())
+      ELSE
+         CALL dbcsr_init_lib(mpi_comm, io_unit=output_unit)
+      ENDIF
 
       CALL cuda_nvtx_init()
 
       CALL pw_cuda_init()
 
-      CALL dbcsr_init_lib()
+      CALL pw_fpga_init()
 
       CALL cp_sirius_init()
 
@@ -210,7 +216,7 @@ CONTAINS
       CALL cite_reference(Hutter2014)
 
       ! parse the input
-      input_file => read_input(input_declaration, input_file_name, initial_variables=empty_initial_variables, &
+      input_file => read_input(input_declaration, input_file_name, initial_variables=initial_variables, &
                                para_env=para_env)
 
       CALL mp_sync(para_env%group)
@@ -250,6 +256,15 @@ CONTAINS
          WRITE (UNIT=output_unit, FMT='()')
       ENDIF
 
+      ! Configure the grid library.
+      CALL section_vals_val_get(root_section, "GLOBAL%GRID%BACKEND", i_val=grid_backend)
+      CALL section_vals_val_get(root_section, "GLOBAL%GRID%VALIDATE", l_val=grid_validate)
+      CALL section_vals_val_get(root_section, "GLOBAL%GRID%APPLY_CUTOFF", l_val=grid_apply_cutoff)
+
+      CALL grid_library_set_config(backend=grid_backend, &
+                                   validate=grid_validate, &
+                                   apply_cutoff=grid_apply_cutoff)
+
       SELECT CASE (prog_name_id)
       CASE (do_atom)
          globenv%run_type_id = none_run
@@ -262,13 +277,20 @@ CONTAINS
          ! Hack: DBCSR should be uninitialized when entering farming.
          ! But, we don't want to change the public f77_interface.
          ! TODO: refactor cp2k's startup code
-         CALL dbcsr_finalize_lib(group=mpi_comm, output_unit=0)
+         CALL dbcsr_finalize_lib()
          CALL cp_sirius_finalize()
          CALL pw_cuda_finalize()
-         CALL farming_run(input_declaration, root_section, para_env)
-         CALL cp_sirius_init()
-         CALL dbcsr_init_lib()
+         CALL pw_fpga_finalize()
+         CALL farming_run(input_declaration, root_section, para_env, initial_variables)
+         IF (offload_get_device_count() > 0) THEN
+            CALL dbcsr_init_lib(mpi_comm, io_unit=output_unit, &
+                                accdrv_active_device_id=offload_get_device_id())
+         ELSE
+            CALL dbcsr_init_lib(mpi_comm, io_unit=output_unit)
+         ENDIF
          CALL pw_cuda_init()
+         CALL pw_fpga_init()
+         CALL cp_sirius_init()
       CASE (do_opt_basis)
          CALL run_optimize_basis(input_declaration, root_section, para_env)
          globenv%run_type_id = none_run
@@ -310,6 +332,7 @@ CONTAINS
              method_name_id /= do_sirius .AND. &
              method_name_id /= do_qmmm .AND. &
              method_name_id /= do_mixed .AND. &
+             method_name_id /= do_nnp .AND. &
              method_name_id /= do_embed .AND. &
              method_name_id /= do_fist) &
             CPABORT("Energy/Force run not available for all methods ")
@@ -392,14 +415,19 @@ CONTAINS
       CALL cp_sirius_finalize()
 
       CALL pw_cuda_finalize()
-      CALL dbcsr_finalize_lib(group=mpi_comm, output_unit=output_unit)
+
+      CALL pw_fpga_finalize()
+
+      CALL dbcsr_print_statistics()
+
+      CALL grid_library_print_stats(mpi_comm=mpi_comm, output_unit=output_unit)
 
       m_memory_max_mpi = m_memory_max
       CALL mp_max(m_memory_max_mpi, mpi_comm)
       IF (output_unit > 0) THEN
          WRITE (output_unit, *)
          WRITE (output_unit, '(T2,"MEMORY| Estimated peak process memory [MiB]",T73,I8)') &
-            (m_memory_max_mpi+(1024*1024)-1)/(1024*1024)
+            (m_memory_max_mpi + (1024*1024) - 1)/(1024*1024)
       ENDIF
 
       IF (prog_name_id == do_cp2k) THEN
@@ -421,28 +449,30 @@ CONTAINS
          CALL globenv_release(globenv)
       END IF
 
-      CALL cp_para_env_release(para_env)
-      cp2k_run_OK = .TRUE.
+      CALL dbcsr_finalize_lib()
 
-   END FUNCTION cp2k_run
+      CALL cp_para_env_release(para_env)
+
+   END SUBROUTINE cp2k_run
 
 ! **************************************************************************************************
 !> \brief performs a farming run that performs several independent cp2k_runs
 !> \param input_declaration ...
 !> \param root_section ...
 !> \param para_env ...
+!> \param initial_variables ...
 !> \author Joost VandeVondele
 !> \note
 !>      needs to be part of this module as the cp2k_run -> farming_run -> cp2k_run
 !>      calling style creates a hard circular dependency
 ! **************************************************************************************************
-   RECURSIVE SUBROUTINE farming_run(input_declaration, root_section, para_env)
+   RECURSIVE SUBROUTINE farming_run(input_declaration, root_section, para_env, initial_variables)
       TYPE(section_type), POINTER              :: input_declaration
       TYPE(section_vals_type), POINTER         :: root_section
       TYPE(cp_para_env_type), POINTER          :: para_env
+      CHARACTER(len=default_path_length), DIMENSION(:, :), INTENT(IN) :: initial_variables
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'farming_run', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'farming_run'
       INTEGER, PARAMETER                       :: slave_status_done = -3, &
                                                   slave_status_wait = -4
 
@@ -457,8 +487,7 @@ CONTAINS
                                                   master_slave_partition, &
                                                   slave_distribution, &
                                                   slave_status
-      LOGICAL                                  :: found, master, &
-                                                  run_OK, slave
+      LOGICAL                                  :: found, master, slave
       REAL(KIND=dp)                            :: t1, t2
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:) :: waittime
       TYPE(cp_logger_type), POINTER            :: logger
@@ -491,8 +520,8 @@ CONTAINS
          IF (output_unit > 0) WRITE (output_unit, FMT="(T2,A)") "FARMING| using a master-slave setup"
 
          ALLOCATE (master_slave_partition(0:1))
-         master_slave_partition = (/1, para_env%num_pe-1/)
-         ALLOCATE (group_distribution(0:para_env%num_pe-1))
+         master_slave_partition = (/1, para_env%num_pe - 1/)
+         ALLOCATE (group_distribution(0:para_env%num_pe - 1))
 
          CALL mp_comm_split(para_env%group, slave_group, ngroups, group_distribution, &
                             n_subgroups=2, group_partition=master_slave_partition)
@@ -506,10 +535,10 @@ CONTAINS
             ! on the master node, num_slaves corresponds to the size of the master group
             ! due to the mp_environ call.
             CPASSERT(num_slaves == 1)
-            num_slaves = para_env%num_pe-1
+            num_slaves = para_env%num_pe - 1
             slave_rank = -1
          ENDIF
-         CPASSERT(num_slaves == para_env%num_pe-1)
+         CPASSERT(num_slaves == para_env%num_pe - 1)
       ELSE
          ! all processes are slaves
          IF (output_unit > 0) WRITE (output_unit, FMT="(T2,A)") "FARMING| using a slave-only setup"
@@ -519,19 +548,19 @@ CONTAINS
       IF (output_unit > 0) WRITE (output_unit, FMT="(T2,A,I0)") "FARMING| number of slaves ", num_slaves
 
       ! keep track of which para_env rank is which slave/master
-      ALLOCATE (slave_distribution(0:para_env%num_pe-1))
+      ALLOCATE (slave_distribution(0:para_env%num_pe - 1))
       slave_distribution = 0
       slave_distribution(para_env%mepos) = slave_rank
       CALL mp_sum(slave_distribution, para_env%group)
       ! we do have a primus inter pares
       primus_slave = 0
-      DO i = 1, para_env%num_pe-1
+      DO i = 1, para_env%num_pe - 1
          IF (slave_distribution(i) == 0) primus_slave = i
       ENDDO
 
       ! split the current communicator for the slaves
       ! in a new_group, new_size and new_rank according to the number of groups required according to the input
-      ALLOCATE (group_distribution(0:num_slaves-1))
+      ALLOCATE (group_distribution(0:num_slaves - 1))
       group_distribution = -1
       IF (slave) THEN
          IF (farming_env%group_size_wish_set) THEN
@@ -573,7 +602,7 @@ CONTAINS
       IF (output_unit > 0) THEN
          WRITE (output_unit, FMT="(T2,A,T71,I10)") "FARMING| Number of created MPI (slave) groups:", ngroups
          WRITE (output_unit, FMT="(T2,A)", ADVANCE="NO") "FARMING| MPI (slave) process to group correspondence:"
-         DO i = 0, num_slaves-1
+         DO i = 0, num_slaves - 1
             IF (MODULO(i, 4) == 0) WRITE (output_unit, *)
             WRITE (output_unit, FMT='(A3,I6,A3,I6,A1)', ADVANCE="NO") &
                "  (", i, " : ", group_distribution(i), ")"
@@ -586,11 +615,11 @@ CONTAINS
       ! and determine the future restart point
       IF (farming_env%cycle) THEN
          n_jobs_to_run = farming_env%max_steps*ngroups
-         i_job_to_restart = MODULO(farming_env%restart_n+n_jobs_to_run-1, farming_env%njobs)+1
+         i_job_to_restart = MODULO(farming_env%restart_n + n_jobs_to_run - 1, farming_env%njobs) + 1
       ELSE
          n_jobs_to_run = MIN(farming_env%njobs, farming_env%max_steps*ngroups)
-         n_jobs_to_run = MIN(n_jobs_to_run, farming_env%njobs-farming_env%restart_n+1)
-         i_job_to_restart = n_jobs_to_run+farming_env%restart_n
+         n_jobs_to_run = MIN(n_jobs_to_run, farming_env%njobs - farming_env%restart_n + 1)
+         i_job_to_restart = n_jobs_to_run + farming_env%restart_n
       ENDIF
 
       ! and write the restart now, that's the point where the next job starts, even if this one is running
@@ -603,8 +632,8 @@ CONTAINS
 
       ! this is the job range to be executed.
       ijob_start = farming_env%restart_n
-      ijob_end = ijob_start+n_jobs_to_run-1
-      IF (output_unit > 0 .AND. ijob_end-ijob_start < 0) THEN
+      ijob_end = ijob_start + n_jobs_to_run - 1
+      IF (output_unit > 0 .AND. ijob_end - ijob_start < 0) THEN
          WRITE (output_unit, FMT="(T2,A)") "FARMING| --- WARNING --- NO JOBS NEED EXECUTION ? "
          WRITE (output_unit, FMT="(T2,A)") "FARMING| is the cycle keyword required ?"
          WRITE (output_unit, FMT="(T2,A)") "FARMING| or is a stray RESTART file present ?"
@@ -642,7 +671,7 @@ CONTAINS
                   t1 = m_walltime()
                   DO
                      t2 = m_walltime()
-                     IF (t2-t1 > farming_env%wait_time) EXIT
+                     IF (t2 - t1 > farming_env%wait_time) EXIT
                   ENDDO
                CASE (do_nothing)
                   EXIT
@@ -651,9 +680,9 @@ CONTAINS
                END SELECT
             ENDDO
          ELSE ! master
-            ALLOCATE (slave_status(0:ngroups-1))
+            ALLOCATE (slave_status(0:ngroups - 1))
             slave_status = slave_status_wait
-            ijob_current = ijob_start-1
+            ijob_current = ijob_start - 1
 
             DO
                IF (ALL(slave_status == slave_status_done)) EXIT
@@ -712,21 +741,21 @@ CONTAINS
          ! the i-th job in the input is always executed by the MODULO(i-1,ngroups)-th group
          ! (needed for cyclic runs, we don't want two groups working on the same job)
          IF (output_unit > 0) THEN
-            IF (ijob_end-ijob_start >= 0) THEN
+            IF (ijob_end - ijob_start >= 0) THEN
                WRITE (output_unit, FMT="(T2,A)") "FARMING| List of jobs : "
                DO ijob = ijob_start, ijob_end
-                  i = MODULO(ijob-1, farming_env%njobs)+1
+                  i = MODULO(ijob - 1, farming_env%njobs) + 1
                   WRITE (output_unit, FMT=*) "Job: ", i, " Dir: ", TRIM(farming_env%Job(i)%cwd), " Input: ", &
-                     TRIM(farming_env%Job(i)%input), " MPI group:", MODULO(i-1, ngroups)
+                     TRIM(farming_env%Job(i)%input), " MPI group:", MODULO(i - 1, ngroups)
                ENDDO
             ENDIF
             CALL m_flush(output_unit)
          ENDIF
 
          DO ijob = ijob_start, ijob_end
-            i = MODULO(ijob-1, farming_env%njobs)+1
+            i = MODULO(ijob - 1, farming_env%njobs) + 1
             ! this farms out the jobs
-            IF (MODULO(i-1, ngroups) == group_distribution(slave_rank)) THEN
+            IF (MODULO(i - 1, ngroups) == group_distribution(slave_rank)) THEN
                IF (output_unit > 0) THEN
                   WRITE (output_unit, FMT="(T2,A,I5.5,A)", ADVANCE="NO") " Running Job ", i, &
                      " in "//TRIM(farming_env%Job(i)%cwd)//"."
@@ -746,16 +775,16 @@ CONTAINS
       t1 = m_walltime()
       CALL mp_sync(para_env%group)
       t2 = m_walltime()
-      ALLOCATE (waittime(0:para_env%num_pe-1))
+      ALLOCATE (waittime(0:para_env%num_pe - 1))
       waittime = 0.0_dp
-      waittime(para_env%mepos) = t2-t1
+      waittime(para_env%mepos) = t2 - t1
       CALL mp_sum(waittime, para_env%group)
       IF (output_unit > 0) THEN
          WRITE (output_unit, '(T2,A)') "Process idle times [s] at the end of the run"
-         DO i = 0, para_env%num_pe-1
+         DO i = 0, para_env%num_pe - 1
             WRITE (output_unit, FMT='(A2,I6,A3,F8.3,A1)', ADVANCE="NO") &
                " (", i, " : ", waittime(i), ")"
-            IF (MOD(i+1, 4) == 0) WRITE (output_unit, '(A)') ""
+            IF (MOD(i + 1, 4) == 0) WRITE (output_unit, '(A)') ""
          ENDDO
          CALL m_flush(output_unit)
       ENDIF
@@ -832,7 +861,7 @@ CONTAINS
             new_output_unit = -1
          ENDIF
 
-         run_OK = cp2k_run(input_declaration, TRIM(farming_env%Job(i)%input), new_output_unit, new_group)
+         CALL cp2k_run(input_declaration, TRIM(farming_env%Job(i)%input), new_output_unit, new_group, initial_variables)
 
          IF (new_rank == 0) CALL close_file(unit_number=new_output_unit)
 
@@ -844,157 +873,9 @@ CONTAINS
    END SUBROUTINE farming_run
 
 ! **************************************************************************************************
-!> \brief writes a small html description of the cp2k input
-!> \author joost [fawzi]
-! **************************************************************************************************
-   SUBROUTINE write_cp2k_html_manual()
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'write_cp2k_html_manual', &
-         routineP = moduleN//':'//routineN
-
-      INTEGER                                            :: unit_nr
-      TYPE(section_type), POINTER                        :: root_section
-
-      NULLIFY (root_section)
-      CALL create_cp2k_root_section(root_section)
-      ! remove the default keyword that ignores things outside the section
-      CALL keyword_release(root_section%keywords(0)%keyword)
-
-      CALL section_describe_html(root_section, "InputReference", 0, default_output_unit)
-
-      CALL open_file(unit_number=unit_nr, file_name="index.html", &
-                     file_action="WRITE", file_status="REPLACE")
-      WRITE (unit_nr, FMT='(A)') "<HTML><BODY><HEAD><TITLE>The cp2k input structure</TITLE>"
-      WRITE (unit_nr, FMT='(A)') "<H1>CP2K input reference</H1>"
-      WRITE (unit_nr, FMT='(A)') "<H2>Version information</H2>"
-      WRITE (unit_nr, FMT='(A)') &
-         "This html manual can be generated automatically from a given cp2k executable "// &
-         "using the --html-manual command line option. The manual describes exactly that version of the code. "// &
-         "This version has been generated using a cp2k version compiled on "//TRIM(compile_date)//". "// &
-         "The source code revision number is "//TRIM(compile_revision)//"."
-
-      WRITE (unit_nr, FMT='(A)') '<H2>Search the online input reference manual</H2>'
-      WRITE (unit_nr, FMT='(A)') '<TABLE><TR><TD>'
-      ! Yahoo seems to actually search our pages
-      WRITE (unit_nr, FMT='(A)') ' <!-- START CODE --> '
-      WRITE (unit_nr, FMT='(A)') '         <div id="ysrchForm" style="border:1px solid #7E9DB9;'
-      WRITE (unit_nr, FMT='(A)') '                                background:#FFFFFF;'
-      WRITE (unit_nr, FMT='(A)') '                                width:300px;'
-      WRITE (unit_nr, FMT='(A)') '                                margin:0 auto;'
-      WRITE (unit_nr, FMT='(A)') '                                padding:20px; '
-      WRITE (unit_nr, FMT='(A)') '                                position:relative;'
-      WRITE (unit_nr, FMT='(A)') '                              ">'
-      WRITE (unit_nr, FMT='(A)') &
-         '           <form id="searchBoxForm_undefined" action="http://search.yahoo.com/search" style="padding:0;">'
-      WRITE (unit_nr, FMT='(A)') '                         '
-      WRITE (unit_nr, FMT='(A)') '                         <input name="ei" value="UTF-8" type="hidden">'
-      WRITE (unit_nr, FMT='(A)') &
-         '                         <input name="fr" value="ystg" type="hidden"><div style="padding:0 80px 0 0;zoom:1;">'
-      WRITE (unit_nr, FMT='(A)') '                                         <input type="text" id="searchTerm"'
-      WRITE (unit_nr, FMT='(A)') '                                                 onFocus="this.style.background=''#fff'';"'
-      WRITE (unit_nr, FMT='(A)') &
-         '                                                 onBlur="if(this.value=='''')this.style.background='// &
-         '''#fff url(http://us.i1.yimg.com/us.yimg.com/i/us/sch/gr/horiz_pwrlogo_red2.gif) 3px center  no-repeat''"'
-      WRITE (unit_nr, FMT='(A)') &
-         ' name="p" style=" margin:1px 0; width:100%; border:1px solid #7E9DB9; color:#666666; height:18px; '// &
-         'padding:0px 3px; background:#fff url(http://us.i1.yimg.com/us.yimg.com/i/us/sch/gr/horiz_pwrlogo_red2.gif)'// &
-         ' 3px center no-repeat; position:relative;">'
-      WRITE (unit_nr, FMT='(A)') ' <input type="submit" id="btn_undefined" value="Search" '
-      WRITE (unit_nr, FMT='(A)') &
-         ' style=" padding-bottom:2px; position:absolute; right:20px; top:20px; margin:0px; height:22px; width:65px; ">'
-      WRITE (unit_nr, FMT='(A)') ' </div><ul style="color:#666666;'
-      WRITE (unit_nr, FMT='(A)') '            font:11px/11px normal Arial, Helvetica, sans-serif;'
-      WRITE (unit_nr, FMT='(A)') '            margin:0;'
-      WRITE (unit_nr, FMT='(A)') '            padding:0;'
-      WRITE (unit_nr, FMT='(A)') '            text-align:left;'
-      WRITE (unit_nr, FMT='(A)') '            list-style-type:none;radios"><li style="display:inline;padding-right:10px;">'
-      WRITE (unit_nr, FMT='(A)') &
-         ' <input name="vs" id="web_radio" value=""    type="radio" style="vertical-align:middle;margin-right:5px; ">'
-      WRITE (unit_nr, FMT='(A)') ' <label for="web_radio" style="vertical-align:middle;">Web</label>'
-      WRITE (unit_nr, FMT='(A)') ' </li><li style="display:inline;padding-right:10px;">'
-      WRITE (unit_nr, FMT='(A)') &
-         ' <input name="vs" id="site_radio" value="www.cp2k.org"   checked="checked" type="radio"'// &
-         ' style="vertical-align:middle;margin-right:5px; ">'
-      WRITE (unit_nr, FMT='(A)') ' <label for="site_radio" style="vertical-align:middle;">this Site</label>'
-      WRITE (unit_nr, FMT='(A)') ' </li></ul></form></div>'
-      WRITE (unit_nr, FMT='(A)') ' <!-- END CODE --></TD><TD> '
-
-      WRITE (unit_nr, FMT='(A)') '</TD></TR></TABLE>'
-
-      WRITE (unit_nr, FMT='(A)') '<H2>Journal papers</H2>'
-      WRITE (unit_nr, FMT='(A)') '<A HREF="references.html">List of references</A> cited in the CP2K input manual.'
-
-      WRITE (unit_nr, FMT='(A)') '<H2>Units of Measurement</H2>'
-      WRITE (unit_nr, FMT='(A)') '<A HREF="units.html">List of unites</A> organized into groups based on the physical quantity '// &
-         "they measure. The units can be used to specify an alternative unit of measurement for keyword values, for which a "// &
-         "default unit has been explicitly defined."
-
-      WRITE (unit_nr, FMT='(A)') "<H2>Internal Input Preprocessor</H2>"
-      WRITE (unit_nr, FMT='(A)') "Before the input is parsed, the input is run through a very simple internal preprocessor."
-      WRITE (unit_nr, FMT='(A)') "The preprocessor recognizes the following directives independent of capitalization:<BR><DL>"
-      WRITE (unit_nr, FMT='(A)') "<DT><B>@INCLUDE 'filename.inc'</B></DT>"
-      WRITE (unit_nr, FMT='(A)') "<DD>The file referenced by <I>filename.inc</I> is included into the input file and parsed."
-      WRITE (unit_nr, FMT='(A)') "Recursive inclusions are not allowed and the files have to exist in the current working "
-      WRITE (unit_nr, FMT='(A)') "directory. There can be only one @INCLUDE statement per line. Single or double quotes "
-      WRITE (unit_nr, FMT='(A)') "can be used and <B>have</B> to be used if the filename contains blanks.</DD>"
-      WRITE (unit_nr, FMT='(A)') "<DT><B>@SET VAR value</B></DT>"
-      WRITE (unit_nr, FMT='(A)') "<DD>Assigns the text <I>value</I> to the preprocessing variable <I>VAR</I>. <I>value</I> "
-      WRITE (unit_nr, FMT='(A)') "is the text following <I>VAR</I> with the outer whitespace removed. The variable can be "
-      WRITE (unit_nr, FMT='(A)') "recalled with a <I>${VAR}</I> statement. There can be only one @SET statement per line.</DD>"
-      WRITE (unit_nr, FMT='(A)') "<DT><B>${VAR}</B></DT>"
-      WRITE (unit_nr, FMT='(A)') "<DD>Expand the variable <I>VAR</I>. The text <I>${VAR}</I> is replaced with the value assigned "
-      WRITE (unit_nr, FMT='(A)') "to <I>VAR</I> in the last corresponding @SET directive. There can be multiple variables per line."
-      WRITE (unit_nr, FMT='(A)') "The expansion process is repeated until no more variables are found.</DD>"
-      WRITE (unit_nr, FMT='(A)') "<DT><B>@IF / @ENDIF</B></DT>"
-      WRITE (unit_nr, FMT='(A)') "<DD>Conditional block. The text from the @IF line up to the next line with a valid "
-      WRITE (unit_nr, FMT='(A)') "@ENDIF is skipped, if the expression following @IF resolves to <I>false</I>. "
-      WRITE (unit_nr, FMT='(A)') "Available expressions are lexical comparisons for equality '==' or inequality '/='."
-      WRITE (unit_nr, FMT='(A)') "If none of the two operators are found, a '0' or whitespace resolves to <I>false</I> "
-      WRITE (unit_nr, FMT='(A)') "while any text resolves to <I>true</I>. @IF/@ENDIF blocks cannot be nested and "
-      WRITE (unit_nr, FMT='(A)') "cannot span across files. There can be only one test (== or /=) per @IF statement.</DD>"
-      WRITE (unit_nr, FMT='(A)') "</DL><P>"
-
-      WRITE (unit_nr, FMT='(A)') "<H2>Input structure</H2>"
-      WRITE (unit_nr, FMT='(A)') "All sections that can be part of a cp2k input file are shown with their allowed nestings. "
-      WRITE (unit_nr, FMT='(A)') "A description of each section, and a list of keywords can be obtained clicking on the links. "
-      WRITE (unit_nr, FMT='(A)') "<BR><UL>"
-
-      CALL section_describe_index_html(root_section, "InputReference", unit_nr)
-
-      WRITE (unit_nr, FMT='(A)') '</UL><BR><hr>Back to the <A HREF="https://www.cp2k.org/">CP2K homepage</A>'
-      WRITE (unit_nr, FMT='(A)') "</BODY></HTML>"
-
-      CALL close_file(unit_nr)
-      CALL section_release(root_section)
-
-      ! References
-      CALL open_file(unit_number=unit_nr, file_name="references.html", &
-                     file_action="WRITE", file_status="REPLACE")
-      WRITE (unit_nr, FMT='(A)') "<HTML><BODY><HEAD><TITLE>The cp2k literature list</TITLE>"
-      WRITE (unit_nr, FMT='(A)') "<H1>CP2K references</H1>"
-      CALL print_all_references(sorted=.TRUE., cited_only=.FALSE., &
-                                FORMAT=print_format_html, unit=unit_nr)
-      WRITE (unit_nr, FMT='(A)') '<BR><hr>Back to the <A HREF="https://www.cp2k.org/">CP2K homepage</A>'
-      WRITE (unit_nr, FMT='(A)') "</BODY></HTML>"
-      CALL close_file(unit_nr)
-
-      ! Units
-      CALL open_file(unit_number=unit_nr, file_name="units.html", &
-                     file_action="WRITE", file_status="REPLACE")
-      WRITE (unit_nr, FMT='(A)') "<HTML><BODY><HEAD><TITLE>The cp2k units list</TITLE>"
-      WRITE (unit_nr, FMT='(A)') "<H1>CP2K Available Units of Measurement</H1>"
-      CALL print_all_units(unit_nr=unit_nr)
-      WRITE (unit_nr, FMT='(A)') '<BR><hr>Back to the <A HREF="https://www.cp2k.org/">CP2K homepage</A>'
-      WRITE (unit_nr, FMT='(A)') "</BODY></HTML>"
-      CALL close_file(unit_nr)
-   END SUBROUTINE write_cp2k_html_manual
-
-! **************************************************************************************************
 !> \brief ...
 ! **************************************************************************************************
    SUBROUTINE write_xml_file()
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_xml_file', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, ie, is, unit_number
       TYPE(section_type), POINTER                        :: root_section
@@ -1018,12 +899,12 @@ CONTAINS
       WRITE (UNIT=unit_number, FMT="(A)") &
          "<!DOCTYPE documentElement["
       DO i = 1, SIZE(html_entity_table), 2
-         is = INDEX(html_entity_table(i), "&")+1
+         is = INDEX(html_entity_table(i), "&") + 1
          CPASSERT(is > 0)
-         ie = INDEX(html_entity_table(i), ";")-1
+         ie = INDEX(html_entity_table(i), ";") - 1
          CPASSERT(ie >= is)
          WRITE (UNIT=unit_number, FMT="(A)") &
-            "<!ENTITY "//html_entity_table(i) (is:ie)//" """//TRIM(html_entity_table(i+1))//""">"
+            "<!ENTITY "//html_entity_table(i) (is:ie)//" """//TRIM(html_entity_table(i + 1))//""">"
       END DO
       WRITE (UNIT=unit_number, FMT="(A)") &
          "]>"
@@ -1071,23 +952,21 @@ CONTAINS
 !> \param input_file_path the path of the input file
 !> \param output_file_path path of the output file (to which it is appended)
 !>        if it is "__STD_OUT__" the default_output_unit is used
-!> \param ierr will return a number different from 0 if there was an error
+!> \param initial_variables key-value list of initial preprocessor variables
 !> \param mpi_comm the mpi communicator to be used for this environment
 !>        it will not be freed
 !> \author fawzi
 !> \note
 !>      moved here because of circular dependencies
 ! **************************************************************************************************
-   SUBROUTINE run_input(input_declaration, input_file_path, output_file_path, ierr, mpi_comm)
+   SUBROUTINE run_input(input_declaration, input_file_path, output_file_path, initial_variables, mpi_comm)
       TYPE(section_type), POINTER                        :: input_declaration
       CHARACTER(len=*), INTENT(in)                       :: input_file_path, output_file_path
-      INTEGER, INTENT(out)                               :: ierr
+      CHARACTER(len=default_path_length), &
+         DIMENSION(:, :), INTENT(IN)                     :: initial_variables
       INTEGER, INTENT(in), OPTIONAL                      :: mpi_comm
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'run_input', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: unit_nr
-      LOGICAL                                            :: success
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
       IF (PRESENT(mpi_comm)) THEN
@@ -1097,7 +976,7 @@ CONTAINS
          para_env => f77_default_para_env
          CALL cp_para_env_retain(para_env) !XXXXXXXXXXXX uninitiliased error
       END IF
-      IF (para_env%mepos == para_env%source) THEN
+      IF (para_env%ionode) THEN
          IF (output_file_path == "__STD_OUT__") THEN
             unit_nr = default_output_unit
          ELSE
@@ -1108,12 +987,7 @@ CONTAINS
       ELSE
          unit_nr = -1
       END IF
-      success = cp2k_run(input_declaration, input_file_path, unit_nr, para_env%group)
-      IF (.NOT. success) THEN
-         ierr = cp_failure_level
-      ELSE
-         ierr = 0
-      END IF
+      CALL cp2k_run(input_declaration, input_file_path, unit_nr, para_env%group, initial_variables)
       CALL cp_para_env_release(para_env) !XXXXXXXXXXXX uninitiliased error
    END SUBROUTINE run_input
 

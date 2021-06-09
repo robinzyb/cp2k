@@ -29,7 +29,6 @@
     &END PRINT
     &QS
       EPS_DEFAULT 1.0E-8
-      MAP_CONSISTENT
     &END QS
     &SCF
       EPS_SCF 1.0E-5
@@ -44,7 +43,7 @@
       &PRINT
         &RESTART
           &EACH
-            MD 1 
+            MD 1
             QS_SCF 30
           &END
           ADD_LAST NUMERIC

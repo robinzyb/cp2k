@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -117,7 +119,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: psockfd
       REAL(KIND=dp), INTENT(IN)                          :: fdata
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'writebuffer_d', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'writebuffer_d'
 
       INTEGER                                            :: handle
       REAL(KIND=C_DOUBLE), TARGET                        :: cdata
@@ -138,7 +140,7 @@ CONTAINS
    SUBROUTINE writebuffer_i(psockfd, fdata)
       INTEGER, INTENT(IN)                                :: psockfd, fdata
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'writebuffer_i', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'writebuffer_i'
 
       INTEGER                                            :: handle
       INTEGER(KIND=C_INT), TARGET                        :: cdata
@@ -162,7 +164,7 @@ CONTAINS
       CHARACTER(LEN=*), INTENT(IN)                       :: fstring
       INTEGER, INTENT(IN)                                :: plen
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'writebuffer_s', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'writebuffer_s'
 
       INTEGER                                            :: handle, i
       CHARACTER(LEN=1, KIND=C_CHAR), TARGET              :: cstring(plen)
@@ -188,7 +190,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: psockfd, plen
       REAL(KIND=dp), INTENT(IN), TARGET                  :: fdata(plen)
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'writebuffer_dv', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'writebuffer_dv'
 
       INTEGER                                            :: handle
 
@@ -208,7 +210,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: psockfd
       REAL(KIND=dp), INTENT(OUT)                         :: fdata
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'readbuffer_d', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'readbuffer_d'
 
       INTEGER                                            :: handle
       REAL(KIND=C_DOUBLE), TARGET                        :: cdata
@@ -230,7 +232,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: psockfd
       INTEGER, INTENT(OUT)                               :: fdata
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'readbuffer_i', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'readbuffer_i'
 
       INTEGER                                            :: handle
       INTEGER(KIND=C_INT), TARGET                        :: cdata
@@ -254,7 +256,7 @@ CONTAINS
       CHARACTER(LEN=*), INTENT(OUT)                      :: fstring
       INTEGER, INTENT(IN)                                :: plen
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'readbuffer_s', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'readbuffer_s'
 
       INTEGER                                            :: handle, i
       CHARACTER(LEN=1, KIND=C_CHAR), TARGET              :: cstring(plen)
@@ -281,7 +283,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: psockfd, plen
       REAL(KIND=dp), INTENT(OUT), TARGET                 :: fdata(plen)
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'readbuffer_dv', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'readbuffer_dv'
 
       INTEGER                                            :: handle
 
@@ -307,8 +309,7 @@ CONTAINS
       TYPE(force_env_type), POINTER            :: force_env
       TYPE(global_environment_type), POINTER   :: globenv
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'run_driver', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'run_driver'
 
 #ifdef __NO_IPI_DRIVER
       INTEGER                                  :: handle
@@ -351,7 +352,7 @@ CONTAINS
       CALL force_env_get(force_env, para_env=para_env)
 
       hasdata = .FALSE.
-      ionode = (para_env%source == para_env%mepos)
+      ionode = para_env%ionode
 
       output_unit = cp_logger_get_default_io_unit()
 
@@ -393,7 +394,7 @@ CONTAINS
          IF (ionode) THEN
             CALL readbuffer(socket, header, MSGLEN)
             wait_msg = 0
-            DO iwait = 0, para_env%num_pe-1
+            DO iwait = 0, para_env%num_pe - 1
                IF (iwait /= para_env%source) THEN
                   CALL mp_send(msg=wait_msg, dest=iwait, gid=para_env%group, tag=666)
                ENDIF
@@ -447,7 +448,7 @@ CONTAINS
             ii = 0
             DO ip = 1, subsys%particles%n_els
                DO idir = 1, 3
-                  ii = ii+1
+                  ii = ii + 1
                   subsys%particles%els(ip)%r(idir) = combuf(ii)
                END DO
             END DO
@@ -462,7 +463,7 @@ CONTAINS
             ii = 0
             DO ip = 1, subsys%particles%n_els
                DO idir = 1, 3
-                  ii = ii+1
+                  ii = ii + 1
                   combuf(ii) = subsys%particles%els(ip)%f(idir)
                END DO
             END DO

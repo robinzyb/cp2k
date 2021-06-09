@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -65,7 +67,7 @@ CONTAINS
 !> \brief placing a character string at the end of a file name
 !>        (instead of the ending)
 !> \param file_name original file name
-!> \param extra string to be added before the file extention
+!> \param extra string to be added before the file extension
 !> \return the new filename
 !> \author Mandes 11.2012
 ! **************************************************************************************************
@@ -73,16 +75,13 @@ CONTAINS
       CHARACTER(LEN=*)                                   :: file_name, extra
       CHARACTER(LEN=default_path_length)                 :: result_file_name
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'expand_file_name_ending', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ind
 
       CPASSERT(file_name .NE. "")
 
       ind = INDEX(file_name, ".", BACK=.TRUE.)
       IF (.NOT. ind .EQ. 0) THEN
-         WRITE (result_file_name, *) file_name(1:ind-1), ".", &
+         WRITE (result_file_name, *) file_name(1:ind - 1), ".", &
             TRIM(ADJUSTL(extra))
       ELSE
          WRITE (result_file_name, *) TRIM(file_name), ".", extra
@@ -93,9 +92,9 @@ CONTAINS
 
 ! **************************************************************************************************
 !> \brief placing a character string at the end of a file name
-!>        (before the file extention)
+!>        (before the file extension)
 !> \param file_name original file name
-!> \param extra string to be added before the file extention
+!> \param extra string to be added before the file extension
 !> \return the new filename
 !> \author Mandes 11.2012
 ! **************************************************************************************************
@@ -103,16 +102,13 @@ CONTAINS
       CHARACTER(LEN=*)                                   :: file_name, extra
       CHARACTER(LEN=default_path_length)                 :: result_file_name
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'expand_file_name_char', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ind
 
       CPASSERT(file_name .NE. "")
 
       ind = INDEX(file_name, ".", BACK=.TRUE.)
       IF (.NOT. ind .EQ. 0) THEN
-         WRITE (result_file_name, *) file_name(1:ind-1), "_", &
+         WRITE (result_file_name, *) file_name(1:ind - 1), "_", &
             TRIM(ADJUSTL(extra)), file_name(ind:LEN_TRIM(file_name))
       ELSE
          WRITE (result_file_name, *) TRIM(file_name), "_", extra
@@ -123,7 +119,7 @@ CONTAINS
 
 ! **************************************************************************************************
 !> \brief placing the temperature at the end of a file name
-!>        (before the file extention)
+!>        (before the file extension)
 !> \param file_name original file name
 !> \param rvalue temperature to be added
 !> \return the new filename
@@ -133,9 +129,6 @@ CONTAINS
       CHARACTER(LEN=*)                                   :: file_name
       REAL(KIND=dp)                                      :: rvalue
       CHARACTER(LEN=default_path_length)                 :: result_file_name
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'expand_file_name_temp', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=18)                                  :: rval_to_string
       INTEGER                                            :: ind
@@ -147,7 +140,7 @@ CONTAINS
       WRITE (rval_to_string, "(F16.2)") rvalue
       ind = INDEX(file_name, ".", BACK=.TRUE.)
       IF (.NOT. ind .EQ. 0) THEN
-         WRITE (result_file_name, *) file_name(1:ind-1), "_T", &
+         WRITE (result_file_name, *) file_name(1:ind - 1), "_T", &
             TRIM(ADJUSTL(rval_to_string)), file_name(ind:LEN_TRIM(file_name))
       ELSE
          IF (LEN(file_name) .EQ. 0) THEN
@@ -163,7 +156,7 @@ CONTAINS
 
 ! **************************************************************************************************
 !> \brief placing an integer at the end of a file name
-!>        (before the file extention)
+!>        (before the file extension)
 !> \param file_name original file name
 !> \param ivalue number to be added
 !> \return the new filename
@@ -173,9 +166,6 @@ CONTAINS
       CHARACTER(LEN=*)                                   :: file_name
       INTEGER                                            :: ivalue
       CHARACTER(LEN=default_path_length)                 :: result_file_name
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'expand_file_name_int', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=18)                                  :: rval_to_string
       INTEGER                                            :: ind
@@ -187,7 +177,7 @@ CONTAINS
       WRITE (rval_to_string, *) ivalue
       ind = INDEX(file_name, ".", BACK=.TRUE.)
       IF (.NOT. ind .EQ. 0) THEN
-         WRITE (result_file_name, *) file_name(1:ind-1), "_", &
+         WRITE (result_file_name, *) file_name(1:ind - 1), "_", &
             TRIM(ADJUSTL(rval_to_string)), file_name(ind:LEN_TRIM(file_name))
       ELSE
          IF (LEN(file_name) .EQ. 0) THEN
@@ -218,9 +208,6 @@ CONTAINS
       TYPE(tmc_env_type), POINTER                        :: tmc_env
       INTEGER, DIMENSION(:)                              :: job_counts
       REAL(KIND=dp), DIMENSION(4)                        :: timings
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'print_restart_file', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_path_length)                 :: c_tmp, file_name
       INTEGER                                            :: f_unit, i
@@ -292,9 +279,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(4)                        :: timings
       CHARACTER(LEN=*)                                   :: file_name
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_restart_file', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: file_ptr, i, temp_size
       LOGICAL                                            :: flag
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:)           :: tmp_temp
@@ -339,7 +323,7 @@ CONTAINS
          job_counts, &
          timings
 
-      IF (ANY(ABS(tmc_env%params%Temp(:)-tmp_temp(:)) .GE. 0.005)) &
+      IF (ANY(ABS(tmc_env%params%Temp(:) - tmp_temp(:)) .GE. 0.005)) &
          CALL cp_abort(__LOCATION__, "the temperatures differ from the previous calculation. "// &
                        "There were the following temperatures used:")
       IF (ANY(mv_weight_tmp(:) .NE. tmc_env%params%move_types%mv_weight(:))) &
@@ -384,8 +368,7 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: accepted
       TYPE(tmc_param_type), POINTER                      :: tmc_params
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_result_list_element', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_result_list_element'
 
       CHARACTER(LEN=default_path_length)                 :: file_name
       INTEGER                                            :: handle, i
@@ -442,8 +425,7 @@ CONTAINS
       INTEGER, OPTIONAL                                  :: conf_nr
       CHARACTER(LEN=*), OPTIONAL                         :: conf_info
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_element_in_file', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_element_in_file'
 
       CHARACTER(LEN=default_path_length)                 :: file_name_act, tmp_name
       CHARACTER(LEN=default_string_length)               :: header
@@ -500,8 +482,8 @@ CONTAINS
             WRITE (file_ptr, *) TRIM(header)
             DO i = 1, SIZE(elem%pos), tmc_params%dim_per_elem
                WRITE (file_ptr, FMT="(A4,1X,1000F20.10)") &
-                  TRIM(tmc_params%atoms((i-1)/tmc_params%dim_per_elem+1)%name), &
-                  elem%pos(i:i+tmc_params%dim_per_elem-1)*au2a
+                  TRIM(tmc_params%atoms((i - 1)/tmc_params%dim_per_elem + 1)%name), &
+                  elem%pos(i:i + tmc_params%dim_per_elem - 1)*au2a
             END DO
             CALL close_file(unit_number=file_ptr)
          END IF
@@ -516,8 +498,8 @@ CONTAINS
             WRITE (file_ptr, *) TRIM(header)
             DO i = 1, SIZE(elem%pos), tmc_params%dim_per_elem
                WRITE (file_ptr, FMT="(A4,1X,1000F20.10)") &
-                  TRIM(tmc_params%atoms((i-1)/tmc_params%dim_per_elem+1)%name), &
-                  elem%frc(i:i+tmc_params%dim_per_elem-1)
+                  TRIM(tmc_params%atoms((i - 1)/tmc_params%dim_per_elem + 1)%name), &
+                  elem%frc(i:i + tmc_params%dim_per_elem - 1)
             END DO
             CALL close_file(unit_number=file_ptr)
          END IF
@@ -569,7 +551,7 @@ CONTAINS
                               unit_number=file_ptr)
             END IF
             WRITE (file_ptr, FMT="(I8,14F20.10)") conf_nr, elem%potential, elem%e_pot_approx, &
-               elem%scf_energies(MOD(elem%scf_energies_count, 4)+1), elem%ekin
+               elem%scf_energies(MOD(elem%scf_energies_count, 4) + 1), elem%ekin
             CALL close_file(unit_number=file_ptr)
          END IF
 
@@ -592,9 +574,6 @@ CONTAINS
       INTEGER                                            :: conf_nr
       REAL(KIND=dp), DIMENSION(:), POINTER               :: dip
       CHARACTER(LEN=*), INTENT(in), OPTIONAL             :: file_ext
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_dipoles_in_file', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_path_length)                 :: file_name_tmp
       INTEGER                                            :: file_ptr
@@ -641,8 +620,7 @@ CONTAINS
       TYPE(tmc_analysis_env), POINTER                    :: tmc_ana
       INTEGER                                            :: conf_nr, stat
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_element_from_file', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_element_from_file'
 
       INTEGER                                            :: conf_nr_old, handle, i_tmp
       LOGICAL                                            :: files_conf_missmatch
@@ -771,8 +749,7 @@ CONTAINS
       INTEGER                                            :: stat, conf_nr
       CHARACTER(LEN=*), OPTIONAL                         :: header_info
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_pos_from_file', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_pos_from_file'
 
       CHARACTER(LEN=default_string_length)               :: c_tmp
       INTEGER                                            :: handle, i, i_tmp, status
@@ -789,7 +766,7 @@ CONTAINS
 
       search_next_conf: DO
          c_tmp(:) = " "
-         tmc_ana%lc_traj = tmc_ana%lc_traj+1
+         tmc_ana%lc_traj = tmc_ana%lc_traj + 1
          READ (tmc_ana%id_traj, '(A)', IOSTAT=status) c_tmp(:)
          IF (status .GT. 0) &
             CALL cp_abort(__LOCATION__, &
@@ -800,7 +777,7 @@ CONTAINS
             EXIT search_next_conf
          END IF
          IF (INDEX(c_tmp, "=") .GT. 0) THEN
-            READ (c_tmp(INDEX(c_tmp, "=")+1:), *, IOSTAT=status) i_tmp ! read the configuration number
+            READ (c_tmp(INDEX(c_tmp, "=") + 1:), *, IOSTAT=status) i_tmp ! read the configuration number
             IF (status .NE. 0) &
                CALL cp_abort(__LOCATION__, &
                              "configuration header read error (for conf nr) at line: "// &
@@ -817,9 +794,9 @@ CONTAINS
 
       IF (stat .EQ. TMC_STATUS_OK) THEN
          pos_loop: DO i = 1, SIZE(elem%pos), tmc_ana%dim_per_elem
-            tmc_ana%lc_traj = tmc_ana%lc_traj+1
+            tmc_ana%lc_traj = tmc_ana%lc_traj + 1
             READ (tmc_ana%id_traj, FMT="(A4,1X,1000F20.10)", IOSTAT=status) &
-               c_tmp, elem%pos(i:i+tmc_ana%dim_per_elem-1)
+               c_tmp, elem%pos(i:i + tmc_ana%dim_per_elem - 1)
             IF (status .NE. 0) THEN
                CALL cp_abort(__LOCATION__, &
                              "configuration pos read error at line: "// &
@@ -847,8 +824,7 @@ CONTAINS
       TYPE(tmc_analysis_env), POINTER                    :: tmc_ana
       INTEGER                                            :: stat, conf_nr
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_dipole_from_file', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_dipole_from_file'
 
       CHARACTER(LEN=250)                                 :: c_tmp
       INTEGER                                            :: handle, status
@@ -862,12 +838,12 @@ CONTAINS
 
       ! start the timing
       CALL timeset(routineN, handle)
-      tmc_ana%lc_dip = tmc_ana%lc_dip+1
+      tmc_ana%lc_dip = tmc_ana%lc_dip + 1
       READ (tmc_ana%id_dip, FMT="(A)", IOSTAT=status) c_tmp
       IF (status .EQ. 0) THEN
          ! skip the initial line (header)
          IF (INDEX(c_tmp, "#") .GT. 0) THEN
-            tmc_ana%lc_dip = tmc_ana%lc_dip+1
+            tmc_ana%lc_dip = tmc_ana%lc_dip + 1
             READ (tmc_ana%id_dip, FMT="(A)", IOSTAT=status) c_tmp
          END IF
       END IF
@@ -903,8 +879,7 @@ CONTAINS
       TYPE(tmc_analysis_env), POINTER                    :: tmc_ana
       INTEGER                                            :: stat, conf_nr
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_cell_from_file', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'read_cell_from_file'
 
       CHARACTER(LEN=250)                                 :: c_tmp
       INTEGER                                            :: handle, status
@@ -921,12 +896,12 @@ CONTAINS
       ! start the timing
       CALL timeset(routineN, handle)
 
-      tmc_ana%lc_cell = tmc_ana%lc_cell+1
+      tmc_ana%lc_cell = tmc_ana%lc_cell + 1
       READ (tmc_ana%id_cell, FMT="(A)", IOSTAT=status) c_tmp
       IF (status .EQ. 0) THEN
          ! skip the initial line (header)
          IF (INDEX(c_tmp, "#") .GT. 0) THEN
-            tmc_ana%lc_cell = tmc_ana%lc_cell+1
+            tmc_ana%lc_cell = tmc_ana%lc_cell + 1
             READ (tmc_ana%id_cell, FMT="(A)", IOSTAT=status) c_tmp
          END IF
       END IF
@@ -969,8 +944,7 @@ CONTAINS
       INTEGER                                            :: stat
       INTEGER, OPTIONAL                                  :: dir_ind
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'analyse_files_open', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'analyse_files_open'
 
       CHARACTER(LEN=default_path_length)                 :: dir_name, file_name_act, file_name_temp
       INTEGER                                            :: handle
@@ -1068,8 +1042,7 @@ CONTAINS
    SUBROUTINE analyse_files_close(tmc_ana)
       TYPE(tmc_analysis_env), POINTER                    :: tmc_ana
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'analyse_files_close', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'analyse_files_close'
 
       INTEGER                                            :: handle
 

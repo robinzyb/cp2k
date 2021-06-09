@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -13,7 +15,7 @@ MODULE qs_energy
    USE almo_scf,                        ONLY: almo_entry_scf
    USE cp_control_types,                ONLY: dft_control_type
    USE dm_ls_scf,                       ONLY: ls_scf
-   USE kg_energy_corrections,           ONLY: kg_energy_correction
+   USE energy_corrections,              ONLY: energy_correction
    USE lri_environment_methods,         ONLY: lri_print_stat
    USE qs_energy_init,                  ONLY: qs_energies_init
    USE qs_energy_types,                 ONLY: qs_energy_type
@@ -56,10 +58,11 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       LOGICAL, INTENT(IN), OPTIONAL                      :: consistent_energies, calc_forces
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_energies', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'qs_energies'
 
       INTEGER                                            :: handle
-      LOGICAL                                            :: my_calc_forces, run_rtp
+      LOGICAL                                            :: do_consistent_energies, my_calc_forces, &
+                                                            run_rtp
       TYPE(dft_control_type), POINTER                    :: dft_control
       TYPE(qs_energy_type), POINTER                      :: energy
 
@@ -67,6 +70,9 @@ CONTAINS
 
       my_calc_forces = .FALSE.
       IF (PRESENT(calc_forces)) my_calc_forces = calc_forces
+
+      do_consistent_energies = .FALSE.
+      IF (PRESENT(consistent_energies)) do_consistent_energies = consistent_energies
 
       CALL qs_env_rebuild_pw_env(qs_env)
 
@@ -84,7 +90,13 @@ CONTAINS
             CALL almo_entry_scf(qs_env=qs_env, calc_forces=my_calc_forces)
          ELSE
             CALL scf(qs_env=qs_env)
+         END IF
 
+         IF (do_consistent_energies) THEN
+            CALL qs_ks_update_qs_env(qs_env, calculate_forces=.FALSE., just_energy=.FALSE.)
+         END IF
+
+         IF (.NOT. (dft_control%qs_control%do_ls_scf .OR. dft_control%qs_control%do_almo_scf)) THEN
             ! Compute MP2 energy
             CALL qs_energies_mp2(qs_env, my_calc_forces)
 
@@ -93,20 +105,8 @@ CONTAINS
 
          END IF
 
-         IF (dft_control%qs_control%do_kg) THEN
-            ! Check for energy correction
-            CALL kg_energy_correction(qs_env, calculate_forces=my_calc_forces)
-         END IF
-
-         IF (PRESENT(consistent_energies)) THEN
-            IF (consistent_energies) THEN
-               CALL qs_ks_update_qs_env(qs_env, calculate_forces=.FALSE., just_energy=.TRUE.)
-               ! add MP2 energy if necessary
-               IF (ASSOCIATED(qs_env%mp2_env)) THEN
-                  energy%total = energy%total+energy%mp2
-               END IF
-            END IF
-         END IF
+         ! Check for energy correction
+         CALL energy_correction(qs_env, ec_init=.TRUE., calculate_forces=.FALSE.)
 
          CALL qs_energies_properties(qs_env)
 

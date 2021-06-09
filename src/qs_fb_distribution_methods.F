@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 MODULE qs_fb_distribution_methods
@@ -120,8 +122,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(section_vals_type), POINTER                   :: scf_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_distribution_build', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'fb_distribution_build'
 
       INTEGER :: handle, i_common_set, iatom, ii, ipe, lb, lowest_cost_ind, my_pe, n_common_sets, &
          natoms, nhalo_atoms, nkinds, nprocs, owner_id_in_halo, pref_pe, ub
@@ -164,7 +165,7 @@ CONTAINS
                       para_env=para_env, &
                       matrix_ks=mat_ks)
       nprocs = para_env%num_pe
-      my_pe = para_env%mepos+1 ! counting from 1
+      my_pe = para_env%mepos + 1 ! counting from 1
 
       ! for each global atom, build atomic halo and get the associated cost
       ALLOCATE (pair_radii(nkinds, nkinds))
@@ -214,7 +215,7 @@ CONTAINS
          i_common_set = common_set_ids(iatom)
          pos_in_preferred_list(i_common_set) = &
             MOD(pos_in_preferred_list(i_common_set), &
-                preferred_procs_set(iatom)%nprocs)+1
+                preferred_procs_set(iatom)%nprocs) + 1
          ipe = preferred_procs_set(iatom)%list(pos_in_preferred_list(i_common_set))
          CALL fb_distribution_add(dist(ipe), element)
       END DO
@@ -269,10 +270,10 @@ CONTAINS
                   EXIT preferred
                END IF
             END DO preferred
-            ! if no preferred process is avaliable, move to a proc in
+            ! if no preferred process is available, move to a proc in
             ! the sorted list that has cost less than average.  remember
             ! that some of the proc may have already taken redistributed
-            ! atoms, and thus may beome unavaliable (full)
+            ! atoms, and thus may become unavailable (full)
             IF (.NOT. move_happened) THEN
                ! searching from the proc with the least initial cost
                next_in_line: DO ii = 1, nprocs
@@ -317,7 +318,7 @@ CONTAINS
                                           local_atoms_sizes)
       ALLOCATE (local_atoms(local_atoms_sizes(my_pe)))
       lb = local_atoms_starts(my_pe)
-      ub = local_atoms_starts(my_pe)+local_atoms_sizes(my_pe)-1
+      ub = local_atoms_starts(my_pe) + local_atoms_sizes(my_pe) - 1
       local_atoms(1:local_atoms_sizes(my_pe)) = local_atoms_all(lb:ub)
       CALL fb_env_set(fb_env=fb_env, &
                       local_atoms=local_atoms, &
@@ -360,7 +361,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: threshold
       LOGICAL                                            :: acceptable
 
-      acceptable = (dist_to%cost+element%cost .LT. dist_from%cost) .AND. &
+      acceptable = (dist_to%cost + element%cost .LT. dist_from%cost) .AND. &
                    (dist_to%cost .LT. threshold)
    END FUNCTION fb_distribution_acceptable_move
 
@@ -375,9 +376,6 @@ CONTAINS
          INTENT(IN)                                      :: dist_set
       TYPE(section_vals_type), POINTER                   :: scf_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_distribution_write_info', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ii, max_natoms, min_natoms, natoms, &
                                                             nprocs, unit_nr
       REAL(KIND=dp)                                      :: ave_cost, ave_natoms, max_cost, &
@@ -388,8 +386,8 @@ CONTAINS
       natoms = 0
       total_cost = 0.0_dp
       DO ii = 1, nprocs
-         natoms = natoms+dist_set(ii)%nelements
-         total_cost = total_cost+dist_set(ii)%cost
+         natoms = natoms + dist_set(ii)%nelements
+         total_cost = total_cost + dist_set(ii)%cost
       END DO
       ave_natoms = REAL(natoms, dp)/REAL(nprocs, dp)
       ave_cost = total_cost/REAL(nprocs, dp)
@@ -456,9 +454,6 @@ CONTAINS
       INTEGER, DIMENSION(:), INTENT(OUT)                 :: common_set_ids
       INTEGER, INTENT(OUT)                               :: n_common_sets
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_build_preferred_procs', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: icol, nprows, pcol, prow
       INTEGER, DIMENSION(:), POINTER                     :: col_dist
       INTEGER, DIMENSION(:, :), POINTER                  :: pgrid
@@ -482,15 +477,15 @@ CONTAINS
          ALLOCATE (preferred_procs_set(icol)%list(nprows))
          pcol = col_dist(icol)
          ! dbcsr prow and pcol counts from 0
-         DO prow = 0, nprows-1
+         DO prow = 0, nprows - 1
             ! here, we count processes from 1, so +1 from mpirank
-            preferred_procs_set(icol)%list(prow+1) = pgrid(prow, pcol)+1
+            preferred_procs_set(icol)%list(prow + 1) = pgrid(prow, pcol) + 1
          END DO
          preferred_procs_set(icol)%nprocs = nprows
       END DO
 
       common_set_ids(:) = 0
-      common_set_ids(1:natoms) = col_dist(1:natoms)+1
+      common_set_ids(1:natoms) = col_dist(1:natoms) + 1
 
    END SUBROUTINE fb_build_preferred_procs
 
@@ -501,9 +496,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE fb_preferred_procs_list_release(preferred_procs_list)
       TYPE(fb_preferred_procs_list), INTENT(INOUT)       :: preferred_procs_list
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_preferred_procs_list_release', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(preferred_procs_list%list)) THEN
          DEALLOCATE (preferred_procs_list%list)
@@ -530,9 +522,6 @@ CONTAINS
       INTEGER, DIMENSION(:), INTENT(OUT)                 :: local_atoms, local_atoms_starts, &
                                                             local_atoms_sizes
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_distribution_to_local_atoms', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iatom, ipe, n_procs, pos
       LOGICAL                                            :: check_ok
 
@@ -552,8 +541,8 @@ CONTAINS
          local_atoms_starts(ipe) = pos
          DO iatom = 1, dist_set(ipe)%nelements
             local_atoms(pos) = dist_set(ipe)%list(iatom)%id
-            pos = pos+1
-            local_atoms_sizes(ipe) = local_atoms_sizes(ipe)+1
+            pos = pos + 1
+            local_atoms_sizes(ipe) = local_atoms_sizes(ipe) + 1
          END DO
       END DO
    END SUBROUTINE fb_distribution_to_local_atoms
@@ -567,9 +556,6 @@ CONTAINS
    SUBROUTINE fb_distribution_init(dist, nmax)
       TYPE(fb_distribution_list), INTENT(INOUT)          :: dist
       INTEGER, INTENT(IN), OPTIONAL                      :: nmax
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_distribution_init', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ii, my_nmax
 
@@ -599,9 +585,6 @@ CONTAINS
    SUBROUTINE fb_distribution_resize(dist, nmax)
       TYPE(fb_distribution_list), INTENT(INOUT)          :: dist
       INTEGER, INTENT(IN)                                :: nmax
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_distribution_resize', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ii, my_nmax
       TYPE(fb_distribution_element), DIMENSION(:), &
@@ -635,12 +618,9 @@ CONTAINS
       TYPE(fb_distribution_list), INTENT(INOUT)          :: dist
       TYPE(fb_distribution_element), INTENT(IN)          :: element
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_distribution_add', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ii, new_nelements, pos
 
-      new_nelements = dist%nelements+1
+      new_nelements = dist%nelements + 1
 
       ! resize list if necessary
       IF (.NOT. ASSOCIATED(dist%list)) THEN
@@ -655,12 +635,12 @@ CONTAINS
       ELSE
          pos = fb_distribution_find_slot(dist, element)
          DO ii = dist%nelements, pos, -1
-            dist%list(ii+1) = dist%list(ii)
+            dist%list(ii + 1) = dist%list(ii)
          END DO
          dist%list(pos) = element
       END IF
       dist%nelements = new_nelements
-      dist%cost = dist%cost+element%cost
+      dist%cost = dist%cost + element%cost
    END SUBROUTINE fb_distribution_add
 
 ! **************************************************************************************************
@@ -684,13 +664,13 @@ CONTAINS
          RETURN
       END IF
       IF (element%cost .GE. dist%list(N)%cost) THEN
-         pos = N+1
+         pos = N + 1
          RETURN
       END IF
       lower = 1
       upper = N
-      DO WHILE ((upper-lower) .GT. 1)
-         middle = (lower+upper)/2
+      DO WHILE ((upper - lower) .GT. 1)
+         middle = (lower + upper)/2
          IF (element%cost .LT. dist%list(middle)%cost) THEN
             upper = middle
          ELSE
@@ -710,22 +690,19 @@ CONTAINS
       TYPE(fb_distribution_list), INTENT(INOUT)          :: dist
       INTEGER, INTENT(IN)                                :: pos
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_distribution_remove_ind', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ii
       LOGICAL                                            :: check_ok
 
       check_ok = pos .GT. 0
       CPASSERT(check_ok)
       IF (pos .LE. dist%nelements) THEN
-         dist%cost = dist%cost-dist%list(pos)%cost
-         DO ii = pos, dist%nelements-1
-            dist%list(ii) = dist%list(ii+1)
+         dist%cost = dist%cost - dist%list(pos)%cost
+         DO ii = pos, dist%nelements - 1
+            dist%list(ii) = dist%list(ii + 1)
          END DO
          dist%list(dist%nelements)%id = 0
          dist%list(dist%nelements)%cost = 0.0_dp
-         dist%nelements = dist%nelements-1
+         dist%nelements = dist%nelements - 1
          ! auto resize if required
          IF (dist%nelements*REDUCE_RATIO .LT. SIZE(dist%list)) THEN
             CALL fb_distribution_resize(dist, dist%nelements/SHRINK_FACTOR)
@@ -743,12 +720,9 @@ CONTAINS
       TYPE(fb_distribution_list), INTENT(INOUT)          :: dist
       TYPE(fb_distribution_element), INTENT(IN)          :: element
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_distribution_remove_el', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ii, pos
 
-      pos = dist%nelements+1
+      pos = dist%nelements + 1
       DO ii = 1, dist%nelements
          IF (element%id == dist%list(ii)%id) THEN
             pos = ii
@@ -769,9 +743,6 @@ CONTAINS
       TYPE(fb_distribution_list), INTENT(INOUT)          :: dist_from
       INTEGER, INTENT(IN)                                :: pos
       TYPE(fb_distribution_list), INTENT(INOUT)          :: dist_to
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_distribution_move_ind', &
-         routineP = moduleN//':'//routineN
 
       LOGICAL                                            :: check_ok
       TYPE(fb_distribution_element)                      :: element
@@ -797,9 +768,6 @@ CONTAINS
       TYPE(fb_distribution_element), INTENT(IN)          :: element
       TYPE(fb_distribution_list), INTENT(INOUT)          :: dist_to
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_distribution_move_el', &
-         routineP = moduleN//':'//routineN
-
       LOGICAL                                            :: check_ok
 
       check_ok = ASSOCIATED(dist_from%list)
@@ -815,9 +783,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE fb_distribution_release(dist)
       TYPE(fb_distribution_list), INTENT(INOUT)          :: dist
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_distribution_release', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(dist%list)) THEN
          DEALLOCATE (dist%list)

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -108,11 +110,9 @@ CONTAINS
    SUBROUTINE parser_retain(parser)
       TYPE(cp_parser_type), POINTER                      :: parser
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'parser_retain', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(parser))
       CPASSERT(parser%ref_count > 0)
-      parser%ref_count = parser%ref_count+1
+      parser%ref_count = parser%ref_count + 1
    END SUBROUTINE parser_retain
 
 ! **************************************************************************************************
@@ -125,11 +125,9 @@ CONTAINS
    SUBROUTINE parser_release(parser)
       TYPE(cp_parser_type), POINTER                      :: parser
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'parser_release', routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(parser)) THEN
          CPASSERT(parser%ref_count > 0)
-         parser%ref_count = parser%ref_count-1
+         parser%ref_count = parser%ref_count - 1
          IF (parser%ref_count == 0) THEN
             IF (parser%input_unit >= 0) THEN
                CALL close_file(unit_number=parser%input_unit)
@@ -180,11 +178,9 @@ CONTAINS
       CHARACTER(len=*), DIMENSION(:, :), OPTIONAL        :: initial_variables
       LOGICAL, INTENT(IN), OPTIONAL                      :: apply_preprocessing
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'parser_create', routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(parser))
       ALLOCATE (parser)
-      last_parser_id = last_parser_id+1
+      last_parser_id = last_parser_id + 1
       parser%id_nr = last_parser_id
       parser%ref_count = 1
 
@@ -229,7 +225,7 @@ CONTAINS
       END IF
 
       !   *** Get the logical output unit number for error messages ***
-      IF (parser%para_env%mepos == parser%para_env%source) THEN
+      IF (parser%para_env%ionode) THEN
          IF (PRESENT(unit_nr)) THEN
             parser%input_unit = unit_nr
             IF (PRESENT(file_name)) parser%input_file_name = file_name
@@ -273,8 +269,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE parser_reset(parser)
       TYPE(cp_parser_type), POINTER                      :: parser
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'parser_reset', routineP = moduleN//':'//routineN
 
       CPASSERT(ASSOCIATED(parser))
       ! Rewind units

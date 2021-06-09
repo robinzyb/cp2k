@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 ! **************************************************************************************************
 MODULE qs_rho0_types
@@ -96,9 +98,6 @@ CONTAINS
       TYPE(mpole_gau_overlap), DIMENSION(:), POINTER     :: mp_gau
       INTEGER, INTENT(IN)                                :: nkind
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_multipoles', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iat, ikind
 
       IF (ASSOCIATED(mp_rho)) THEN
@@ -140,9 +139,6 @@ CONTAINS
       TYPE(rho0_atom_type), DIMENSION(:), POINTER        :: rho0_set
       INTEGER, INTENT(IN)                                :: natom
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_rho0_atom', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iat
 
       IF (ASSOCIATED(rho0_set)) THEN
@@ -169,9 +165,6 @@ CONTAINS
       TYPE(rho0_atom_type), INTENT(OUT)                  :: rho0_atom
       INTEGER, INTENT(IN)                                :: nr, nchannels
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_rho0_atom_rad', &
-         routineP = moduleN//':'//routineN
-
       ALLOCATE (rho0_atom%rho0_rad_h)
 
       NULLIFY (rho0_atom%rho0_rad_h%r_coef)
@@ -193,9 +186,6 @@ CONTAINS
    SUBROUTINE allocate_rho0_mpole(rho0)
 
       TYPE(rho0_mpole_type), POINTER                     :: rho0
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_rho0_mpole', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(rho0)) THEN
          CALL deallocate_rho0_mpole(rho0)
@@ -223,8 +213,6 @@ CONTAINS
       TYPE(rho0_mpole_type), POINTER                     :: rho0_mpole
       TYPE(grid_atom_type), POINTER                      :: grid_atom
       INTEGER, INTENT(IN)                                :: ik
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_g0', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ir, l, lmax, nr
       REAL(dp)                                           :: c1, prefactor, root_z_h, z_h
@@ -270,10 +258,10 @@ CONTAINS
          rho0_mpole%mp_gau(ik)%g0_h(1:nr, l) = gh_tmp(1:nr)* &
                                                rho0_mpole%norm_g0l_h(l)
 
-         prefactor = fourpi/(2.0_dp*l+1.0_dp)*rho0_mpole%norm_g0l_h(l)
+         prefactor = fourpi/(2.0_dp*l + 1.0_dp)*rho0_mpole%norm_g0l_h(l)
          CALL whittaker_c0a(int1, grid_atom%rad, gexp, erf_z_h, z_h, l, l, nr)
          DO ir = 1, nr
-            rho0_mpole%mp_gau(ik)%vg0_h(ir, l) = prefactor*(int1(ir)+ &
+            rho0_mpole%mp_gau(ik)%vg0_h(ir, l) = prefactor*(int1(ir) + &
                                                             int2(ir)*grid_atom%rad2l(ir, l))
          END DO
 
@@ -289,9 +277,6 @@ CONTAINS
    SUBROUTINE deallocate_mpole_gau(mp_gau)
 
       TYPE(mpole_gau_overlap), DIMENSION(:), POINTER     :: mp_gau
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_mpole_gau', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ikind, nkind
 
@@ -320,9 +305,6 @@ CONTAINS
 
       TYPE(mpole_rho_atom), DIMENSION(:), POINTER        :: mp_rho
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_mpole_rho', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iat, natom
 
       natom = SIZE(mp_rho)
@@ -345,9 +327,6 @@ CONTAINS
    SUBROUTINE deallocate_rho0_atom(rho0_atom_set)
 
       TYPE(rho0_atom_type), DIMENSION(:), POINTER        :: rho0_atom_set
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_rho0_atom', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: iat, natom
 
@@ -381,9 +360,6 @@ CONTAINS
    SUBROUTINE deallocate_rho0_mpole(rho0)
 
       TYPE(rho0_mpole_type), POINTER                     :: rho0
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_rho0_mpole', &
-         routineP = moduleN//':'//routineN
 
       IF (ASSOCIATED(rho0)) THEN
 
@@ -462,8 +438,6 @@ CONTAINS
       REAL(dp), INTENT(OUT), OPTIONAL                    :: rpgf0_h, rpgf0_s, max_rpgf0_s
       TYPE(pw_p_type), OPTIONAL, POINTER                 :: rho0_s_rs, rho0_s_gs
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_rho0_mpole', routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(rho0_mpole)) THEN
 
          IF (PRESENT(lmax_0)) lmax_0 = rho0_mpole%lmax_0
@@ -501,22 +475,12 @@ CONTAINS
 !> \param nchan_s ...
 !> \param nchan_c ...
 !> \param zeff ...
-!> \param tddft ...
 ! **************************************************************************************************
-   SUBROUTINE initialize_mpole_rho(mp_rho, nchan_s, nchan_c, zeff, tddft)
+   SUBROUTINE initialize_mpole_rho(mp_rho, nchan_s, nchan_c, zeff)
 
       TYPE(mpole_rho_atom)                               :: mp_rho
       INTEGER, INTENT(IN)                                :: nchan_s, nchan_c
       REAL(KIND=dp), INTENT(IN)                          :: zeff
-      LOGICAL, OPTIONAL                                  :: tddft
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'initialize_mpole_rho', &
-         routineP = moduleN//':'//routineN
-
-      LOGICAL                                            :: my_tddft
-
-      my_tddft = .FALSE.
-      IF (PRESENT(tddft)) my_tddft = tddft
 
       CALL reallocate(mp_rho%Qlm_h, 1, nchan_s)
       CALL reallocate(mp_rho%Qlm_s, 1, nchan_s)
@@ -527,11 +491,7 @@ CONTAINS
       mp_rho%Qlm_s = 0.0_dp
       mp_rho%Qlm_tot = 0.0_dp
       mp_rho%Qlm_car = 0.0_dp
-      IF (.NOT. my_tddft) THEN
-         mp_rho%Qlm_z = -2.0_dp*rootpi*Zeff
-      ELSE
-         mp_rho%Qlm_z = 0.0_dp
-      END IF
+      mp_rho%Qlm_z = -2.0_dp*rootpi*Zeff
       mp_rho%Q0 = 0.0_dp
 
    END SUBROUTINE initialize_mpole_rho
@@ -547,9 +507,6 @@ CONTAINS
       TYPE(rho0_mpole_type), POINTER                     :: rho0_mpole
       CHARACTER(LEN=*), INTENT(IN)                       :: unit_str
       INTEGER, INTENT(in)                                :: output_unit
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'write_rho0_info', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ikind, l, nkind
       REAL(dp)                                           :: conv

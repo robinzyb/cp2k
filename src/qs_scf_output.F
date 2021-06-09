@@ -1,12 +1,24 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 MODULE qs_scf_output
+   USE admm_types,                      ONLY: admm_type
+   USE admm_utils,                      ONLY: admm_correct_for_eigenvalues,&
+                                              admm_uncorrect_for_eigenvalues
    USE atomic_kind_types,               ONLY: atomic_kind_type
+   USE cp_blacs_env,                    ONLY: cp_blacs_env_type
    USE cp_control_types,                ONLY: dft_control_type
    USE cp_dbcsr_output,                 ONLY: cp_dbcsr_write_sparse_matrix
+   USE cp_fm_struct,                    ONLY: cp_fm_struct_create,&
+                                              cp_fm_struct_release,&
+                                              cp_fm_struct_type
+   USE cp_fm_types,                     ONLY: cp_fm_init_random,&
+                                              cp_fm_to_fm,&
+                                              cp_fm_type
    USE cp_log_handling,                 ONLY: cp_get_default_logger,&
                                               cp_logger_type
    USE cp_output_handling,              ONLY: cp_p_file,&
@@ -15,23 +27,29 @@ MODULE qs_scf_output
                                               cp_print_key_unit_nr
    USE cp_para_types,                   ONLY: cp_para_env_type
    USE cp_units,                        ONLY: cp_unit_from_cp2k
-   USE dbcsr_api,                       ONLY: dbcsr_p_type
+   USE dbcsr_api,                       ONLY: dbcsr_p_type,&
+                                              dbcsr_type
    USE input_constants,                 ONLY: &
         becke_cutoff_element, becke_cutoff_global, cdft_alpha_constraint, cdft_beta_constraint, &
-        cdft_charge_constraint, cdft_magnetization_constraint, outer_scf_becke_constraint, &
-        outer_scf_hirshfeld_constraint, outer_scf_optimizer_bisect, outer_scf_optimizer_broyden, &
-        outer_scf_optimizer_diis, outer_scf_optimizer_newton, outer_scf_optimizer_newton_ls, &
-        outer_scf_optimizer_sd, outer_scf_optimizer_secant, radius_covalent, radius_default, &
-        radius_single, radius_user, radius_vdw, shape_function_density, shape_function_gaussian
-   USE input_section_types,             ONLY: section_vals_get_subs_vals,&
+        cdft_charge_constraint, cdft_magnetization_constraint, ot_precond_full_all, &
+        outer_scf_becke_constraint, outer_scf_hirshfeld_constraint, outer_scf_optimizer_bisect, &
+        outer_scf_optimizer_broyden, outer_scf_optimizer_diis, outer_scf_optimizer_newton, &
+        outer_scf_optimizer_newton_ls, outer_scf_optimizer_sd, outer_scf_optimizer_secant, &
+        radius_covalent, radius_default, radius_single, radius_user, radius_vdw, &
+        shape_function_density, shape_function_gaussian
+   USE input_section_types,             ONLY: section_get_ivals,&
+                                              section_vals_get_subs_vals,&
                                               section_vals_type,&
                                               section_vals_val_get
    USE kahan_sum,                       ONLY: accurate_sum
-   USE kinds,                           ONLY: dp
+   USE kinds,                           ONLY: default_string_length,&
+                                              dp
+   USE kpoint_types,                    ONLY: kpoint_type
    USE machine,                         ONLY: m_flush
    USE particle_types,                  ONLY: particle_type
    USE physcon,                         ONLY: evolt,&
                                               kcalmol
+   USE preconditioner_types,            ONLY: preconditioner_type
    USE ps_implicit_types,               ONLY: MIXED_BC,&
                                               MIXED_PERIODIC_BC,&
                                               NEUMANN_BC,&
@@ -48,12 +66,20 @@ MODULE qs_scf_output
    USE qs_kind_types,                   ONLY: qs_kind_type
    USE qs_mo_io,                        ONLY: write_mo_set
    USE qs_mo_methods,                   ONLY: calculate_magnitude,&
-                                              calculate_orthonormality
-   USE qs_mo_types,                     ONLY: get_mo_set,&
-                                              mo_set_p_type
+                                              calculate_orthonormality,&
+                                              calculate_subspace_eigenvalues
+   USE qs_mo_occupation,                ONLY: set_mo_occupation
+   USE qs_mo_types,                     ONLY: allocate_mo_set,&
+                                              deallocate_mo_set,&
+                                              get_mo_set,&
+                                              init_mo_set,&
+                                              mo_set_p_type,&
+                                              mo_set_type
+   USE qs_ot_eigensolver,               ONLY: ot_eigensolver
    USE qs_rho_types,                    ONLY: qs_rho_get,&
                                               qs_rho_type
-   USE qs_scf_types,                    ONLY: qs_scf_env_type,&
+   USE qs_scf_types,                    ONLY: ot_method_nr,&
+                                              qs_scf_env_type,&
                                               special_diag_method_nr
    USE scf_control_types,               ONLY: scf_control_type
 #include "./base/base_uses.f90"
@@ -84,9 +110,6 @@ CONTAINS
    SUBROUTINE qs_scf_print_summary(output_unit, qs_env)
       INTEGER, INTENT(IN)                                :: output_unit
       TYPE(qs_environment_type), POINTER                 :: qs_env
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_scf_print_summary', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: nelectron_total
       LOGICAL                                            :: gapw, gapw_xc, qmmm
@@ -121,12 +144,7 @@ CONTAINS
       TYPE(mo_set_p_type), DIMENSION(:), POINTER         :: mos
       TYPE(dft_control_type), POINTER                    :: dft_control
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_scf_initial_info', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: homo, ispin, nao, nelectron_spin, nmo
-
-! print occupation numbers
 
       IF (output_unit > 0) THEN
          DO ispin = 1, dft_control%nspins
@@ -150,34 +168,256 @@ CONTAINS
    END SUBROUTINE qs_scf_initial_info
 
 ! **************************************************************************************************
-!> \brief writes out the mos in the scf loop if needed
-!> \param mos ...
-!> \param atomic_kind_set ...
-!> \param qs_kind_set ...
-!> \param particle_set ...
-!> \param dft_section ...
+!> \brief Write the MO eigenvector, eigenvalues, and occupation numbers to the output unit
+!> \param qs_env ...
+!> \param scf_env ...
+!> \param final_mos ...
+!> \par History
+!>      - Revise MO printout to enable eigenvalues with OT (05.05.2021, MK)
 ! **************************************************************************************************
-   SUBROUTINE qs_scf_write_mos(mos, atomic_kind_set, qs_kind_set, particle_set, dft_section)
-      TYPE(mo_set_p_type), DIMENSION(:), POINTER         :: mos
+   SUBROUTINE qs_scf_write_mos(qs_env, scf_env, final_mos)
+      TYPE(qs_environment_type), POINTER                 :: qs_env
+      TYPE(qs_scf_env_type), POINTER                     :: scf_env
+      LOGICAL, INTENT(IN)                                :: final_mos
+
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'qs_scf_write_mos'
+
+      CHARACTER(LEN=2)                                   :: solver_method
+      CHARACTER(LEN=3*default_string_length)             :: message
+      INTEGER                                            :: handle, ikp, ispin, kpoint, nao, &
+                                                            nelectron, nkp, nmo, nmo_tmp, nspin
+      INTEGER, DIMENSION(:), POINTER                     :: mo_index_range
+      LOGICAL                                            :: do_kpoints, print_eigvals, &
+                                                            print_eigvecs, print_mo_info, &
+                                                            print_occup
+      REAL(KIND=dp)                                      :: flexible_electron_count, maxocc, n_el_f
+      REAL(KIND=dp), DIMENSION(:), POINTER               :: mo_eigenvalues, mo_eigenvalues_tmp
+      TYPE(admm_type), POINTER                           :: admm_env
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
-      TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
+      TYPE(cp_blacs_env_type), POINTER                   :: blacs_env
+      TYPE(cp_fm_struct_type), POINTER                   :: fm_struct_tmp
+      TYPE(cp_fm_type), POINTER                          :: mo_coeff, mo_coeff_tmp
+      TYPE(cp_logger_type), POINTER                      :: logger
+      TYPE(cp_para_env_type), POINTER                    :: para_env
+      TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: ks, s
+      TYPE(dbcsr_type), POINTER                          :: matrix_ks, matrix_s
+      TYPE(dft_control_type), POINTER                    :: dft_control
+      TYPE(kpoint_type), POINTER                         :: kpoints
+      TYPE(mo_set_p_type), DIMENSION(:), POINTER         :: mos
+      TYPE(mo_set_type), POINTER                         :: mo_set_tmp
       TYPE(particle_type), DIMENSION(:), POINTER         :: particle_set
-      TYPE(section_vals_type), POINTER                   :: dft_section
+      TYPE(preconditioner_type), POINTER                 :: local_preconditioner
+      TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
+      TYPE(scf_control_type), POINTER                    :: scf_control
+      TYPE(section_vals_type), POINTER                   :: dft_section, input
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_scf_write_mos', &
-         routineP = moduleN//':'//routineN
+      CALL timeset(routineN, handle)
 
-      IF (SIZE(mos) > 1) THEN
-         CALL write_mo_set(mos(1)%mo_set, atomic_kind_set, qs_kind_set, particle_set, 4, &
-                           dft_section, spin="ALPHA", last=.FALSE.)
-         CALL write_mo_set(mos(2)%mo_set, atomic_kind_set, qs_kind_set, particle_set, 4, &
-                           dft_section, spin="BETA", last=.FALSE.)
-      ELSE
-         CALL write_mo_set(mos(1)%mo_set, atomic_kind_set, qs_kind_set, particle_set, 4, &
-                           dft_section, last=.FALSE.)
+      CPASSERT(ASSOCIATED(qs_env))
+
+      ! Retrieve the required information for the requested print output
+      CALL get_qs_env(qs_env, &
+                      atomic_kind_set=atomic_kind_set, &
+                      blacs_env=blacs_env, &
+                      dft_control=dft_control, &
+                      do_kpoints=do_kpoints, &
+                      input=input, &
+                      qs_kind_set=qs_kind_set, &
+                      para_env=para_env, &
+                      particle_set=particle_set, &
+                      scf_control=scf_control)
+
+      ! Quick return, if no printout of MO information is requested
+      dft_section => section_vals_get_subs_vals(input, "DFT")
+      CALL section_vals_val_get(dft_section, "PRINT%MO%EIGENVALUES", l_val=print_eigvals)
+      CALL section_vals_val_get(dft_section, "PRINT%MO%EIGENVECTORS", l_val=print_eigvecs)
+      CALL section_vals_val_get(dft_section, "PRINT%MO%OCCUPATION_NUMBERS", l_val=print_occup)
+      logger => cp_get_default_logger()
+      print_mo_info = (cp_print_key_should_output(logger%iter_info, dft_section, "PRINT%MO") /= 0)
+      IF ((.NOT. print_mo_info) .OR. (.NOT. (print_eigvals .OR. print_eigvecs .OR. print_occup))) THEN
+         CALL timestop(handle)
+         RETURN
       END IF
 
+      NULLIFY (fm_struct_tmp)
+      NULLIFY (mo_coeff)
+      NULLIFY (mo_coeff_tmp)
+      NULLIFY (mo_set_tmp)
+
+      nspin = dft_control%nspins
+
+      ! Check, if we have k points
+      IF (do_kpoints) THEN
+         CALL get_qs_env(qs_env, kpoints=kpoints)
+         nkp = SIZE(kpoints%kp_env)
+      ELSE
+         CALL get_qs_env(qs_env, matrix_ks=ks, matrix_s=s, mos=mos)
+         CPASSERT(ASSOCIATED(ks))
+         CPASSERT(ASSOCIATED(s))
+         nkp = 1
+      END IF
+
+      DO ikp = 1, nkp
+
+         IF (do_kpoints) THEN
+            mos => kpoints%kp_env(ikp)%kpoint_env%mos(1, :)
+            kpoint = ikp
+         ELSE
+            CALL get_qs_env(qs_env, matrix_ks=ks, mos=mos)
+            kpoint = 0 ! Gamma point only
+         END IF
+         CPASSERT(ASSOCIATED(mos))
+
+         ! Prepare MO information for printout
+         DO ispin = 1, nspin
+
+            ! Calculate MO eigenvalues and eigenvector when OT is used
+            IF (scf_env%method == ot_method_nr) THEN
+               solver_method = "OT"
+
+               IF (do_kpoints) THEN
+                  CPABORT("The OT method is not implemented for k points")
+               END IF
+
+               matrix_ks => ks(ispin)%matrix
+               matrix_s => s(1)%matrix
+
+               ! With ADMM, we have to modify the Kohn-Sham matrix
+               IF (dft_control%do_admm) THEN
+                  CALL get_qs_env(qs_env, admm_env=admm_env)
+                  CALL admm_correct_for_eigenvalues(ispin, admm_env, matrix_ks)
+               END IF
+
+               CALL get_mo_set(mo_set=mos(ispin)%mo_set, &
+                               mo_coeff=mo_coeff, &
+                               eigenvalues=mo_eigenvalues, &
+                               maxocc=maxocc, &
+                               nelectron=nelectron, &
+                               n_el_f=n_el_f, &
+                               nao=nao, &
+                               nmo=nmo, &
+                               flexible_electron_count=flexible_electron_count)
+
+               mo_index_range => section_get_ivals(dft_section, "PRINT%MO%MO_INDEX_RANGE")
+               CPASSERT(ASSOCIATED(mo_index_range))
+
+               ! Retrieve the index of the last MO for which a printout is requested
+               nmo_tmp = mo_index_range(2)
+               IF (nmo_tmp <= nmo) THEN
+                  nmo_tmp = nmo
+               ELSE
+                  IF (.NOT. final_mos) THEN
+                     message = "The MO information for unoccupied MOs is only calculated after "// &
+                               "SCF convergence is achieved when the orbital transformation (OT) "// &
+                               "method is used"
+                     CPWARN(TRIM(message))
+                     nmo_tmp = nmo
+                  END IF
+               END IF
+
+               ! Create temporary MO set for printout
+               CALL cp_fm_struct_create(fm_struct_tmp, &
+                                        context=blacs_env, &
+                                        para_env=para_env, &
+                                        nrow_global=nao, &
+                                        ncol_global=nmo_tmp)
+               CALL allocate_mo_set(mo_set=mo_set_tmp, &
+                                    nao=nao, &
+                                    nmo=nmo_tmp, &
+                                    nelectron=nelectron, &
+                                    n_el_f=n_el_f, &
+                                    maxocc=maxocc, &
+                                    flexible_electron_count=flexible_electron_count)
+               CALL init_mo_set(mo_set=mo_set_tmp, &
+                                fm_struct=fm_struct_tmp, &
+                                name="Temporary MO set for printout")
+               CALL cp_fm_struct_release(fm_struct_tmp)
+
+               mo_coeff_tmp => mo_set_tmp%mo_coeff
+               mo_eigenvalues_tmp => mo_set_tmp%eigenvalues
+
+               ! Calculate MOs information for the request MO index range
+               IF (final_mos) THEN
+                  ! Prepare printout of additional unoccupied MOs
+                  IF (nmo_tmp > nmo) THEN
+                     CALL cp_fm_init_random(mo_set_tmp%mo_coeff, nmo_tmp)
+                     ! The FULL_ALL preconditioner makes not much sense for the unoccupied orbitals
+                     NULLIFY (local_preconditioner)
+                     IF (ASSOCIATED(scf_env%ot_preconditioner)) THEN
+                        local_preconditioner => scf_env%ot_preconditioner(1)%preconditioner
+                        IF (local_preconditioner%in_use == ot_precond_full_all) THEN
+                           NULLIFY (local_preconditioner)
+                        END IF
+                     END IF
+                     CALL ot_eigensolver(matrix_h=matrix_ks, &
+                                         matrix_s=matrix_s, &
+                                         matrix_c_fm=mo_coeff_tmp, &
+                                         matrix_orthogonal_space_fm=mo_coeff, &
+                                         eps_gradient=scf_control%eps_lumos, &
+                                         preconditioner=local_preconditioner, &
+                                         iter_max=scf_control%max_iter_lumos, &
+                                         size_ortho_space=nmo)
+                  ELSE
+                     CALL cp_fm_to_fm(mo_coeff, mo_coeff_tmp, nmo)
+                  END IF
+               ELSE
+                  CALL cp_fm_to_fm(mo_coeff, mo_coeff_tmp, nmo)
+               END IF ! final MOs
+
+               CALL calculate_subspace_eigenvalues(orbitals=mo_coeff_tmp, &
+                                                   ks_matrix=matrix_ks, &
+                                                   evals_arg=mo_eigenvalues_tmp, &
+                                                   do_rotation=.TRUE.)
+               CALL set_mo_occupation(mo_set=mo_set_tmp)
+
+               ! With ADMM, we have to undo the modification of the Kohn-Sham matrix
+               IF (dft_control%do_admm) THEN
+                  CALL admm_uncorrect_for_eigenvalues(ispin, admm_env, matrix_ks)
+               END IF
+
+            ELSE
+
+               solver_method = "TD"
+               mo_set_tmp => mos(ispin)%mo_set
+
+            END IF ! OT is used
+
+            ! Print MO information
+            IF (SIZE(mos) > 1) THEN
+               SELECT CASE (ispin)
+               CASE (1)
+                  CALL write_mo_set(mo_set_tmp, atomic_kind_set, qs_kind_set, particle_set, &
+                                    dft_section, 4, kpoint, final_mos=final_mos, spin="ALPHA", &
+                                    solver_method=solver_method)
+               CASE (2)
+                  CALL write_mo_set(mo_set_tmp, atomic_kind_set, qs_kind_set, particle_set, &
+                                    dft_section, 4, kpoint, final_mos=final_mos, spin="BETA", &
+                                    solver_method=solver_method)
+               CASE DEFAULT
+                  CPABORT("Invalid spin")
+               END SELECT
+            ELSE
+               CALL write_mo_set(mo_set_tmp, atomic_kind_set, qs_kind_set, particle_set, &
+                                 dft_section, 4, kpoint, final_mos=final_mos, &
+                                 solver_method=solver_method)
+            END IF
+
+            ! Deallocate temporary objects needed for OT
+            IF (scf_env%method == ot_method_nr) THEN
+               CALL deallocate_mo_set(mo_set_tmp)
+               NULLIFY (matrix_ks)
+               NULLIFY (matrix_s)
+            END IF
+            NULLIFY (mo_set_tmp)
+
+         END DO ! ispin
+
+      END DO ! k point loop
+
+      CALL timestop(handle)
+
    END SUBROUTINE qs_scf_write_mos
+
 ! **************************************************************************************************
 !> \brief writes basic information obtained in a scf outer loop step
 !> \param output_unit ...
@@ -188,7 +428,6 @@ CONTAINS
 !> \param should_stop ...
 !> \param outer_loop_converged ...
 ! **************************************************************************************************
-
    SUBROUTINE qs_scf_outer_loop_info(output_unit, scf_control, scf_env, &
                                      energy, total_steps, should_stop, outer_loop_converged)
       INTEGER                                            :: output_unit
@@ -197,9 +436,6 @@ CONTAINS
       TYPE(qs_energy_type), POINTER                      :: energy
       INTEGER                                            :: total_steps
       LOGICAL, INTENT(IN)                                :: should_stop, outer_loop_converged
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_scf_outer_loop_info', &
-         routineP = moduleN//':'//routineN
 
       REAL(KIND=dp)                                      :: outer_loop_eps
 
@@ -230,7 +466,6 @@ CONTAINS
 !> \param t2 ...
 !> \param energy ...
 ! **************************************************************************************************
-
    SUBROUTINE qs_scf_loop_info(scf_env, output_unit, just_energy, t1, t2, energy)
 
       TYPE(qs_scf_env_type), POINTER                     :: scf_env
@@ -239,27 +474,24 @@ CONTAINS
       REAL(KIND=dp)                                      :: t1, t2
       TYPE(qs_energy_type), POINTER                      :: energy
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_scf_loop_info', &
-         routineP = moduleN//':'//routineN
-
       IF ((output_unit > 0) .AND. scf_env%print_iter_line) THEN
          IF (just_energy) THEN
             WRITE (UNIT=output_unit, &
                    FMT="(T2,I5,1X,A,T20,E8.2,1X,F6.1,16X,F20.10)") &
                scf_env%iter_count, TRIM(scf_env%iter_method), scf_env%iter_param, &
-               t2-t1, energy%total
+               t2 - t1, energy%total
          ELSE
             IF ((ABS(scf_env%iter_delta) < 1.0E-8_dp) .OR. &
                 (ABS(scf_env%iter_delta) >= 1.0E5_dp)) THEN
                WRITE (UNIT=output_unit, &
                       FMT="(T2,I5,1X,A,T20,E8.2,1X,F6.1,1X,ES14.4,1X,F20.10,1X,ES9.2)") &
                   scf_env%iter_count, TRIM(scf_env%iter_method), scf_env%iter_param, &
-                  t2-t1, scf_env%iter_delta, energy%total, energy%total-energy%tot_old
+                  t2 - t1, scf_env%iter_delta, energy%total, energy%total - energy%tot_old
             ELSE
                WRITE (UNIT=output_unit, &
                       FMT="(T2,I5,1X,A,T20,E8.2,1X,F6.1,1X,F14.8,1X,F20.10,1X,ES9.2)") &
                   scf_env%iter_count, TRIM(scf_env%iter_method), scf_env%iter_param, &
-                  t2-t1, scf_env%iter_delta, energy%total, energy%total-energy%tot_old
+                  t2 - t1, scf_env%iter_delta, energy%total, energy%total - energy%tot_old
             END IF
          END IF
       END IF
@@ -281,6 +513,7 @@ CONTAINS
 !> \param gapw_xc ...
 !> \par History
 !>      03.2006 created [Joost VandeVondele]
+!>      10.2019 print dipole moment [SGh]
 ! **************************************************************************************************
    SUBROUTINE qs_scf_print_scf_summary(output_unit, rho, qs_charges, energy, nelectron_total, &
                                        dft_control, qmmm, qs_env, gapw, gapw_xc)
@@ -294,12 +527,11 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       LOGICAL, INTENT(IN)                                :: gapw, gapw_xc
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_scf_print_scf_summary', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_scf_print_scf_summary'
 
       INTEGER                                            :: bc, handle, ispin, psolver
-      REAL(kind=dp)                                      :: exc_energy, implicit_ps_ehartree, &
-                                                            tot1_h, tot1_s
+      REAL(kind=dp)                                      :: exc1_energy, exc_energy, &
+                                                            implicit_ps_ehartree, tot1_h, tot1_s
       REAL(KIND=dp), DIMENSION(:), POINTER               :: tot_rho_r
       TYPE(pw_env_type), POINTER                         :: pw_env
 
@@ -317,32 +549,40 @@ CONTAINS
             WRITE (UNIT=output_unit, FMT="(/,(T3,A,T41,2F20.10))") &
                "Electronic density on regular grids: ", &
                accurate_sum(tot_rho_r), &
-               accurate_sum(tot_rho_r)+nelectron_total, &
+               accurate_sum(tot_rho_r) + nelectron_total, &
                "Core density on regular grids:", &
                qs_charges%total_rho_core_rspace, &
-               qs_charges%total_rho_core_rspace-REAL(nelectron_total+dft_control%charge, dp)
+               qs_charges%total_rho_core_rspace - REAL(nelectron_total + dft_control%charge, dp)
+
+            IF (dft_control%correct_surf_dip) THEN
+               WRITE (UNIT=output_unit, FMT="((T3,A,/,T3,A,T41,F20.10))") &
+                  "Total dipole moment perpendicular to ", &
+                  "the slab [electrons-Angstroem]: ", &
+                  qs_env%surface_dipole_moment
+            END IF
+
             IF (gapw) THEN
                tot1_h = qs_charges%total_rho1_hard(1)
                tot1_s = qs_charges%total_rho1_soft(1)
                DO ispin = 2, dft_control%nspins
-                  tot1_h = tot1_h+qs_charges%total_rho1_hard(ispin)
-                  tot1_s = tot1_s+qs_charges%total_rho1_soft(ispin)
+                  tot1_h = tot1_h + qs_charges%total_rho1_hard(ispin)
+                  tot1_s = tot1_s + qs_charges%total_rho1_soft(ispin)
                END DO
                WRITE (UNIT=output_unit, FMT="((T3,A,T41,2F20.10))") &
                   "Hard and soft densities (Lebedev):", &
                   tot1_h, tot1_s
                WRITE (UNIT=output_unit, FMT="(T3,A,T41,F20.10)") &
                   "Total Rho_soft + Rho1_hard - Rho1_soft (r-space): ", &
-                  accurate_sum(tot_rho_r)+tot1_h-tot1_s, &
+                  accurate_sum(tot_rho_r) + tot1_h - tot1_s, &
                   "Total charge density (r-space):      ", &
-                  accurate_sum(tot_rho_r)+tot1_h-tot1_s &
-                  +qs_charges%total_rho_core_rspace, &
+                  accurate_sum(tot_rho_r) + tot1_h - tot1_s &
+                  + qs_charges%total_rho_core_rspace, &
                   "Total Rho_soft + Rho0_soft (g-space):", &
                   qs_charges%total_rho_gspace
             ELSE
                WRITE (UNIT=output_unit, FMT="(T3,A,T41,F20.10)") &
                   "Total charge density on r-space grids:     ", &
-                  accurate_sum(tot_rho_r)+ &
+                  accurate_sum(tot_rho_r) + &
                   qs_charges%total_rho_core_rspace, &
                   "Total charge density g-space grids:     ", &
                   qs_charges%total_rho_gspace
@@ -354,7 +594,7 @@ CONTAINS
                "Core Hamiltonian energy [eV]:                  ", energy%core*evolt, &
                "Two-electron integral energy [eV]:             ", energy%hartree*evolt, &
                "Electronic energy [eV]:                        ", &
-               (energy%core+0.5_dp*energy%hartree)*evolt
+               (energy%core + 0.5_dp*energy%hartree)*evolt
             IF (energy%dispersion /= 0.0_dp) &
                WRITE (UNIT=output_unit, FMT="(T3,A,T56,F25.14)") &
                "Dispersion energy [eV]:                     ", energy%dispersion*evolt
@@ -377,14 +617,22 @@ CONTAINS
                "Electronic energy:                             ", energy%hartree, &
                "DFTB3 3rd order energy:                        ", energy%dftb3, &
                "Dispersion energy:                             ", energy%dispersion
+            IF (dft_control%qs_control%xtb_control%xb_interaction) &
+               WRITE (UNIT=output_unit, FMT="(T3,A,T56,F25.14)") &
+               "Correction for halogen bonding:                ", energy%xtb_xb_inter
+            IF (dft_control%qs_control%xtb_control%do_nonbonded) &
+               WRITE (UNIT=output_unit, FMT="(T3,A,T56,F25.14)") &
+               "Correction for nonbonded interactions:         ", energy%xtb_nonbonded
             IF (energy%efield /= 0.0_dp) &
                WRITE (UNIT=output_unit, FMT="(T3,A,T56,F25.14)") &
                "Electric field interaction energy:          ", energy%efield
          ELSE
             IF (dft_control%do_admm) THEN
-               exc_energy = energy%exc+energy%exc_aux_fit
+               exc_energy = energy%exc + energy%exc_aux_fit
+               IF (gapw .OR. gapw_xc) exc1_energy = energy%exc1 + energy%exc1_aux_fit
             ELSE
                exc_energy = energy%exc
+               IF (gapw .OR. gapw_xc) exc1_energy = energy%exc1
             END IF
 
             IF (psolver .EQ. pw_poisson_implicit) THEN
@@ -425,14 +673,17 @@ CONTAINS
             IF (energy%dispersion /= 0.0_dp) &
                WRITE (UNIT=output_unit, FMT="(T3,A,T56,F25.14)") &
                "Dispersion energy:                             ", energy%dispersion
+            IF (energy%gcp /= 0.0_dp) &
+               WRITE (UNIT=output_unit, FMT="(T3,A,T56,F25.14)") &
+               "gCP energy:                                    ", energy%gcp
             IF (gapw) THEN
                WRITE (UNIT=output_unit, FMT="(/,(T3,A,T56,F25.14))") &
-                  "GAPW| Exc from hard and soft atomic rho1:      ", energy%exc1, &
+                  "GAPW| Exc from hard and soft atomic rho1:      ", exc1_energy, &
                   "GAPW| local Eh = 1 center integrals:           ", energy%hartree_1c
             END IF
             IF (gapw_xc) THEN
                WRITE (UNIT=output_unit, FMT="(/,(T3,A,T56,F25.14))") &
-                  "GAPW_XC| Exc from hard and soft atomic rho1:      ", energy%exc1
+                  "GAPW_XC| Exc from hard and soft atomic rho1:      ", exc1_energy
             END IF
          END IF
          IF (dft_control%smear) THEN
@@ -459,7 +710,7 @@ CONTAINS
             IF (qs_env%qmmm_env_qm%image_charge) THEN
                WRITE (UNIT=output_unit, FMT="(T3,A,T56,F25.14)") &
                   "QM/MM image charge energy:                ", energy%image_charge
-            ENDIF
+            END IF
          END IF
          IF (dft_control%qs_control%mulliken_restraint) THEN
             WRITE (UNIT=output_unit, FMT="(T3,A,T56,F25.14)") &
@@ -471,7 +722,7 @@ CONTAINS
             WRITE (UNIT=output_unit, FMT="(/,(T3,A,T56,F25.14))") &
                "Atomic reference energy [eV]:                  ", energy%core_self*evolt, &
                "Heat of formation [kcal/mol]:                  ", &
-               (energy%total+energy%core_self)*kcalmol
+               (energy%total + energy%core_self)*kcalmol
          ELSE
             WRITE (UNIT=output_unit, FMT="(/,(T3,A,T56,F25.14))") &
                "Total energy:                                  ", energy%total
@@ -479,8 +730,8 @@ CONTAINS
          IF (qmmm) THEN
             IF (qs_env%qmmm_env_qm%image_charge) THEN
                CALL print_image_coefficients(qs_env%image_coeff, qs_env)
-            ENDIF
-         ENDIF
+            END IF
+         END IF
          CALL m_flush(output_unit)
       END IF
 
@@ -501,8 +752,7 @@ CONTAINS
       TYPE(qs_scf_env_type), POINTER                     :: scf_env
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_scf_loop_print', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'qs_scf_loop_print'
 
       INTEGER                                            :: after, handle, ic, ispin, iw
       LOGICAL                                            :: do_kpoints, omit_headers
@@ -562,7 +812,7 @@ CONTAINS
                                               "PRINT%AO_MATRICES/KOHN_SHAM_MATRIX")
          END IF
 
-      ENDDO
+      END DO
 
       IF (BTEST(cp_print_key_should_output(logger%iter_info, &
                                            scf_section, "PRINT%MO_ORTHONORMALITY"), cp_p_file)) THEN
@@ -572,7 +822,7 @@ CONTAINS
             IF (iw > 0) THEN
                WRITE (iw, '(T8,A)') &
                   " K-points: Maximum deviation from MO S-orthonormality not determined"
-            ENDIF
+            END IF
             CALL cp_print_key_finished_output(iw, logger, scf_section, &
                                               "PRINT%MO_ORTHONORMALITY")
          ELSE
@@ -588,11 +838,11 @@ CONTAINS
             IF (iw > 0) THEN
                WRITE (iw, '(T8,A,T61,E20.4)') &
                   " Maximum deviation from MO S-orthonormality", orthonormality
-            ENDIF
+            END IF
             CALL cp_print_key_finished_output(iw, logger, scf_section, &
                                               "PRINT%MO_ORTHONORMALITY")
          END IF
-      ENDIF
+      END IF
       IF (BTEST(cp_print_key_should_output(logger%iter_info, &
                                            scf_section, "PRINT%MO_MAGNITUDE"), cp_p_file)) THEN
          IF (do_kpoints) THEN
@@ -601,7 +851,7 @@ CONTAINS
             IF (iw > 0) THEN
                WRITE (iw, '(T8,A)') &
                   " K-points: Minimum/Maximum MO magnitude not determined"
-            ENDIF
+            END IF
             CALL cp_print_key_finished_output(iw, logger, scf_section, &
                                               "PRINT%MO_MAGNITUDE")
          ELSE
@@ -612,11 +862,11 @@ CONTAINS
             IF (iw > 0) THEN
                WRITE (iw, '(T8,A,T41,2E20.4)') &
                   " Minimum/Maximum MO magnitude ", mo_mag_min, mo_mag_max
-            ENDIF
+            END IF
             CALL cp_print_key_finished_output(iw, logger, scf_section, &
                                               "PRINT%MO_MAGNITUDE")
          END IF
-      ENDIF
+      END IF
 
       CALL timestop(handle)
 
@@ -647,9 +897,6 @@ CONTAINS
       INTEGER                                            :: total_steps
       LOGICAL, INTENT(IN)                                :: should_stop, outer_loop_converged, &
                                                             cdft_loop
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_scf_cdft_info', &
-         routineP = moduleN//':'//routineN
 
       REAL(KIND=dp)                                      :: outer_loop_eps
 
@@ -684,9 +931,6 @@ CONTAINS
    SUBROUTINE qs_scf_cdft_initial_info(output_unit, cdft_control)
       INTEGER                                            :: output_unit
       TYPE(cdft_control_type), POINTER                   :: cdft_control
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_scf_cdft_initial_info', &
-         routineP = moduleN//':'//routineN
 
       IF (output_unit > 0) THEN
          WRITE (output_unit, '(/,A)') &
@@ -735,7 +979,7 @@ CONTAINS
             "  Reusing OT preconditioner: ", cdft_control%reuse_precond
          IF (cdft_control%reuse_precond) THEN
             WRITE (output_unit, '(A,I3,A,I3,A)') &
-               "       using old preconditioner for upto ", &
+               "       using old preconditioner for up to ", &
                cdft_control%max_reuse, " subsequent CDFT SCF"
             WRITE (output_unit, '(A,I3,A,I3,A)') &
                "       iterations if the relevant loop converged in less than ", &
@@ -830,9 +1074,6 @@ CONTAINS
       INTEGER                                            :: output_unit
       TYPE(cdft_control_type), POINTER                   :: cdft_control
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_scf_cdft_constraint_info', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: igroup
 
       IF (output_unit > 0) THEN
@@ -850,7 +1091,7 @@ CONTAINS
             IF (igroup > 1) WRITE (output_unit, '(T3,A)') ' '
             WRITE (output_unit, '(T3,A,T54,(3X,I18))') &
                'Atomic group                :', igroup
-            SELECT CASE (cdft_control%group (igroup)%constraint_type)
+            SELECT CASE (cdft_control%group(igroup)%constraint_type)
             CASE (cdft_charge_constraint)
                IF (cdft_control%group(igroup)%is_fragment_constraint) THEN
                   WRITE (output_unit, '(T3,A,T42,A)') &
@@ -891,7 +1132,7 @@ CONTAINS
             WRITE (output_unit, '(T3,A,T54,(3X,F18.12))') &
                'Current value of constraint :', cdft_control%value(igroup)
             WRITE (output_unit, '(T3,A,T59,(3X,ES13.3))') &
-               'Deviation from target       :', cdft_control%value(igroup)-cdft_control%target(igroup)
+               'Deviation from target       :', cdft_control%value(igroup) - cdft_control%target(igroup)
             WRITE (output_unit, '(T3,A,T54,(3X,F18.12))') &
                'Strength of constraint      :', cdft_control%strength(igroup)
          END DO

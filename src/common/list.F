@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -22,11 +24,11 @@
 
 MODULE list
 
-USE timings_base_type,       ONLY: ${uselist(usetimingsbase)}$
-USE list_callstackentry,     ONLY: @{uselist_listmethods(callstackentry)}@
-USE list_routinereport,      ONLY: @{uselist_listmethods(routinereport)}@
-USE list_routinestat,        ONLY: @{uselist_listmethods(routinestat)}@
-USE list_timerenv,           ONLY: @{uselist_listmethods(timerenv)}@
+   USE timings_base_type, ONLY: ${uselist(usetimingsbase)}$
+   USE list_callstackentry, ONLY: @{uselist_listmethods(callstackentry)}@
+   USE list_routinereport, ONLY: @{uselist_listmethods(routinereport)}@
+   USE list_routinestat, ONLY: @{uselist_listmethods(routinestat)}@
+   USE list_timerenv, ONLY: @{uselist_listmethods(timerenv)}@
 
 #include "../base/base_uses.f90"
    IMPLICIT NONE
@@ -57,7 +59,7 @@ USE list_timerenv,           ONLY: @{uselist_listmethods(timerenv)}@
 #:for vtype in valuetype
       MODULE PROCEDURE list_${vtype}$_push
 #:endfor
-END INTERFACE
+   END INTERFACE
 
    INTERFACE list_pop
 #:for vtype in valuetype

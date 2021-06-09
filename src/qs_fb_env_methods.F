@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 MODULE qs_fb_env_methods
@@ -138,7 +140,7 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: scf_section
       LOGICAL, INTENT(INOUT)                             :: diis_step
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'fb_env_do_diag', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'fb_env_do_diag'
 
       CHARACTER(len=2)                                   :: spin_string
       CHARACTER(len=default_string_length)               :: name
@@ -348,7 +350,7 @@ CONTAINS
       CALL dbcsr_finalize(matrix_filtered_ks)
 
       ! create DBCSR filtered S (overlap) matrix. Note that
-      ! matrix_s(1)%matrix is the orginal overlap matrix---the rest in
+      ! matrix_s(1)%matrix is the original overlap matrix---the rest in
       ! the array are derivatives, and it should not depend on
       ! spin. HOWEVER, since the filter matrix is constructed from KS
       ! matrix, and does depend on spin, the filtered S also becomes
@@ -541,7 +543,7 @@ CONTAINS
                          mo_coeff=mo_coeff_filtered, &
                          kTS=kTS_filtered, &
                          mu=mu_filtered)
-         ! first set all the relevent scalars
+         ! first set all the relevant scalars
          CALL set_mo_set(mo_set=mos(ispin)%mo_set, &
                          homo=homo_filtered, &
                          lfomo=lfomo_filtered, &
@@ -619,8 +621,7 @@ CONTAINS
       INTEGER, INTENT(OUT)                               :: ndep
       INTEGER, INTENT(IN)                                :: method
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_env_eigensolver', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'fb_env_eigensolver'
 
       CHARACTER(len=8)                                   :: ndep_string
       INTEGER                                            :: handle, info, my_method, nao, nmo
@@ -737,8 +738,7 @@ CONTAINS
       TYPE(fb_env_obj), INTENT(INOUT)                    :: fb_env
       TYPE(section_vals_type), POINTER                   :: scf_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_env_read_input', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'fb_env_read_input'
 
       INTEGER                                            :: handle
       LOGICAL                                            :: l_val
@@ -787,8 +787,7 @@ CONTAINS
       TYPE(fb_env_obj), INTENT(INOUT)                    :: fb_env
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_env_build_rcut_auto', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'fb_env_build_rcut_auto'
 
       INTEGER                                            :: handle, ikind, nkinds
       REAL(KIND=dp)                                      :: auto_cutoff_scale, kind_radius
@@ -856,8 +855,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(section_vals_type), POINTER                   :: scf_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_env_build_atomic_halos', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'fb_env_build_atomic_halos'
 
       INTEGER :: handle, iatom, ihalo, max_natoms_local, natoms_global, natoms_local, nelectrons, &
          nhalo_atoms, nkinds_global, owner_id_in_halo
@@ -916,7 +914,7 @@ CONTAINS
       CALL fb_build_pair_radii(rcut, nkinds_global, pair_radii)
       ihalo = 0
       DO iatom = 1, natoms_local
-         ihalo = ihalo+1
+         ihalo = ihalo + 1
          CALL fb_atomic_halo_build_halo_atoms(local_atoms(iatom), &
                                               particle_set, &
                                               cell, &
@@ -977,8 +975,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       REAL(KIND=dp), INTENT(IN)                          :: maxocc
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_env_build_trial_fns_auto', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'fb_env_build_trial_fns_auto'
 
       INTEGER                                            :: counter, handle, icgf, ico, ikind, iset, &
                                                             ishell, itrial, lshell, max_n_trial, &
@@ -1041,15 +1038,15 @@ CONTAINS
                lshell = basis_set%l(ishell, iset)
                counter = 0
                ! loop over orbitals within the same l
-               DO ico = ncoset(lshell-1)+1, ncoset(lshell)
-                  counter = counter+1
+               DO ico = ncoset(lshell - 1) + 1, ncoset(lshell)
+                  counter = counter + 1
                   ! only include the first zeta orbitals
                   IF ((lshell .GT. old_lshell) .AND. (counter .LE. nco(lshell))) THEN
-                     nfunctions(ikind) = nfunctions(ikind)+1
+                     nfunctions(ikind) = nfunctions(ikind) + 1
                   END IF
                END DO
                ! we have got enough trial functions when we have enough
-               ! basis functions to accomodate the number of electrons,
+               ! basis functions to accommodate the number of electrons,
                ! AND that that we have included all the first zeta
                ! orbitals of an angular momentum quantum number l
                IF (((lshell .GT. old_lshell) .OR. (lshell .EQ. lmax(iset))) .AND. &
@@ -1084,12 +1081,12 @@ CONTAINS
                lshell = basis_set%l(ishell, iset)
                counter = 0
                ! loop over orbitals within the same l
-               DO ico = ncoset(lshell-1)+1, ncoset(lshell)
-                  icgf = icgf+1
-                  counter = counter+1
+               DO ico = ncoset(lshell - 1) + 1, ncoset(lshell)
+                  icgf = icgf + 1
+                  counter = counter + 1
                   ! only include the first zeta orbitals
                   IF ((lshell .GT. old_lshell) .AND. (counter .LE. nco(lshell))) THEN
-                     itrial = itrial+1
+                     itrial = itrial + 1
                      functions(itrial, ikind) = icgf
                   END IF
                END DO
@@ -1129,7 +1126,7 @@ CONTAINS
 !>        and their corresponding logical locations allocated, although
 !>        the blocks does not have to be the same size as the original
 !> \param matrix_out : DBCSR matrix whose blocks are to be allocated
-!> \param matrix_in  : DBCSR matrix with exising sparse structure that
+!> \param matrix_in  : DBCSR matrix with existing sparse structure that
 !>                     is to be copied
 !> \author Lianheng Tong (LT) lianheng.tong@kcl.ac.uk
 ! **************************************************************************************************
@@ -1137,9 +1134,6 @@ CONTAINS
 
       TYPE(dbcsr_type), INTENT(INOUT)                    :: matrix_out
       TYPE(dbcsr_type), INTENT(IN)                       :: matrix_in
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_dbcsr_copy_sparse_struct', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: iatom, iblk, jatom, nblkcols_total, &
                                                             nblkrows_total, nblks
@@ -1163,7 +1157,7 @@ CONTAINS
          CALL dbcsr_iterator_next_block(iter, iatom, jatom, mat_block, iblk)
          rows(iblk) = iatom
          cols(iblk) = jatom
-         nblks = nblks+1
+         nblks = nblks + 1
       END DO
       CALL dbcsr_iterator_stop(iter)
       CALL dbcsr_reserve_blocks(matrix_out, rows(1:nblks), cols(1:nblks))
@@ -1188,8 +1182,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(section_vals_type), POINTER                   :: scf_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'fb_env_write_info', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'fb_env_write_info'
 
       CHARACTER(LEN=2)                                   :: element_symbol
       INTEGER                                            :: handle, ikind, nkinds, unit_nr

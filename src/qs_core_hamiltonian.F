@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -155,8 +157,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       LOGICAL, INTENT(IN)                                :: calculate_forces
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'build_core_hamiltonian_matrix', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'build_core_hamiltonian_matrix'
 
       INTEGER                                            :: handle, ic, img, iw, nder, nders, &
                                                             nimages, nkind
@@ -287,19 +288,17 @@ CONTAINS
                                       sab_nl=sab_orb, calculate_forces=.TRUE., &
                                       matrixkp_p=matrix_p, &
                                       eps_filter=eps_filter)
-         IF (calculate_forces) THEN
-            ! *** If LSD, then recover alpha density and beta density     ***
-            ! *** from the total density (1) and the spin density (2)     ***
-            ! *** The W matrix is neglected, since it will be destroyed   ***
-            ! *** in the calling force routine after leaving this routine ***
-            IF (SIZE(matrix_p, 1) == 2) THEN
-               DO img = 1, nimages
-                  CALL dbcsr_add(matrix_p(1, img)%matrix, matrix_p(2, img)%matrix, &
-                                 alpha_scalar=0.5_dp, beta_scalar=0.5_dp)
-                  CALL dbcsr_add(matrix_p(2, img)%matrix, matrix_p(1, img)%matrix, &
-                                 alpha_scalar=-1.0_dp, beta_scalar=1.0_dp)
-               END DO
-            END IF
+         ! *** If LSD, then recover alpha density and beta density     ***
+         ! *** from the total density (1) and the spin density (2)     ***
+         ! *** The W matrix is neglected, since it will be destroyed   ***
+         ! *** in the calling force routine after leaving this routine ***
+         IF (SIZE(matrix_p, 1) == 2) THEN
+            DO img = 1, nimages
+               CALL dbcsr_add(matrix_p(1, img)%matrix, matrix_p(2, img)%matrix, &
+                              alpha_scalar=0.5_dp, beta_scalar=0.5_dp)
+               CALL dbcsr_add(matrix_p(2, img)%matrix, matrix_p(1, img)%matrix, &
+                              alpha_scalar=-1.0_dp, beta_scalar=1.0_dp)
+            END DO
          END IF
       ELSE
          ! S matrix
@@ -446,8 +445,6 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: calculate_forces
       INTEGER, INTENT(IN)                                :: nder
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'core_matrices', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: nimages
       INTEGER, DIMENSION(:, :, :), POINTER               :: cell_to_index
       LOGICAL                                            :: all_present, ppl_present, ppnl_present, &
@@ -552,9 +549,6 @@ CONTAINS
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
       TYPE(particle_type), DIMENSION(:), POINTER         :: particle_set
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'build_atomic_relmat', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: blk, iatom, ikind, jatom, natom
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: kind_of
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: hblock, reltmat
@@ -571,7 +565,7 @@ CONTAINS
          IF (iatom == jatom) THEN
             ikind = kind_of(iatom)
             CALL get_qs_kind(qs_kind_set(ikind), reltmat=reltmat)
-            hblock = hblock+reltmat
+            IF (ASSOCIATED(reltmat)) hblock = hblock + reltmat
          END IF
       END DO
       CALL dbcsr_iterator_stop(iter)
@@ -590,8 +584,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       LOGICAL, INTENT(IN)                                :: calculate_forces
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'dump_info_core_hamiltonian', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'dump_info_core_hamiltonian'
 
       INTEGER                                            :: after, handle, i, ic, iw, output_unit
       LOGICAL                                            :: omit_headers

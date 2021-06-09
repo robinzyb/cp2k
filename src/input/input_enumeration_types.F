@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -68,14 +70,12 @@ CONTAINS
          OPTIONAL                                        :: desc
       LOGICAL, INTENT(in), OPTIONAL                      :: strict
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'enum_create', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, j, n
 
       CPASSERT(.NOT. ASSOCIATED(enum))
       CPASSERT(SIZE(c_vals) == SIZE(i_vals))
       ALLOCATE (enum)
-      last_enumeration_id = last_enumeration_id+1
+      last_enumeration_id = last_enumeration_id + 1
       enum%id_nr = last_enumeration_id
       enum%ref_count = 1
       ALLOCATE (enum%c_vals(SIZE(c_vals)))
@@ -113,11 +113,9 @@ CONTAINS
    SUBROUTINE enum_retain(enum)
       TYPE(enumeration_type), POINTER                    :: enum
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'enum_retain', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(enum))
       CPASSERT(enum%ref_count > 0)
-      enum%ref_count = enum%ref_count+1
+      enum%ref_count = enum%ref_count + 1
    END SUBROUTINE enum_retain
 
 ! **************************************************************************************************
@@ -128,13 +126,11 @@ CONTAINS
    SUBROUTINE enum_release(enum)
       TYPE(enumeration_type), POINTER                    :: enum
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'enum_release', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
 
       IF (ASSOCIATED(enum)) THEN
          CPASSERT(enum%ref_count > 0)
-         enum%ref_count = enum%ref_count-1
+         enum%ref_count = enum%ref_count - 1
          IF (enum%ref_count == 0) THEN
             DEALLOCATE (enum%c_vals)
             DEALLOCATE (enum%i_vals)
@@ -159,8 +155,6 @@ CONTAINS
       TYPE(enumeration_type), POINTER                    :: enum
       INTEGER, INTENT(in)                                :: i
       CHARACTER(len=default_string_length)               :: res
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'enum_i2c', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: j
       LOGICAL                                            :: found
@@ -201,8 +195,6 @@ CONTAINS
       TYPE(enumeration_type), POINTER                    :: enum
       CHARACTER(len=*), INTENT(in)                       :: c
       INTEGER                                            :: res
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'enum_c2i', routineP = moduleN//':'//routineN
 
       CHARACTER(len=default_string_length)               :: upc
       INTEGER                                            :: iostat, j

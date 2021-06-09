@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -36,7 +38,10 @@ MODULE basis_set_container_types
                                                harris_basis = 109, &
                                                aux_gw_basis = 110, &
                                                ri_hxc_basis = 111, &
-                                               ri_k_basis = 112
+                                               ri_k_basis = 112, &
+                                               ri_xas_basis = 113, &
+                                               aux_fit_soft_basis = 114, &
+                                               ri_hfx_basis = 115
 ! **************************************************************************************************
    TYPE basis_set_container_type
       PRIVATE
@@ -63,9 +68,6 @@ CONTAINS
    SUBROUTINE remove_basis_set_container(basis)
       TYPE(basis_set_container_type), DIMENSION(:), &
          INTENT(inout)                                   :: basis
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'remove_basis_set_container', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
 
@@ -97,12 +99,16 @@ CONTAINS
          basis_type_nr = ri_aux_basis
       CASE ("RI_HXC")
          basis_type_nr = ri_hxc_basis
+      CASE ("RI_HFX")
+         basis_type_nr = ri_hfx_basis
       CASE ("RI_K")
          basis_type_nr = ri_k_basis
       CASE ("LRI_AUX")
          basis_type_nr = lri_aux_basis
       CASE ("AUX_FIT")
          basis_type_nr = aux_fit_basis
+      CASE ("AUX_FIT_SOFT")
+         basis_type_nr = aux_fit_soft_basis
       CASE ("SOFT")
          basis_type_nr = soft_basis
       CASE ("HARD")
@@ -113,6 +119,8 @@ CONTAINS
          basis_type_nr = harris_basis
       CASE ("AUX_GW")
          basis_type_nr = aux_gw_basis
+      CASE ("RI_XAS")
+         basis_type_nr = ri_xas_basis
       CASE DEFAULT
          basis_type_nr = unknown_basis
       END SELECT
@@ -130,9 +138,6 @@ CONTAINS
          INTENT(inout)                                   :: container
       TYPE(gto_basis_set_type), POINTER                  :: basis_set
       CHARACTER(len=*)                                   :: basis_set_type
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'add_basis_set_to_container', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
       LOGICAL                                            :: success
@@ -163,9 +168,6 @@ CONTAINS
       INTEGER, INTENT(IN), OPTIONAL                      :: inum
       CHARACTER(len=*), OPTIONAL                         :: basis_type
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'remove_basis_from_container', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: basis_nr, i, ibas
 
       IF (PRESENT(inum)) THEN
@@ -193,11 +195,11 @@ CONTAINS
          END IF
       END IF
       ! shift other basis sets
-      DO i = ibas+1, SIZE(container)
+      DO i = ibas + 1, SIZE(container)
          IF (container(i)%basis_type_nr == 0) CYCLE
-         container(i-1)%basis_type = container(i)%basis_type
-         container(i-1)%basis_set => container(i)%basis_set
-         container(i-1)%basis_type_nr = container(i)%basis_type_nr
+         container(i - 1)%basis_type = container(i)%basis_type
+         container(i - 1)%basis_set => container(i)%basis_set
+         container(i - 1)%basis_type_nr = container(i)%basis_type_nr
          container(i)%basis_type = ""
          container(i)%basis_type_nr = 0
          NULLIFY (container(i)%basis_set)
@@ -218,9 +220,6 @@ CONTAINS
       TYPE(gto_basis_set_type), POINTER                  :: basis_set
       INTEGER, OPTIONAL                                  :: inumbas
       CHARACTER(len=*), OPTIONAL                         :: basis_type
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_basis_from_container', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: basis_nr, i
 

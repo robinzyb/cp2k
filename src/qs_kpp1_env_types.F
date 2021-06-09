@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -60,6 +62,8 @@ MODULE qs_kpp1_env_types
       TYPE(pw_p_type), DIMENSION(:, :), POINTER :: drho_r
       TYPE(xc_derivative_set_type), POINTER :: deriv_set
       TYPE(xc_rho_set_type), POINTER        :: rho_set
+      TYPE(xc_derivative_set_type), POINTER :: deriv_set_admm
+      TYPE(xc_rho_set_type), POINTER        :: rho_set_admm
       INTEGER, DIMENSION(:, :), POINTER :: spin_pot
       LOGICAL, DIMENSION(:, :), POINTER :: grad_pot
       LOGICAL, DIMENSION(:), POINTER :: ndiag_term
@@ -88,13 +92,11 @@ CONTAINS
    SUBROUTINE kpp1_release(kpp1_env)
       TYPE(qs_kpp1_env_type), POINTER                    :: kpp1_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'kpp1_release', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ispin
 
       IF (ASSOCIATED(kpp1_env)) THEN
          CPASSERT(kpp1_env%ref_count > 0)
-         kpp1_env%ref_count = kpp1_env%ref_count-1
+         kpp1_env%ref_count = kpp1_env%ref_count - 1
          IF (kpp1_env%ref_count < 1) THEN
             IF (ASSOCIATED(kpp1_env%v_rspace)) THEN
                DO ispin = 1, SIZE(kpp1_env%v_rspace)
@@ -121,6 +123,14 @@ CONTAINS
                CALL xc_rho_set_release(kpp1_env%rho_set)
                NULLIFY (kpp1_env%rho_set)
             END IF
+            IF (ASSOCIATED(kpp1_env%deriv_set_admm)) THEN
+               CALL xc_dset_release(kpp1_env%deriv_set_admm)
+               NULLIFY (kpp1_env%deriv_set_admm)
+            END IF
+            IF (ASSOCIATED(kpp1_env%rho_set_admm)) THEN
+               CALL xc_rho_set_release(kpp1_env%rho_set_admm)
+               NULLIFY (kpp1_env%rho_set_admm)
+            END IF
             IF (ASSOCIATED(kpp1_env%spin_pot)) THEN
                DEALLOCATE (kpp1_env%spin_pot)
             END IF
@@ -146,11 +156,9 @@ CONTAINS
    SUBROUTINE kpp1_retain(kpp1_env)
       TYPE(qs_kpp1_env_type), POINTER                    :: kpp1_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'kpp1_retain', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(kpp1_env))
       CPASSERT(kpp1_env%ref_count > 0)
-      kpp1_env%ref_count = kpp1_env%ref_count+1
+      kpp1_env%ref_count = kpp1_env%ref_count + 1
    END SUBROUTINE kpp1_retain
 
 END MODULE qs_kpp1_env_types

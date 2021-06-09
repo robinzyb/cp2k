@@ -1,4 +1,4 @@
-&GLOBAL                                                                                           
+&GLOBAL
   PROJECT  RI_laplace_MP2_CH3
   PRINT_LEVEL MEDIUM
   RUN_TYPE ENERGY
@@ -36,18 +36,20 @@
         FRACTION 1.0000000
         &SCREENING
           EPS_SCHWARZ 1.0E-8
-          SCREEN_ON_INITIAL_P FALSE 
+          SCREEN_ON_INITIAL_P FALSE
         &END SCREENING
       &END HF
       &WF_CORRELATION
-        METHOD  RI_SOS_LAPLACE
-        &RI_LAPLACE
-          QUADRATURE_POINTS  5 
+        &RI_SOS_MP2
+          QUADRATURE_POINTS  5
         &END
-        &WFC_GPW
-          CUTOFF  100
-          REL_CUTOFF 20
-        &END
+        &INTEGRALS
+          &WFC_GPW
+            CUTOFF  50
+            REL_CUTOFF 20
+          &END WFC_GPW
+          ERI_METHOD GPW
+        &END INTEGRALS
         MEMORY  500.0
         NUMBER_PROC  1
       &END

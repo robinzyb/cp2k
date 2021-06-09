@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -17,8 +19,8 @@ MODULE dm_ls_scf_curvy
                                               cp_logger_get_default_unit_nr,&
                                               cp_logger_type
    USE dbcsr_api,                       ONLY: &
-        dbcsr_add, dbcsr_copy, dbcsr_create, dbcsr_filter, dbcsr_frobenius_norm, dbcsr_multiply, &
-        dbcsr_norm, dbcsr_release, dbcsr_scale, dbcsr_set, dbcsr_trace, dbcsr_transposed, &
+        dbcsr_add, dbcsr_copy, dbcsr_create, dbcsr_dot, dbcsr_filter, dbcsr_frobenius_norm, &
+        dbcsr_multiply, dbcsr_norm, dbcsr_release, dbcsr_scale, dbcsr_set, dbcsr_transposed, &
         dbcsr_type, dbcsr_type_no_symmetry
    USE dm_ls_scf_types,                 ONLY: ls_scf_curvy_type,&
                                               ls_scf_env_type
@@ -56,8 +58,7 @@ CONTAINS
       REAL(KIND=dp)                                      :: energy
       LOGICAL                                            :: check_conv
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'dm_ls_curvy_optimization', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'dm_ls_curvy_optimization'
 
       INTEGER                                            :: handle, i, lsstep
 
@@ -66,7 +67,7 @@ CONTAINS
       CALL cite_reference(Shao2003)
 
 ! Upon first call initialize all matrices needed curing optimization
-! In addtion transform P into orthonormal basis. Will be scaled by 0.5 in closed shell case
+! In addition transform P into orthonormal basis. Will be scaled by 0.5 in closed shell case
 ! Only to be done once as it will be stored and reused afterwards
 ! TRS4 might yield a non-idempotent P therefore McWeeny purification is applied on initial P
 
@@ -110,7 +111,7 @@ CONTAINS
       ELSE
          CALL new_p_from_save(ls_scf_env%matrix_p, ls_scf_env%curvy_data%matrix_psave, lsstep, &
                               ls_scf_env%curvy_data%double_step_size)
-         ls_scf_env%curvy_data%line_search_step = ls_scf_env%curvy_data%line_search_step+1
+         ls_scf_env%curvy_data%line_search_step = ls_scf_env%curvy_data%line_search_step + 1
          CALL timestop(handle)
          RETURN
       END IF
@@ -150,8 +151,7 @@ CONTAINS
       TYPE(ls_scf_curvy_type)                            :: curvy_data
       TYPE(ls_scf_env_type)                              :: ls_scf_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'optimization_step', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'optimization_step'
 
       INTEGER                                            :: handle, ispin
       REAL(KIND=dp)                                      :: filter, step_size(2)
@@ -174,7 +174,7 @@ CONTAINS
          curvy_data%BCH_saved = 0
       ELSE IF (curvy_data%line_search_step == 2) THEN
          step_size = curvy_data%step_size
-         IF (curvy_data%energies(1)-curvy_data%energies(2) .GT. 0.0_dp) THEN
+         IF (curvy_data%energies(1) - curvy_data%energies(2) .GT. 0.0_dp) THEN
             curvy_data%step_size = curvy_data%step_size*2.0_dp
             curvy_data%double_step_size = .TRUE.
          ELSE
@@ -195,7 +195,7 @@ CONTAINS
                         curvy_data%n_bch_hist)
 
 ! line_search type has the value appropriate to the numeber of energy calculations needed
-      curvy_data%line_search_step = MOD(curvy_data%line_search_step, curvy_data%line_search_type)+1
+      curvy_data%line_search_step = MOD(curvy_data%line_search_step, curvy_data%line_search_type) + 1
       IF (curvy_data%line_search_step == 1) THEN
          DO ispin = 1, SIZE(curvy_data%matrix_p)
             CALL dbcsr_copy(curvy_data%matrix_p(ispin), ls_scf_env%matrix_p(ispin))
@@ -218,19 +218,17 @@ CONTAINS
    SUBROUTINE line_search_2d(energies, step_size)
       REAL(KIND=dp)                                      :: energies(6), step_size(2)
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'line_search_2d', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: info, unit_nr
       REAL(KIND=dp)                                      :: e_pred, param(6), s1, s1sq, s2, s2sq, &
                                                             sys_lin_eq(6, 6), tmp_e, v1, v2
       TYPE(cp_logger_type), POINTER                      :: logger
 
       logger => cp_get_default_logger()
-      IF (energies(1)-energies(2) .LT. 0._dp) THEN
+      IF (energies(1) - energies(2) .LT. 0._dp) THEN
          tmp_e = energies(2); energies(2) = energies(3); energies(3) = tmp_e
          step_size = step_size*2.0_dp
       END IF
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -245,20 +243,20 @@ CONTAINS
 
       CALL invmat(sys_lin_eq, info)
       param = MATMUL(sys_lin_eq, energies)
-      v1 = (param(2)*param(4))/(2.0_dp*param(1))-param(5)
-      v2 = -(param(2)**2)/(2.0_dp*param(1))+2.0_dp*param(3)
+      v1 = (param(2)*param(4))/(2.0_dp*param(1)) - param(5)
+      v2 = -(param(2)**2)/(2.0_dp*param(1)) + 2.0_dp*param(3)
       step_size(2) = v1/v2
-      step_size(1) = (-param(2)*step_size(2)-param(4))/(2.0_dp*param(1))
+      step_size(1) = (-param(2)*step_size(2) - param(4))/(2.0_dp*param(1))
       IF (step_size(1) .LT. 0.0_dp) step_size(1) = 1.0_dp
       IF (step_size(2) .LT. 0.0_dp) step_size(2) = 1.0_dp
 !    step_size(1)=MIN(step_size(1),2.0_dp)
 !    step_size(2)=MIN(step_size(2),2.0_dp)
-      e_pred = param(1)*step_size(1)**2+param(2)*step_size(1)*step_size(2)+ &
-               param(3)*step_size(2)**2+param(4)*step_size(1)+param(5)*step_size(2)+param(6)
+      e_pred = param(1)*step_size(1)**2 + param(2)*step_size(1)*step_size(2) + &
+               param(3)*step_size(2)**2 + param(4)*step_size(1) + param(5)*step_size(2) + param(6)
       IF (unit_nr .GT. 0) WRITE (unit_nr, "(t3,a,F10.5,F10.5,A,F20.9)") &
          " Line Search: Step Size", step_size, " Predicted energy", e_pred
-      e_pred = param(1)*s1**2+param(2)*s2*s1*0.0_dp+ &
-               param(3)*s1**2*0.0_dp+param(4)*s1+param(5)*s1*0.0_dp+param(6)
+      e_pred = param(1)*s1**2 + param(2)*s2*s1*0.0_dp + &
+               param(3)*s1**2*0.0_dp + param(4)*s1 + param(5)*s1*0.0_dp + param(6)
 
    END SUBROUTINE line_search_2d
 
@@ -274,31 +272,28 @@ CONTAINS
    SUBROUTINE line_search_3pnt(energies, step_size)
       REAL(KIND=dp)                                      :: energies(3), step_size(2)
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'line_search_3pnt', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: unit_nr
       REAL(KIND=dp)                                      :: a, b, c, e_pred, min_val, step1, tmp, &
                                                             tmp_e
       TYPE(cp_logger_type), POINTER                      :: logger
 
       logger => cp_get_default_logger()
-      IF (energies(1)-energies(2) .LT. 0._dp) THEN
+      IF (energies(1) - energies(2) .LT. 0._dp) THEN
          tmp_e = energies(2); energies(2) = energies(3); energies(3) = tmp_e
          step_size = step_size*2.0_dp
       END IF
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
       ENDIF
       step1 = 0.5_dp*step_size(1)
       c = energies(1)
-      a = (energies(3)+c-2.0_dp*energies(2))/(2.0_dp*step1**2)
-      b = (energies(2)-c-a*step1**2)/step1
+      a = (energies(3) + c - 2.0_dp*energies(2))/(2.0_dp*step1**2)
+      b = (energies(2) - c - a*step1**2)/step1
       IF (a .LT. 1.0E-12_dp) a = -1.0E-12_dp
       min_val = -b/(2.0_dp*a)
-      e_pred = a*min_val**2+b*min_val+c
+      e_pred = a*min_val**2 + b*min_val + c
       tmp = step_size(1)
       IF (e_pred .LT. energies(1) .AND. e_pred .LT. energies(2)) THEN
          step_size = MAX(-1.0_dp, &
@@ -306,7 +301,7 @@ CONTAINS
       ELSE
          step_size = 1.0_dp
       END IF
-      e_pred = a*(step_size(1))**2+b*(step_size(1))+c
+      e_pred = a*(step_size(1))**2 + b*(step_size(1)) + c
       IF (unit_nr .GT. 0) THEN
          WRITE (unit_nr, "(t3,a,f16.8,a,F20.9)") "Line Search: Step Size", step_size(1), " Predicted energy", e_pred
          CALL m_flush(unit_nr)
@@ -338,8 +333,7 @@ CONTAINS
       REAL(KIND=dp)                                      :: curvy_shift(2), cg_numer(2), &
                                                             cg_denom(2), min_shift
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'compute_direction_newton', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'compute_direction_newton'
 
       INTEGER                                            :: handle, i, ispin, ncyc, nspin, unit_nr
       LOGICAL                                            :: at_limit
@@ -351,7 +345,7 @@ CONTAINS
 
       logger => cp_get_default_logger()
 
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -386,14 +380,14 @@ CONTAINS
 ! Precompute -FP-[FP]T which will be used throughout the CG iterations
          CALL dbcsr_add(matrix_b, matrix_PKs, -1.0_dp, -1.0_dp)
 
-! Setup some values to check convergence and safty checks for eigenvalue shifting
+! Setup some values to check convergence and safety checks for eigenvalue shifting
          CALL dbcsr_norm(matrix_res, which_norm=2, norm_scalar=old_conv)
          old_conv = dbcsr_frobenius_norm(matrix_res)
          shift = MIN(10.0_dp, MAX(min_shift, 0.05_dp*old_conv))
          conv_val = MAX(0.010_dp*old_conv, 100.0_dp*eps_filter)
          old_conv = 100.0_dp
          IF (fix_shift(ispin)) THEN
-            shift = MAX(min_shift, MIN(10.0_dp, MAX(shift, curvy_shift(ispin)-0.5_dp*curvy_shift(ispin))))
+            shift = MAX(min_shift, MIN(10.0_dp, MAX(shift, curvy_shift(ispin) - 0.5_dp*curvy_shift(ispin))))
             curvy_shift(ispin) = shift
          END IF
 
@@ -439,7 +433,7 @@ CONTAINS
          CALL dbcsr_copy(matrix_cg, matrix_b)
          CALL dbcsr_add(matrix_cg, matrix_PKs, 1.0_dp, -1.0_dp)
          cg_denom(ispin) = cg_numer(ispin)
-         CALL dbcsr_trace(matrix_cg, matrix_dp(ispin), cg_numer(ispin))
+         CALL dbcsr_dot(matrix_cg, matrix_dp(ispin), cg_numer(ispin))
          beta = cg_numer(ispin)/MAX(cg_denom(ispin), 1.0E-6_dp)
          IF (beta .LT. 1.0_dp) THEN
             beta = MAX(0.0_dp, beta)
@@ -482,27 +476,24 @@ CONTAINS
       REAL(KIND=dp)                                      :: eps_filter
       LOGICAL                                            :: at_limit
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'compute_cg_matrices', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, info
       REAL(KIND=dp)                                      :: alpha, beta, devi(3), fac, fac1, &
                                                             lin_eq(3, 3), new_norm, norm_cA, &
                                                             norm_rr, vec(3)
 
       at_limit = .FALSE.
-      CALL dbcsr_trace(res, res, norm_rr)
-      CALL dbcsr_trace(cg, Ax, norm_cA)
+      CALL dbcsr_dot(res, res, norm_rr)
+      CALL dbcsr_dot(cg, Ax, norm_cA)
       lin_eq = 0.0_dp
       fac = norm_rr/norm_cA
       fac1 = fac
-! Use a 3point line serach and a fit to a quadratic function to determine optimal step size
+! Use a 3point line search and a fit to a quadratic function to determine optimal step size
       DO i = 1, 3
          CALL dbcsr_copy(tmp, res)
          CALL dbcsr_add(tmp, Ax, 1.0_dp, -fac)
          devi(i) = dbcsr_frobenius_norm(tmp)
          lin_eq(i, :) = (/fac**2, fac, 1.0_dp/)
-         fac = fac1+fac1*((-1)**i)*0.5_dp
+         fac = fac1 + fac1*((-1)**i)*0.5_dp
       END DO
       CALL invmat(lin_eq, info)
       vec = MATMUL(lin_eq, devi)
@@ -516,7 +507,7 @@ CONTAINS
 ! USe CG to get the new matrices
       alpha = norm_rr/norm_cA
       CALL dbcsr_add(res, Ax, 1.0_dp, -alpha)
-      CALL dbcsr_trace(res, res, new_norm)
+      CALL dbcsr_dot(res, res, new_norm)
       IF (norm_rr .LT. eps_filter*0.001_dp .OR. new_norm .LT. eps_filter*0.001_dp) THEN
          beta = 0.0_dp
          at_limit = .TRUE.
@@ -530,7 +521,7 @@ CONTAINS
    END SUBROUTINE compute_cg_matrices
 
 ! **************************************************************************************************
-!> \brief Only for 2D line serach. Use saved P-components to construct new
+!> \brief Only for 2D line search. Use saved P-components to construct new
 !>        test density matrix. Takes care as well, whether step_size
 !>        increased or decreased during 2nd step and combines matrices accordingly
 !> \param matrix_p ...
@@ -590,8 +581,7 @@ CONTAINS
       TYPE(dbcsr_type)                                   :: a, b, res
       REAL(KIND=dp)                                      :: eps_filter, prefac
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'commutator_symm', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'commutator_symm'
 
       INTEGER                                            :: handle
       TYPE(dbcsr_type)                                   :: work
@@ -633,7 +623,7 @@ CONTAINS
       REAL(KIND=dp)                                      :: threshold, step_size(2)
       INTEGER                                            :: BCH_saved(2), n_bch_hist
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_p_exp', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'update_p_exp'
 
       INTEGER                                            :: handle, i, ispin, nsave, nspin, unit_nr
       LOGICAL                                            :: save_BCH
@@ -644,7 +634,7 @@ CONTAINS
       CALL timeset(routineN, handle)
 
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -676,7 +666,7 @@ CONTAINS
 
 ! If the copy and scale isn't enough compute a few more BCH steps. 20 seems high but except of the first step it will never be close
          save_BCH = BCH_saved(ispin) == 0 .AND. n_bch_hist .GT. 0
-         DO i = BCH_saved(ispin)+1, 20
+         DO i = BCH_saved(ispin) + 1, 20
             step_fac = step_fac*step_size(ispin)
             !allow for a bit of matrix magic here by exploiting matrix and matrix_tmp
             !matrix_tmp is alway the previous order of the BCH series
@@ -719,7 +709,7 @@ CONTAINS
    END SUBROUTINE update_p_exp
 
 ! **************************************************************************************************
-!> \brief performs a tranformation of a matrix back to/into orthonormal basis
+!> \brief performs a transformation of a matrix back to/into orthonormal basis
 !>        in case of P a scaling of 0.5 has to be applied for closed shell case
 !> \param matrix       matrix to be transformed
 !> \param matrix_trafo transformation matrix
@@ -734,8 +724,7 @@ CONTAINS
       TYPE(dbcsr_type)                                   :: matrix_trafo
       REAL(KIND=dp)                                      :: eps_filter
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'transform_matrix_orth', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'transform_matrix_orth'
 
       INTEGER                                            :: handle, ispin
       TYPE(dbcsr_type)                                   :: matrix_tmp, matrix_work
@@ -769,9 +758,6 @@ CONTAINS
    SUBROUTINE deallocate_curvy_data(curvy_data)
       TYPE(ls_scf_curvy_type)                            :: curvy_data
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'deallocate_curvy_data', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, j
 
       CALL release_dbcsr_array(curvy_data%matrix_dp)
@@ -802,9 +788,6 @@ CONTAINS
    SUBROUTINE release_dbcsr_array(matrix)
       TYPE(dbcsr_type), ALLOCATABLE, DIMENSION(:)        :: matrix
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'release_dbcsr_array', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
 
       IF (ALLOCATED(matrix)) THEN
@@ -825,8 +808,6 @@ CONTAINS
       TYPE(ls_scf_curvy_type)                            :: curvy_data
       TYPE(dbcsr_type)                                   :: matrix_s
       INTEGER                                            :: nspins
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'init_curvy', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ispin, j
 

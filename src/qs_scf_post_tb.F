@@ -1,12 +1,15 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
 !> \brief Does all kind of post scf calculations for DFTB
 !> \par History
 !>      Started as a copy from the GPW file
+!>      - Revise MO information printout (10.05.2021, MK)
 !> \author JHU (03.2013)
 ! **************************************************************************************************
 MODULE qs_scf_post_tb
@@ -75,10 +78,19 @@ MODULE qs_scf_post_tb
    USE pw_env_types,                    ONLY: pw_env_get,&
                                               pw_env_release,&
                                               pw_env_type
+   USE pw_grid_types,                   ONLY: pw_grid_type
    USE pw_methods,                      ONLY: pw_axpy,&
                                               pw_copy,&
+                                              pw_derive,&
+                                              pw_scale,&
                                               pw_transfer,&
                                               pw_zero
+   USE pw_poisson_types,                ONLY: do_ewald_none,&
+                                              greens_fn_type,&
+                                              pw_green_create,&
+                                              pw_green_release,&
+                                              pw_poisson_analytic,&
+                                              pw_poisson_parameter_type
    USE pw_pool_types,                   ONLY: pw_pool_create_pw,&
                                               pw_pool_give_back_pw,&
                                               pw_pool_p_type,&
@@ -93,6 +105,8 @@ MODULE qs_scf_post_tb
                                               calculate_wavefunction
    USE qs_dftb_types,                   ONLY: qs_dftb_atom_type
    USE qs_dftb_utils,                   ONLY: get_dftb_atom_param
+   USE qs_dos,                          ONLY: calculate_dos,&
+                                              calculate_dos_kp
    USE qs_elf_methods,                  ONLY: qs_elf_calc
    USE qs_energy_window,                ONLY: energy_windows
    USE qs_environment_types,            ONLY: get_qs_env,&
@@ -102,7 +116,6 @@ MODULE qs_scf_post_tb
    USE qs_ks_types,                     ONLY: get_ks_env,&
                                               qs_ks_env_type,&
                                               set_ks_env
-   USE qs_mo_io,                        ONLY: write_mo_set
    USE qs_mo_methods,                   ONLY: calculate_subspace_eigenvalues,&
                                               make_mo_eig
    USE qs_mo_occupation,                ONLY: set_mo_occupation
@@ -114,6 +127,9 @@ MODULE qs_scf_post_tb
    USE qs_rho_types,                    ONLY: qs_rho_get,&
                                               qs_rho_set,&
                                               qs_rho_type
+   USE qs_scf_csr_write,                ONLY: write_ks_matrix_csr,&
+                                              write_s_matrix_csr
+   USE qs_scf_output,                   ONLY: qs_scf_write_mos
    USE qs_scf_types,                    ONLY: ot_method_nr,&
                                               qs_scf_env_type
    USE qs_scf_wfn_mix,                  ONLY: wfn_mix
@@ -133,7 +149,9 @@ MODULE qs_scf_post_tb
 
    ! Global parameters
    CHARACTER(len=*), PARAMETER, PRIVATE :: moduleN = 'qs_scf_post_tb'
-   PUBLIC :: scf_post_calculation_tb
+   PUBLIC :: scf_post_calculation_tb, make_lumo_tb
+
+! **************************************************************************************************
 
 CONTAINS
 
@@ -153,8 +171,7 @@ CONTAINS
       CHARACTER(LEN=*)                                   :: tb_type
       LOGICAL, INTENT(IN)                                :: no_mos
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'scf_post_calculation_tb', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'scf_post_calculation_tb'
 
       CHARACTER(LEN=6)                                   :: ana
       CHARACTER(LEN=default_string_length)               :: aname
@@ -178,6 +195,7 @@ CONTAINS
       TYPE(dbcsr_p_type), DIMENSION(:, :), POINTER       :: matrix_p, matrix_s
       TYPE(dbcsr_type), POINTER                          :: mo_coeff_deriv
       TYPE(dft_control_type), POINTER                    :: dft_control
+      TYPE(kpoint_type), POINTER                         :: kpoints
       TYPE(mo_set_p_type), DIMENSION(:), POINTER         :: mos
       TYPE(particle_list_type), POINTER                  :: particles
       TYPE(particle_type), DIMENSION(:), POINTER         :: particle_set
@@ -188,7 +206,8 @@ CONTAINS
       TYPE(qs_subsys_type), POINTER                      :: subsys
       TYPE(scf_control_type), POINTER                    :: scf_control
       TYPE(section_vals_type), POINTER                   :: dft_section, moments_section, print_key, &
-                                                            print_section, wfn_mix_section
+                                                            print_section, sprint_section, &
+                                                            wfn_mix_section
       TYPE(xtb_atom_type), POINTER                       :: xtb_kind
 
       CALL timeset(routineN, handle)
@@ -210,7 +229,7 @@ CONTAINS
       nkind = SIZE(atomic_kind_set)
       DO ikind = 1, nkind
          CALL get_atomic_kind(atomic_kind_set(ikind), natom=nat)
-         SELECT CASE (TRIM (tb_type))
+         SELECT CASE (TRIM(tb_type))
          CASE ("DFTB")
             CALL get_qs_kind(qs_kind_set(ikind), dftb_parameter=dftb_kind)
             CALL get_dftb_atom_param(dftb_kind, zeff=zeff)
@@ -222,7 +241,7 @@ CONTAINS
          END SELECT
          DO iatom = 1, nat
             iat = atomic_kind_set(ikind)%atom_list(iatom)
-            mcharge(iat) = zeff-SUM(charges(iat, 1:nspins))
+            mcharge(iat) = zeff - SUM(charges(iat, 1:nspins))
          END DO
       END DO
 
@@ -285,7 +304,7 @@ CONTAINS
                      WRITE (UNIT=unit_nr, &
                             FMT="(T2,I6,3X,A6,I6,T29,4(1X,F12.6))") &
                         iat, ADJUSTL(ana), ikind, charges(iat, 1:2), mcharge(iat), &
-                        charges(iat, 1)-charges(iat, 2)
+                        charges(iat, 1) - charges(iat, 2)
                   END DO
                END DO
                WRITE (UNIT=unit_nr, &
@@ -356,7 +375,18 @@ CONTAINS
       IF (.NOT. no_mos) THEN
          print_key => section_vals_get_subs_vals(print_section, "MO")
          IF (BTEST(cp_print_key_should_output(logger%iter_info, print_key), cp_p_file)) THEN
-            CALL print_mos(qs_env, dft_section, tb_type)
+            CALL qs_scf_write_mos(qs_env, scf_env, final_mos=.TRUE.)
+            IF (.NOT. do_kpoints) THEN
+               SELECT CASE (tb_type)
+               CASE ("DFTB")
+               CASE ("xTB")
+                  sprint_section => section_vals_get_subs_vals(dft_section, "PRINT%MO_MOLDEN")
+                  CALL get_qs_env(qs_env, mos=mos)
+                  CALL write_mos_molden(mos, qs_kind_set, particle_set, sprint_section)
+               CASE DEFAULT
+                  CPABORT("Unknown TB type")
+               END SELECT
+            END IF
          END IF
       END IF
 
@@ -365,6 +395,19 @@ CONTAINS
          wfn_mix_section => section_vals_get_subs_vals(dft_section, "PRINT%WFN_MIX")
          CALL section_vals_get(wfn_mix_section, explicit=explicit)
          IF (explicit .AND. .NOT. qs_env%run_rtp) CALL wfn_mix_tb(qs_env, dft_section, scf_env)
+      END IF
+
+      IF (.NOT. no_mos) THEN
+         print_key => section_vals_get_subs_vals(print_section, "DOS")
+         IF (BTEST(cp_print_key_should_output(logger%iter_info, print_key), cp_p_file)) THEN
+            IF (do_kpoints) THEN
+               CALL get_qs_env(qs_env=qs_env, kpoints=kpoints)
+               CALL calculate_dos_kp(kpoints, qs_env, dft_section)
+            ELSE
+               CALL get_qs_env(qs_env, mos=mos)
+               CALL calculate_dos(mos, qs_env, dft_section)
+            END IF
+         END IF
       END IF
 
       ! PDOS
@@ -383,7 +426,7 @@ CONTAINS
                         mo_coeff_deriv => qs_env%mo_derivs(ispin)%matrix
                      ELSE
                         mo_coeff_deriv => NULL()
-                     ENDIF
+                     END IF
                      CALL calculate_subspace_eigenvalues(mo_coeff, ks_rmpv(ispin)%matrix, mo_eigenvalues, &
                                                          do_rotation=.TRUE., &
                                                          co_rotate_dbcsr=mo_coeff_deriv)
@@ -396,8 +439,8 @@ CONTAINS
                      CALL calculate_projected_dos(mos(ispin)%mo_set, atomic_kind_set, &
                                                   qs_kind_set, particle_set, qs_env, dft_section)
                   END IF
-               ENDDO
-            ENDIF
+               END DO
+            END IF
          END IF
       END IF
 
@@ -429,7 +472,7 @@ CONTAINS
          ELSE
             CPWARN("Energy Windows not implemented for TB methods.")
          END IF
-      ENDIF
+      END IF
 
       ! DENSITY CUBE FILE
       print_key => section_vals_get_subs_vals(print_section, "E_DENSITY_CUBE")
@@ -453,7 +496,7 @@ CONTAINS
                CALL rebuild_pw_env(qs_env)
                rebuild = .FALSE.
             END IF
-            CALL print_tot_density(qs_env, print_key)
+            CALL print_density_cubes(qs_env, print_key, total_density=.TRUE.)
          ELSE
             CPWARN("Total density cube file not implemented for TB methods.")
          END IF
@@ -463,7 +506,11 @@ CONTAINS
       print_key => section_vals_get_subs_vals(print_section, "V_HARTREE_CUBE")
       IF (BTEST(cp_print_key_should_output(logger%iter_info, print_key), cp_p_file)) THEN
          IF (do_cube) THEN
-            CPWARN("Hartree potential cube file not implemented for TB methods.")
+            IF (rebuild) THEN
+               CALL rebuild_pw_env(qs_env)
+               rebuild = .FALSE.
+            END IF
+            CALL print_density_cubes(qs_env, print_key, v_hartree=.TRUE.)
          ELSE
             CPWARN("Hartree potential cube file not implemented for TB methods.")
          END IF
@@ -473,7 +520,11 @@ CONTAINS
       print_key => section_vals_get_subs_vals(print_section, "EFIELD_CUBE")
       IF (BTEST(cp_print_key_should_output(logger%iter_info, print_key), cp_p_file)) THEN
          IF (do_cube) THEN
-            CPWARN("Efield cube file not implemented for TB methods.")
+            IF (rebuild) THEN
+               CALL rebuild_pw_env(qs_env)
+               rebuild = .FALSE.
+            END IF
+            CALL print_density_cubes(qs_env, print_key, efield=.TRUE.)
          ELSE
             CPWARN("Efield cube file not implemented for TB methods.")
          END IF
@@ -534,8 +585,8 @@ CONTAINS
                   IF (nlumo_stm > 0) THEN
                      ALLOCATE (unoccupied_orbs_stm(dft_control%nspins))
                      ALLOCATE (unoccupied_evals_stm(dft_control%nspins))
-                     CALL make_lumo(qs_env, scf_env, unoccupied_orbs_stm, unoccupied_evals_stm, &
-                                    nlumo_stm, nlumos)
+                     CALL make_lumo_tb(qs_env, scf_env, unoccupied_orbs_stm, unoccupied_evals_stm, &
+                                       nlumo_stm, nlumos)
                   END IF
 
                   CALL get_qs_env(qs_env, subsys=subsys)
@@ -547,7 +598,7 @@ CONTAINS
                      DO ispin = 1, dft_control%nspins
                         DEALLOCATE (unoccupied_evals_stm(ispin)%array)
                         CALL cp_fm_release(unoccupied_orbs_stm(ispin)%matrix)
-                     ENDDO
+                     END DO
                      DEALLOCATE (unoccupied_evals_stm)
                      DEALLOCATE (unoccupied_orbs_stm)
                   END IF
@@ -612,6 +663,9 @@ CONTAINS
          END IF
       END IF
 
+      CALL write_ks_matrix_csr(qs_env, qs_env%input)
+      CALL write_s_matrix_csr(qs_env, qs_env%input)
+
       CALL timestop(handle)
 
    END SUBROUTINE scf_post_calculation_tb
@@ -629,8 +683,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: input
       INTEGER, INTENT(in)                                :: unit_nr
       REAL(KIND=dp), DIMENSION(:), INTENT(in)            :: charges
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'tb_dipole', routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_string_length)               :: description, dipole_type
       COMPLEX(KIND=dp)                                   :: dzeta, dzphase(3), zeta, zphase(3)
@@ -662,7 +714,7 @@ CONTAINS
       dipole_deriv = 0.0_dp
       dipole = 0.0_dp
       IF (do_berry) THEN
-         dipole_type = "[BERRY PHASE]"
+         dipole_type = "periodic (Berry phase)"
          rcc = pbc(rcc, cell)
          charge_tot = 0._dp
          charge_tot = SUM(charges)
@@ -670,7 +722,7 @@ CONTAINS
          zphase = CMPLX(COS(ria), SIN(ria), dp)**charge_tot
 
          dria = twopi*MATMUL(cell%h_inv, drcc)
-         dzphase = charge_tot*CMPLX(-SIN(ria), COS(ria), dp)**(charge_tot-1.0_dp)*dria
+         dzphase = charge_tot*CMPLX(-SIN(ria), COS(ria), dp)**(charge_tot - 1.0_dp)*dria
 
          ggamma = CMPLX(1.0_dp, 0.0_dp, KIND=dp)
          dggamma = CMPLX(0.0_dp, 0.0_dp, KIND=dp)
@@ -682,45 +734,82 @@ CONTAINS
                ria = pbc(ria, cell)
                via = particle_set(iat)%v(:)
                q = charges(iat)
+!deb
+! WRITE(6,*) "DEBUG ",q,particle_set(iat)%r(2),ria(2)
+!deb
                DO j = 1, 3
                   gvec = twopi*cell%h_inv(j, :)
                   theta = SUM(ria(:)*gvec(:))
                   dtheta = SUM(via(:)*gvec(:))
                   zeta = CMPLX(COS(theta), SIN(theta), KIND=dp)**(-q)
-                  dzeta = -q*CMPLX(-SIN(theta), COS(theta), KIND=dp)**(-q-1.0_dp)*dtheta
-                  dggamma(j) = dggamma(j)*zeta+ggamma(j)*dzeta
+                  dzeta = -q*CMPLX(-SIN(theta), COS(theta), KIND=dp)**(-q - 1.0_dp)*dtheta
+                  dggamma(j) = dggamma(j)*zeta + ggamma(j)*dzeta
                   ggamma(j) = ggamma(j)*zeta
+!deb
+! if(j==2) then
+!     WRITE(6,*) "DEBUG ",iat,gvec(:)
+!     WRITE(6,*) "DEBUG ",iat,theta,zeta,ggamma(j)
+! endif
+!deb
                END DO
-            ENDDO
+            END DO
          END DO
-         dggamma = dggamma*zphase+ggamma*dzphase
+         dggamma = dggamma*zphase + ggamma*dzphase
          ggamma = ggamma*zphase
+!deb
+! WRITE(6,*) "DEBUG 1  ",ggamma(1)
+! WRITE(6,*) "DEBUG 2  ",ggamma(2)
+! WRITE(6,*) "DEBUG 3  ",ggamma(3)
+!deb
          IF (ALL(REAL(ggamma, KIND=dp) /= 0.0_dp)) THEN
             tmp = AIMAG(ggamma)/REAL(ggamma, KIND=dp)
-            ci = ATAN(tmp)
-            dci = (1.0_dp/(1.0_dp+tmp**2))* &
-                  (AIMAG(dggamma)*REAL(ggamma, KIND=dp)-AIMAG(ggamma)*REAL(dggamma, KIND=dp))/(REAL(ggamma, KIND=dp))**2
+            ci = -ATAN(tmp)
+            dci = -(1.0_dp/(1.0_dp + tmp**2))* &
+                  (AIMAG(dggamma)*REAL(ggamma, KIND=dp) - AIMAG(ggamma)*REAL(dggamma, KIND=dp))/(REAL(ggamma, KIND=dp))**2
             dipole = MATMUL(cell%hmat, ci)/twopi
             dipole_deriv = MATMUL(cell%hmat, dci)/twopi
          END IF
+!deb
+! WRITE(6,*) "DIPOLE   ",dipole
+!deb
+
+!           zi(:) = CMPLX(1._dp, 0._dp, dp)
+!           DO ia = 1, SIZE(particle_set)
+!              ria = particle_set(ia)%r
+!              ria = pbc(ria, cell)
+!              DO i = 1, 3
+!                 gvec(:) = twopi*cell%h_inv(i, :)
+!                 dd = SUM(gvec(:)*ria(:))
+!                 zdeta = CMPLX(COS(dd), SIN(dd), KIND=dp)**charge
+!                 zi(i) = zi(i)*zdeta
+!              END DO
+!           END DO
+!           zi = zi*zphase
+!           ci = AIMAG(LOG(zi))/twopi
+
       ELSE
-         dipole_type = "[Non Periodic]"
+         dipole_type = "non-periodic"
          DO i = 1, SIZE(particle_set)
             ! no pbc(particle_set(i)%r(:),cell) so that the total dipole is the sum of the molecular dipoles
             ria = particle_set(i)%r(:)
             q = charges(i)
-            dipole = dipole-q*(ria-rcc)
-            dipole_deriv(:) = dipole_deriv(:)-q*(particle_set(i)%v(:)-drcc)
+            dipole = dipole + q*(ria - rcc)
+            dipole_deriv(:) = dipole_deriv(:) + q*(particle_set(i)%v(:) - drcc)
          END DO
       END IF
       CALL cp_results_erase(results=results, description=description)
       CALL put_results(results=results, description=description, &
                        values=dipole(1:3))
       IF (unit_nr > 0) THEN
-         WRITE (unit_nr, *)
-         WRITE (unit_nr, '(1X,A,T48,3F11.6)') "DIPOLE "//TRIM(dipole_type)//"(A.U.)|", dipole
-         WRITE (unit_nr, '(1X,A,T48,3F11.6)') "DIPOLE "//TRIM(dipole_type)//"(Debye)|", dipole*debye
-         WRITE (unit_nr, '(1X,A,T48,3F11.6)') "DIPOLE "//TRIM(dipole_type)//" DERIVATIVE(A.U.)|", dipole_deriv
+         WRITE (unit_nr, '(/,T2,A,T31,A50)') &
+            'TB_DIPOLE| Dipole type', ADJUSTR(TRIM(dipole_type))
+         WRITE (unit_nr, "(T2,A,T33,3F16.8)") "TB_DIPOLE| Reference Point [Bohr]", rcc
+         WRITE (unit_nr, '(T2,A,T30,3(1X,F16.8))') &
+            'TB_DIPOLE| Moment [a.u.]', dipole(1:3)
+         WRITE (unit_nr, '(T2,A,T30,3(1X,F16.8))') &
+            'TB_DIPOLE| Moment [Debye]', dipole(1:3)*debye
+         WRITE (unit_nr, '(T2,A,T30,3(1X,F16.8))') &
+            'TB_DIPOLE| Derivative [a.u.]', dipole_deriv(1:3)
       END IF
 
    END SUBROUTINE tb_dipole
@@ -739,8 +828,6 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(section_vals_type), POINTER                   :: dft_section
       TYPE(qs_scf_env_type), POINTER                     :: scf_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'wfn_mix_tb', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: iounit, ispin, nao, nmo
       REAL(dp), DIMENSION(:), POINTER                    :: mo_eigenvalues
@@ -777,7 +864,7 @@ CONTAINS
 
       DO ispin = 1, SIZE(mos)
          CALL get_mo_set(mos(ispin)%mo_set, mo_coeff=mo_coeff, eigenvalues=mo_eigenvalues, nmo=nmo)
-         CALL cp_fm_struct_create(fmstruct=ao_lumo_struct, nrow_global=nao, ncol_global=nao-nmo, &
+         CALL cp_fm_struct_create(fmstruct=ao_lumo_struct, nrow_global=nao, ncol_global=nao - nmo, &
                                   template_fmstruct=mo_coeff%matrix_struct)
 
          CALL cp_fm_create(lumos(ispin)%matrix, matrix_struct=ao_lumo_struct)
@@ -786,7 +873,7 @@ CONTAINS
          CALL choose_eigv_solver(KS_tmp, work, mo_eigenvalues)
          CALL cp_fm_cholesky_restore(work, nao, S_tmp, MO_tmp, "SOLVE")
          CALL cp_fm_to_fm_submat(MO_tmp, mo_coeff, nao, nmo, 1, 1, 1, 1)
-         CALL cp_fm_to_fm_submat(MO_tmp, lumos(ispin)%matrix, nao, nao-nmo, 1, nmo+1, 1, 1)
+         CALL cp_fm_to_fm_submat(MO_tmp, lumos(ispin)%matrix, nao, nao - nmo, 1, nmo + 1, 1, 1)
 
          CALL cp_fm_struct_release(ao_lumo_struct)
       END DO
@@ -808,90 +895,6 @@ CONTAINS
    END SUBROUTINE wfn_mix_tb
 
 ! **************************************************************************************************
-!> \brief MO printing
-!> \param qs_env ...
-!> \param dft_section ...
-!> \param tb_type ...
-!> \par History
-!> \author JHU
-!> \note
-! **************************************************************************************************
-   SUBROUTINE print_mos(qs_env, dft_section, tb_type)
-
-      TYPE(qs_environment_type), POINTER                 :: qs_env
-      TYPE(section_vals_type), POINTER                   :: dft_section
-      CHARACTER(LEN=*)                                   :: tb_type
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'print_mos', routineP = moduleN//':'//routineN
-
-      INTEGER                                            :: ik, iounit
-      LOGICAL                                            :: do_kpoints
-      TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
-      TYPE(cp_logger_type), POINTER                      :: logger
-      TYPE(dft_control_type), POINTER                    :: dft_control
-      TYPE(kpoint_type), POINTER                         :: kpoints
-      TYPE(mo_set_p_type), DIMENSION(:), POINTER         :: mos
-      TYPE(mo_set_p_type), DIMENSION(:, :), POINTER      :: mos_k
-      TYPE(particle_type), DIMENSION(:), POINTER         :: particle_set
-      TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
-      TYPE(section_vals_type), POINTER                   :: sprint_section
-
-      CPASSERT(ASSOCIATED(qs_env))
-      IF (qs_env%run_rtp) RETURN
-
-      logger => cp_get_default_logger()
-      iounit = cp_logger_get_default_io_unit(logger)
-
-      CALL get_qs_env(qs_env, &
-                      dft_control=dft_control, &
-                      do_kpoints=do_kpoints, &
-                      atomic_kind_set=atomic_kind_set, &
-                      particle_set=particle_set, &
-                      qs_kind_set=qs_kind_set)
-
-      IF (.NOT. do_kpoints) THEN
-         CALL get_qs_env(qs_env, mos=mos)
-         IF (dft_control%nspins == 2) THEN
-            CALL write_mo_set(mos(1)%mo_set, atomic_kind_set, qs_kind_set, particle_set, 4, &
-                              dft_section, spin="ALPHA", last=.TRUE.)
-            CALL write_mo_set(mos(2)%mo_set, atomic_kind_set, qs_kind_set, particle_set, 4, &
-                              dft_section, spin="BETA", last=.TRUE.)
-         ELSE
-            CALL write_mo_set(mos(1)%mo_set, atomic_kind_set, qs_kind_set, particle_set, 4, &
-                              dft_section, last=.TRUE.)
-         END IF
-         !
-         SELECT CASE (tb_type)
-         CASE ("DFTB")
-            !
-         CASE ("xTB")
-            sprint_section => section_vals_get_subs_vals(dft_section, "SCF%PRINT")
-            CALL write_mos_molden(mos, qs_kind_set, particle_set, sprint_section)
-         CASE DEFAULT
-            CPABORT("unknown TB type")
-         END SELECT
-      ELSE
-         CALL get_qs_env(qs_env=qs_env, kpoints=kpoints)
-         IF (kpoints%nkp /= 0) THEN
-            DO ik = 1, SIZE(kpoints%kp_env)
-               mos_k => kpoints%kp_env(ik)%kpoint_env%mos
-               CPASSERT(ASSOCIATED(mos_k))
-               IF (dft_control%nspins == 2) THEN
-                  CALL write_mo_set(mos_k(1, 1)%mo_set, atomic_kind_set, qs_kind_set, particle_set, 4, &
-                                    dft_section, spin="ALPHA", last=.TRUE., kpt=ik)
-                  CALL write_mo_set(mos_k(1, 2)%mo_set, atomic_kind_set, qs_kind_set, particle_set, 4, &
-                                    dft_section, spin="BETA", last=.TRUE., kpt=ik)
-               ELSE
-                  CALL write_mo_set(mos_k(1, 1)%mo_set, atomic_kind_set, qs_kind_set, particle_set, 4, &
-                                    dft_section, last=.TRUE., kpt=ik)
-               END IF
-            END DO
-         END IF
-      END IF
-
-   END SUBROUTINE print_mos
-
-! **************************************************************************************************
 !> \brief Gets the lumos, and eigenvalues for the lumos
 !> \param qs_env ...
 !> \param scf_env ...
@@ -900,7 +903,7 @@ CONTAINS
 !> \param nlumo ...
 !> \param nlumos ...
 ! **************************************************************************************************
-   SUBROUTINE make_lumo(qs_env, scf_env, unoccupied_orbs, unoccupied_evals, nlumo, nlumos)
+   SUBROUTINE make_lumo_tb(qs_env, scf_env, unoccupied_orbs, unoccupied_evals, nlumo, nlumos)
 
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(qs_scf_env_type), POINTER                     :: scf_env
@@ -908,8 +911,6 @@ CONTAINS
       TYPE(cp_1d_r_p_type), DIMENSION(:), POINTER        :: unoccupied_evals
       INTEGER                                            :: nlumo
       INTEGER, INTENT(OUT)                               :: nlumos
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'make_lumo', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: homo, iounit, ispin, n, nao, nmo
       TYPE(cp_blacs_env_type), POINTER                   :: blacs_env
@@ -945,8 +946,8 @@ CONTAINS
          IF (iounit > 0) WRITE (iounit, FMT='(1X,A)') "-----------------------------------------------------"
          CALL get_mo_set(mo_set=mos(ispin)%mo_set, mo_coeff=mo_coeff, homo=homo, nao=nao, nmo=nmo)
          CALL cp_fm_get_info(mo_coeff, nrow_global=n)
-         nlumos = MAX(1, MIN(nlumo, nao-nmo))
-         IF (nlumo == -1) nlumos = nao-nmo
+         nlumos = MAX(1, MIN(nlumo, nao - nmo))
+         IF (nlumo == -1) nlumos = nao - nmo
          ALLOCATE (unoccupied_evals(ispin)%array(nlumos))
          CALL cp_fm_struct_create(fm_struct_tmp, para_env=para_env, context=blacs_env, &
                                   nrow_global=n, ncol_global=nlumos)
@@ -961,8 +962,8 @@ CONTAINS
             ! this one can for sure not be right (as it has to match a given C0)
             IF (local_preconditioner%in_use == ot_precond_full_all) THEN
                NULLIFY (local_preconditioner)
-            ENDIF
-         ENDIF
+            END IF
+         END IF
 
          CALL ot_eigensolver(matrix_h=ks_rmpv(ispin)%matrix, matrix_s=matrix_s(1)%matrix, &
                              matrix_c_fm=unoccupied_orbs(ispin)%matrix, &
@@ -978,7 +979,7 @@ CONTAINS
 
       END DO
 
-   END SUBROUTINE make_lumo
+   END SUBROUTINE make_lumo_tb
 
 ! **************************************************************************************************
 !> \brief ...
@@ -987,8 +988,6 @@ CONTAINS
    SUBROUTINE rebuild_pw_env(qs_env)
 
       TYPE(qs_environment_type), POINTER                 :: qs_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'rebuild_pw_env', routineP = moduleN//':'//routineN
 
       LOGICAL                                            :: skip_load_balance_distributed
       TYPE(cell_type), POINTER                           :: cell
@@ -1003,7 +1002,7 @@ CONTAINS
          CALL pw_env_create(new_pw_env)
          CALL set_ks_env(ks_env, pw_env=new_pw_env)
          CALL pw_env_release(new_pw_env)
-      ENDIF
+      END IF
       CALL get_qs_env(qs_env, pw_env=new_pw_env, dft_control=dft_control, cell=cell)
 
       new_pw_env%cell_hmat = cell%hmat
@@ -1014,7 +1013,7 @@ CONTAINS
       IF (.NOT. ASSOCIATED(task_list)) THEN
          CALL allocate_task_list(task_list)
          CALL set_ks_env(ks_env, task_list=task_list)
-      ENDIF
+      END IF
       skip_load_balance_distributed = dft_control%qs_control%skip_load_balance_distributed
       CALL generate_qs_task_list(ks_env, task_list, &
                                  reorder_rs_grid_ranks=.TRUE., soft_valid=.FALSE., &
@@ -1033,9 +1032,6 @@ CONTAINS
 
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(section_vals_type), POINTER                   :: cube_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'print_e_density', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_path_length)                 :: filename, mpi_filename, my_pos_cube
       INTEGER                                            :: iounit, ispin, unit_nr
@@ -1167,39 +1163,64 @@ CONTAINS
 !> \brief ...
 !> \param qs_env ...
 !> \param cube_section ...
+!> \param total_density ...
+!> \param v_hartree ...
+!> \param efield ...
 ! **************************************************************************************************
-   SUBROUTINE print_tot_density(qs_env, cube_section)
+   SUBROUTINE print_density_cubes(qs_env, cube_section, total_density, v_hartree, efield)
 
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(section_vals_type), POINTER                   :: cube_section
+      LOGICAL, INTENT(IN), OPTIONAL                      :: total_density, v_hartree, efield
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'print_tot_density', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=1), DIMENSION(3), PARAMETER          :: cdir = (/"x", "y", "z"/)
 
       CHARACTER(LEN=default_path_length)                 :: filename, mpi_filename, my_pos_cube
-      INTEGER                                            :: iounit, ispin, unit_nr
-      LOGICAL                                            :: append_cube, mpi_io
-      REAL(KIND=dp)                                      :: total_rho_core_rspace
+      INTEGER                                            :: id, iounit, ispin, nd(3), unit_nr
+      LOGICAL                                            :: append_cube, mpi_io, my_efield, &
+                                                            my_total_density, my_v_hartree
+      REAL(KIND=dp)                                      :: total_rho_core_rspace, udvol
       REAL(KIND=dp), DIMENSION(:), POINTER               :: tot_rho_r
+      TYPE(cell_type), POINTER                           :: cell
       TYPE(cp_logger_type), POINTER                      :: logger
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: rho_ao
       TYPE(dbcsr_p_type), DIMENSION(:, :), POINTER       :: rho_ao_kp
       TYPE(dft_control_type), POINTER                    :: dft_control
+      TYPE(greens_fn_type), POINTER                      :: green_fft
       TYPE(particle_list_type), POINTER                  :: particles
       TYPE(pw_env_type), POINTER                         :: pw_env
-      TYPE(pw_p_type)                                    :: rho_core, rho_tot_rspace
+      TYPE(pw_grid_type), POINTER                        :: pwdummy
+      TYPE(pw_p_type)                                    :: rho_core, rho_tot_gspace, &
+                                                            rho_tot_rspace, vhartree
       TYPE(pw_p_type), DIMENSION(:), POINTER             :: rho_g, rho_r
+      TYPE(pw_poisson_parameter_type)                    :: poisson_params
       TYPE(pw_pool_p_type), DIMENSION(:), POINTER        :: pw_pools
       TYPE(pw_pool_type), POINTER                        :: auxbas_pw_pool
       TYPE(qs_ks_env_type), POINTER                      :: ks_env
       TYPE(qs_rho_type), POINTER                         :: rho
       TYPE(qs_subsys_type), POINTER                      :: subsys
 
-      CALL get_qs_env(qs_env, dft_control=dft_control)
+      CALL get_qs_env(qs_env, cell=cell, dft_control=dft_control)
 
       append_cube = section_get_lval(cube_section, "APPEND")
       my_pos_cube = "REWIND"
       IF (append_cube) my_pos_cube = "APPEND"
+
+      IF (PRESENT(total_density)) THEN
+         my_total_density = total_density
+      ELSE
+         my_total_density = .FALSE.
+      END IF
+      IF (PRESENT(v_hartree)) THEN
+         my_v_hartree = v_hartree
+      ELSE
+         my_v_hartree = .FALSE.
+      END IF
+      IF (PRESENT(efield)) THEN
+         my_efield = efield
+      ELSE
+         my_efield = .FALSE.
+      END IF
 
       logger => cp_get_default_logger()
       iounit = cp_logger_get_default_io_unit(logger)
@@ -1232,42 +1253,113 @@ CONTAINS
 
       IF (iounit > 0) THEN
          WRITE (UNIT=iounit, FMT="(/,T2,A,T66,F15.6)") &
-            "Integrated electronic density:", SUM(tot_rho_r(1:2))
+            "Integrated electronic density:", SUM(tot_rho_r(:))
          WRITE (UNIT=iounit, FMT="(T2,A,T66,F15.6)") &
             "Integrated core density:", total_rho_core_rspace
       END IF
 
-      CALL pw_pool_create_pw(pool=auxbas_pw_pool, &
-                             pw=rho_tot_rspace%pw, &
-                             use_data=REALDATA3D, &
-                             in_space=REALSPACE)
+      CALL pw_pool_create_pw(pool=auxbas_pw_pool, pw=rho_tot_rspace%pw, &
+                             use_data=REALDATA3D, in_space=REALSPACE)
       CALL pw_transfer(rho_core%pw, rho_tot_rspace%pw)
       DO ispin = 1, dft_control%nspins
          CALL pw_axpy(rho_r(ispin)%pw, rho_tot_rspace%pw)
       END DO
-      filename = "TOTAL_DENSITY"
-      mpi_io = .TRUE.
-      unit_nr = cp_print_key_unit_nr(logger, cube_section, '', &
-                                     extension=".cube", middle_name=TRIM(filename), file_position=my_pos_cube, &
-                                     log_filename=.FALSE., mpi_io=mpi_io, fout=mpi_filename)
-      IF (iounit > 0) THEN
-         IF (.NOT. mpi_io) THEN
-            INQUIRE (UNIT=unit_nr, NAME=filename)
-         ELSE
-            filename = mpi_filename
+
+      IF (my_total_density) THEN
+         filename = "TOTAL_DENSITY"
+         mpi_io = .TRUE.
+         unit_nr = cp_print_key_unit_nr(logger, cube_section, '', &
+                                        extension=".cube", middle_name=TRIM(filename), file_position=my_pos_cube, &
+                                        log_filename=.FALSE., mpi_io=mpi_io, fout=mpi_filename)
+         IF (iounit > 0) THEN
+            IF (.NOT. mpi_io) THEN
+               INQUIRE (UNIT=unit_nr, NAME=filename)
+            ELSE
+               filename = mpi_filename
+            END IF
+            WRITE (UNIT=iounit, FMT="(T2,A,/,T2,A79)") &
+               "The total density is written in cube file format to the file:", ADJUSTR(TRIM(filename))
          END IF
-         WRITE (UNIT=iounit, FMT="(T2,A,/,T2,A79)") &
-            "The total density is written in cube file format to the file:", ADJUSTR(TRIM(filename))
+         CALL cp_pw_to_cube(rho_tot_rspace%pw, unit_nr, "TOTAL DENSITY", &
+                            particles=particles, &
+                            stride=section_get_ivals(cube_section, "STRIDE"), mpi_io=mpi_io)
+         CALL cp_print_key_finished_output(unit_nr, logger, cube_section, '', mpi_io=mpi_io)
+      END IF
+      IF (my_v_hartree .OR. my_efield) THEN
+         CALL pw_pool_create_pw(pool=auxbas_pw_pool, pw=rho_tot_gspace%pw, &
+                                use_data=COMPLEXDATA1D, in_space=RECIPROCALSPACE)
+         CALL pw_transfer(rho_tot_rspace%pw, rho_tot_gspace%pw)
+         poisson_params%solver = pw_poisson_analytic
+         poisson_params%periodic = cell%perd
+         poisson_params%ewald_type = do_ewald_none
+         NULLIFY (green_fft, pwdummy)
+         CALL pw_green_create(green_fft, poisson_params, cell%hmat, auxbas_pw_pool, pwdummy, pwdummy)
+         rho_tot_gspace%pw%cc(:) = rho_tot_gspace%pw%cc(:)*green_fft%influence_fn%cc(:)
+         CALL pw_green_release(green_fft, auxbas_pw_pool)
+         IF (my_v_hartree) THEN
+            CALL pw_pool_create_pw(pool=auxbas_pw_pool, pw=vhartree%pw, &
+                                   use_data=REALDATA3D, in_space=REALSPACE)
+            CALL pw_transfer(rho_tot_gspace%pw, vhartree%pw)
+            filename = "V_HARTREE"
+            mpi_io = .TRUE.
+            unit_nr = cp_print_key_unit_nr(logger, cube_section, '', &
+                                           extension=".cube", middle_name=TRIM(filename), file_position=my_pos_cube, &
+                                           log_filename=.FALSE., mpi_io=mpi_io, fout=mpi_filename)
+            IF (iounit > 0) THEN
+               IF (.NOT. mpi_io) THEN
+                  INQUIRE (UNIT=unit_nr, NAME=filename)
+               ELSE
+                  filename = mpi_filename
+               END IF
+               WRITE (UNIT=iounit, FMT="(T2,A,/,T2,A79)") &
+                  "The Hartree potential is written in cube file format to the file:", ADJUSTR(TRIM(filename))
+            END IF
+            CALL cp_pw_to_cube(vhartree%pw, unit_nr, "Hartree Potential", &
+                               particles=particles, &
+                               stride=section_get_ivals(cube_section, "STRIDE"), mpi_io=mpi_io)
+            CALL cp_print_key_finished_output(unit_nr, logger, cube_section, '', mpi_io=mpi_io)
+            CALL pw_pool_give_back_pw(auxbas_pw_pool, vhartree%pw)
+         END IF
+         IF (my_efield) THEN
+            CALL pw_pool_create_pw(pool=auxbas_pw_pool, pw=vhartree%pw, &
+                                   use_data=COMPLEXDATA1D, in_space=RECIPROCALSPACE)
+            udvol = 1.0_dp/rho_tot_rspace%pw%pw_grid%dvol
+            DO id = 1, 3
+               CALL pw_transfer(rho_tot_gspace%pw, vhartree%pw)
+               nd = 0
+               nd(id) = 1
+               CALL pw_derive(vhartree%pw, nd)
+               CALL pw_transfer(vhartree%pw, rho_tot_rspace%pw)
+               CALL pw_scale(rho_tot_rspace%pw, udvol)
+
+               filename = "EFIELD_"//cdir(id)
+               mpi_io = .TRUE.
+               unit_nr = cp_print_key_unit_nr(logger, cube_section, '', &
+                                              extension=".cube", middle_name=TRIM(filename), file_position=my_pos_cube, &
+                                              log_filename=.FALSE., mpi_io=mpi_io, fout=mpi_filename)
+               IF (iounit > 0) THEN
+                  IF (.NOT. mpi_io) THEN
+                     INQUIRE (UNIT=unit_nr, NAME=filename)
+                  ELSE
+                     filename = mpi_filename
+                  END IF
+                  WRITE (UNIT=iounit, FMT="(T2,A,/,T2,A79)") &
+                     "The Efield is written in cube file format to the file:", ADJUSTR(TRIM(filename))
+               END IF
+               CALL cp_pw_to_cube(rho_tot_rspace%pw, unit_nr, "EFIELD "//cdir(id), &
+                                  particles=particles, &
+                                  stride=section_get_ivals(cube_section, "STRIDE"), mpi_io=mpi_io)
+               CALL cp_print_key_finished_output(unit_nr, logger, cube_section, '', mpi_io=mpi_io)
+            END DO
+            CALL pw_pool_give_back_pw(auxbas_pw_pool, vhartree%pw)
+         END IF
+         CALL pw_pool_give_back_pw(auxbas_pw_pool, rho_tot_gspace%pw)
       END IF
 
-      CALL cp_pw_to_cube(rho_tot_rspace%pw, unit_nr, "TOTAL DENSITY", &
-                         particles=particles, &
-                         stride=section_get_ivals(cube_section, "STRIDE"), mpi_io=mpi_io)
-      CALL cp_print_key_finished_output(unit_nr, logger, cube_section, '', mpi_io=mpi_io)
       CALL pw_pool_give_back_pw(auxbas_pw_pool, rho_tot_rspace%pw)
       CALL pw_pool_give_back_pw(auxbas_pw_pool, rho_core%pw)
 
-   END SUBROUTINE print_tot_density
+   END SUBROUTINE print_density_cubes
 
 ! **************************************************************************************************
 !> \brief ...
@@ -1278,8 +1370,6 @@ CONTAINS
 
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(section_vals_type), POINTER                   :: elf_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'print_elf', routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_path_length)                 :: filename, mpi_filename, my_pos_cube, &
                                                             title
@@ -1379,8 +1469,6 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(section_vals_type), POINTER                   :: cube_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'print_mo_cubes', routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_path_length)                 :: filename, my_pos_cube, title
       INTEGER                                            :: homo, i, ifirst, ilast, iounit, ir, &
                                                             ispin, ivector, n_rep, nhomo, nlist, &
@@ -1430,20 +1518,20 @@ CONTAINS
             NULLIFY (list)
             CALL section_vals_val_get(cube_section, "HOMO_LIST", i_rep_val=ir, i_vals=list)
             IF (ASSOCIATED(list)) THEN
-               CALL reallocate(list_index, 1, nlist+SIZE(list))
+               CALL reallocate(list_index, 1, nlist + SIZE(list))
                DO i = 1, SIZE(list)
-                  list_index(i+nlist) = list(i)
+                  list_index(i + nlist) = list(i)
                END DO
-               nlist = nlist+SIZE(list)
+               nlist = nlist + SIZE(list)
             END IF
          END DO
          nhomo = MAXVAL(list_index)
       ELSE
          IF (nhomo == -1) nhomo = homo
-         nlist = homo-MAX(1, homo-nhomo+1)+1
+         nlist = homo - MAX(1, homo - nhomo + 1) + 1
          ALLOCATE (list_index(nlist))
          DO i = 1, nlist
-            list_index(i) = MAX(1, homo-nhomo+1)+i-1
+            list_index(i) = MAX(1, homo - nhomo + 1) + i - 1
          END DO
       END IF
 
@@ -1487,14 +1575,14 @@ CONTAINS
                   unit_nr = cp_print_key_unit_nr(logger, cube_section, '', extension=".cube", &
                                                  middle_name=TRIM(filename), file_position=my_pos_cube, &
                                                  log_filename=.FALSE., mpi_io=mpi_io)
-                  WRITE (title, *) "WAVEFUNCTION ", ivector, " spin ", ispin, " i.e. HOMO - ", ivector-homo
+                  WRITE (title, *) "WAVEFUNCTION ", ivector, " spin ", ispin, " i.e. HOMO - ", ivector - homo
                   CALL cp_pw_to_cube(wf_r%pw, unit_nr, title, particles=particles, &
                                      stride=section_get_ivals(cube_section, "STRIDE"), mpi_io=mpi_io)
                   CALL cp_print_key_finished_output(unit_nr, logger, cube_section, '', mpi_io=mpi_io)
-               ENDDO
-            ENDIF
+               END DO
+            END IF
          END DO
-      ENDIF
+      END IF
 
       IF (nlumo /= 0) THEN
          DO ispin = 1, dft_control%nspins
@@ -1502,11 +1590,11 @@ CONTAINS
             CALL get_mo_set(mo_set=mos(ispin)%mo_set, mo_coeff=mo_coeff, &
                             eigenvalues=mo_eigenvalues, homo=homo, nmo=nmo)
             IF (write_cube) THEN
-               ifirst = homo+1
+               ifirst = homo + 1
                IF (nlumo == -1) THEN
                   ilast = nmo
                ELSE
-                  ilast = ifirst+nlumo-1
+                  ilast = ifirst + nlumo - 1
                   ilast = MIN(nmo, ilast)
                END IF
                DO ivector = ifirst, ilast
@@ -1517,11 +1605,11 @@ CONTAINS
                   unit_nr = cp_print_key_unit_nr(logger, cube_section, '', extension=".cube", &
                                                  middle_name=TRIM(filename), file_position=my_pos_cube, &
                                                  log_filename=.FALSE., mpi_io=mpi_io)
-                  WRITE (title, *) "WAVEFUNCTION ", ivector, " spin ", ispin, " i.e. LUMO + ", ivector-ifirst
+                  WRITE (title, *) "WAVEFUNCTION ", ivector, " spin ", ispin, " i.e. LUMO + ", ivector - ifirst
                   CALL cp_pw_to_cube(wf_r%pw, unit_nr, title, particles=particles, &
                                      stride=section_get_ivals(cube_section, "STRIDE"), mpi_io=mpi_io)
                   CALL cp_print_key_finished_output(unit_nr, logger, cube_section, '', mpi_io=mpi_io)
-               ENDDO
+               END DO
             END IF
          END DO
       END IF

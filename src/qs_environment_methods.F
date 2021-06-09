@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -57,6 +59,7 @@ MODULE qs_environment_methods
                                               set_ks_env
    USE qs_matrix_pools,                 ONLY: mpools_rebuild_fm_pools
    USE qs_outer_scf,                    ONLY: outer_loop_variables_count
+   USE qs_rho0_ggrid,                   ONLY: rho0_s_grid_create
    USE qs_rho0_types,                   ONLY: rho0_mpole_type
    USE scf_control_types,               ONLY: scf_control_type
 #include "./base/base_uses.f90"
@@ -68,7 +71,8 @@ MODULE qs_environment_methods
    CHARACTER(len=*), PARAMETER, PRIVATE :: moduleN = 'qs_environment_methods'
 
    PUBLIC :: qs_env_rebuild_pw_env, &
-             qs_env_setup
+             qs_env_setup, &
+             qs_env_time_update
 !***
 CONTAINS
 
@@ -87,7 +91,7 @@ CONTAINS
 
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_env_setup', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'qs_env_setup'
 
       INTEGER                                            :: handle, n_ao_aux_fit, nhistory, &
                                                             nvariables
@@ -205,8 +209,7 @@ CONTAINS
    SUBROUTINE qs_env_rebuild_pw_env(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_env_rebuild_pw_env', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'qs_env_rebuild_pw_env'
 
       INTEGER                                            :: handle
       LOGICAL                                            :: nlcc
@@ -215,9 +218,9 @@ CONTAINS
       TYPE(ewald_environment_type), POINTER              :: ewald_env
       TYPE(ewald_pw_type), POINTER                       :: ewald_pw
       TYPE(pw_env_type), POINTER                         :: new_pw_env
-      TYPE(pw_p_type), POINTER                           :: embed_pot, external_vxc, rho0_gs, &
-                                                            rho0_rs, rho_core, rho_nlcc, &
-                                                            rho_nlcc_g, spin_embed_pot, vee, vppl
+      TYPE(pw_p_type), POINTER                           :: embed_pot, external_vxc, rho_core, &
+                                                            rho_nlcc, rho_nlcc_g, spin_embed_pot, &
+                                                            vee, vppl
       TYPE(pw_pool_type), POINTER                        :: auxbas_pw_pool
       TYPE(pw_type), POINTER                             :: v_hartree_rspace
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
@@ -227,7 +230,7 @@ CONTAINS
       CALL timeset(routineN, handle)
       ! rebuild pw_env
       NULLIFY (dft_control, cell, ks_env, v_hartree_rspace, auxbas_pw_pool)
-      NULLIFY (rho0_mpole, rho0_gs, rho0_rs)
+      NULLIFY (rho0_mpole)
       NULLIFY (ewald_env, ewald_pw, new_pw_env, external_vxc, rho_core, rho_nlcc, rho_nlcc_g, vee, vppl, &
                embed_pot, spin_embed_pot)
 
@@ -242,7 +245,7 @@ CONTAINS
                       cell=cell)
 
       IF (ANY(new_pw_env%cell_hmat /= cell%hmat)) THEN
-         ! only rebuild if nessecary
+         ! only rebuild if necessary
          new_pw_env%cell_hmat = cell%hmat
          CALL pw_env_rebuild(new_pw_env, qs_env=qs_env)
 
@@ -263,29 +266,7 @@ CONTAINS
                CALL set_ks_env(ks_env, rho_core=rho_core)
             END IF
             CALL get_qs_env(qs_env=qs_env, rho0_mpole=rho0_mpole)
-            IF (ASSOCIATED(rho0_mpole)) THEN
-               rho0_rs => rho0_mpole%rho0_s_rs
-               rho0_gs => rho0_mpole%rho0_s_gs
-               IF (ASSOCIATED(rho0_rs)) THEN
-                  CALL pw_release(rho0_rs%pw)
-                  DEALLOCATE (rho0_rs)
-               END IF
-               ALLOCATE (rho0_rs)
-               CALL pw_env_get(new_pw_env, auxbas_pw_pool=auxbas_pw_pool)
-               CALL pw_pool_create_pw(auxbas_pw_pool, rho0_rs%pw, &
-                                      use_data=REALDATA3D, in_space=REALSPACE)
-               rho0_mpole%rho0_s_rs => rho0_rs
-
-               IF (ASSOCIATED(rho0_gs)) THEN
-                  CALL pw_release(rho0_gs%pw)
-                  DEALLOCATE (rho0_gs)
-               END IF
-               ALLOCATE (rho0_gs)
-               CALL pw_env_get(new_pw_env, auxbas_pw_pool=auxbas_pw_pool)
-               CALL pw_pool_create_pw(auxbas_pw_pool, rho0_gs%pw, &
-                                      use_data=COMPLEXDATA1D, in_space=RECIPROCALSPACE)
-               rho0_mpole%rho0_s_gs => rho0_gs
-            END IF
+            CALL rho0_s_grid_create(new_pw_env, rho0_mpole)
          ELSE IF (dft_control%qs_control%semi_empirical) THEN
             IF (dft_control%qs_control%se_control%do_ewald .OR. &
                 dft_control%qs_control%se_control%do_ewald_gks) THEN
@@ -438,5 +419,31 @@ CONTAINS
       CALL timestop(handle)
 
    END SUBROUTINE qs_env_rebuild_pw_env
+
+! **************************************************************************************************
+!> \brief ...
+!> \param qs_env ...
+!> \param time ...
+!> \param itimes ...
+! **************************************************************************************************
+   SUBROUTINE qs_env_time_update(qs_env, time, itimes)
+      TYPE(qs_environment_type), POINTER                 :: qs_env
+      REAL(KIND=dp), INTENT(IN)                          :: time
+      INTEGER, INTENT(IN)                                :: itimes
+
+      TYPE(dft_control_type), POINTER                    :: dft_control
+
+      qs_env%sim_time = time
+      qs_env%sim_step = itimes
+
+      CALL get_qs_env(qs_env=qs_env, dft_control=dft_control)
+
+      IF (dft_control%apply_external_potential) THEN
+         IF (.NOT. dft_control%expot_control%static) THEN
+            dft_control%eval_external_potential = .TRUE.
+         END IF
+      END IF
+
+   END SUBROUTINE qs_env_time_update
 
 END MODULE qs_environment_methods

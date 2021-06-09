@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -37,8 +39,8 @@ MODULE qs_diis
                                               cp_print_key_unit_nr
    USE cp_para_types,                   ONLY: cp_para_env_type
    USE dbcsr_api,                       ONLY: &
-        dbcsr_add, dbcsr_copy, dbcsr_create, dbcsr_maxabs, dbcsr_multiply, dbcsr_p_type, &
-        dbcsr_release, dbcsr_set, dbcsr_trace, dbcsr_transposed, dbcsr_type
+        dbcsr_add, dbcsr_copy, dbcsr_create, dbcsr_dot, dbcsr_maxabs, dbcsr_multiply, &
+        dbcsr_p_type, dbcsr_release, dbcsr_set, dbcsr_transposed, dbcsr_type
    USE dm_ls_scf_types,                 ONLY: ls_scf_env_type
    USE input_section_types,             ONLY: section_vals_type
    USE kinds,                           ONLY: default_string_length,&
@@ -84,8 +86,7 @@ CONTAINS
       TYPE(qs_diis_buffer_type), POINTER                 :: diis_buffer
       INTEGER, INTENT(in)                                :: nbuffer
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_diis_b_create', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'qs_diis_b_create'
 
       INTEGER                                            :: handle
 
@@ -100,7 +101,7 @@ CONTAINS
       NULLIFY (diis_buffer%parameter)
       diis_buffer%nbuffer = nbuffer
       diis_buffer%ncall = 0
-      last_diis_b_id = last_diis_b_id+1
+      last_diis_b_id = last_diis_b_id + 1
       diis_buffer%id_nr = last_diis_b_id
       diis_buffer%ref_count = 1
 
@@ -131,8 +132,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: nspin
       TYPE(section_vals_type), POINTER                   :: scf_section
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_diis_b_check_i_alloc', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_diis_b_check_i_alloc'
 
       INTEGER                                            :: handle, ibuffer, ispin, nbuffer, &
                                                             output_unit
@@ -184,7 +184,7 @@ CONTAINS
       END IF
 
       IF (.NOT. ASSOCIATED(diis_buffer%b_matrix)) THEN
-         ALLOCATE (diis_buffer%b_matrix(nbuffer+1, nbuffer+1))
+         ALLOCATE (diis_buffer%b_matrix(nbuffer + 1, nbuffer + 1))
          diis_buffer%b_matrix = 0.0_dp
          output_unit = cp_print_key_unit_nr(logger, scf_section, "PRINT%DIIS_INFO", &
                                             extension=".scfLog")
@@ -238,7 +238,7 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: scf_section
       LOGICAL, INTENT(IN), OPTIONAL                      :: roks
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_diis_b_step', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'qs_diis_b_step'
       REAL(KIND=dp), PARAMETER :: eigenvalue_threshold = 1.0E-12_dp
 
       CHARACTER(LEN=2*default_string_length)             :: message
@@ -290,8 +290,8 @@ CONTAINS
 
       error_max = 0.0_dp
 
-      ib = MODULO(diis_buffer%ncall, diis_buffer%nbuffer)+1
-      diis_buffer%ncall = diis_buffer%ncall+1
+      ib = MODULO(diis_buffer%ncall, diis_buffer%nbuffer) + 1
+      diis_buffer%ncall = diis_buffer%ncall + 1
       nb = MIN(diis_buffer%ncall, diis_buffer%nbuffer)
 
       DO ispin = 1, nspin
@@ -320,7 +320,7 @@ CONTAINS
                             occupation_numbers=occb)
 
             DO imo = 1, nmo
-               occ(imo) = SQRT(occa(imo)+occb(imo))
+               occ(imo) = SQRT(occa(imo) + occb(imo))
             END DO
 
             CALL cp_fm_to_fm(c, sc)
@@ -370,7 +370,7 @@ CONTAINS
 
       END DO
 
-      ! Check, if a DIIS step is appropiate
+      ! Check, if a DIIS step is appropriate
 
       diis_step = ((diis_buffer%ncall >= my_nmixing) .AND. (delta < eps_diis))
 
@@ -410,7 +410,7 @@ CONTAINS
                old_errors => diis_buffer%error(jb, ispin)%matrix
                new_errors => diis_buffer%error(ib, ispin)%matrix
                CALL cp_fm_trace(old_errors, new_errors, tmp)
-               b(jb, ib) = b(jb, ib)+tmp
+               b(jb, ib) = b(jb, ib) + tmp
             END DO
             b(ib, jb) = b(jb, ib)
          END DO
@@ -425,7 +425,7 @@ CONTAINS
 
       IF (diis_step) THEN
 
-         nb1 = nb+1
+         nb1 = nb + 1
 
          ALLOCATE (a(nb1, nb1))
          ALLOCATE (b(nb1, nb1))
@@ -516,8 +516,7 @@ CONTAINS
 
       TYPE(qs_diis_buffer_type), POINTER                 :: diis_buffer
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_diis_b_clear', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'qs_diis_b_clear'
 
       INTEGER                                            :: handle
 
@@ -567,8 +566,7 @@ CONTAINS
       TYPE(dbcsr_type), OPTIONAL                         :: s_matrix
       REAL(KIND=dp), INTENT(IN)                          :: threshold
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_diis_b_step_4lscf', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_diis_b_step_4lscf'
       REAL(KIND=dp), PARAMETER :: eigenvalue_threshold = 1.0E-12_dp
 
       INTEGER                                            :: handle, ib, ispin, jb, my_nmixing, nb, &
@@ -605,8 +603,8 @@ CONTAINS
          nspin)
       error_max = 0.0_dp
 
-      ib = MODULO(diis_buffer%ncall, diis_buffer%nbuffer)+1
-      diis_buffer%ncall = diis_buffer%ncall+1
+      ib = MODULO(diis_buffer%ncall, diis_buffer%nbuffer) + 1
+      diis_buffer%ncall = diis_buffer%ncall + 1
       nb = MIN(diis_buffer%ncall, diis_buffer%nbuffer)
 ! Create scratch arrays
       CALL dbcsr_create(matrix_tmp, &
@@ -669,7 +667,7 @@ CONTAINS
 
       END DO ! ------ Loop-ispin----END
 
-      ! Check, if a DIIS step is appropiate
+      ! Check, if a DIIS step is appropriate
 
       diis_step = (diis_buffer%ncall >= my_nmixing)
 
@@ -693,10 +691,10 @@ CONTAINS
             DO ispin = 1, nspin
                old_errors => diis_buffer%error(jb, ispin)%matrix
                new_errors => diis_buffer%error(ib, ispin)%matrix
-               CALL dbcsr_trace(old_errors, &
-                                new_errors, &
-                                tmp) ! out : < f_i | f_j >
-               b(jb, ib) = b(jb, ib)+tmp
+               CALL dbcsr_dot(old_errors, &
+                              new_errors, &
+                              tmp) ! out : < f_i | f_j >
+               b(jb, ib) = b(jb, ib) + tmp
             END DO ! end-loop-ispin
             b(ib, jb) = b(jb, ib)
          END DO ! end-loop-jb
@@ -706,7 +704,7 @@ CONTAINS
 
       ! Perform DIIS step
       IF (diis_step) THEN
-         nb1 = nb+1
+         nb1 = nb + 1
          ALLOCATE (a(nb1, nb1))
          ALLOCATE (b(nb1, nb1))
          ALLOCATE (ev(nb1))
@@ -783,8 +781,7 @@ CONTAINS
       TYPE(ls_scf_env_type)                              :: ls_scf_env
       INTEGER, INTENT(IN)                                :: nspin
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_diis_b_check_i_alloc_sparse', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_diis_b_check_i_alloc_sparse'
 
       INTEGER                                            :: handle, ibuffer, ispin, nbuffer
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -828,7 +825,7 @@ CONTAINS
       END IF
 
       IF (.NOT. ASSOCIATED(diis_buffer%b_matrix)) THEN
-         ALLOCATE (diis_buffer%b_matrix(nbuffer+1, nbuffer+1))
+         ALLOCATE (diis_buffer%b_matrix(nbuffer + 1, nbuffer + 1))
 
          diis_buffer%b_matrix = 0.0_dp
       END IF
@@ -849,8 +846,7 @@ CONTAINS
 
       TYPE(qs_diis_buffer_type_sparse), POINTER          :: diis_buffer
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_diis_b_clear_sparse', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_diis_b_clear_sparse'
 
       INTEGER                                            :: handle
 
@@ -880,8 +876,7 @@ CONTAINS
       TYPE(qs_diis_buffer_type_sparse), POINTER          :: diis_buffer
       INTEGER, INTENT(in)                                :: nbuffer
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_diis_b_create_sparse', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'qs_diis_b_create_sparse'
 
       INTEGER                                            :: handle
 
@@ -896,7 +891,7 @@ CONTAINS
       NULLIFY (diis_buffer%parameter)
       diis_buffer%nbuffer = nbuffer
       diis_buffer%ncall = 0
-      last_diis_b_id = last_diis_b_id+1
+      last_diis_b_id = last_diis_b_id + 1
       diis_buffer%id_nr = last_diis_b_id
       diis_buffer%ref_count = 1
 

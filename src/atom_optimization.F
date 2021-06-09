@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -51,13 +53,10 @@ CONTAINS
 !>    * 08.2016 new structure element: density matrix [Juerg Hutter]
 !>    * 08.2008 created [Juerg Hutter]
 ! **************************************************************************************************
-   SUBROUTINE atom_history_init(history, optimization, matrix)
+   PURE SUBROUTINE atom_history_init(history, optimization, matrix)
       TYPE(atom_history_type), INTENT(INOUT)             :: history
       TYPE(atom_optimization_type), INTENT(IN)           :: optimization
       REAL(dp), DIMENSION(:, :, :), INTENT(IN)           :: matrix
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'atom_history_init', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, n1, n2, n3, ndiis
       REAL(dp)                                           :: damp, eps
@@ -73,7 +72,7 @@ CONTAINS
       history%hpos = 0
       history%damping = damp
       history%eps_diis = eps
-      ALLOCATE (history%dmat(ndiis+1, ndiis+1))
+      ALLOCATE (history%dmat(ndiis + 1, ndiis + 1))
 
       ALLOCATE (history%hmat(ndiis))
       n1 = SIZE(matrix, 1)
@@ -101,19 +100,16 @@ CONTAINS
 !>    * 08.2016 new formal argument: density matrix [Juerg Hutter]
 !>    * 08.2008 created [Juerg Hutter]
 ! **************************************************************************************************
-   SUBROUTINE atom_history_update(history, pmat, fmat, emat, energy, error)
+   PURE SUBROUTINE atom_history_update(history, pmat, fmat, emat, energy, error)
       TYPE(atom_history_type), INTENT(INOUT)             :: history
       REAL(dp), DIMENSION(:, :, :), INTENT(IN)           :: pmat, fmat, emat
       REAL(dp), INTENT(IN)                               :: energy, error
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'atom_history_update', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: nlen, nmax, nnow
 
       nmax = history%max_history
-      nlen = MIN(history%hlen+1, nmax)
-      nnow = history%hpos+1
+      nlen = MIN(history%hlen + 1, nmax)
+      nnow = history%hpos + 1
       IF (nnow > nmax) nnow = 1
 
       history%hmat(nnow)%energy = energy
@@ -133,11 +129,8 @@ CONTAINS
 !> \par History
 !>    * 08.2008 created [Juerg Hutter]
 ! **************************************************************************************************
-   SUBROUTINE atom_history_release(history)
+   PURE SUBROUTINE atom_history_release(history)
       TYPE(atom_history_type), INTENT(INOUT)             :: history
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'atom_history_release', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
 
@@ -180,8 +173,6 @@ CONTAINS
       TYPE(atom_history_type), INTENT(INOUT)             :: history
       REAL(dp), INTENT(IN)                               :: err
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'atom_opt_fmat', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, info, j, lwork, na, nb, nlen, nm, &
                                                             nmax, nnow, rank
       REAL(dp)                                           :: a, rcond, t
@@ -196,40 +187,40 @@ CONTAINS
             ! DIIS
             rcond = 1.e-10_dp
             lwork = 25*nmax
-            ALLOCATE (vec(nmax+1, 2), s(nmax+1), work(lwork))
+            ALLOCATE (vec(nmax + 1, 2), s(nmax + 1), work(lwork))
             nlen = history%hlen
             vec = 0._dp
-            vec(nlen+1, 1) = 1._dp
-            history%dmat(1:nlen, nlen+1) = 1._dp
-            history%dmat(nlen+1, 1:nlen) = 1._dp
-            history%dmat(nlen+1, nlen+1) = 0._dp
+            vec(nlen + 1, 1) = 1._dp
+            history%dmat(1:nlen, nlen + 1) = 1._dp
+            history%dmat(nlen + 1, 1:nlen) = 1._dp
+            history%dmat(nlen + 1, nlen + 1) = 0._dp
             DO i = 1, nlen
-               na = nnow+1-i
-               IF (na < 1) na = nmax+na
+               na = nnow + 1 - i
+               IF (na < 1) na = nmax + na
                DO j = i, nlen
-                  nb = nnow+1-j
-                  IF (nb < 1) nb = nmax+nb
+                  nb = nnow + 1 - j
+                  IF (nb < 1) nb = nmax + nb
                   t = SUM(history%hmat(na)%emat*history%hmat(nb)%emat)
                   history%dmat(i, j) = t
                   history%dmat(j, i) = t
                END DO
             END DO
-            CALL lapack_sgelss(nlen+1, nlen+1, 1, history%dmat, nmax+1, vec, nmax+1, s, &
+            CALL lapack_sgelss(nlen + 1, nlen + 1, 1, history%dmat, nmax + 1, vec, nmax + 1, s, &
                                rcond, rank, work, lwork, info)
             CPASSERT(info == 0)
             fmat = 0._dp
             DO i = 1, nlen
-               na = nnow+1-i
-               IF (na < 1) na = nmax+na
-               fmat = fmat+vec(i, 1)*history%hmat(na)%fmat
+               na = nnow + 1 - i
+               IF (na < 1) na = nmax + na
+               fmat = fmat + vec(i, 1)*history%hmat(na)%fmat
             END DO
 
             DEALLOCATE (vec, s, work)
          ELSE
             ! damping
-            nm = nnow-1
+            nm = nnow - 1
             IF (nm < 1) nm = history%max_history
-            fmat = a*history%hmat(nnow)%fmat+(1._dp-a)*history%hmat(nm)%fmat
+            fmat = a*history%hmat(nnow)%fmat + (1._dp - a)*history%hmat(nm)%fmat
          END IF
       ELSEIF (history%hlen == 1) THEN
          fmat = history%hmat(nnow)%fmat

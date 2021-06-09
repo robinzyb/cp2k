@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -10,19 +12,16 @@
 !>    * 02.2016 created [Juerg Hutter]
 ! **************************************************************************************************
 MODULE atom_upf
-#if defined(__JSON)
-   USE json_module, ONLY: json_file
-#endif
-   USE cp_parser_methods, ONLY: parser_get_next_line, &
-      parser_get_object, &
-      parser_test_next_token
-   USE cp_parser_types, ONLY: cp_parser_type, &
-      parser_create, &
-      parser_release
-   USE kinds, ONLY: default_string_length, &
-      dp
-   USE periodic_table, ONLY: get_ptable_info, &
-      ptable
+   USE cp_parser_methods,               ONLY: parser_get_next_line,&
+                                              parser_get_object,&
+                                              parser_test_next_token
+   USE cp_parser_types,                 ONLY: cp_parser_type,&
+                                              parser_create,&
+                                              parser_release
+   USE kinds,                           ONLY: default_string_length,&
+                                              dp
+   USE periodic_table,                  ONLY: get_ptable_info,&
+                                              ptable
 #include "./base/base_uses.f90"
 
    IMPLICIT NONE
@@ -105,10 +104,8 @@ CONTAINS
       CHARACTER(len=*), INTENT(IN)                       :: upf_filename
       LOGICAL, INTENT(IN), OPTIONAL                      :: read_header
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'atom_read_upf', routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=2)                                   :: symbol
-      INTEGER                                            :: l1, l2, ncore, nel
+      INTEGER                                            :: l, ncore, nel
       LOGICAL                                            :: readall
 
       IF (PRESENT(read_header)) THEN
@@ -117,53 +114,56 @@ CONTAINS
          readall = .TRUE.
       END IF
 
-      ! check for json file
-      l2 = LEN_TRIM(upf_filename)
-      l1 = l2-4
-      IF (upf_filename(l1:l2) == '.json') THEN
-         CALL atom_read_upf_json(pot, upf_filename)
-      ELSE
-         CALL atom_read_upf_orig(pot, upf_filename, readall)
-      END IF
+      ! filename
+      pot%filename = ADJUSTL(TRIM(upf_filename))
+
+      ! Ignore json potentials as SIRIUS will parse those on its own.
+      l = LEN_TRIM(pot%filename)
+      IF (pot%filename(l - 4:l) == '.json') THEN
+         pot%zion = 0.0
+         RETURN
+      ENDIF
+
+      CALL atom_read_upf_v2(pot, upf_filename, readall)
 
       ! set up econf
       IF (SUM(pot%econf) == 0) THEN
          symbol = ADJUSTL(TRIM(pot%symbol))
          CALL get_ptable_info(symbol, number=ncore)
          pot%econf(0:3) = ptable(ncore)%e_conv(0:3)
-         nel = NINT(ncore-pot%zion)
+         nel = NINT(ncore - pot%zion)
          SELECT CASE (nel)
          CASE DEFAULT
             CPABORT("Unknown Core State")
          CASE (0)
             ! no core electron
          CASE (2)
-            pot%econf(0:3) = pot%econf(0:3)-ptable(2)%e_conv(0:3)
+            pot%econf(0:3) = pot%econf(0:3) - ptable(2)%e_conv(0:3)
          CASE (10)
-            pot%econf(0:3) = pot%econf(0:3)-ptable(10)%e_conv(0:3)
+            pot%econf(0:3) = pot%econf(0:3) - ptable(10)%e_conv(0:3)
          CASE (18)
-            pot%econf(0:3) = pot%econf(0:3)-ptable(18)%e_conv(0:3)
+            pot%econf(0:3) = pot%econf(0:3) - ptable(18)%e_conv(0:3)
          CASE (28)
-            pot%econf(0:3) = pot%econf(0:3)-ptable(18)%e_conv(0:3)
-            pot%econf(2) = pot%econf(2)-10
+            pot%econf(0:3) = pot%econf(0:3) - ptable(18)%e_conv(0:3)
+            pot%econf(2) = pot%econf(2) - 10
          CASE (36)
-            pot%econf(0:3) = pot%econf(0:3)-ptable(36)%e_conv(0:3)
+            pot%econf(0:3) = pot%econf(0:3) - ptable(36)%e_conv(0:3)
          CASE (46)
-            pot%econf(0:3) = pot%econf(0:3)-ptable(36)%e_conv(0:3)
-            pot%econf(2) = pot%econf(2)-10
+            pot%econf(0:3) = pot%econf(0:3) - ptable(36)%e_conv(0:3)
+            pot%econf(2) = pot%econf(2) - 10
          CASE (54)
-            pot%econf(0:3) = pot%econf(0:3)-ptable(54)%e_conv(0:3)
+            pot%econf(0:3) = pot%econf(0:3) - ptable(54)%e_conv(0:3)
          CASE (60)
-            pot%econf(0:3) = pot%econf(0:3)-ptable(36)%e_conv(0:3)
-            pot%econf(2) = pot%econf(2)-10
-            pot%econf(3) = pot%econf(3)-14
+            pot%econf(0:3) = pot%econf(0:3) - ptable(36)%e_conv(0:3)
+            pot%econf(2) = pot%econf(2) - 10
+            pot%econf(3) = pot%econf(3) - 14
          CASE (68)
-            pot%econf(0:3) = pot%econf(0:3)-ptable(54)%e_conv(0:3)
-            pot%econf(3) = pot%econf(3)-14
+            pot%econf(0:3) = pot%econf(0:3) - ptable(54)%e_conv(0:3)
+            pot%econf(3) = pot%econf(3) - 14
          CASE (78)
-            pot%econf(0:3) = pot%econf(0:3)-ptable(54)%e_conv(0:3)
-            pot%econf(2) = pot%econf(2)-10
-            pot%econf(3) = pot%econf(3)-14
+            pot%econf(0:3) = pot%econf(0:3) - ptable(54)%e_conv(0:3)
+            pot%econf(2) = pot%econf(2) - 10
+            pot%econf(3) = pot%econf(3) - 14
          END SELECT
          !
          CPASSERT(ALL(pot%econf >= 0))
@@ -174,9 +174,6 @@ CONTAINS
          pot%pname = ADJUSTL(TRIM(pot%symbol))
       END IF
 
-      ! filename
-      pot%filename = ADJUSTL(TRIM(upf_filename))
-
    END SUBROUTINE atom_read_upf
 
 ! **************************************************************************************************
@@ -185,14 +182,11 @@ CONTAINS
 !> \param upf_filename ...
 !> \param readall ...
 ! **************************************************************************************************
-   SUBROUTINE atom_read_upf_orig(pot, upf_filename, readall)
+   SUBROUTINE atom_read_upf_v2(pot, upf_filename, readall)
 
       TYPE(atom_upfpot_type)                             :: pot
       CHARACTER(len=*), INTENT(IN)                       :: upf_filename
       LOGICAL, INTENT(IN)                                :: readall
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'atom_read_upf_orig', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_string_length)               :: nametag
       INTEGER                                            :: ib, ntag
@@ -287,7 +281,8 @@ CONTAINS
          END IF
       END IF
 
-   END SUBROUTINE atom_read_upf_orig
+   END SUBROUTINE atom_read_upf_v2
+
 ! **************************************************************************************************
 !> \brief ...
 !> \param parser ...
@@ -309,7 +304,7 @@ CONTAINS
          line = TRIM(parser%buffer%input_lines(iline))
          CALL parser_get_object(parser, string)
          IF (string(1:10) == "</PP_INFO>") EXIT
-         icount = icount+1
+         icount = icount + 1
          IF (icount > pot%maxinfo) CYCLE
          pot%info(icount) = line
       END DO
@@ -493,7 +488,7 @@ CONTAINS
                   CPASSERT(.NOT. at_end)
                ELSE IF (parser_test_next_token(parser) == "FLT") THEN
                   CALL parser_get_object(parser, pot%r(icount))
-                  icount = icount+1
+                  icount = icount + 1
                END IF
                IF (icount > ms) EXIT
             END DO
@@ -530,7 +525,7 @@ CONTAINS
                   CPASSERT(.NOT. at_end)
                ELSE IF (parser_test_next_token(parser) == "FLT") THEN
                   CALL parser_get_object(parser, pot%rab(icount))
-                  icount = icount+1
+                  icount = icount + 1
                END IF
                IF (icount > ms) EXIT
             END DO
@@ -593,7 +588,7 @@ CONTAINS
             CPASSERT(.NOT. at_end)
          ELSE IF (parser_test_next_token(parser) == "FLT") THEN
             CALL parser_get_object(parser, pot%rho_nlcc(icount))
-            icount = icount+1
+            icount = icount + 1
          END IF
          IF (icount > ms) EXIT
       END DO
@@ -655,7 +650,7 @@ CONTAINS
             CPASSERT(.NOT. at_end)
          ELSE IF (parser_test_next_token(parser) == "FLT") THEN
             CALL parser_get_object(parser, pot%vlocal(icount))
-            icount = icount+1
+            icount = icount + 1
          END IF
          IF (icount > ms) EXIT
       END DO
@@ -698,7 +693,7 @@ CONTAINS
          CALL parser_get_object(parser, string, lower_to_upper=.TRUE.)
          IF (string(1:8) == "<PP_BETA") THEN
             ms = m
-            ibeta = ibeta+1
+            ibeta = ibeta + 1
             i1 = ibeta
             la = 0
             CPASSERT(ibeta <= nbeta)
@@ -747,7 +742,7 @@ CONTAINS
                   CPASSERT(.NOT. at_end)
                ELSE IF (parser_test_next_token(parser) == "FLT") THEN
                   CALL parser_get_object(parser, pot%beta(icount, i1))
-                  icount = icount+1
+                  icount = icount + 1
                END IF
                IF (icount > ms) EXIT
             END DO
@@ -779,10 +774,10 @@ CONTAINS
                   CALL parser_get_next_line(parser, 1, at_end)
                   CPASSERT(.NOT. at_end)
                ELSE IF (parser_test_next_token(parser) == "FLT") THEN
-                  i1 = (icount-1)/nbeta+1
-                  i2 = MOD(icount-1, nbeta)+1
+                  i1 = (icount - 1)/nbeta + 1
+                  i2 = MOD(icount - 1, nbeta) + 1
                   CALL parser_get_object(parser, pot%dion(i1, i2))
-                  icount = icount+1
+                  icount = icount + 1
                END IF
                IF (icount > ms) EXIT
             END DO
@@ -814,7 +809,7 @@ CONTAINS
 
       m = pot%mesh_size
       lmax = pot%l_max
-      ALLOCATE (pot%vsemi(m, lmax+1))
+      ALLOCATE (pot%vsemi(m, lmax + 1))
       pot%vsemi = 0.0_dp
 
       ib = 0
@@ -824,10 +819,10 @@ CONTAINS
          CALL parser_get_object(parser, string, lower_to_upper=.TRUE.)
          IF (string(1:7) == "<PP_VNL") THEN
             ms = m
-            ib = ib+1
+            ib = ib + 1
             i1 = ib
             la = 0
-            CPASSERT(ib <= lmax+1)
+            CPASSERT(ib <= lmax + 1)
             DO
                IF (parser_test_next_token(parser) == "EOL") THEN
                   CALL parser_get_next_line(parser, 1, at_end)
@@ -850,7 +845,7 @@ CONTAINS
                   CPABORT("Unknown UPF PP_VNL option <"//TRIM(string)//"> found")
                END SELECT
             END DO
-            i1 = la+1
+            i1 = la + 1
             icount = 1
             DO
                IF (parser_test_next_token(parser) == "EOL") THEN
@@ -858,7 +853,7 @@ CONTAINS
                   CPASSERT(.NOT. at_end)
                ELSE IF (parser_test_next_token(parser) == "FLT") THEN
                   CALL parser_get_object(parser, pot%vsemi(icount, i1))
-                  icount = icount+1
+                  icount = icount + 1
                END IF
                IF (icount > ms) EXIT
             END DO
@@ -875,51 +870,11 @@ CONTAINS
 
 ! **************************************************************************************************
 !> \brief ...
-!> \param pot ...
-!> \param upf_filename ...
-! **************************************************************************************************
-   SUBROUTINE atom_read_upf_json(pot, upf_filename)
-
-      TYPE(atom_upfpot_type)                             :: pot
-      CHARACTER(len=*), INTENT(IN)                       :: upf_filename
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'atom_read_upf_json', routineP = moduleN//':'//routineN
-
-#if defined(__JSON)
-      TYPE(json_file)                                    :: json
-      LOGICAL                                            :: found
-      CHARACTER(LEN=:), ALLOCATABLE                      :: symbol
-      REAL(KIND=dp)                                      :: z_valence
-#endif
-
-#if defined(__JSON)
-      CALL json%initialize(compact_reals=.TRUE.)
-      CALL json%load_file(filename=upf_filename)
-      CALL json%get('$.pseudo_potential.header.z_valence', z_valence, found)
-      CPASSERT(found)
-      CALL json%get('$.pseudo_potential.header.element', symbol, found)
-      CPASSERT(found)
-      CALL json%destroy()
-      pot%zion = z_valence
-      pot%symbol = TRIM(symbol)
-#else
-      pot%symbol = upf_filename(1:2)
-      CPWARN(upf_filename)
-      CPABORT("No json support available")
-#endif
-
-   END SUBROUTINE atom_read_upf_json
-
-! **************************************************************************************************
-!> \brief ...
 !> \param upfpot ...
 ! **************************************************************************************************
-   SUBROUTINE atom_release_upf(upfpot)
+   PURE SUBROUTINE atom_release_upf(upfpot)
 
-      TYPE(atom_upfpot_type)                             :: upfpot
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'atom_release_upf', &
-         routineP = moduleN//':'//routineN
+      TYPE(atom_upfpot_type), INTENT(INOUT)              :: upfpot
 
       IF (ALLOCATED(upfpot%r)) DEALLOCATE (upfpot%r)
       IF (ALLOCATED(upfpot%rab)) DEALLOCATE (upfpot%rab)

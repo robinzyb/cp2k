@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -103,7 +105,7 @@ MODULE qs_loc_types
    END TYPE qs_loc_env_new_type
 
 ! **************************************************************************************************
-!> \brief A type that holds controling information for the
+!> \brief A type that holds controlling information for the
 !>    calculation of the spread of wfn and the optimization of
 !>    the spread functional
 !> \param ref_count ...
@@ -136,7 +138,7 @@ MODULE qs_loc_types
       REAL(KIND=dp)                        :: eps_occ
       REAL(KIND=dp), DIMENSION(2)          :: lu_ene_bound
       LOGICAL                              :: crazy_use_diag
-      LOGICAL                              :: print_cubes, jacobi_fallback
+      LOGICAL                              :: print_cubes, jacobi_fallback, jacobi_refinement
       LOGICAL                              :: print_centers
       LOGICAL                              :: print_spreads
       LOGICAL                              :: do_homo
@@ -167,9 +169,6 @@ CONTAINS
    SUBROUTINE qs_loc_env_create(qs_loc_env)
 
       TYPE(qs_loc_env_new_type), POINTER                 :: qs_loc_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_loc_env_create', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(.NOT. ASSOCIATED(qs_loc_env))
 
@@ -202,9 +201,6 @@ CONTAINS
 
       TYPE(qs_loc_env_new_type), POINTER                 :: qs_loc_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_loc_env_destroy', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, ii, j
 
       CPASSERT(ASSOCIATED(qs_loc_env))
@@ -220,7 +216,7 @@ CONTAINS
 
       IF (ASSOCIATED(qs_loc_env%moloc_coeff)) THEN
          DO i = 1, SIZE(qs_loc_env%moloc_coeff, 1)
-            ii = LBOUND(qs_loc_env%moloc_coeff, 1)+i-1
+            ii = LBOUND(qs_loc_env%moloc_coeff, 1) + i - 1
             CALL cp_fm_release(qs_loc_env%moloc_coeff(ii)%matrix)
          END DO
          DEALLOCATE (qs_loc_env%moloc_coeff)
@@ -261,12 +257,9 @@ CONTAINS
 
       TYPE(qs_loc_env_new_type), POINTER                 :: qs_loc_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_loc_env_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(qs_loc_env)) THEN
          CPASSERT(qs_loc_env%ref_count > 0)
-         qs_loc_env%ref_count = qs_loc_env%ref_count-1
+         qs_loc_env%ref_count = qs_loc_env%ref_count - 1
          IF (qs_loc_env%ref_count == 0) THEN
             CALL qs_loc_env_destroy(qs_loc_env)
          END IF
@@ -286,12 +279,9 @@ CONTAINS
 
       TYPE(qs_loc_env_new_type), POINTER                 :: qs_loc_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_loc_env_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(qs_loc_env))
       CPASSERT(qs_loc_env%ref_count > 0)
-      qs_loc_env%ref_count = qs_loc_env%ref_count+1
+      qs_loc_env%ref_count = qs_loc_env%ref_count + 1
    END SUBROUTINE qs_loc_env_retain
 
 ! **************************************************************************************************
@@ -302,9 +292,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE localized_wfn_control_create(localized_wfn_control)
       TYPE(localized_wfn_control_type), POINTER          :: localized_wfn_control
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'localized_wfn_control_create', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(.NOT. ASSOCIATED(localized_wfn_control))
       ALLOCATE (localized_wfn_control)
@@ -333,12 +320,9 @@ CONTAINS
 
       TYPE(localized_wfn_control_type), POINTER          :: localized_wfn_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'localized_wfn_control_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(localized_wfn_control)) THEN
          CPASSERT(localized_wfn_control%ref_count > 0)
-         localized_wfn_control%ref_count = localized_wfn_control%ref_count-1
+         localized_wfn_control%ref_count = localized_wfn_control%ref_count - 1
          IF (localized_wfn_control%ref_count == 0) THEN
             IF (ASSOCIATED(localized_wfn_control%loc_states)) THEN
                DEALLOCATE (localized_wfn_control%loc_states)
@@ -364,12 +348,9 @@ CONTAINS
    SUBROUTINE localized_wfn_control_retain(localized_wfn_control)
       TYPE(localized_wfn_control_type), POINTER          :: localized_wfn_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'localized_wfn_control_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(localized_wfn_control))
 
-      localized_wfn_control%ref_count = localized_wfn_control%ref_count+1
+      localized_wfn_control%ref_count = localized_wfn_control%ref_count + 1
    END SUBROUTINE localized_wfn_control_retain
 
 !****f* qs_loc_types/get_qs_loc_env [1.0] *
@@ -410,8 +391,6 @@ CONTAINS
          POINTER                                         :: particle_set
       REAL(dp), DIMENSION(6), OPTIONAL                   :: weights
       INTEGER, OPTIONAL                                  :: dim_op
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_qs_loc_env', routineP = moduleN//':'//routineN
 
       CPASSERT(ASSOCIATED(qs_loc_env))
 
@@ -467,8 +446,6 @@ CONTAINS
          POINTER                                         :: particle_set
       REAL(dp), DIMENSION(6), OPTIONAL                   :: weights
       INTEGER, OPTIONAL                                  :: dim_op
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_qs_loc_env', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
 

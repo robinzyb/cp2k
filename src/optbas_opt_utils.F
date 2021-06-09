@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 MODULE optbas_opt_utils
    USE admm_types,                      ONLY: admm_type
@@ -44,9 +46,6 @@ CONTAINS
       TYPE(cp_fm_type), POINTER                          :: S_inv_orb, Q, tmp1
       REAL(KIND=dp)                                      :: energy
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'evaluate_energy', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ispin, naux, nmo, norb
       REAL(KIND=dp)                                      :: tmp_energy
       TYPE(cp_fm_type), POINTER                          :: mo_coeff, QS_inv, tmp, tmp2, work, &
@@ -69,7 +68,7 @@ CONTAINS
          CALL cp_gemm('N', 'T', naux, naux, norb, 1.0_dp, tmp, QS_inv, 0.0_dp, tmp1)
          CALL cp_gemm('N', 'T', naux, naux, nmo, 1.0_dp, mo_coeff, mo_coeff, 0.0_dp, tmp2)
          CALL cp_fm_trace(tmp1, tmp2, tmp_energy)
-         energy = energy+tmp_energy*(3.0_dp-REAL(SIZE(matrix_ks), dp))
+         energy = energy + tmp_energy*(3.0_dp - REAL(SIZE(matrix_ks), dp))
 
       END DO
 
@@ -98,8 +97,6 @@ CONTAINS
       TYPE(admm_type), POINTER                           :: admm_env
       REAL(KIND=dp)                                      :: fval, S_cond_number
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'evaluate_fval', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ispin, nao_aux_fit, nao_orb, nmo, nspins
       REAL(KIND=dp)                                      :: trace
       REAL(KIND=dp), ALLOCATABLE, DIMENSION(:)           :: eigenvalues
@@ -119,7 +116,7 @@ CONTAINS
          CALL cp_gemm('N', 'N', nao_aux_fit, nmo, nao_orb, -2.0_dp, admm_env%Q, mo_coeff, &
                       0.0_dp, admm_env%work_aux_nmo(ispin)%matrix)
          CALL cp_fm_trace(mo_coeff_aux_fit, admm_env%work_aux_nmo(ispin)%matrix, trace)
-         fval = fval+trace+2.0_dp*nmo
+         fval = fval + trace + 2.0_dp*nmo
       END DO
 
       ALLOCATE (eigenvalues(nao_aux_fit))

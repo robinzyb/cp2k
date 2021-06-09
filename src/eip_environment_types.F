@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -126,13 +128,11 @@ CONTAINS
 
       TYPE(eip_environment_type), POINTER                :: eip_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'eip_env_retain', routineP = moduleN//':'//routineN
-
 !   ------------------------------------------------------------------------
 
       CPASSERT(ASSOCIATED(eip_env))
       CPASSERT(eip_env%ref_count > 0)
-      eip_env%ref_count = eip_env%ref_count+1
+      eip_env%ref_count = eip_env%ref_count + 1
    END SUBROUTINE eip_env_retain
 
 ! **************************************************************************************************
@@ -146,14 +146,11 @@ CONTAINS
 
       TYPE(eip_environment_type), POINTER                :: eip_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'eip_env_release', &
-         routineP = moduleN//':'//routineN
-
 !   ------------------------------------------------------------------------
 
       IF (ASSOCIATED(eip_env)) THEN
          CPASSERT(eip_env%ref_count > 0)
-         eip_env%ref_count = eip_env%ref_count-1
+         eip_env%ref_count = eip_env%ref_count - 1
          IF (eip_env%ref_count < 1) THEN
             IF (ASSOCIATED(eip_env%eip_forces)) THEN
                DEALLOCATE (eip_env%eip_forces)
@@ -243,8 +240,6 @@ CONTAINS
       LOGICAL, INTENT(OUT), OPTIONAL                     :: use_ref_cell
       REAL(KIND=dp), INTENT(OUT), OPTIONAL               :: eip_kinetic_energy, eip_potential_energy
       TYPE(virial_type), OPTIONAL, POINTER               :: virial
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'eip_env_get', routineP = moduleN//':'//routineN
 
       TYPE(atomic_kind_list_type), POINTER               :: atomic_kinds
       TYPE(molecule_kind_list_type), POINTER             :: molecule_kinds
@@ -354,8 +349,6 @@ CONTAINS
       LOGICAL, INTENT(IN), OPTIONAL                      :: use_ref_cell
       REAL(KIND=dp), INTENT(IN), OPTIONAL                :: eip_kinetic_energy, eip_potential_energy
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'eip_env_set', routineP = moduleN//':'//routineN
-
       TYPE(atomic_kind_list_type), POINTER               :: atomic_kinds
       TYPE(molecule_kind_list_type), POINTER             :: molecule_kinds
       TYPE(molecule_list_type), POINTER                  :: molecules
@@ -435,8 +428,6 @@ CONTAINS
 
       TYPE(eip_environment_type), POINTER                :: eip_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'eip_env_clear', routineP = moduleN//':'//routineN
-
 !   ------------------------------------------------------------------------
 
       CPASSERT(ASSOCIATED(eip_env))
@@ -477,8 +468,6 @@ CONTAINS
 
       TYPE(eip_environment_type), POINTER                :: eip_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'eip_env_create', routineP = moduleN//':'//routineN
-
       ALLOCATE (eip_env)
 
       NULLIFY (eip_env%eip_forces)
@@ -488,7 +477,7 @@ CONTAINS
       NULLIFY (eip_env%cell_ref)
 
       eip_env%ref_count = 1
-      last_eip_id = last_eip_id+1
+      last_eip_id = last_eip_id + 1
       eip_env%id_nr = last_eip_id
       eip_env%use_ref_cell = .FALSE.
       CALL eip_env_clear(eip_env)

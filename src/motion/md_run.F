@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -75,6 +77,7 @@ MODULE md_run
                                               metadyn_write_colvar
    USE metadynamics_types,              ONLY: set_meta_env
    USE particle_list_types,             ONLY: particle_list_type
+   USE qs_environment_methods,          ONLY: qs_env_time_update
    USE reftraj_types,                   ONLY: create_reftraj,&
                                               reftraj_type,&
                                               release_reftraj
@@ -128,8 +131,6 @@ CONTAINS
       REAL(KIND=dp), OPTIONAL                            :: hmc_e_initial, hmc_e_final
       TYPE(mdctrl_type), OPTIONAL, POINTER               :: mdctrl
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_mol_dyn', routineP = moduleN//':'//routineN
-
       LOGICAL                                            :: my_rm_restart_info
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(md_environment_type), POINTER                 :: md_env
@@ -181,7 +182,7 @@ CONTAINS
       REAL(KIND=dp), OPTIONAL                            :: hmc_e_initial, hmc_e_final
       TYPE(mdctrl_type), OPTIONAL, POINTER               :: mdctrl
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_mol_dyn_low', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'qs_mol_dyn_low'
 
       CHARACTER(LEN=default_string_length)               :: my_act, my_pos
       INTEGER                                            :: handle, i, istep, md_stride, run_type_id
@@ -372,8 +373,9 @@ CONTAINS
          END IF
 
          IF (ASSOCIATED(force_env%qs_env)) THEN
-            force_env%qs_env%sim_time = time
-            force_env%qs_env%sim_step = itimes
+            CALL qs_env_time_update(force_env%qs_env, time, itimes)
+!deb        force_env%qs_env%sim_time = time
+!deb        force_env%qs_env%sim_step = itimes
          END IF
          ! Warm-up engines for metadynamics
          IF (ASSOCIATED(force_env%meta_env)) THEN
@@ -387,9 +389,9 @@ CONTAINS
                IF (force_env%meta_env%well_tempered) THEN
                   force_env%meta_env%wttemperature = simpar%temp_ext
                   IF (force_env%meta_env%wtgamma > EPSILON(1._dp)) THEN
-                     dummy = force_env%meta_env%wttemperature*(force_env%meta_env%wtgamma-1._dp)
+                     dummy = force_env%meta_env%wttemperature*(force_env%meta_env%wtgamma - 1._dp)
                      IF (force_env%meta_env%delta_t > EPSILON(1._dp)) THEN
-                        check = ABS(force_env%meta_env%delta_t-dummy) < 1.E+3_dp*EPSILON(1._dp)
+                        check = ABS(force_env%meta_env%delta_t - dummy) < 1.E+3_dp*EPSILON(1._dp)
                         IF (.NOT. check) &
                            CALL cp_abort(__LOCATION__, &
                                          "Inconsistency between DELTA_T and WTGAMMA (both specified):"// &
@@ -399,7 +401,7 @@ CONTAINS
                      ENDIF
                   ELSE
                      force_env%meta_env%wtgamma = 1._dp &
-                                                  +force_env%meta_env%delta_t/force_env%meta_env%wttemperature
+                                                  + force_env%meta_env%delta_t/force_env%meta_env%wttemperature
                   ENDIF
                   force_env%meta_env%invdt = 1._dp/force_env%meta_env%delta_t
                ENDIF
@@ -427,7 +429,7 @@ CONTAINS
       ELSE
          CALL get_md_env(md_env, reftraj=reftraj)
          CALL initialize_reftraj(reftraj, reftraj_section, md_env)
-         itimes = reftraj%info%first_snapshot-1
+         itimes = reftraj%info%first_snapshot - 1
          md_stride = reftraj%info%stride
          IF (ASSOCIATED(force_env%meta_env)) THEN
             IF (force_env%meta_env%use_plumed .EQV. .TRUE.) THEN
@@ -450,12 +452,13 @@ CONTAINS
       ! Real MD Loop
       DO istep = 1, simpar%nsteps, md_stride
          ! Increase counters
-         itimes = itimes+1
-         time = time+simpar%dt
+         itimes = itimes + 1
+         time = time + simpar%dt
          !needed when electric field fields are applied
          IF (ASSOCIATED(force_env%qs_env)) THEN
-            force_env%qs_env%sim_time = time
-            force_env%qs_env%sim_step = itimes
+            CALL qs_env_time_update(force_env%qs_env, time, itimes)
+!deb        force_env%qs_env%sim_time = time
+!deb        force_env%qs_env%sim_step = itimes
          END IF
          IF (ehrenfest_md) force_env%qs_env%rtp%istep = istep
 
@@ -529,7 +532,7 @@ CONTAINS
          END IF
 
          time_iter_stop = m_walltime()
-         used_time = time_iter_stop-time_iter_start
+         used_time = time_iter_stop - time_iter_start
          time_iter_start = time_iter_stop
 
          CALL md_output(md_env, md_section, force_env%root_section, should_stop)

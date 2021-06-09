@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -23,10 +25,10 @@ MODULE qs_efield_local
    USE cp_para_types,                   ONLY: cp_para_env_type
    USE dbcsr_api,                       ONLY: dbcsr_add,&
                                               dbcsr_copy,&
+                                              dbcsr_dot,&
                                               dbcsr_get_block_p,&
                                               dbcsr_p_type,&
-                                              dbcsr_set,&
-                                              dbcsr_trace
+                                              dbcsr_set
    USE kinds,                           ONLY: dp
    USE message_passing,                 ONLY: mp_sum
    USE orbital_pointers,                ONLY: ncoset
@@ -79,8 +81,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       LOGICAL, INTENT(IN)                                :: just_energy, calculate_forces
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_efield_local_operator', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_efield_local_operator'
 
       INTEGER                                            :: handle
       LOGICAL                                            :: s_mstruct_changed
@@ -113,8 +114,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       REAL(dp), DIMENSION(3), INTENT(IN)                 :: rpoint
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_efield_integrals', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_efield_integrals'
 
       INTEGER                                            :: handle, i
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: dipmat, matrix_s
@@ -153,8 +153,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(3), INTENT(IN)            :: rpoint
       LOGICAL                                            :: just_energy, calculate_forces
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_efield_mo_derivatives', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'qs_efield_mo_derivatives'
 
       INTEGER :: atom_a, atom_b, handle, i, ia, iatom, icol, idir, ikind, irow, iset, ispin, &
          jatom, jkind, jset, ldab, natom, ncoa, ncob, nkind, nseta, nsetb, sgfa, sgfb
@@ -209,14 +208,14 @@ CONTAINS
       DO ia = 1, natom
          CALL get_atomic_kind(particle_set(ia)%atomic_kind, kind_number=ikind)
          CALL get_qs_kind(qs_kind_set(ikind), core_charge=charge)
-         ria = particle_set(ia)%r-rpoint
+         ria = particle_set(ia)%r - rpoint
          ria = pbc(ria, cell)
-         ci(:) = ci(:)+charge*ria(:)
+         ci(:) = ci(:) + charge*ria(:)
          IF (calculate_forces) THEN
             IF (para_env%mepos == 0) THEN
                iatom = atom_of_kind(ia)
                DO idir = 1, 3
-                  force(ikind)%efield(idir, iatom) = force(ikind)%efield(idir, iatom)-fieldpol(idir)*charge
+                  force(ikind)%efield(idir, iatom) = force(ikind)%efield(idir, iatom) - fieldpol(idir)*charge
                END DO
             END IF
          END IF
@@ -230,8 +229,8 @@ CONTAINS
       CALL qs_rho_get(rho, rho_ao=matrix_p)
       DO ispin = 1, SIZE(matrix_p)
          DO idir = 1, 3
-            CALL dbcsr_trace(matrix_p(ispin)%matrix, dipmat(idir)%matrix, tmp)
-            ener_field = ener_field+fieldpol(idir)*tmp
+            CALL dbcsr_dot(matrix_p(ispin)%matrix, dipmat(idir)%matrix, tmp)
+            ener_field = ener_field + fieldpol(idir)*tmp
          END DO
       END DO
       energy%efield = ener_field
@@ -298,10 +297,10 @@ CONTAINS
                atom_a = atom_of_kind(iatom)
                atom_b = atom_of_kind(jatom)
 
-               ra(:) = particle_set(iatom)%r(:)-rpoint(:)
+               ra(:) = particle_set(iatom)%r(:) - rpoint(:)
                rac(:) = pbc(ra(:), cell)
-               rbc(:) = rac(:)+rab(:)
-               dab = SQRT(rab(1)*rab(1)+rab(2)*rab(2)+rab(3)*rab(3))
+               rbc(:) = rac(:) + rab(:)
+               dab = SQRT(rab(1)*rab(1) + rab(2)*rab(2) + rab(3)*rab(3))
 
                IF (iatom <= jatom) THEN
                   irow = iatom
@@ -332,7 +331,7 @@ CONTAINS
                   ncoa = npgfa(iset)*ncoset(la_max(iset))
                   sgfa = first_sgfa(1, iset)
                   DO jset = 1, nsetb
-                     IF (set_radius_a(iset)+set_radius_b(jset) < dab) CYCLE
+                     IF (set_radius_a(iset) + set_radius_b(jset) < dab) CYCLE
                      ncob = npgfb(jset)*ncoset(lb_max(jset))
                      sgfb = first_sgfb(1, jset)
                      ! Calculate the primitive integrals (da|O|b) and (a|O|db)
@@ -373,9 +372,9 @@ CONTAINS
 
                DO idir = 1, 3
                   force(ikind)%efield(1:3, atom_a) = force(ikind)%efield(1:3, atom_a) &
-                                                     +fdir*fieldpol(idir)*forcea(idir, 1:3)
+                                                     + fdir*fieldpol(idir)*forcea(idir, 1:3)
                   force(jkind)%efield(1:3, atom_b) = force(jkind)%efield(1:3, atom_b) &
-                                                     +fdir*fieldpol(idir)*forceb(idir, 1:3)
+                                                     + fdir*fieldpol(idir)*forceb(idir, 1:3)
                END DO
 
             END DO

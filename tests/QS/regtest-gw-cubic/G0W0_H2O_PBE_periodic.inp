@@ -1,5 +1,5 @@
 &GLOBAL
-  PROJECT  RI_RPA_H2O
+  PROJECT  G0W0_H2O_PBE_periodic
   PRINT_LEVEL MEDIUM
   RUN_TYPE ENERGY
   &TIMINGS
@@ -10,6 +10,7 @@
   METHOD Quickstep
   &DFT
     BASIS_SET_FILE_NAME  HFX_BASIS
+    SORT_BASIS EXP
     POTENTIAL_FILE_NAME  GTH_POTENTIALS
     &MGRID
       CUTOFF  100
@@ -41,40 +42,30 @@
         &END
       &END XC_FUNCTIONAL
       &WF_CORRELATION
-        METHOD  RI_RPA_GPW
-        &WFC_GPW
-          ! normally, this EPS_FILTER controls the accuracy and
-          ! the time for the cubic_scaling RPA calculation
-          EPS_FILTER  1.0E-6
-        &END
-        RI OVERLAP
-        ERI_METHOD OS
-        IM_TIME
-        &IM_TIME
-          DO_DBCSR_T .FALSE.
-          GW
-          GROUP_SIZE_3c 1
-          GROUP_SIZE_P 1
+        &LOW_SCALING
+          MEMORY_CUT 1
         &END
         &RI_RPA
           &HF
             FRACTION 1.0000000
             &SCREENING
-              EPS_SCHWARZ 1.0E-8
+              EPS_SCHWARZ 1.0E-6
               SCREEN_ON_INITIAL_P FALSE
             &END SCREENING
           &END HF
-          MINIMAX
           RPA_NUM_QUAD_POINTS     10
-          &RI_G0W0
-            CORR_MOS_OCC          10
-            CORR_MOS_VIRT         10
-            PRINT_GW_DETAILS
+          &GW
+            CORR_MOS_OCC          4
+            CORR_MOS_VIRT         4
+            ANALYTIC_CONTINUATION TWO_POLE
+            CROSSING_SEARCH       Z_SHOT
+            RI_SIGMA_X            FALSE
             PERIODIC
             &PERIODIC
-              NUM_OMEGA_POINTS   100
+              # That value should be chosen much larger !
+              NUM_OMEGA_POINTS   5
             &END
-          &END RI_G0W0
+          &END GW
         &END RI_RPA
         MEMORY  200.
         NUMBER_PROC  1
@@ -83,11 +74,11 @@
   &END DFT
   &SUBSYS
     &CELL
-      ABC [angstrom]  8.500   8.500  8.500
+      ABC [angstrom]  7.500   7.500  7.500
       PERIODIC NONE
     &END CELL
     &KIND H
-      BASIS_SET          cc-TZV2P-GTH
+      BASIS_SET          DZVP-GTH
       BASIS_SET RI_AUX   RI_DZVP-GTH
       BASIS_SET AUX_GW   DZVP-GTH
       POTENTIAL  GTH-PBE-q1

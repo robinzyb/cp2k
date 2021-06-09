@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -11,7 +13,11 @@ MODULE input_cp2k_negf
    USE bibliography,                    ONLY: Bailey2006,&
                                               Papior2017
    USE cp_output_handling,              ONLY: cp_print_key_section_create,&
-                                              high_print_level
+                                              debug_print_level,&
+                                              high_print_level,&
+                                              low_print_level,&
+                                              medium_print_level,&
+                                              silent_print_level
    USE input_constants,                 ONLY: negfint_method_cc,&
                                               negfint_method_simpson
    USE input_keyword_types,             ONLY: keyword_create,&
@@ -49,9 +55,6 @@ CONTAINS
    SUBROUTINE create_negf_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_negf_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: print_key, subsection
 
@@ -68,7 +71,7 @@ CONTAINS
       CALL section_add_subsection(section, subsection)
       CALL section_release(subsection)
 
-      CALL create_atomlist_section(subsection, "SCATTERING_REGION", "Defines atoms which form the scattering region.")
+      CALL create_atomlist_section(subsection, "SCATTERING_REGION", "Defines atoms which form the scattering region.", .FALSE.)
       CALL section_add_subsection(section, subsection)
       CALL section_release(subsection)
 
@@ -152,8 +155,8 @@ CONTAINS
                           default_i_val=negfint_method_cc, &
                           enum_c_vals=s2a("CLENSHAW-CURTIS", "SIMPSON"), &
                           enum_desc=s2a( &
-                          "Adaptive Clenshaw-Curtis quadrature method", &
-                          "Adaptive Simpson method"), &
+                          "Adaptive Clenshaw-Curtis quadrature method. Requires FFTW3 library.", &
+                          "Adaptive Simpson method. Works without FFTW3."), &
                           enum_i_vals=(/negfint_method_cc, negfint_method_simpson/))
       CALL section_add_keyword(section, keyword)
       CALL keyword_release(keyword)
@@ -207,14 +210,18 @@ CONTAINS
       CALL keyword_release(keyword)
 
       ! PRINT subsection
-      CALL section_create(subsection, __LOCATION__, "PRINT", "Print properties for the scattering region.", &
+      CALL section_create(subsection, __LOCATION__, "PRINT", "Printing of information during the NEGF.", &
                           repeats=.FALSE.)
 
-      CALL create_print_dos_section(print_key, "DOS", "the Density of States (DOS)")
+      CALL create_print_program_run_info_section(print_key)
       CALL section_add_subsection(subsection, print_key)
       CALL section_release(print_key)
 
-      CALL create_print_dos_section(print_key, "TRANSMISSION", "the Transmission Coefficient")
+      CALL create_print_dos_section(print_key, "DOS", "the Density of States (DOS) in the scattering region")
+      CALL section_add_subsection(subsection, print_key)
+      CALL section_release(print_key)
+
+      CALL create_print_dos_section(print_key, "TRANSMISSION", "the transmission coefficient")
       CALL section_add_subsection(subsection, print_key)
       CALL section_release(print_key)
 
@@ -232,11 +239,8 @@ CONTAINS
    SUBROUTINE create_contact_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_contact_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
-      TYPE(section_type), POINTER                        :: print_key, subsection
+      TYPE(section_type), POINTER                        :: print_key, subsection, subsection2
 
       CPASSERT(.NOT. ASSOCIATED(section))
 
@@ -244,21 +248,27 @@ CONTAINS
                           description="Section defining the contact region of NEGF setup.", &
                           n_keywords=5, n_subsections=3, repeats=.TRUE.)
 
-      NULLIFY (keyword, print_key, subsection)
+      NULLIFY (keyword, print_key, subsection, subsection2)
 
       CALL create_atomlist_section(subsection, "BULK_REGION", &
-                                   "the bulk contact adjacent to the screening region.")
+                                   "the bulk contact adjacent to the screening region.", .FALSE.)
       CALL section_add_subsection(section, subsection)
+      CALL create_atomlist_section(subsection2, "CELL", &
+                                   "a single bulk contact unit cell. Bulk Hamiltonian will be contstructed "// &
+                                   "using two such unit cells instead of performing k-point bulk calculation. "// &
+                                   "FORCE_EVAL_SECTION must be 0.", .TRUE.)
+      CALL section_add_subsection(subsection, subsection2)
+      CALL section_release(subsection2)
       CALL section_release(subsection)
 
       CALL create_atomlist_section(subsection, "SCREENING_REGION", &
-                                   "the given contact adjacent to the scattering region.")
+                                   "the given contact adjacent to the scattering region.", .FALSE.)
       CALL section_add_subsection(section, subsection)
       CALL section_release(subsection)
 
       CALL keyword_create(keyword, __LOCATION__, name="FORCE_EVAL_SECTION", &
                           description=" Index of the FORCE_EVAL section which will be used for bulk calculation.", &
-                          n_var=1, type_of_var=integer_t)
+                          n_var=1, type_of_var=integer_t, default_i_val=0)
       CALL section_add_keyword(section, keyword)
       CALL keyword_release(keyword)
 
@@ -311,15 +321,14 @@ CONTAINS
 !> \param section              NEGF section
 !> \param name                 name of the new section
 !> \param description          section description
+!> \param repeats              whether the section can be repeated
 !> \par History
 !>    * 02.2017 created [Sergey Chulkov]
 ! **************************************************************************************************
-   SUBROUTINE create_atomlist_section(section, name, description)
+   SUBROUTINE create_atomlist_section(section, name, description, repeats)
       TYPE(section_type), POINTER                        :: section
       CHARACTER(len=*), INTENT(in)                       :: name, description
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_atomlist_section', &
-         routineP = moduleN//':'//routineN
+      LOGICAL, INTENT(in)                                :: repeats
 
       TYPE(keyword_type), POINTER                        :: keyword
 
@@ -327,7 +336,7 @@ CONTAINS
 
       CALL section_create(section, __LOCATION__, name=TRIM(ADJUSTL(name)), &
                           description="Atoms belonging to "//TRIM(ADJUSTL(description)), &
-                          n_keywords=2, n_subsections=0, repeats=.FALSE.)
+                          n_keywords=2, n_subsections=0, repeats=repeats)
 
       NULLIFY (keyword)
 
@@ -347,6 +356,52 @@ CONTAINS
    END SUBROUTINE create_atomlist_section
 
 ! **************************************************************************************************
+!> \brief Create the PROGRAM_RUN_INFO print section.
+!> \param section              section to create
+!> \par History
+!>    * 11.2020 created [Dmitry Ryndyk]
+! **************************************************************************************************
+   SUBROUTINE create_print_program_run_info_section(section)
+
+      TYPE(section_type), POINTER                        :: section
+
+      TYPE(keyword_type), POINTER                        :: keyword
+
+      CALL cp_print_key_section_create(section, __LOCATION__, "PROGRAM_RUN_INFO", &
+                                       description="Controls the printing of basic information during the NEGF.", &
+                                       print_level=low_print_level, filename="__STD_OUT__")
+      NULLIFY (keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="_SECTION_PARAMETERS_", &
+                          description="Level starting at which this property is printed", &
+                          usage="_SECTION_PARAMETERS_", &
+                          default_i_val=low_print_level, lone_keyword_i_val=low_print_level, &
+                          enum_c_vals=s2a("on", "off", "silent", "low", "medium", "high", "debug"), &
+                          enum_i_vals=(/silent_print_level - 1, debug_print_level + 1, &
+                                        silent_print_level, low_print_level, &
+                                        medium_print_level, high_print_level, debug_print_level/))
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="PRINT_LEVEL", &
+                          variants=(/"IOLEVEL"/), &
+                          description="Determines the verbose level for this section "// &
+                          "additionally to GLOBAL%PRINT_LEVEL and SECTION_PARAMETERS, "// &
+                          "which switch on printing.", &
+                          usage="PRINT_LEVEL HIGH", &
+                          default_i_val=low_print_level, enum_c_vals= &
+                          s2a("SILENT", "LOW", "MEDIUM", "HIGH", "DEBUG"), &
+                          enum_desc=s2a("No output", &
+                                        "Little output", "Quite some output", "Lots of output", &
+                                        "Everything is written out, useful for debugging purposes only"), &
+                          enum_i_vals=(/silent_print_level, low_print_level, medium_print_level, &
+                                        high_print_level, debug_print_level/))
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+   END SUBROUTINE create_print_program_run_info_section
+
+! **************************************************************************************************
 !> \brief Create the DOS print section.
 !> \param section              section to create
 !> \param name                 name of the new section
@@ -357,9 +412,6 @@ CONTAINS
    SUBROUTINE create_print_dos_section(section, name, description)
       TYPE(section_type), POINTER                        :: section
       CHARACTER(len=*), INTENT(in)                       :: name, description
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_print_dos_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
 

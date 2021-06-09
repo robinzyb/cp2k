@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -68,24 +70,20 @@ CONTAINS
    SUBROUTINE get_shell(shell, charge, charge_core, charge_shell, mass_core, &
                         mass_shell, k2_spring, k4_spring, max_dist, shell_cutoff)
 
-      TYPE(shell_kind_type), POINTER                     :: shell
+      TYPE(shell_kind_type), INTENT(IN)                  :: shell
       REAL(KIND=dp), INTENT(OUT), OPTIONAL               :: charge, charge_core, charge_shell, &
                                                             mass_core, mass_shell, k2_spring, &
                                                             k4_spring, max_dist, shell_cutoff
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_shell', routineP = moduleN//':'//routineN
-
-      IF (ASSOCIATED(shell)) THEN
-         IF (PRESENT(charge)) charge = shell%charge_core+shell%charge_shell
-         IF (PRESENT(charge_core)) charge_core = shell%charge_core
-         IF (PRESENT(charge_shell)) charge_shell = shell%charge_shell
-         IF (PRESENT(mass_core)) mass_core = shell%mass_core
-         IF (PRESENT(mass_shell)) mass_shell = shell%mass_shell
-         IF (PRESENT(k2_spring)) k2_spring = shell%k2_spring
-         IF (PRESENT(k4_spring)) k4_spring = shell%k4_spring
-         IF (PRESENT(max_dist)) max_dist = shell%max_dist
-         IF (PRESENT(shell_cutoff)) shell_cutoff = shell%shell_cutoff
-      END IF
+      IF (PRESENT(charge)) charge = shell%charge_core + shell%charge_shell
+      IF (PRESENT(charge_core)) charge_core = shell%charge_core
+      IF (PRESENT(charge_shell)) charge_shell = shell%charge_shell
+      IF (PRESENT(mass_core)) mass_core = shell%mass_core
+      IF (PRESENT(mass_shell)) mass_shell = shell%mass_shell
+      IF (PRESENT(k2_spring)) k2_spring = shell%k2_spring
+      IF (PRESENT(k4_spring)) k4_spring = shell%k4_spring
+      IF (PRESENT(max_dist)) max_dist = shell%max_dist
+      IF (PRESENT(shell_cutoff)) shell_cutoff = shell%shell_cutoff
 
    END SUBROUTINE
 ! **************************************************************************************************
@@ -95,8 +93,6 @@ CONTAINS
    SUBROUTINE shell_create(shell)
 
       TYPE(shell_kind_type), POINTER                     :: shell
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'shell_create', routineP = moduleN//':'//routineN
 
       CPASSERT(.NOT. ASSOCIATED(shell))
       ALLOCATE (shell)
@@ -113,8 +109,6 @@ CONTAINS
 
       TYPE(shell_p_type), DIMENSION(:), POINTER          :: shell_list
       INTEGER, INTENT(IN)                                :: ndim
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'shell_p_create', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
 
@@ -137,11 +131,9 @@ CONTAINS
 
       TYPE(shell_kind_type), POINTER                     :: shell
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'shell_retain', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(shell))
       CPASSERT(shell%ref_count > 0)
-      shell%ref_count = shell%ref_count+1
+      shell%ref_count = shell%ref_count + 1
 
    END SUBROUTINE shell_retain
 
@@ -153,11 +145,9 @@ CONTAINS
 
       TYPE(shell_kind_type), POINTER                     :: shell
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'shell_release', routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(shell)) THEN
          CPASSERT(shell%ref_count > 0)
-         shell%ref_count = shell%ref_count-1
+         shell%ref_count = shell%ref_count - 1
          IF (shell%ref_count == 0) THEN
             DEALLOCATE (shell)
          END IF
@@ -172,9 +162,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE shell_p_release(shell_list)
       TYPE(shell_p_type), DIMENSION(:), POINTER          :: shell_list
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'shell_p_release', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
 

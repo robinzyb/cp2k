@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -64,9 +66,7 @@ MODULE input_cp2k_restarts
    USE molecule_kind_list_types,        ONLY: molecule_kind_list_type
    USE molecule_list_types,             ONLY: molecule_list_type
    USE neb_types,                       ONLY: neb_var_type
-   USE parallel_rng_types,              ONLY: dump_rng_stream,&
-                                              get_rng_stream,&
-                                              rng_record_length
+   USE parallel_rng_types,              ONLY: rng_record_length
    USE particle_list_types,             ONLY: particle_list_type
    USE particle_types,                  ONLY: get_particle_pos_or_vel,&
                                               particle_type
@@ -119,7 +119,7 @@ CONTAINS
       TYPE(helium_solvent_p_type), DIMENSION(:), &
          OPTIONAL, POINTER                               :: helium_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_restart', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'write_restart'
       CHARACTER(LEN=30), DIMENSION(2), PARAMETER :: &
          keys = (/"PRINT%RESTART_HISTORY", "PRINT%RESTART        "/)
 
@@ -213,8 +213,7 @@ CONTAINS
       TYPE(force_env_type), OPTIONAL, POINTER            :: force_env
       TYPE(section_vals_type), POINTER                   :: root_section
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_subsys_release', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_subsys_release'
 
       CHARACTER(LEN=default_string_length)               :: unit_str
       INTEGER                                            :: handle, iforce_eval, myid, nforce_eval
@@ -256,7 +255,7 @@ CONTAINS
             IF (.NOT. explicit) CYCLE ! Nothing to update...
 
             my_force_b => my_force_env
-            IF (iforce_eval > 1) my_force_b => my_force_env%sub_force_env(iforce_eval-1)%force_env
+            IF (iforce_eval > 1) my_force_b => my_force_env%sub_force_env(iforce_eval - 1)%force_env
 
             CALL force_env_get(my_force_b, subsys=subsys)
 
@@ -339,8 +338,7 @@ CONTAINS
 
       TYPE(section_vals_type), POINTER                   :: motion_section
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_motion_release', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_motion_release'
 
       INTEGER                                            :: handle
       TYPE(section_vals_type), POINTER                   :: work_section
@@ -411,7 +409,7 @@ CONTAINS
          OPTIONAL, POINTER                               :: helium_env
       LOGICAL, INTENT(IN), OPTIONAL                      :: save_mem, write_binary_restart_file
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_input', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'update_input'
 
       INTEGER                                            :: handle
       LOGICAL                                            :: do_respa, lcond, my_save_mem, &
@@ -512,7 +510,7 @@ CONTAINS
          OPTIONAL, POINTER                               :: helium_env
       LOGICAL, INTENT(IN), OPTIONAL                      :: save_mem, write_binary_restart_file
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_motion', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'update_motion'
 
       INTEGER                                            :: counter, handle, handle2, i, irep, isec, &
                                                             j, nhc_len, tot_nhcneed
@@ -664,7 +662,7 @@ CONTAINS
       ! SAVE THERMOSTAT target TEMPERATURE when doing TEMPERATURE_ANNEALING
       IF (PRESENT(md_env)) THEN
          IF (ASSOCIATED(simpar)) THEN
-            IF (simpar%temperature_annealing .AND. ABS(1._dp-simpar%f_temperature_annealing) > 1.E-10_dp) THEN
+            IF (simpar%temperature_annealing .AND. ABS(1._dp - simpar%f_temperature_annealing) > 1.E-10_dp) THEN
                CALL section_vals_val_set(motion_section, "MD%TEMPERATURE", r_val=simpar%temp_ext)
             END IF
          END IF
@@ -712,7 +710,7 @@ CONTAINS
             counter = 0
             DO i = 1, SIZE(nhc%nvt, 1)
                DO j = 1, SIZE(nhc%nvt, 2)
-                  counter = counter+1
+                  counter = counter + 1
                   eta(counter) = nhc%nvt(i, j)%eta
                   veta(counter) = nhc%nvt(i, j)%v
                   fnhc(counter) = nhc%nvt(i, j)%f
@@ -737,7 +735,7 @@ CONTAINS
          counter = 0
          DO i = 1, SIZE(npt, 1)
             DO j = 1, SIZE(npt, 2)
-               counter = counter+1
+               counter = counter + 1
                veta(counter) = npt(i, j)%v
                mnhc(counter) = npt(i, j)%mass
             END DO
@@ -903,8 +901,7 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: motion_section
       TYPE(pint_env_type), POINTER                       :: pint_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_motion_pint', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_motion_pint'
 
       CHARACTER(LEN=rng_record_length)                   :: rng_record
       INTEGER                                            :: handle, i, iatom, ibead, inos, isp
@@ -920,7 +917,7 @@ CONTAINS
 
       ! allocate memory for COORDs and VELOCITYs if the BEADS section was not
       ! explicitly given in the input (this is actually done only once since
-      ! after section_vals_add_values section becomes explict)
+      ! after section_vals_add_values section becomes explicit)
       NULLIFY (tmpsec)
       tmpsec => section_vals_get_subs_vals(pint_section, "BEADS")
       CALL section_vals_get(tmpsec, explicit=explicit)
@@ -937,7 +934,7 @@ CONTAINS
       DO iatom = 1, pint_env%ndim
          DO ibead = 1, pint_env%p
             r_vals(i) = pint_env%x(ibead, iatom)
-            i = i+1
+            i = i + 1
          END DO
       END DO
       CALL section_vals_val_set(pint_section, "BEADS%COORD%_DEFAULT_KEYWORD_", &
@@ -951,7 +948,7 @@ CONTAINS
       DO iatom = 1, pint_env%ndim
          DO ibead = 1, pint_env%p
             r_vals(i) = pint_env%v(ibead, iatom)
-            i = i+1
+            i = i + 1
          END DO
       END DO
       CALL section_vals_val_set(pint_section, "BEADS%VELOCITY%_DEFAULT_KEYWORD_", &
@@ -961,7 +958,7 @@ CONTAINS
 
          ! allocate memory for COORDs and VELOCITYs if the NOSE section was not
          ! explicitly given in the input (this is actually done only once since
-         ! after section_vals_add_values section becomes explict)
+         ! after section_vals_add_values section becomes explicit)
          NULLIFY (tmpsec)
          tmpsec => section_vals_get_subs_vals(pint_section, "NOSE")
          CALL section_vals_get(tmpsec, explicit=explicit)
@@ -977,7 +974,7 @@ CONTAINS
             DO ibead = 1, pint_env%p
                DO inos = 1, pint_env%nnos
                   r_vals(i) = pint_env%tx(inos, ibead, iatom)
-                  i = i+1
+                  i = i + 1
                END DO
             END DO
          END DO
@@ -992,7 +989,7 @@ CONTAINS
             DO ibead = 1, pint_env%p
                DO inos = 1, pint_env%nnos
                   r_vals(i) = pint_env%tv(inos, ibead, iatom)
-                  i = i+1
+                  i = i + 1
                END DO
             END DO
          END DO
@@ -1008,11 +1005,13 @@ CONTAINS
       ELSE IF (pint_env%pimd_thermostat == thermostat_pile) THEN
          tmpsec => section_vals_get_subs_vals(pint_section, &
                                               "PILE%RNG_INIT")
-         CALL dump_rng_stream(rng_stream=pint_env%pile_therm%gaussian_rng_stream, &
-                              rng_record=rng_record)
+         CALL pint_env%pile_therm%gaussian_rng_stream%dump(rng_record)
          CALL string_to_ascii(rng_record, ascii(:, 1))
          CALL section_rng_val_set(rng_section=tmpsec, nsize=1, &
                                   ascii=ascii)
+         tmpsec => section_vals_get_subs_vals(pint_section, "PILE")
+         CALL section_vals_val_set(tmpsec, "THERMOSTAT_ENERGY", &
+                                   r_val=pint_env%e_pile)
       ELSE IF (pint_env%pimd_thermostat == thermostat_qtb) THEN
          tmpsec => section_vals_get_subs_vals(pint_section, &
                                               "QTB%RNG_INIT")
@@ -1020,24 +1019,29 @@ CONTAINS
                               ascii(:, 1))
          CALL section_rng_val_set(rng_section=tmpsec, nsize=1, &
                                   ascii=ascii)
+         tmpsec => section_vals_get_subs_vals(pint_section, "QTB")
+         CALL section_vals_val_set(tmpsec, "THERMOSTAT_ENERGY", &
+                                   r_val=pint_env%e_qtb)
       ELSE IF (pint_env%pimd_thermostat == thermostat_piglet) THEN
          tmpsec => section_vals_get_subs_vals(pint_section, &
                                               "PIGLET%RNG_INIT")
-         CALL dump_rng_stream(rng_stream=pint_env%piglet_therm%gaussian_rng_stream, &
-                              rng_record=rng_record)
+         CALL pint_env%piglet_therm%gaussian_rng_stream%dump(rng_record)
          CALL string_to_ascii(rng_record, ascii(:, 1))
          CALL section_rng_val_set(rng_section=tmpsec, nsize=1, &
                                   ascii=ascii)
+         tmpsec => section_vals_get_subs_vals(pint_section, "PIGLET")
+         CALL section_vals_val_set(tmpsec, "THERMOSTAT_ENERGY", &
+                                   r_val=pint_env%e_piglet)
          ! update thermostat velocities in the global input structure
          NULLIFY (r_vals)
-         ALLOCATE (r_vals((pint_env%piglet_therm%nsp1-1)* &
+         ALLOCATE (r_vals((pint_env%piglet_therm%nsp1 - 1)* &
                           pint_env%piglet_therm%ndim* &
                           pint_env%piglet_therm%p))
          i = 1
          DO isp = 2, pint_env%piglet_therm%nsp1
             DO ibead = 1, pint_env%piglet_therm%p*pint_env%piglet_therm%ndim
                r_vals(i) = pint_env%piglet_therm%smalls(isp, ibead)
-               i = i+1
+               i = i + 1
             END DO
          END DO
          CALL section_vals_val_set(pint_section, "PIGLET%EXTRA_DOF%_DEFAULT_KEYWORD_", &
@@ -1063,8 +1067,7 @@ CONTAINS
 
       TYPE(helium_solvent_p_type), DIMENSION(:), POINTER :: helium_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_motion_helium', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_motion_helium'
 
       CHARACTER(LEN=default_string_length)               :: err_str, stmp
       INTEGER                                            :: handle, i, itmp, iweight, msglen, &
@@ -1087,7 +1090,7 @@ CONTAINS
          ! determine offset for arrays
          offset = 0
          DO i = 1, logger%para_env%mepos
-            offset = offset+helium_env(1)%env_all(i)
+            offset = offset + helium_env(1)%env_all(i)
          END DO
 
          IF (.NOT. helium_env(1)%helium%solute_present) THEN
@@ -1144,7 +1147,7 @@ CONTAINS
          ! pass the message from all processors to logger%para_env%source
          int_msg_gather(:) = 0
          DO i = 1, SIZE(helium_env)
-            int_msg_gather((offset+i-1)*msglen+1:(offset+i)*msglen) = helium_env(i)%helium%permutation
+            int_msg_gather((offset + i - 1)*msglen + 1:(offset + i)*msglen) = helium_env(i)%helium%permutation
          END DO
 
          CALL mp_sum(int_msg_gather, helium_env(1)%comm)
@@ -1165,9 +1168,9 @@ CONTAINS
          ! update the weighting factor
          itmp = helium_env(1)%helium%averages_iweight
          IF (itmp .LT. 0) THEN
-            itmp = helium_env(1)%helium%current_step-helium_env(1)%helium%first_step
+            itmp = helium_env(1)%helium%current_step - helium_env(1)%helium%first_step
          ELSE
-            itmp = itmp+helium_env(1)%helium%current_step-helium_env(1)%helium%first_step
+            itmp = itmp + helium_env(1)%helium%current_step - helium_env(1)%helium%first_step
          END IF
          DO i = 1, SIZE(helium_env)
             CALL section_vals_val_set(helium_env(i)%helium%input, &
@@ -1183,7 +1186,7 @@ CONTAINS
          real_msg_gather(:) = 0.0_dp
          ! gather projected area from all processors
          DO i = 1, SIZE(helium_env)
-            real_msg_gather((i-1+offset)*msglen+1:(i+offset)*msglen) = helium_env(i)%helium%proarea%ravr(:)
+            real_msg_gather((i - 1 + offset)*msglen + 1:(i + offset)*msglen) = helium_env(i)%helium%proarea%ravr(:)
          END DO
          CALL mp_sum(real_msg_gather, helium_env(1)%comm)
 
@@ -1200,7 +1203,7 @@ CONTAINS
          real_msg_gather(:) = 0.0_dp
          ! gather projected area squared from all processors
          DO i = 1, SIZE(helium_env)
-            real_msg_gather((i-1+offset)*msglen+1:(i+offset)*msglen) = helium_env(i)%helium%prarea2%ravr(:)
+            real_msg_gather((i - 1 + offset)*msglen + 1:(i + offset)*msglen) = helium_env(i)%helium%prarea2%ravr(:)
          END DO
          CALL mp_sum(real_msg_gather, helium_env(1)%comm)
 
@@ -1217,7 +1220,7 @@ CONTAINS
          real_msg_gather(:) = 0.0_dp
          ! gather winding number squared from all processors
          DO i = 1, SIZE(helium_env)
-            real_msg_gather((i-1+offset)*msglen+1:(i+offset)*msglen) = helium_env(i)%helium%wnmber2%ravr(:)
+            real_msg_gather((i - 1 + offset)*msglen + 1:(i + offset)*msglen) = helium_env(i)%helium%wnmber2%ravr(:)
          END DO
          CALL mp_sum(real_msg_gather, helium_env(1)%comm)
 
@@ -1234,7 +1237,7 @@ CONTAINS
          real_msg_gather(:) = 0.0_dp
          ! gather moment of inertia from all processors
          DO i = 1, SIZE(helium_env)
-            real_msg_gather((i-1+offset)*msglen+1:(i+offset)*msglen) = helium_env(i)%helium%mominer%ravr(:)
+            real_msg_gather((i - 1 + offset)*msglen + 1:(i + offset)*msglen) = helium_env(i)%helium%mominer%ravr(:)
          END DO
          CALL mp_sum(real_msg_gather, helium_env(1)%comm)
 
@@ -1261,34 +1264,34 @@ CONTAINS
          real_msg_gather(:) = 0.0_dp
 
          DO i = 1, SIZE(helium_env)
-            CALL get_rng_stream(helium_env(i)%helium%rng_stream_uniform, bg=bg, cg=cg, ig=ig, &
-                                buffer=bu, buffer_filled=lbf)
+            CALL helium_env(i)%helium%rng_stream_uniform%get(bg=bg, cg=cg, ig=ig, &
+                                                             buffer=bu, buffer_filled=lbf)
             off = 0
-            real_msg(off+1:off+6) = PACK(bg, .TRUE.)
-            real_msg(off+7:off+12) = PACK(cg, .TRUE.)
-            real_msg(off+13:off+18) = PACK(ig, .TRUE.)
+            real_msg(off + 1:off + 6) = PACK(bg, .TRUE.)
+            real_msg(off + 7:off + 12) = PACK(cg, .TRUE.)
+            real_msg(off + 13:off + 18) = PACK(ig, .TRUE.)
             IF (lbf) THEN
                bf = 1.0_dp
             ELSE
                bf = -1.0_dp
             END IF
-            real_msg(off+19) = bf
-            real_msg(off+20) = bu
-            CALL get_rng_stream(helium_env(i)%helium%rng_stream_gaussian, bg=bg, cg=cg, ig=ig, &
-                                buffer=bu, buffer_filled=lbf)
+            real_msg(off + 19) = bf
+            real_msg(off + 20) = bu
+            CALL helium_env(i)%helium%rng_stream_gaussian%get(bg=bg, cg=cg, ig=ig, &
+                                                              buffer=bu, buffer_filled=lbf)
             off = 20
-            real_msg(off+1:off+6) = PACK(bg, .TRUE.)
-            real_msg(off+7:off+12) = PACK(cg, .TRUE.)
-            real_msg(off+13:off+18) = PACK(ig, .TRUE.)
+            real_msg(off + 1:off + 6) = PACK(bg, .TRUE.)
+            real_msg(off + 7:off + 12) = PACK(cg, .TRUE.)
+            real_msg(off + 13:off + 18) = PACK(ig, .TRUE.)
             IF (lbf) THEN
                bf = 1.0_dp
             ELSE
                bf = -1.0_dp
             END IF
-            real_msg(off+19) = bf
-            real_msg(off+20) = bu
+            real_msg(off + 19) = bf
+            real_msg(off + 20) = bu
 
-            real_msg_gather((offset+i-1)*msglen+1:(offset+i)*msglen) = real_msg(:)
+            real_msg_gather((offset + i - 1)*msglen + 1:(offset + i)*msglen) = real_msg(:)
          END DO
 
          ! Gather RNG state (in real_msg_gather vector) from all processors at
@@ -1350,25 +1353,25 @@ CONTAINS
          IF (helium_env(1)%helium%rdf_present) THEN
 
             ! work on the temporary array so that accumulated data remains intact
-            helium_env(1)%helium%rdf_inst(:, :, :) = 0.0_dp
+            helium_env(1)%helium%rdf_inst(:, :) = 0.0_dp
             DO i = 1, SIZE(helium_env)
-               helium_env(1)%helium%rdf_inst(:, :, :) = helium_env(1)%helium%rdf_inst(:, :, :)+ &
-                                                        helium_env(i)%helium%rdf_accu(:, :, :)
+               helium_env(1)%helium%rdf_inst(:, :) = helium_env(1)%helium%rdf_inst(:, :) + &
+                                                     helium_env(i)%helium%rdf_accu(:, :)
             END DO
 
             ! average over processors / helium environments
             CALL mp_sum(helium_env(1)%helium%rdf_inst, helium_env(1)%comm)
             itmp = helium_env(1)%helium%num_env
             invproc = 1.0_dp/REAL(itmp, dp)
-            helium_env(1)%helium%rdf_inst(:, :, :) = helium_env(1)%helium%rdf_inst(:, :, :)*invproc
+            helium_env(1)%helium%rdf_inst(:, :) = helium_env(1)%helium%rdf_inst(:, :)*invproc
 
-            nsteps = helium_env(1)%helium%current_step-helium_env(1)%helium%first_step
-            helium_env(1)%helium%rdf_inst(:, :, :) = helium_env(1)%helium%rdf_inst(:, :, :)/REAL(nsteps, dp)
+            nsteps = helium_env(1)%helium%current_step - helium_env(1)%helium%first_step
+            helium_env(1)%helium%rdf_inst(:, :) = helium_env(1)%helium%rdf_inst(:, :)/REAL(nsteps, dp)
             iweight = helium_env(1)%helium%rdf_iweight
             ! average over the old and the current density (observe the weights!)
-            helium_env(1)%helium%rdf_inst(:, :, :) = nsteps*helium_env(1)%helium%rdf_inst(:, :, :)+ &
-                                                     iweight*helium_env(1)%helium%rdf_rstr(:, :, :)
-            helium_env(1)%helium%rdf_inst(:, :, :) = helium_env(1)%helium%rdf_inst(:, :, :)/REAL(nsteps+iweight, dp)
+            helium_env(1)%helium%rdf_inst(:, :) = nsteps*helium_env(1)%helium%rdf_inst(:, :) + &
+                                                  iweight*helium_env(1)%helium%rdf_rstr(:, :)
+            helium_env(1)%helium%rdf_inst(:, :) = helium_env(1)%helium%rdf_inst(:, :)/REAL(nsteps + iweight, dp)
             ! update in the global input structure
             NULLIFY (real_msg)
             msglen = SIZE(helium_env(1)%helium%rdf_inst)
@@ -1390,7 +1393,7 @@ CONTAINS
             ! work on the temporary array so that accumulated data remains intact
             helium_env(1)%helium%rho_inst(:, :, :, :) = 0.0_dp
             DO i = 1, SIZE(helium_env)
-               helium_env(1)%helium%rho_inst(:, :, :, :) = helium_env(1)%helium%rho_inst(:, :, :, :)+ &
+               helium_env(1)%helium%rho_inst(:, :, :, :) = helium_env(1)%helium%rho_inst(:, :, :, :) + &
                                                            helium_env(i)%helium%rho_accu(:, :, :, :)
             END DO
 
@@ -1400,13 +1403,13 @@ CONTAINS
             invproc = 1.0_dp/REAL(itmp, dp)
             helium_env(1)%helium%rho_inst(:, :, :, :) = helium_env(1)%helium%rho_inst(:, :, :, :)*invproc
 
-            nsteps = helium_env(1)%helium%current_step-helium_env(1)%helium%first_step
+            nsteps = helium_env(1)%helium%current_step - helium_env(1)%helium%first_step
             helium_env(1)%helium%rho_inst(:, :, :, :) = helium_env(1)%helium%rho_inst(:, :, :, :)/REAL(nsteps, dp)
             iweight = helium_env(1)%helium%averages_iweight
             ! average over the old and the current density (observe the weights!)
-            helium_env(1)%helium%rho_inst(:, :, :, :) = nsteps*helium_env(1)%helium%rho_inst(:, :, :, :)+ &
+            helium_env(1)%helium%rho_inst(:, :, :, :) = nsteps*helium_env(1)%helium%rho_inst(:, :, :, :) + &
                                                         iweight*helium_env(1)%helium%rho_rstr(:, :, :, :)
-            helium_env(1)%helium%rho_inst(:, :, :, :) = helium_env(1)%helium%rho_inst(:, :, :, :)/REAL(nsteps+iweight, dp)
+            helium_env(1)%helium%rho_inst(:, :, :, :) = helium_env(1)%helium%rho_inst(:, :, :, :)/REAL(nsteps + iweight, dp)
 
             ! update the densities in the global input structure
             NULLIFY (real_msg)
@@ -1441,9 +1444,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:), POINTER               :: thermostat_energy
       INTEGER, INTENT(IN)                                :: nsize
       TYPE(section_vals_type), POINTER                   :: work_section
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'dump_csvr_energy_info', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ik, irk, Nlist
       TYPE(cp_sll_val_type), POINTER                     :: new_pos, vals
@@ -1518,9 +1518,6 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(section_vals_type), POINTER                   :: csvr_section
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'dump_csvr_restart_info', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=rng_record_length)                   :: rng_record
       INTEGER                                            :: i, my_index
       INTEGER, ALLOCATABLE, DIMENSION(:, :)              :: dwork
@@ -1553,8 +1550,7 @@ CONTAINS
       dwork = 0
       DO i = 1, csvr%loc_num_csvr
          my_index = csvr%map_info%index(i)
-         CALL dump_rng_stream(rng_stream=csvr%nvt(i)%gaussian_rng_stream, &
-                              rng_record=rng_record)
+         CALL csvr%nvt(i)%gaussian_rng_stream%dump(rng_record)
          CALL string_to_ascii(rng_record, dwork(:, my_index))
       END DO
 
@@ -1585,9 +1581,6 @@ CONTAINS
       TYPE(al_system_type), POINTER                      :: al
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(section_vals_type), POINTER                   :: al_section
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'dump_al_restart_info', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
       REAL(KIND=dp)                                      :: dum
@@ -1643,9 +1636,6 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(section_vals_type), POINTER                   :: gle_section
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'dump_gle_restart_info', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=rng_record_length)                   :: rng_record
       INTEGER                                            :: counter, glob_num, i, iproc, j, loc_num
       INTEGER, ALLOCATABLE, DIMENSION(:, :)              :: dwork
@@ -1681,8 +1671,7 @@ CONTAINS
       dwork = 0
       DO i = 1, loc_num
          j = gle%map_info%index(i)
-         CALL dump_rng_stream(rng_stream=gle%nvt(i)%gaussian_rng_stream, &
-                              rng_record=rng_record)
+         CALL gle%nvt(i)%gaussian_rng_stream%dump(rng_record)
          CALL string_to_ascii(rng_record, dwork(:, j))
       END DO
 
@@ -1710,12 +1699,12 @@ CONTAINS
       DO iproc = 1, para_env%num_pe
          CALL reallocate(work, 1, gle_per_proc(iproc)*(gle%ndim))
          CALL reallocate(index, 1, gle_per_proc(iproc))
-         IF (para_env%mepos == (iproc-1)) THEN
+         IF (para_env%mepos == (iproc - 1)) THEN
             INDEX(:) = 0
             counter = 0
             DO i = 1, gle%ndim
                DO j = 1, gle%loc_num_gle
-                  counter = counter+1
+                  counter = counter + 1
                   work(counter) = gle%nvt(j)%s(i)
                   INDEX(j) = gle%map_info%index(j)
                END DO
@@ -1723,13 +1712,13 @@ CONTAINS
          ELSE
             work(:) = 0.0_dp
          END IF
-         CALL mp_bcast(work, iproc-1, para_env%group)
-         CALL mp_bcast(index, iproc-1, para_env%group)
+         CALL mp_bcast(work, iproc - 1, para_env%group)
+         CALL mp_bcast(index, iproc - 1, para_env%group)
          counter = 0
          DO i = 1, gle%ndim
             DO j = 1, gle_per_proc(iproc)
-               counter = counter+1
-               s_tmp((INDEX(j)-1)*(gle%ndim)+i) = work(counter)
+               counter = counter + 1
+               s_tmp((INDEX(j) - 1)*(gle%ndim) + i) = work(counter)
             END DO
          END DO
       END DO
@@ -1765,9 +1754,6 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       REAL(KIND=dp), DIMENSION(:), POINTER               :: eta, veta, fnhc, mnhc
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'collect_nose_restart_info', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: counter, i, iproc, j, nhc_len, num_nhc, &
                                                             numneed, tot_nhcneed
       INTEGER, DIMENSION(:), POINTER                     :: index, nhc_per_proc
@@ -1793,12 +1779,12 @@ CONTAINS
       DO iproc = 1, para_env%num_pe
          CALL reallocate(work, 1, nhc_per_proc(iproc)*nhc_len)
          CALL reallocate(index, 1, nhc_per_proc(iproc))
-         IF (para_env%mepos == (iproc-1)) THEN
+         IF (para_env%mepos == (iproc - 1)) THEN
             INDEX(:) = 0
             counter = 0
             DO i = 1, nhc_len
                DO j = 1, num_nhc
-                  counter = counter+1
+                  counter = counter + 1
                   work(counter) = nhc%nvt(i, j)%eta
                   INDEX(j) = map_info%index(j)
                END DO
@@ -1806,13 +1792,13 @@ CONTAINS
          ELSE
             work(:) = 0.0_dp
          END IF
-         CALL mp_bcast(work, iproc-1, para_env%group)
-         CALL mp_bcast(index, iproc-1, para_env%group)
+         CALL mp_bcast(work, iproc - 1, para_env%group)
+         CALL mp_bcast(index, iproc - 1, para_env%group)
          counter = 0
          DO i = 1, nhc_len
             DO j = 1, nhc_per_proc(iproc)
-               counter = counter+1
-               eta((INDEX(j)-1)*nhc_len+i) = work(counter)
+               counter = counter + 1
+               eta((INDEX(j) - 1)*nhc_len + i) = work(counter)
             END DO
          END DO
       END DO
@@ -1824,12 +1810,12 @@ CONTAINS
       DO iproc = 1, para_env%num_pe
          CALL reallocate(work, 1, nhc_per_proc(iproc)*nhc_len)
          CALL reallocate(index, 1, nhc_per_proc(iproc))
-         IF (para_env%mepos == (iproc-1)) THEN
+         IF (para_env%mepos == (iproc - 1)) THEN
             INDEX(:) = 0
             counter = 0
             DO i = 1, nhc_len
                DO j = 1, num_nhc
-                  counter = counter+1
+                  counter = counter + 1
                   work(counter) = nhc%nvt(i, j)%v
                   INDEX(j) = map_info%index(j)
                END DO
@@ -1837,13 +1823,13 @@ CONTAINS
          ELSE
             work(:) = 0.0_dp
          END IF
-         CALL mp_bcast(work, iproc-1, para_env%group)
-         CALL mp_bcast(index, iproc-1, para_env%group)
+         CALL mp_bcast(work, iproc - 1, para_env%group)
+         CALL mp_bcast(index, iproc - 1, para_env%group)
          counter = 0
          DO i = 1, nhc_len
             DO j = 1, nhc_per_proc(iproc)
-               counter = counter+1
-               veta((INDEX(j)-1)*nhc_len+i) = work(counter)
+               counter = counter + 1
+               veta((INDEX(j) - 1)*nhc_len + i) = work(counter)
             END DO
          END DO
       END DO
@@ -1855,12 +1841,12 @@ CONTAINS
       DO iproc = 1, para_env%num_pe
          CALL reallocate(work, 1, nhc_per_proc(iproc)*nhc_len)
          CALL reallocate(index, 1, nhc_per_proc(iproc))
-         IF (para_env%mepos == (iproc-1)) THEN
+         IF (para_env%mepos == (iproc - 1)) THEN
             INDEX(:) = 0
             counter = 0
             DO i = 1, nhc_len
                DO j = 1, num_nhc
-                  counter = counter+1
+                  counter = counter + 1
                   work(counter) = nhc%nvt(i, j)%f
                   INDEX(j) = map_info%index(j)
                END DO
@@ -1868,13 +1854,13 @@ CONTAINS
          ELSE
             work(:) = 0.0_dp
          END IF
-         CALL mp_bcast(work, iproc-1, para_env%group)
-         CALL mp_bcast(index, iproc-1, para_env%group)
+         CALL mp_bcast(work, iproc - 1, para_env%group)
+         CALL mp_bcast(index, iproc - 1, para_env%group)
          counter = 0
          DO i = 1, nhc_len
             DO j = 1, nhc_per_proc(iproc)
-               counter = counter+1
-               fnhc((INDEX(j)-1)*nhc_len+i) = work(counter)
+               counter = counter + 1
+               fnhc((INDEX(j) - 1)*nhc_len + i) = work(counter)
             END DO
          END DO
       END DO
@@ -1886,12 +1872,12 @@ CONTAINS
       DO iproc = 1, para_env%num_pe
          CALL reallocate(work, 1, nhc_per_proc(iproc)*nhc_len)
          CALL reallocate(index, 1, nhc_per_proc(iproc))
-         IF (para_env%mepos == (iproc-1)) THEN
+         IF (para_env%mepos == (iproc - 1)) THEN
             INDEX(:) = 0
             counter = 0
             DO i = 1, nhc_len
                DO j = 1, num_nhc
-                  counter = counter+1
+                  counter = counter + 1
                   work(counter) = nhc%nvt(i, j)%mass
                   INDEX(j) = map_info%index(j)
                END DO
@@ -1899,13 +1885,13 @@ CONTAINS
          ELSE
             work(:) = 0.0_dp
          END IF
-         CALL mp_bcast(work, iproc-1, para_env%group)
-         CALL mp_bcast(index, iproc-1, para_env%group)
+         CALL mp_bcast(work, iproc - 1, para_env%group)
+         CALL mp_bcast(index, iproc - 1, para_env%group)
          counter = 0
          DO i = 1, nhc_len
             DO j = 1, nhc_per_proc(iproc)
-               counter = counter+1
-               mnhc((INDEX(j)-1)*nhc_len+i) = work(counter)
+               counter = counter + 1
+               mnhc((INDEX(j) - 1)*nhc_len + i) = work(counter)
             END DO
          END DO
       END DO
@@ -1937,9 +1923,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: narray, nsize, nfield
       TYPE(particle_type), DIMENSION(:), POINTER         :: particle_set
       REAL(KIND=dp)                                      :: conv_factor
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'section_neb_coord_val_set', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ik, irk, Nlist
       REAL(KIND=dp), DIMENSION(:), POINTER               :: my_c
@@ -2014,9 +1997,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: work_section
       REAL(KIND=dp), DIMENSION(:), OPTIONAL, POINTER     :: eta, veta, fnhc, mnhc
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'set_template_restart', &
-         routineP = moduleN//':'//routineN
-
       TYPE(section_vals_type), POINTER                   :: coord, force, mass, velocity
 
       NULLIFY (coord, force, velocity, mass)
@@ -2067,9 +2047,6 @@ CONTAINS
 
       TYPE(section_vals_type), POINTER                   :: ss_section
       TYPE(meta_env_type), POINTER                       :: meta_env
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'meta_hills_val_set_ss', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ik, irk, lsize, Nlist
       REAL(KIND=dp), DIMENSION(:), POINTER               :: ss_val
@@ -2139,9 +2116,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: ds_section
       TYPE(meta_env_type), POINTER                       :: meta_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'meta_hills_val_set_ds', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ik, irk, lsize, Nlist
       REAL(KIND=dp), DIMENSION(:), POINTER               :: ds_val
       TYPE(cp_sll_val_type), POINTER                     :: new_pos, vals
@@ -2210,9 +2184,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: ww_section
       TYPE(meta_env_type), POINTER                       :: meta_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'meta_hills_val_set_ww', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ik, irk, lsize, Nlist
       TYPE(cp_sll_val_type), POINTER                     :: new_pos, vals
       TYPE(section_type), POINTER                        :: section
@@ -2276,9 +2247,6 @@ CONTAINS
 
       TYPE(section_vals_type), POINTER                   :: invdt_section
       TYPE(meta_env_type), POINTER                       :: meta_env
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'meta_hills_val_set_dt', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ik, irk, lsize, Nlist
       TYPE(cp_sll_val_type), POINTER                     :: new_pos, vals
@@ -2351,8 +2319,7 @@ CONTAINS
       TYPE(md_environment_type), OPTIONAL, POINTER       :: md_env
       TYPE(force_env_type), OPTIONAL, POINTER            :: force_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_binary_restart', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_binary_restart'
 
       CHARACTER(LEN=default_path_length)                 :: binary_restart_file_name
       CHARACTER(LEN=default_string_length)               :: section_label
@@ -2466,7 +2433,7 @@ CONTAINS
                   "Number of molecules", nmolecule
             END IF
 
-            n_int_size = n_int_size+6
+            n_int_size = n_int_size + 6
          END IF
 
          WRITE (UNIT=output_unit, IOSTAT=istat) &
@@ -2483,7 +2450,7 @@ CONTAINS
             IF (istat /= 0) CALL stop_write("atomic_kinds%els(ikind)%name "// &
                                             "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                             output_unit)
-            n_char_size = n_char_size+LEN(atomic_kinds%els(ikind)%name)
+            n_char_size = n_char_size + LEN(atomic_kinds%els(ikind)%name)
          END DO
 
          ! Write atomic kind numbers of all atoms
@@ -2495,7 +2462,7 @@ CONTAINS
          IF (istat /= 0) CALL stop_write("ibuf(1:natom) -> atomic kind numbers "// &
                                          "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                          output_unit)
-         n_int_size = n_int_size+natom
+         n_int_size = n_int_size + natom
          ! Write atomic coordinates
          ALLOCATE (rbuf(3, natom))
          DO iatom = 1, natom
@@ -2505,7 +2472,7 @@ CONTAINS
          IF (istat /= 0) CALL stop_write("rbuf(1:3,1:natom) -> atomic coordinates "// &
                                          "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                          output_unit)
-         n_dp_size = n_dp_size+3*natom
+         n_dp_size = n_dp_size + 3*natom
          DEALLOCATE (rbuf)
 
          ! Write molecule information if available
@@ -2516,7 +2483,7 @@ CONTAINS
                IF (istat /= 0) CALL stop_write("molecule_kinds%els(ikind)%name "// &
                                                "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                                output_unit)
-               n_char_size = n_char_size+LEN(molecule_kinds%els(ikind)%name)
+               n_char_size = n_char_size + LEN(molecule_kinds%els(ikind)%name)
             END DO
             ! Write molecule (kind) index numbers for all atoms
             ibuf(:) = 0
@@ -2535,13 +2502,13 @@ CONTAINS
             IF (istat /= 0) CALL stop_write("ibuf(1:natom) -> molecule kind index numbers "// &
                                             "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                             output_unit)
-            n_int_size = n_int_size+natom
+            n_int_size = n_int_size + natom
             ! Write molecule index number for each atom
             WRITE (UNIT=output_unit, IOSTAT=istat) imol(1:natom)
             IF (istat /= 0) CALL stop_write("imol(1:natom) -> molecule index numbers "// &
                                             "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                             output_unit)
-            n_int_size = n_int_size+natom
+            n_int_size = n_int_size + natom
             DEALLOCATE (imol)
          END IF ! molecules
 
@@ -2553,8 +2520,8 @@ CONTAINS
          IF (istat /= 0) CALL stop_write("section_label, nshell "// &
                                          "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                          output_unit)
-         n_char_size = n_char_size+LEN(section_label)
-         n_int_size = n_int_size+1
+         n_char_size = n_char_size + LEN(section_label)
+         n_int_size = n_int_size + 1
          IF (nshell > 0) THEN
             ! Write shell coordinates
             ALLOCATE (rbuf(3, nshell))
@@ -2565,7 +2532,7 @@ CONTAINS
             IF (istat /= 0) CALL stop_write("rbuf(1:3,1:nshell) -> shell coordinates "// &
                                             "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                             output_unit)
-            n_dp_size = n_dp_size+3*nshell
+            n_dp_size = n_dp_size + 3*nshell
             DEALLOCATE (rbuf)
             ! Write atomic indices, i.e. number of the atom the shell belongs to
             ALLOCATE (ibuf(nshell))
@@ -2576,7 +2543,7 @@ CONTAINS
             IF (istat /= 0) CALL stop_write("ibuf(1:nshell) -> atomic indices "// &
                                             "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                             output_unit)
-            n_int_size = n_int_size+nshell
+            n_int_size = n_int_size + nshell
             DEALLOCATE (ibuf)
          END IF
 
@@ -2585,8 +2552,8 @@ CONTAINS
          IF (istat /= 0) CALL stop_write("section_label, ncore "// &
                                          "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                          output_unit)
-         n_char_size = n_char_size+LEN(section_label)
-         n_int_size = n_int_size+1
+         n_char_size = n_char_size + LEN(section_label)
+         n_int_size = n_int_size + 1
          IF (ncore > 0) THEN
             ! Write core coordinates
             ALLOCATE (rbuf(3, ncore))
@@ -2597,7 +2564,7 @@ CONTAINS
             IF (istat /= 0) CALL stop_write("rbuf(1:3,1:ncore) -> core coordinates "// &
                                             "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                             output_unit)
-            n_dp_size = n_dp_size+3*ncore
+            n_dp_size = n_dp_size + 3*ncore
             DEALLOCATE (rbuf)
             ! Write atomic indices, i.e. number of the atom the core belongs to
             ALLOCATE (ibuf(ncore))
@@ -2608,7 +2575,7 @@ CONTAINS
             IF (istat /= 0) CALL stop_write("ibuf(1:ncore) -> atomic indices "// &
                                             "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                             output_unit)
-            n_int_size = n_int_size+ncore
+            n_int_size = n_int_size + ncore
             DEALLOCATE (ibuf)
          END IF
       END IF ! ionode only
@@ -2633,8 +2600,8 @@ CONTAINS
                                             "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                             output_unit)
          ENDIF
-         n_char_size = n_char_size+LEN(section_label)
-         n_int_size = n_int_size+1
+         n_char_size = n_char_size + LEN(section_label)
+         n_int_size = n_int_size + 1
          IF (output_unit > 0 .AND. log_unit > 0) THEN ! only ionode
             IF (print_info) THEN
                WRITE (UNIT=log_unit, FMT="(T3,A,T71,I10)") &
@@ -2661,8 +2628,8 @@ CONTAINS
                                             "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                             output_unit)
          ENDIF
-         n_char_size = n_char_size+LEN(section_label)
-         n_int_size = n_int_size+1
+         n_char_size = n_char_size + LEN(section_label)
+         n_int_size = n_int_size + 1
          IF (output_unit > 0 .AND. log_unit > 0) THEN ! only ionode
             IF (print_info) THEN
                WRITE (UNIT=log_unit, FMT="(T3,A,T71,I10)") &
@@ -2682,8 +2649,8 @@ CONTAINS
                                             "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                             output_unit)
          ENDIF
-         n_char_size = n_char_size+LEN(section_label)
-         n_int_size = n_int_size+1
+         n_char_size = n_char_size + LEN(section_label)
+         n_int_size = n_int_size + 1
          IF (print_info .AND. log_unit > 0) THEN
             WRITE (UNIT=log_unit, FMT="(T3,A,T78,A3)") &
                "Write "//TRIM(ADJUSTL(section_label))//" section", MERGE("YES", " NO", write_velocities)
@@ -2698,7 +2665,7 @@ CONTAINS
             IF (istat /= 0) CALL stop_write("rbuf(1:3,1:natom) -> atomic velocities "// &
                                             "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                             output_unit)
-            n_dp_size = n_dp_size+3*natom
+            n_dp_size = n_dp_size + 3*natom
             DEALLOCATE (rbuf)
          END IF
          ! Write shell velocities
@@ -2707,8 +2674,8 @@ CONTAINS
          IF (istat /= 0) CALL stop_write(TRIM(section_label)//", write_velocities "// &
                                          "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                          output_unit)
-         n_char_size = n_char_size+LEN(section_label)
-         n_int_size = n_int_size+1
+         n_char_size = n_char_size + LEN(section_label)
+         n_int_size = n_int_size + 1
          IF (print_info .AND. log_unit > 0) THEN
             WRITE (UNIT=log_unit, FMT="(T3,A,T78,A3)") &
                "Write "//TRIM(ADJUSTL(section_label))//" section", MERGE("YES", " NO", write_velocities)
@@ -2723,7 +2690,7 @@ CONTAINS
                IF (istat /= 0) CALL stop_write("rbuf(1:3,1:nshell) -> shell velocities "// &
                                                "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                                output_unit)
-               n_dp_size = n_dp_size+3*nshell
+               n_dp_size = n_dp_size + 3*nshell
                DEALLOCATE (rbuf)
             END IF
          END IF
@@ -2733,8 +2700,8 @@ CONTAINS
          IF (istat /= 0) CALL stop_write(TRIM(section_label)//", write_velocities "// &
                                          "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                          output_unit)
-         n_char_size = n_char_size+LEN(section_label)
-         n_int_size = n_int_size+1
+         n_char_size = n_char_size + LEN(section_label)
+         n_int_size = n_int_size + 1
          IF (print_info .AND. log_unit > 0) THEN
             WRITE (UNIT=log_unit, FMT="(T3,A,T78,A3)") &
                "Write "//TRIM(ADJUSTL(section_label))//" section", MERGE("YES", " NO", write_velocities)
@@ -2749,7 +2716,7 @@ CONTAINS
                IF (istat /= 0) CALL stop_write("rbuf(1:3,1:ncore) -> core velocities "// &
                                                "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                                output_unit)
-               n_dp_size = n_dp_size+3*ncore
+               n_dp_size = n_dp_size + 3*ncore
                DEALLOCATE (rbuf)
             END IF
          END IF
@@ -2799,8 +2766,7 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: print_info
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_binary_thermostats_nose', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'write_binary_thermostats_nose'
 
       INTEGER                                            :: handle, istat, nhc_size
       REAL(KIND=dp), DIMENSION(:), POINTER               :: eta, fnhc, mnhc, veta
@@ -2821,8 +2787,8 @@ CONTAINS
          IF (istat /= 0) CALL stop_write("nhc_size "// &
                                          "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                          output_unit)
-         n_char_size = n_char_size+LEN(section_label)
-         n_int_size = n_int_size+1
+         n_char_size = n_char_size + LEN(section_label)
+         n_int_size = n_int_size + 1
          IF (print_info .AND. log_unit > 0) THEN
             WRITE (UNIT=log_unit, FMT="(T3,A,T71,I10)") &
                "NHC size ("//TRIM(ADJUSTL(section_label))//")", nhc_size
@@ -2832,7 +2798,7 @@ CONTAINS
          IF (istat /= 0) CALL stop_write("eta(1:nhc_size) "// &
                                          "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                          output_unit)
-         n_dp_size = n_dp_size+nhc_size
+         n_dp_size = n_dp_size + nhc_size
       END IF ! ionode only
 
       DEALLOCATE (eta)
@@ -2843,7 +2809,7 @@ CONTAINS
          IF (istat /= 0) CALL stop_write("veta(1:nhc_size) "// &
                                          "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                          output_unit)
-         n_dp_size = n_dp_size+nhc_size
+         n_dp_size = n_dp_size + nhc_size
       END IF ! ionode only
 
       DEALLOCATE (veta)
@@ -2854,7 +2820,7 @@ CONTAINS
          IF (istat /= 0) CALL stop_write("mnhc(1:nhc_size) "// &
                                          "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                          output_unit)
-         n_dp_size = n_dp_size+nhc_size
+         n_dp_size = n_dp_size + nhc_size
       END IF ! ionode only
 
       DEALLOCATE (mnhc)
@@ -2865,7 +2831,7 @@ CONTAINS
          IF (istat /= 0) CALL stop_write("fnhc(1:nhc_size) "// &
                                          "(IOSTAT = "//TRIM(ADJUSTL(cp_to_string(istat)))//")", &
                                          output_unit)
-         n_dp_size = n_dp_size+nhc_size
+         n_dp_size = n_dp_size + nhc_size
       END IF ! ionode only
 
       DEALLOCATE (fnhc)

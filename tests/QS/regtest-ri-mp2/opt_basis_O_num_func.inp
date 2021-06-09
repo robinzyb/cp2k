@@ -1,4 +1,4 @@
-&GLOBAL                                                                                           
+&GLOBAL
   PROJECT     opt_basis_O_num_func
   PRINT_LEVEL LOW
   RUN_TYPE    ENERGY
@@ -45,17 +45,18 @@
         FRACTION 1.0000000
         &SCREENING
           EPS_SCHWARZ         1.0E-8
-          SCREEN_ON_INITIAL_P FALSE 
+          SCREEN_ON_INITIAL_P FALSE
         &END SCREENING
       &END HF
       &WF_CORRELATION
-        METHOD  OPTIMIZE_RI_BASIS
-        &OPT_RI_BASIS
-          DELTA_I_REL  2.0E-6
-          DELTA_RI     5.0E-5
-          EPS_DERIV    1.0E-3
-          MAX_ITER     100
-          NUM_FUNC     5  5  4  1
+        &RI
+          &OPT_RI_BASIS
+            DELTA_I_REL  2.0E-6
+            DELTA_RI     5.0E-5
+            EPS_DERIV    1.0E-3
+            MAX_ITER     100
+            NUM_FUNC     5  5  4  1
+          &END
         &END
         NUMBER_PROC  1
       &END

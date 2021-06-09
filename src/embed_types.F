@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 MODULE embed_types
@@ -75,15 +77,16 @@ MODULE embed_types
                                                    max_grid_step, max_subsys_dens_diff
       INTEGER                                   :: n_iter, i_iter, dimen_aux, last_accepted, dimen_var_aux
       REAL(KIND=dp)                             :: lambda, allowed_decrease, max_trad, min_trad, &
-                                                   grad_norm, vw_cutoff, vw_smooth_cutoff_range
-      TYPE(pw_p_type), POINTER                  :: const_pot, prev_embed_pot, prev_spin_embed_pot
+                                                   grad_norm, vw_cutoff, vw_smooth_cutoff_range, eta
+      TYPE(pw_p_type), POINTER                  :: const_pot, prev_embed_pot, prev_spin_embed_pot, pot_diff
       TYPE(pw_p_type), DIMENSION(:), POINTER    :: prev_grid_grad, prev_grid_pot, prev_subsys_dens, v_w
       REAL(KIND=dp)                             :: reg_term, trust_rad, conv_max, conv_int, &
                                                    conv_max_spin, conv_int_spin, step_len
       LOGICAL                                   :: accept_step, newton_step, level_shift, steep_desc, &
                                                    add_const_pot, converged, read_embed_pot, &
                                                    read_embed_pot_cube, change_spin, open_shell_embed, &
-                                                   grid_opt, leeuwen, fab
+                                                   grid_opt, leeuwen, fab, coulomb_guess, fermi_amaldi, &
+                                                   diff_guess
       INTEGER, ALLOCATABLE, DIMENSION(:)        :: all_nspins
       TYPE(lri_kind_type), DIMENSION(:), POINTER :: lri ! Needed to store integrals
 
@@ -170,8 +173,6 @@ CONTAINS
       TYPE(cp_result_type), OPTIONAL, POINTER            :: results
       REAL(KIND=dp), OPTIONAL                            :: pot_energy
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_embed_env', routineP = moduleN//':'//routineN
-
       TYPE(atomic_kind_list_type), POINTER               :: atomic_kinds
       TYPE(molecule_kind_list_type), POINTER             :: molecule_kinds
       TYPE(molecule_list_type), POINTER                  :: molecules
@@ -222,7 +223,7 @@ CONTAINS
       CALL cp_para_env_retain(para_env)
       embed_env%para_env => para_env
       embed_env%ref_count = 1
-      last_embed_env_id_nr = last_embed_env_id_nr+1
+      last_embed_env_id_nr = last_embed_env_id_nr + 1
       embed_env%id_nr = last_embed_env_id_nr
 
    END SUBROUTINE init_embed_env
@@ -257,8 +258,6 @@ CONTAINS
       TYPE(section_vals_type), OPTIONAL, POINTER         :: input
       TYPE(cp_para_env_p_type), DIMENSION(:), OPTIONAL, &
          POINTER                                         :: sub_para_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_embed_env', routineP = moduleN//':'//routineN
 
       TYPE(atomic_kind_list_type), POINTER               :: atomic_kinds
       TYPE(molecule_kind_list_type), POINTER             :: molecule_kinds
@@ -330,9 +329,6 @@ CONTAINS
       TYPE(embed_env_type), POINTER                      :: embed_env
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'embed_env_create', &
-         routineP = moduleN//':'//routineN
-
       ALLOCATE (embed_env)
       CALL init_embed_env(embed_env, para_env=para_env)
    END SUBROUTINE embed_env_create
@@ -345,12 +341,9 @@ CONTAINS
    SUBROUTINE embed_env_retain(embed_env)
       TYPE(embed_env_type), POINTER                      :: embed_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'embed_env_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(embed_env))
       CPASSERT(embed_env%ref_count > 0)
-      embed_env%ref_count = embed_env%ref_count+1
+      embed_env%ref_count = embed_env%ref_count + 1
    END SUBROUTINE embed_env_retain
 
 ! **************************************************************************************************
@@ -361,14 +354,11 @@ CONTAINS
    SUBROUTINE embed_env_release(embed_env)
       TYPE(embed_env_type), POINTER                      :: embed_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'embed_env_release', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, ngroups
 
       IF (ASSOCIATED(embed_env)) THEN
          CPASSERT(embed_env%ref_count > 0)
-         embed_env%ref_count = embed_env%ref_count-1
+         embed_env%ref_count = embed_env%ref_count - 1
          IF (embed_env%ref_count < 1) THEN
             ngroups = SIZE(embed_env%sub_para_env)
             DO i = 1, ngroups

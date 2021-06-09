@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2018  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -16,12 +18,15 @@
 !> \author CJM
 ! **************************************************************************************************
 MODULE force_fields_input
-   USE bibliography,                    ONLY: Siepmann1995,&
+   USE bibliography,                    ONLY: Clabaut2020,&
+                                              Siepmann1995,&
                                               Tersoff1988,&
                                               Tosi1964a,&
                                               Tosi1964b,&
                                               Yamada2000,&
                                               cite_reference
+   USE cp_linked_list_input,            ONLY: cp_sll_val_next,&
+                                              cp_sll_val_type
    USE cp_log_handling,                 ONLY: cp_get_default_logger,&
                                               cp_logger_type,&
                                               cp_to_string
@@ -46,8 +51,11 @@ MODULE force_fields_input
    USE force_fields_util,               ONLY: get_generic_info
    USE input_section_types,             ONLY: section_vals_get,&
                                               section_vals_get_subs_vals,&
+                                              section_vals_list_get,&
                                               section_vals_type,&
                                               section_vals_val_get
+   USE input_val_types,                 ONLY: val_get,&
+                                              val_type
    USE kinds,                           ONLY: default_string_length,&
                                               dp
    USE mathconstants,                   ONLY: pi
@@ -55,7 +63,7 @@ MODULE force_fields_input
    USE memory_utilities,                ONLY: reallocate
    USE pair_potential_types,            ONLY: &
         b4_type, bm_type, do_potential_single_allocation, ea_type, eam_pot_type, ft_pot_type, &
-        ft_type, ftd_type, gp_type, gw_type, ip_type, ipbv_pot_type, lj_charmm_type, &
+        ft_type, ftd_type, gal_type, gp_type, gw_type, ip_type, ipbv_pot_type, lj_charmm_type, &
         no_potential_single_allocation, pair_potential_p_type, pair_potential_reallocate, &
         potential_single_allocation, quip_type, siepmann_type, tersoff_type, wl_type, deepmd_type
    USE shell_potential_types,           ONLY: shell_p_create,&
@@ -90,11 +98,8 @@ CONTAINS
       TYPE(force_field_type), INTENT(INOUT)              :: ff_type
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_force_field_section1', &
-         routineP = moduleN//':'//routineN
-
-      INTEGER :: nb4, nbends, nbm, nbmhft, nbmhftd, nbonds, nchg, neam, ngd, ngp, nimpr, nipbv, &
-         nlj, nopbend, nquip, nshell, nsiepmann, ntersoff, ntors, ntot, nubs, nwl, ndeepmd
+      INTEGER :: nb4, nbends, nbm, nbmhft, nbmhftd, nbonds, nchg, neam, ngal, ngd, ngp, nimpr, &
+         nipbv, nlj, nopbend, nquip, nshell, nsiepmann, ntersoff, ntors, ntot, nubs, nwl, ndeepmd
       LOGICAL                                            :: explicit, unique_spline
       REAL(KIND=dp)                                      :: min_eps_spline_allowed
       TYPE(input_info_type), POINTER                     :: inp_info
@@ -156,7 +161,7 @@ CONTAINS
          CALL section_vals_get(tmp_section2, explicit=explicit, n_repetition=nlj)
          ntot = 0
          IF (explicit) THEN
-            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot+nlj, lj_charmm=.TRUE.)
+            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot + nlj, lj_charmm=.TRUE.)
             CALL read_lj_section(inp_info%nonbonded, tmp_section2, ntot)
          END IF
 
@@ -164,93 +169,102 @@ CONTAINS
          CALL section_vals_get(tmp_section2, explicit=explicit, n_repetition=nwl)
          ntot = nlj
          IF (explicit) THEN
-            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot+nwl, williams=.TRUE.)
+            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot + nwl, williams=.TRUE.)
             CALL read_wl_section(inp_info%nonbonded, tmp_section2, ntot)
          END IF
 
          tmp_section2 => section_vals_get_subs_vals(tmp_section, "EAM")
          CALL section_vals_get(tmp_section2, explicit=explicit, n_repetition=neam)
-         ntot = nlj+nwl
+         ntot = nlj + nwl
          IF (explicit) THEN
-            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot+neam, eam=.TRUE.)
+            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot + neam, eam=.TRUE.)
             CALL read_eam_section(inp_info%nonbonded, tmp_section2, ntot, para_env, mm_section)
          END IF
 
          tmp_section2 => section_vals_get_subs_vals(tmp_section, "GOODWIN")
          CALL section_vals_get(tmp_section2, explicit=explicit, n_repetition=ngd)
-         ntot = nlj+nwl+neam
+         ntot = nlj + nwl + neam
          IF (explicit) THEN
-            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot+ngd, goodwin=.TRUE.)
+            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot + ngd, goodwin=.TRUE.)
             CALL read_gd_section(inp_info%nonbonded, tmp_section2, ntot)
          END IF
 
          tmp_section2 => section_vals_get_subs_vals(tmp_section, "IPBV")
          CALL section_vals_get(tmp_section2, explicit=explicit, n_repetition=nipbv)
-         ntot = nlj+nwl+neam+ngd
+         ntot = nlj + nwl + neam + ngd
          IF (explicit) THEN
-            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot+nipbv, ipbv=.TRUE.)
+            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot + nipbv, ipbv=.TRUE.)
             CALL read_ipbv_section(inp_info%nonbonded, tmp_section2, ntot)
          END IF
 
          tmp_section2 => section_vals_get_subs_vals(tmp_section, "BMHFT")
          CALL section_vals_get(tmp_section2, explicit=explicit, n_repetition=nbmhft)
-         ntot = nlj+nwl+neam+ngd+nipbv
+         ntot = nlj + nwl + neam + ngd + nipbv
          IF (explicit) THEN
-            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot+nbmhft, bmhft=.TRUE.)
+            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot + nbmhft, bmhft=.TRUE.)
             CALL read_bmhft_section(inp_info%nonbonded, tmp_section2, ntot)
          END IF
 
          tmp_section2 => section_vals_get_subs_vals(tmp_section, "BMHFTD")
          CALL section_vals_get(tmp_section2, explicit=explicit, n_repetition=nbmhftd)
-         ntot = nlj+nwl+neam+ngd+nipbv+nbmhft
+         ntot = nlj + nwl + neam + ngd + nipbv + nbmhft
          IF (explicit) THEN
-            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot+nbmhftd, bmhftd=.TRUE.)
+            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot + nbmhftd, bmhftd=.TRUE.)
             CALL read_bmhftd_section(inp_info%nonbonded, tmp_section2, ntot)
          END IF
 
          tmp_section2 => section_vals_get_subs_vals(tmp_section, "BUCK4RANGES")
          CALL section_vals_get(tmp_section2, explicit=explicit, n_repetition=nb4)
-         ntot = nlj+nwl+neam+ngd+nipbv+nbmhft+nbmhftd
+         ntot = nlj + nwl + neam + ngd + nipbv + nbmhft + nbmhftd
          IF (explicit) THEN
-            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot+nb4, buck4r=.TRUE.)
+            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot + nb4, buck4r=.TRUE.)
             CALL read_b4_section(inp_info%nonbonded, tmp_section2, ntot)
          END IF
 
          tmp_section2 => section_vals_get_subs_vals(tmp_section, "BUCKMORSE")
          CALL section_vals_get(tmp_section2, explicit=explicit, n_repetition=nbm)
-         ntot = nlj+nwl+neam+ngd+nipbv+nbmhft+nbmhftd+nb4
+         ntot = nlj + nwl + neam + ngd + nipbv + nbmhft + nbmhftd + nb4
          IF (explicit) THEN
-            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot+nbm, buckmo=.TRUE.)
+            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot + nbm, buckmo=.TRUE.)
             CALL read_bm_section(inp_info%nonbonded, tmp_section2, ntot)
          END IF
 
          tmp_section2 => section_vals_get_subs_vals(tmp_section, "GENPOT")
          CALL section_vals_get(tmp_section2, explicit=explicit, n_repetition=ngp)
-         ntot = nlj+nwl+neam+ngd+nipbv+nbmhft+nbmhftd+nb4+nbm
+         ntot = nlj + nwl + neam + ngd + nipbv + nbmhft + nbmhftd + nb4 + nbm
          IF (explicit) THEN
-            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot+ngp, gp=.TRUE.)
+            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot + ngp, gp=.TRUE.)
             CALL read_gp_section(inp_info%nonbonded, tmp_section2, ntot)
          END IF
          tmp_section2 => section_vals_get_subs_vals(tmp_section, "TERSOFF")
          CALL section_vals_get(tmp_section2, explicit=explicit, n_repetition=ntersoff)
-         ntot = nlj+nwl+neam+ngd+nipbv+nbmhft+nbmhftd+nb4+nbm+ngp
+         ntot = nlj + nwl + neam + ngd + nipbv + nbmhft + nbmhftd + nb4 + nbm + ngp
          IF (explicit) THEN
-            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot+ntersoff, tersoff=.TRUE.)
+            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot + ntersoff, tersoff=.TRUE.)
             CALL read_tersoff_section(inp_info%nonbonded, tmp_section2, ntot, tmp_section2)
          END IF
+
+         tmp_section2 => section_vals_get_subs_vals(tmp_section, "GAL19")
+         CALL section_vals_get(tmp_section2, explicit=explicit, n_repetition=ngal)
+         ntot = nlj + nwl + neam + ngd + nipbv + nbmhft + nbmhftd + nb4 + nbm + ngp + ntersoff
+         IF (explicit) THEN
+            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot + ngal, gal=.TRUE.)
+            CALL read_gal_section(inp_info%nonbonded, tmp_section2, ntot, tmp_section2)
+         END IF
+
          tmp_section2 => section_vals_get_subs_vals(tmp_section, "SIEPMANN")
          CALL section_vals_get(tmp_section2, explicit=explicit, n_repetition=nsiepmann)
-         ntot = nlj+nwl+neam+ngd+nipbv+nbmhft+nbmhftd+nb4+nbm+ngp+ntersoff
+         ntot = nlj + nwl + neam + ngd + nipbv + nbmhft + nbmhftd + nb4 + nbm + ngp + ntersoff + ngal
          IF (explicit) THEN
-            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot+nsiepmann, siepmann=.TRUE.)
+            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot + nsiepmann, siepmann=.TRUE.)
             CALL read_siepmann_section(inp_info%nonbonded, tmp_section2, ntot, tmp_section2)
          END IF
 
          tmp_section2 => section_vals_get_subs_vals(tmp_section, "quip")
          CALL section_vals_get(tmp_section2, explicit=explicit, n_repetition=nquip)
-         ntot = nlj+nwl+neam+ngd+nipbv+nbmhft+nbmhftd+nb4+nbm+ngp+ntersoff+nsiepmann
+         ntot = nlj + nwl + neam + ngd + nipbv + nbmhft + nbmhftd + nb4 + nbm + ngp + ntersoff + ngal + nsiepmann
          IF (explicit) THEN
-            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot+nquip, quip=.TRUE.)
+            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot + nquip, quip=.TRUE.)
             CALL read_quip_section(inp_info%nonbonded, tmp_section2, ntot)
          END IF
 
@@ -271,28 +285,28 @@ CONTAINS
          CALL section_vals_get(tmp_section2, explicit=explicit, n_repetition=nlj)
          ntot = 0
          IF (explicit) THEN
-            CALL pair_potential_reallocate(inp_info%nonbonded14, 1, ntot+nlj, lj_charmm=.TRUE.)
+            CALL pair_potential_reallocate(inp_info%nonbonded14, 1, ntot + nlj, lj_charmm=.TRUE.)
             CALL read_lj_section(inp_info%nonbonded14, tmp_section2, ntot)
          END IF
          tmp_section2 => section_vals_get_subs_vals(tmp_section, "WILLIAMS")
          CALL section_vals_get(tmp_section2, explicit=explicit, n_repetition=nwl)
          ntot = nlj
          IF (explicit) THEN
-            CALL pair_potential_reallocate(inp_info%nonbonded14, 1, ntot+nwl, williams=.TRUE.)
+            CALL pair_potential_reallocate(inp_info%nonbonded14, 1, ntot + nwl, williams=.TRUE.)
             CALL read_wl_section(inp_info%nonbonded14, tmp_section2, ntot)
          END IF
          tmp_section2 => section_vals_get_subs_vals(tmp_section, "GOODWIN")
          CALL section_vals_get(tmp_section2, explicit=explicit, n_repetition=ngd)
-         ntot = nlj+nwl
+         ntot = nlj + nwl
          IF (explicit) THEN
-            CALL pair_potential_reallocate(inp_info%nonbonded14, 1, ntot+ngd, goodwin=.TRUE.)
+            CALL pair_potential_reallocate(inp_info%nonbonded14, 1, ntot + ngd, goodwin=.TRUE.)
             CALL read_gd_section(inp_info%nonbonded14, tmp_section2, ntot)
          END IF
          tmp_section2 => section_vals_get_subs_vals(tmp_section, "GENPOT")
          CALL section_vals_get(tmp_section2, explicit=explicit, n_repetition=ngp)
-         ntot = nlj+nwl+ngd
+         ntot = nlj + nwl + ngd
          IF (explicit) THEN
-            CALL pair_potential_reallocate(inp_info%nonbonded14, 1, ntot+ngp, gp=.TRUE.)
+            CALL pair_potential_reallocate(inp_info%nonbonded14, 1, ntot + ngp, gp=.TRUE.)
             CALL read_gp_section(inp_info%nonbonded14, tmp_section2, ntot)
          END IF
       END IF
@@ -455,8 +469,6 @@ CONTAINS
       CHARACTER(LEN=*), INTENT(IN)                       :: at1, at2
       TYPE(ipbv_pot_type), POINTER                       :: ipbv
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_IPBV_ff', routineP = moduleN//':'//routineN
-
       IF ((at1(1:1) == 'O') .AND. (at2(1:1) == 'O')) THEN
          ipbv%rcore = 0.9_dp ! a.u.
          ipbv%m = -1.2226442563398141E+11_dp ! Kelvin/a.u.
@@ -533,8 +545,6 @@ CONTAINS
       CHARACTER(LEN=*), INTENT(IN)                       :: at1, at2
       TYPE(ft_pot_type), POINTER                         :: ft
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_BMHFT_ff', routineP = moduleN//':'//routineN
-
       ft%b = cp_unit_to_cp2k(3.1545_dp, "angstrom^-1")
       IF ((at1(1:2) == 'NA') .AND. (at2(1:2) == 'NA')) THEN
          ft%a = cp_unit_to_cp2k(424.097_dp, "eV")
@@ -561,8 +571,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE set_BMHFTD_ff()
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_BMHFTD_ff', routineP = moduleN//':'//routineN
-
       CPABORT("No default parameters present for BMHFTD")
 
    END SUBROUTINE set_BMHFTD_ff
@@ -583,9 +591,6 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(section_vals_type), POINTER                   :: mm_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_eam_section', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: atm_names
       INTEGER                                            :: isec, n_items
@@ -594,15 +599,15 @@ CONTAINS
       DO isec = 1, n_items
          CALL section_vals_val_get(section, "ATOMS", i_rep_section=isec, c_vals=atm_names)
 
-         nonbonded%pot(start+isec)%pot%type = ea_type
-         nonbonded%pot(start+isec)%pot%at1 = atm_names(1)
-         nonbonded%pot(start+isec)%pot%at2 = atm_names(2)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at1)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at2)
+         nonbonded%pot(start + isec)%pot%type = ea_type
+         nonbonded%pot(start + isec)%pot%at1 = atm_names(1)
+         nonbonded%pot(start + isec)%pot%at2 = atm_names(2)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at1)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at2)
          CALL section_vals_val_get(section, "PARM_FILE_NAME", i_rep_section=isec, &
-                                   c_val=nonbonded%pot(start+isec)%pot%set(1)%eam%eam_file_name)
-         CALL read_eam_data(nonbonded%pot(start+isec)%pot%set(1)%eam, para_env, mm_section)
-         nonbonded%pot(start+isec)%pot%rcutsq = nonbonded%pot(start+isec)%pot%set(1)%eam%acutal**2
+                                   c_val=nonbonded%pot(start + isec)%pot%set(1)%eam%eam_file_name)
+         CALL read_eam_data(nonbonded%pot(start + isec)%pot%set(1)%eam, para_env, mm_section)
+         nonbonded%pot(start + isec)%pot%rcutsq = nonbonded%pot(start + isec)%pot%set(1)%eam%acutal**2
       END DO
    END SUBROUTINE read_eam_section
 
@@ -654,9 +659,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: section
       INTEGER, INTENT(IN)                                :: start
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_quip_section', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: args_str, atm_names
       INTEGER                                            :: is, isec, n_calc_args, n_items
@@ -665,19 +667,19 @@ CONTAINS
       DO isec = 1, n_items
          CALL section_vals_val_get(section, "ATOMS", i_rep_section=isec, c_vals=atm_names)
 
-         nonbonded%pot(start+isec)%pot%type = quip_type
-         nonbonded%pot(start+isec)%pot%at1 = atm_names(1)
-         nonbonded%pot(start+isec)%pot%at2 = atm_names(2)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at1)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at2)
+         nonbonded%pot(start + isec)%pot%type = quip_type
+         nonbonded%pot(start + isec)%pot%at1 = atm_names(1)
+         nonbonded%pot(start + isec)%pot%at2 = atm_names(2)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at1)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at2)
          CALL section_vals_val_get(section, "PARM_FILE_NAME", i_rep_section=isec, &
-                                   c_val=nonbonded%pot(start+isec)%pot%set(1)%quip%quip_file_name)
+                                   c_val=nonbonded%pot(start + isec)%pot%set(1)%quip%quip_file_name)
          CALL section_vals_val_get(section, "INIT_ARGS", i_rep_section=isec, &
                                    c_vals=args_str)
-         nonbonded%pot(start+isec)%pot%set(1)%quip%init_args = ""
+         nonbonded%pot(start + isec)%pot%set(1)%quip%init_args = ""
          DO is = 1, SIZE(args_str)
-            nonbonded%pot(start+isec)%pot%set(1)%quip%init_args = &
-               TRIM(nonbonded%pot(start+isec)%pot%set(1)%quip%init_args)// &
+            nonbonded%pot(start + isec)%pot%set(1)%quip%init_args = &
+               TRIM(nonbonded%pot(start + isec)%pot%set(1)%quip%init_args)// &
                " "//TRIM(args_str(is))
          END DO ! is
          CALL section_vals_val_get(section, "CALC_ARGS", i_rep_section=isec, &
@@ -686,12 +688,12 @@ CONTAINS
             CALL section_vals_val_get(section, "CALC_ARGS", i_rep_section=isec, &
                                       c_vals=args_str)
             DO is = 1, SIZE(args_str)
-               nonbonded%pot(start+isec)%pot%set(1)%quip%calc_args = &
-                  TRIM(nonbonded%pot(start+isec)%pot%set(1)%quip%calc_args)// &
+               nonbonded%pot(start + isec)%pot%set(1)%quip%calc_args = &
+                  TRIM(nonbonded%pot(start + isec)%pot%set(1)%quip%calc_args)// &
                   " "//TRIM(args_str(is))
             END DO ! is
          END IF
-         nonbonded%pot(start+isec)%pot%rcutsq = 0.0_dp
+         nonbonded%pot(start + isec)%pot%rcutsq = 0.0_dp
       END DO
    END SUBROUTINE read_quip_section
 
@@ -707,9 +709,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: section
       INTEGER, INTENT(IN)                                :: start
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_lj_section', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: atm_names
       INTEGER                                            :: isec, n_items, n_rep
@@ -722,22 +721,22 @@ CONTAINS
          CALL section_vals_val_get(section, "SIGMA", i_rep_section=isec, r_val=sigma)
          CALL section_vals_val_get(section, "RCUT", i_rep_section=isec, r_val=rcut)
 
-         nonbonded%pot(start+isec)%pot%type = lj_charmm_type
-         nonbonded%pot(start+isec)%pot%at1 = atm_names(1)
-         nonbonded%pot(start+isec)%pot%at2 = atm_names(2)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at1)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at2)
-         nonbonded%pot(start+isec)%pot%set(1)%lj%epsilon = epsilon
-         nonbonded%pot(start+isec)%pot%set(1)%lj%sigma6 = sigma**6
-         nonbonded%pot(start+isec)%pot%set(1)%lj%sigma12 = sigma**12
-         nonbonded%pot(start+isec)%pot%rcutsq = rcut*rcut
+         nonbonded%pot(start + isec)%pot%type = lj_charmm_type
+         nonbonded%pot(start + isec)%pot%at1 = atm_names(1)
+         nonbonded%pot(start + isec)%pot%at2 = atm_names(2)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at1)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at2)
+         nonbonded%pot(start + isec)%pot%set(1)%lj%epsilon = epsilon
+         nonbonded%pot(start + isec)%pot%set(1)%lj%sigma6 = sigma**6
+         nonbonded%pot(start + isec)%pot%set(1)%lj%sigma12 = sigma**12
+         nonbonded%pot(start + isec)%pot%rcutsq = rcut*rcut
          !
          CALL section_vals_val_get(section, "RMIN", i_rep_section=isec, n_rep_val=n_rep)
          IF (n_rep == 1) CALL section_vals_val_get(section, "RMIN", i_rep_section=isec, &
-                                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%rmin)
+                                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%rmin)
          CALL section_vals_val_get(section, "RMAX", i_rep_section=isec, n_rep_val=n_rep)
          IF (n_rep == 1) CALL section_vals_val_get(section, "RMAX", i_rep_section=isec, &
-                                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%rmax)
+                                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%rmax)
       END DO
    END SUBROUTINE read_lj_section
 
@@ -753,9 +752,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: section
       INTEGER, INTENT(IN)                                :: start
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_wl_section', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: atm_names
       INTEGER                                            :: isec, n_items, n_rep
@@ -769,22 +765,22 @@ CONTAINS
          CALL section_vals_val_get(section, "C", i_rep_section=isec, r_val=c)
          CALL section_vals_val_get(section, "RCUT", i_rep_section=isec, r_val=rcut)
 
-         nonbonded%pot(start+isec)%pot%type = wl_type
-         nonbonded%pot(start+isec)%pot%at1 = atm_names(1)
-         nonbonded%pot(start+isec)%pot%at2 = atm_names(2)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at1)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at2)
-         nonbonded%pot(start+isec)%pot%set(1)%willis%a = a
-         nonbonded%pot(start+isec)%pot%set(1)%willis%b = b
-         nonbonded%pot(start+isec)%pot%set(1)%willis%c = c
-         nonbonded%pot(start+isec)%pot%rcutsq = rcut*rcut
+         nonbonded%pot(start + isec)%pot%type = wl_type
+         nonbonded%pot(start + isec)%pot%at1 = atm_names(1)
+         nonbonded%pot(start + isec)%pot%at2 = atm_names(2)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at1)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at2)
+         nonbonded%pot(start + isec)%pot%set(1)%willis%a = a
+         nonbonded%pot(start + isec)%pot%set(1)%willis%b = b
+         nonbonded%pot(start + isec)%pot%set(1)%willis%c = c
+         nonbonded%pot(start + isec)%pot%rcutsq = rcut*rcut
          !
          CALL section_vals_val_get(section, "RMIN", i_rep_section=isec, n_rep_val=n_rep)
          IF (n_rep == 1) CALL section_vals_val_get(section, "RMIN", i_rep_section=isec, &
-                                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%rmin)
+                                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%rmin)
          CALL section_vals_val_get(section, "RMAX", i_rep_section=isec, n_rep_val=n_rep)
          IF (n_rep == 1) CALL section_vals_val_get(section, "RMAX", i_rep_section=isec, &
-                                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%rmax)
+                                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%rmax)
       END DO
    END SUBROUTINE read_wl_section
 
@@ -799,9 +795,6 @@ CONTAINS
       TYPE(pair_potential_p_type), POINTER               :: nonbonded
       TYPE(section_vals_type), POINTER                   :: section
       INTEGER, INTENT(IN)                                :: start
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_gd_section', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: atm_names
@@ -818,24 +811,24 @@ CONTAINS
          CALL section_vals_val_get(section, "MC", i_rep_section=isec, i_val=mc)
          CALL section_vals_val_get(section, "RCUT", i_rep_section=isec, r_val=rcut)
 
-         nonbonded%pot(start+isec)%pot%type = gw_type
-         nonbonded%pot(start+isec)%pot%at1 = atm_names(1)
-         nonbonded%pot(start+isec)%pot%at2 = atm_names(2)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at1)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at2)
-         nonbonded%pot(start+isec)%pot%set(1)%goodwin%vr0 = vr0
-         nonbonded%pot(start+isec)%pot%set(1)%goodwin%d = d
-         nonbonded%pot(start+isec)%pot%set(1)%goodwin%dc = dc
-         nonbonded%pot(start+isec)%pot%set(1)%goodwin%m = m
-         nonbonded%pot(start+isec)%pot%set(1)%goodwin%mc = mc
-         nonbonded%pot(start+isec)%pot%rcutsq = rcut*rcut
+         nonbonded%pot(start + isec)%pot%type = gw_type
+         nonbonded%pot(start + isec)%pot%at1 = atm_names(1)
+         nonbonded%pot(start + isec)%pot%at2 = atm_names(2)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at1)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at2)
+         nonbonded%pot(start + isec)%pot%set(1)%goodwin%vr0 = vr0
+         nonbonded%pot(start + isec)%pot%set(1)%goodwin%d = d
+         nonbonded%pot(start + isec)%pot%set(1)%goodwin%dc = dc
+         nonbonded%pot(start + isec)%pot%set(1)%goodwin%m = m
+         nonbonded%pot(start + isec)%pot%set(1)%goodwin%mc = mc
+         nonbonded%pot(start + isec)%pot%rcutsq = rcut*rcut
          !
          CALL section_vals_val_get(section, "RMIN", i_rep_section=isec, n_rep_val=n_rep)
          IF (n_rep == 1) CALL section_vals_val_get(section, "RMIN", i_rep_section=isec, &
-                                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%rmin)
+                                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%rmin)
          CALL section_vals_val_get(section, "RMAX", i_rep_section=isec, n_rep_val=n_rep)
          IF (n_rep == 1) CALL section_vals_val_get(section, "RMAX", i_rep_section=isec, &
-                                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%rmax)
+                                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%rmax)
       END DO
    END SUBROUTINE read_gd_section
 
@@ -851,9 +844,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: section
       INTEGER, INTENT(IN)                                :: start
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_ipbv_section', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: atm_names
       INTEGER                                            :: isec, n_items, n_rep
@@ -862,22 +852,22 @@ CONTAINS
       CALL section_vals_get(section, n_repetition=n_items)
       DO isec = 1, n_items
          CALL section_vals_val_get(section, "ATOMS", i_rep_section=isec, c_vals=atm_names)
-         nonbonded%pot(start+isec)%pot%type = ip_type
-         nonbonded%pot(start+isec)%pot%at1 = atm_names(1)
-         nonbonded%pot(start+isec)%pot%at2 = atm_names(2)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at1)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at2)
-         CALL set_IPBV_ff(nonbonded%pot(start+isec)%pot%at1, nonbonded%pot(start+isec)%pot%at2, &
-                          nonbonded%pot(start+isec)%pot%set(1)%ipbv)
+         nonbonded%pot(start + isec)%pot%type = ip_type
+         nonbonded%pot(start + isec)%pot%at1 = atm_names(1)
+         nonbonded%pot(start + isec)%pot%at2 = atm_names(2)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at1)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at2)
+         CALL set_IPBV_ff(nonbonded%pot(start + isec)%pot%at1, nonbonded%pot(start + isec)%pot%at2, &
+                          nonbonded%pot(start + isec)%pot%set(1)%ipbv)
          CALL section_vals_val_get(section, "RCUT", i_rep_section=isec, r_val=rcut)
-         nonbonded%pot(start+isec)%pot%rcutsq = rcut**2
+         nonbonded%pot(start + isec)%pot%rcutsq = rcut**2
          !
          CALL section_vals_val_get(section, "RMIN", i_rep_section=isec, n_rep_val=n_rep)
          IF (n_rep == 1) CALL section_vals_val_get(section, "RMIN", i_rep_section=isec, &
-                                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%rmin)
+                                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%rmin)
          CALL section_vals_val_get(section, "RMAX", i_rep_section=isec, n_rep_val=n_rep)
          IF (n_rep == 1) CALL section_vals_val_get(section, "RMAX", i_rep_section=isec, &
-                                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%rmax)
+                                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%rmax)
       END DO
    END SUBROUTINE read_ipbv_section
 
@@ -893,9 +883,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: section
       INTEGER, INTENT(IN)                                :: start
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_bmhft_section', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length), DIMENSION(2) :: map_atoms
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: atm_names
@@ -907,38 +894,38 @@ CONTAINS
          CALL cite_reference(Tosi1964a)
          CALL cite_reference(Tosi1964b)
          CALL section_vals_val_get(section, "ATOMS", i_rep_section=isec, c_vals=atm_names)
-         nonbonded%pot(start+isec)%pot%type = ft_type
-         nonbonded%pot(start+isec)%pot%at1 = atm_names(1)
-         nonbonded%pot(start+isec)%pot%at2 = atm_names(2)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at1)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at2)
+         nonbonded%pot(start + isec)%pot%type = ft_type
+         nonbonded%pot(start + isec)%pot%at1 = atm_names(1)
+         nonbonded%pot(start + isec)%pot%at2 = atm_names(2)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at1)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at2)
 
          CALL section_vals_val_get(section, "A", i_rep_section=isec, n_rep_val=i)
          IF (i == 1) THEN
             CALL section_vals_val_get(section, "A", i_rep_section=isec, &
-                                      r_val=nonbonded%pot(start+isec)%pot%set(1)%ft%a)
+                                      r_val=nonbonded%pot(start + isec)%pot%set(1)%ft%a)
             CALL section_vals_val_get(section, "B", i_rep_section=isec, &
-                                      r_val=nonbonded%pot(start+isec)%pot%set(1)%ft%b)
+                                      r_val=nonbonded%pot(start + isec)%pot%set(1)%ft%b)
             CALL section_vals_val_get(section, "C", i_rep_section=isec, &
-                                      r_val=nonbonded%pot(start+isec)%pot%set(1)%ft%c)
+                                      r_val=nonbonded%pot(start + isec)%pot%set(1)%ft%c)
             CALL section_vals_val_get(section, "D", i_rep_section=isec, &
-                                      r_val=nonbonded%pot(start+isec)%pot%set(1)%ft%d)
+                                      r_val=nonbonded%pot(start + isec)%pot%set(1)%ft%d)
          ELSE
             CALL section_vals_val_get(section, "MAP_ATOMS", i_rep_section=isec, c_vals=atm_names)
             map_atoms = atm_names
             CALL uppercase(map_atoms(1))
             CALL uppercase(map_atoms(2))
-            CALL set_BMHFT_ff(map_atoms(1), map_atoms(2), nonbonded%pot(start+isec)%pot%set(1)%ft)
+            CALL set_BMHFT_ff(map_atoms(1), map_atoms(2), nonbonded%pot(start + isec)%pot%set(1)%ft)
          END IF
          CALL section_vals_val_get(section, "RCUT", i_rep_section=isec, r_val=rcut)
-         nonbonded%pot(start+isec)%pot%rcutsq = rcut**2
+         nonbonded%pot(start + isec)%pot%rcutsq = rcut**2
          !
          CALL section_vals_val_get(section, "RMIN", i_rep_section=isec, n_rep_val=n_rep)
          IF (n_rep == 1) CALL section_vals_val_get(section, "RMIN", i_rep_section=isec, &
-                                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%rmin)
+                                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%rmin)
          CALL section_vals_val_get(section, "RMAX", i_rep_section=isec, n_rep_val=n_rep)
          IF (n_rep == 1) CALL section_vals_val_get(section, "RMAX", i_rep_section=isec, &
-                                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%rmax)
+                                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%rmax)
       END DO
    END SUBROUTINE read_bmhft_section
 
@@ -954,9 +941,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: section
       INTEGER, INTENT(IN)                                :: start
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_bmhftd_section', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length), DIMENSION(2) :: map_atoms
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: atm_names
@@ -968,24 +952,24 @@ CONTAINS
          CALL cite_reference(Tosi1964a)
          CALL cite_reference(Tosi1964b)
          CALL section_vals_val_get(section, "ATOMS", i_rep_section=isec, c_vals=atm_names)
-         nonbonded%pot(start+isec)%pot%type = ftd_type
-         nonbonded%pot(start+isec)%pot%at1 = atm_names(1)
-         nonbonded%pot(start+isec)%pot%at2 = atm_names(2)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at1)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at2)
+         nonbonded%pot(start + isec)%pot%type = ftd_type
+         nonbonded%pot(start + isec)%pot%at1 = atm_names(1)
+         nonbonded%pot(start + isec)%pot%at2 = atm_names(2)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at1)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at2)
 
          CALL section_vals_val_get(section, "A", i_rep_section=isec, n_rep_val=i)
          IF (i == 1) THEN
             CALL section_vals_val_get(section, "A", i_rep_section=isec, &
-                                      r_val=nonbonded%pot(start+isec)%pot%set(1)%ftd%a)
+                                      r_val=nonbonded%pot(start + isec)%pot%set(1)%ftd%a)
             CALL section_vals_val_get(section, "B", i_rep_section=isec, &
-                                      r_val=nonbonded%pot(start+isec)%pot%set(1)%ftd%b)
+                                      r_val=nonbonded%pot(start + isec)%pot%set(1)%ftd%b)
             CALL section_vals_val_get(section, "C", i_rep_section=isec, &
-                                      r_val=nonbonded%pot(start+isec)%pot%set(1)%ftd%c)
+                                      r_val=nonbonded%pot(start + isec)%pot%set(1)%ftd%c)
             CALL section_vals_val_get(section, "D", i_rep_section=isec, &
-                                      r_val=nonbonded%pot(start+isec)%pot%set(1)%ftd%d)
+                                      r_val=nonbonded%pot(start + isec)%pot%set(1)%ftd%d)
             CALL section_vals_val_get(section, "BD", i_rep_section=isec, &
-                                      r_val=nonbonded%pot(start+isec)%pot%set(1)%ftd%bd)
+                                      r_val=nonbonded%pot(start + isec)%pot%set(1)%ftd%bd)
 
          ELSE
             CALL section_vals_val_get(section, "MAP_ATOMS", i_rep_section=isec, c_vals=atm_names)
@@ -995,14 +979,14 @@ CONTAINS
             CALL set_BMHFTD_ff()
          END IF
          CALL section_vals_val_get(section, "RCUT", i_rep_section=isec, r_val=rcut)
-         nonbonded%pot(start+isec)%pot%rcutsq = rcut**2
+         nonbonded%pot(start + isec)%pot%rcutsq = rcut**2
          !
          CALL section_vals_val_get(section, "RMIN", i_rep_section=isec, n_rep_val=n_rep)
          IF (n_rep == 1) CALL section_vals_val_get(section, "RMIN", i_rep_section=isec, &
-                                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%rmin)
+                                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%rmin)
          CALL section_vals_val_get(section, "RMAX", i_rep_section=isec, n_rep_val=n_rep)
          IF (n_rep == 1) CALL section_vals_val_get(section, "RMAX", i_rep_section=isec, &
-                                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%rmax)
+                                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%rmax)
       END DO
    END SUBROUTINE read_bmhftd_section
 
@@ -1020,9 +1004,6 @@ CONTAINS
       TYPE(pair_potential_p_type), POINTER               :: nonbonded
       TYPE(section_vals_type), POINTER                   :: section
       INTEGER, INTENT(IN)                                :: start
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_b4_section', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: atm_names
@@ -1054,11 +1035,11 @@ CONTAINS
                NULLIFY (list)
                CALL section_vals_val_get(section, "POLY1", i_rep_val=ir, r_vals=list)
                IF (ASSOCIATED(list)) THEN
-                  CALL reallocate(coeff1, 0, np1+SIZE(list)-1)
+                  CALL reallocate(coeff1, 0, np1 + SIZE(list) - 1)
                   DO i = 1, SIZE(list)
-                     coeff1(i+np1-1) = list(i)
+                     coeff1(i + np1 - 1) = list(i)
                   END DO
-                  np1 = np1+SIZE(list)
+                  np1 = np1 + SIZE(list)
                END IF
             END DO
          END IF
@@ -1069,11 +1050,11 @@ CONTAINS
                NULLIFY (list)
                CALL section_vals_val_get(section, "POLY2", i_rep_val=ir, r_vals=list)
                IF (ASSOCIATED(list)) THEN
-                  CALL reallocate(coeff2, 0, np2+SIZE(list)-1)
+                  CALL reallocate(coeff2, 0, np2 + SIZE(list) - 1)
                   DO i = 1, SIZE(list)
-                     coeff2(i+np2-1) = list(i)
+                     coeff2(i + np2 - 1) = list(i)
                   END DO
-                  np2 = np2+SIZE(list)
+                  np2 = np2 + SIZE(list)
                END IF
             END DO
          END IF
@@ -1085,38 +1066,38 @@ CONTAINS
             ! Row 1: Match the 5th-order polynomial and the potential at r1
             p(1, 1) = 1.0_dp
             DO i = 2, 6
-               p(1, i) = p(1, i-1)*r1
+               p(1, i) = p(1, i - 1)*r1
             END DO
             ! Row 2: Match the first derivatives of the 5th-order polynomial and the potential at r1
             DO i = 2, 6
-               p(2, i) = REAL(i-1, KIND=dp)*p(1, i-1)
+               p(2, i) = REAL(i - 1, KIND=dp)*p(1, i - 1)
             END DO
             ! Row 3: Match the second derivatives of the 5th-order polynomial and the potential at r1
             DO i = 3, 6
-               p(3, i) = REAL(i-1, KIND=dp)*p(2, i-1)
+               p(3, i) = REAL(i - 1, KIND=dp)*p(2, i - 1)
             END DO
             ! Row 4: Match the 5th-order and the 3rd-order polynomials at r2
             p(4, 1) = 1.0_dp
             DO i = 2, 6
-               p(4, i) = p(4, i-1)*r2
+               p(4, i) = p(4, i - 1)*r2
             END DO
             p(4, 7) = -1.0_dp
             DO i = 8, 10
-               p(4, i) = p(4, i-1)*r2
+               p(4, i) = p(4, i - 1)*r2
             END DO
             ! Row 5: Match the first derivatives of the 5th-order and the 3rd-order polynomials at r2
             DO i = 2, 6
-               p(5, i) = REAL(i-1, KIND=dp)*p(4, i-1)
+               p(5, i) = REAL(i - 1, KIND=dp)*p(4, i - 1)
             END DO
             DO i = 8, 10
-               p(5, i) = REAL(i-7, KIND=dp)*p(4, i-1)
+               p(5, i) = REAL(i - 7, KIND=dp)*p(4, i - 1)
             END DO
             ! Row 6: Match the second derivatives of the 5th-order and the 3rd-order polynomials at r2
             DO i = 3, 6
-               p(6, i) = REAL(i-1, KIND=dp)*p(5, i-1)
+               p(6, i) = REAL(i - 1, KIND=dp)*p(5, i - 1)
             END DO
             DO i = 9, 10
-               p(6, i) = REAL(i-7, KIND=dp)*p(5, i-1)
+               p(6, i) = REAL(i - 7, KIND=dp)*p(5, i - 1)
             END DO
             ! Row 7: Minimum at r2, ie. the first derivative of the 3rd-order polynomial has to be zero at r2
             DO i = 8, 10
@@ -1125,15 +1106,15 @@ CONTAINS
             ! Row 8: Match the 3rd-order polynomial and the potential at r3
             p(8, 7) = 1.0_dp
             DO i = 8, 10
-               p(8, i) = p(8, i-1)*r3
+               p(8, i) = p(8, i - 1)*r3
             END DO
             ! Row 9: Match the first derivatives of the 3rd-order polynomial and the potential at r3
             DO i = 8, 10
-               p(9, i) = REAL(i-7, KIND=dp)*p(8, i-1)
+               p(9, i) = REAL(i - 7, KIND=dp)*p(8, i - 1)
             END DO
             ! Row 10: Match the second derivatives of the 3rd-order polynomial and the potential at r3
             DO i = 9, 10
-               p(10, i) = REAL(i-7, KIND=dp)*p(9, i-1)
+               p(10, i) = REAL(i - 7, KIND=dp)*p(9, i - 1)
             END DO
             ! Build the vector v
             v(1) = a*EXP(-b*r1)
@@ -1157,31 +1138,31 @@ CONTAINS
 
          CALL section_vals_val_get(section, "RCUT", i_rep_section=isec, r_val=rcut)
 
-         nonbonded%pot(start+isec)%pot%type = b4_type
-         nonbonded%pot(start+isec)%pot%at1 = atm_names(1)
-         nonbonded%pot(start+isec)%pot%at2 = atm_names(2)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at1)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at2)
-         nonbonded%pot(start+isec)%pot%set(1)%buck4r%a = a
-         nonbonded%pot(start+isec)%pot%set(1)%buck4r%b = b
-         nonbonded%pot(start+isec)%pot%set(1)%buck4r%c = c
-         nonbonded%pot(start+isec)%pot%set(1)%buck4r%r1 = r1
-         nonbonded%pot(start+isec)%pot%set(1)%buck4r%r2 = r2
-         nonbonded%pot(start+isec)%pot%set(1)%buck4r%r3 = r3
+         nonbonded%pot(start + isec)%pot%type = b4_type
+         nonbonded%pot(start + isec)%pot%at1 = atm_names(1)
+         nonbonded%pot(start + isec)%pot%at2 = atm_names(2)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at1)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at2)
+         nonbonded%pot(start + isec)%pot%set(1)%buck4r%a = a
+         nonbonded%pot(start + isec)%pot%set(1)%buck4r%b = b
+         nonbonded%pot(start + isec)%pot%set(1)%buck4r%c = c
+         nonbonded%pot(start + isec)%pot%set(1)%buck4r%r1 = r1
+         nonbonded%pot(start + isec)%pot%set(1)%buck4r%r2 = r2
+         nonbonded%pot(start + isec)%pot%set(1)%buck4r%r3 = r3
          IF ((.NOT. explicit_poly1) .OR. (.NOT. explicit_poly2)) THEN
-            nonbonded%pot(start+isec)%pot%set(1)%buck4r%npoly1 = 5
-            nonbonded%pot(start+isec)%pot%set(1)%buck4r%poly1(0:5) = x(1:6)
-            nonbonded%pot(start+isec)%pot%set(1)%buck4r%npoly2 = 3
-            nonbonded%pot(start+isec)%pot%set(1)%buck4r%poly2(0:3) = x(7:10)
+            nonbonded%pot(start + isec)%pot%set(1)%buck4r%npoly1 = 5
+            nonbonded%pot(start + isec)%pot%set(1)%buck4r%poly1(0:5) = x(1:6)
+            nonbonded%pot(start + isec)%pot%set(1)%buck4r%npoly2 = 3
+            nonbonded%pot(start + isec)%pot%set(1)%buck4r%poly2(0:3) = x(7:10)
          ELSE
-            nonbonded%pot(start+isec)%pot%set(1)%buck4r%npoly1 = np1-1
-            CPASSERT(np1-1 <= 10)
-            nonbonded%pot(start+isec)%pot%set(1)%buck4r%poly1(0:np1-1) = coeff1(0:np1-1)
-            nonbonded%pot(start+isec)%pot%set(1)%buck4r%npoly2 = np2-1
-            CPASSERT(np2-1 <= 10)
-            nonbonded%pot(start+isec)%pot%set(1)%buck4r%poly2(0:np2-1) = coeff2(0:np2-1)
+            nonbonded%pot(start + isec)%pot%set(1)%buck4r%npoly1 = np1 - 1
+            CPASSERT(np1 - 1 <= 10)
+            nonbonded%pot(start + isec)%pot%set(1)%buck4r%poly1(0:np1 - 1) = coeff1(0:np1 - 1)
+            nonbonded%pot(start + isec)%pot%set(1)%buck4r%npoly2 = np2 - 1
+            CPASSERT(np2 - 1 <= 10)
+            nonbonded%pot(start + isec)%pot%set(1)%buck4r%poly2(0:np2 - 1) = coeff2(0:np2 - 1)
          END IF
-         nonbonded%pot(start+isec)%pot%rcutsq = rcut*rcut
+         nonbonded%pot(start + isec)%pot%rcutsq = rcut*rcut
 
          IF (ASSOCIATED(coeff1)) THEN
             DEALLOCATE (coeff1)
@@ -1191,10 +1172,10 @@ CONTAINS
          END IF
          CALL section_vals_val_get(section, "RMIN", i_rep_section=isec, n_rep_val=n_rep)
          IF (n_rep == 1) CALL section_vals_val_get(section, "RMIN", i_rep_section=isec, &
-                                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%rmin)
+                                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%rmin)
          CALL section_vals_val_get(section, "RMAX", i_rep_section=isec, n_rep_val=n_rep)
          IF (n_rep == 1) CALL section_vals_val_get(section, "RMAX", i_rep_section=isec, &
-                                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%rmax)
+                                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%rmax)
       END DO
 
    END SUBROUTINE read_b4_section
@@ -1211,9 +1192,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: section
       INTEGER, INTENT(IN)                                :: start
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_gp_section', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: atm_names
       INTEGER                                            :: isec, n_items, n_rep
@@ -1224,25 +1202,25 @@ CONTAINS
          NULLIFY (atm_names)
          CALL section_vals_val_get(section, "ATOMS", i_rep_section=isec, c_vals=atm_names)
          CALL section_vals_val_get(section, "RCUT", i_rep_section=isec, r_val=rcut)
-         nonbonded%pot(start+isec)%pot%type = gp_type
-         nonbonded%pot(start+isec)%pot%at1 = atm_names(1)
-         nonbonded%pot(start+isec)%pot%at2 = atm_names(2)
-         nonbonded%pot(start+isec)%pot%rcutsq = rcut*rcut
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at1)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at2)
+         nonbonded%pot(start + isec)%pot%type = gp_type
+         nonbonded%pot(start + isec)%pot%at1 = atm_names(1)
+         nonbonded%pot(start + isec)%pot%at2 = atm_names(2)
+         nonbonded%pot(start + isec)%pot%rcutsq = rcut*rcut
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at1)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at2)
          ! Parse the genpot info
-         CALL get_generic_info(section, "FUNCTION", nonbonded%pot(start+isec)%pot%set(1)%gp%potential, &
-                               nonbonded%pot(start+isec)%pot%set(1)%gp%parameters, &
-                               nonbonded%pot(start+isec)%pot%set(1)%gp%values, &
+         CALL get_generic_info(section, "FUNCTION", nonbonded%pot(start + isec)%pot%set(1)%gp%potential, &
+                               nonbonded%pot(start + isec)%pot%set(1)%gp%parameters, &
+                               nonbonded%pot(start + isec)%pot%set(1)%gp%values, &
                                size_variables=1, i_rep_sec=isec)
-         nonbonded%pot(start+isec)%pot%set(1)%gp%variables = nonbonded%pot(start+isec)%pot%set(1)%gp%parameters(1)
+         nonbonded%pot(start + isec)%pot%set(1)%gp%variables = nonbonded%pot(start + isec)%pot%set(1)%gp%parameters(1)
          !
          CALL section_vals_val_get(section, "RMIN", i_rep_section=isec, n_rep_val=n_rep)
          IF (n_rep == 1) CALL section_vals_val_get(section, "RMIN", i_rep_section=isec, &
-                                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%rmin)
+                                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%rmin)
          CALL section_vals_val_get(section, "RMAX", i_rep_section=isec, n_rep_val=n_rep)
          IF (n_rep == 1) CALL section_vals_val_get(section, "RMAX", i_rep_section=isec, &
-                                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%rmax)
+                                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%rmax)
       END DO
    END SUBROUTINE read_gp_section
 
@@ -1260,9 +1238,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: start
       TYPE(section_vals_type), POINTER                   :: tersoff_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_tersoff_section', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: atm_names
       INTEGER                                            :: isec, n_items, n_rep
@@ -1273,52 +1248,142 @@ CONTAINS
          CALL cite_reference(Tersoff1988)
          CALL section_vals_val_get(section, "ATOMS", i_rep_section=isec, c_vals=atm_names)
 
-         nonbonded%pot(start+isec)%pot%type = tersoff_type
-         nonbonded%pot(start+isec)%pot%at1 = atm_names(1)
-         nonbonded%pot(start+isec)%pot%at2 = atm_names(2)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at1)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at2)
+         nonbonded%pot(start + isec)%pot%type = tersoff_type
+         nonbonded%pot(start + isec)%pot%at1 = atm_names(1)
+         nonbonded%pot(start + isec)%pot%at2 = atm_names(2)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at1)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at2)
 
          CALL section_vals_val_get(tersoff_section, "A", i_rep_section=isec, &
-                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%tersoff%A)
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%tersoff%A)
          CALL section_vals_val_get(tersoff_section, "B", i_rep_section=isec, &
-                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%tersoff%B)
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%tersoff%B)
          CALL section_vals_val_get(tersoff_section, "lambda1", i_rep_section=isec, &
-                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%tersoff%lambda1)
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%tersoff%lambda1)
          CALL section_vals_val_get(tersoff_section, "lambda2", i_rep_section=isec, &
-                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%tersoff%lambda2)
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%tersoff%lambda2)
          CALL section_vals_val_get(tersoff_section, "alpha", i_rep_section=isec, &
-                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%tersoff%alpha)
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%tersoff%alpha)
          CALL section_vals_val_get(tersoff_section, "beta", i_rep_section=isec, &
-                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%tersoff%beta)
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%tersoff%beta)
          CALL section_vals_val_get(tersoff_section, "n", i_rep_section=isec, &
-                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%tersoff%n)
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%tersoff%n)
          CALL section_vals_val_get(tersoff_section, "c", i_rep_section=isec, &
-                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%tersoff%c)
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%tersoff%c)
          CALL section_vals_val_get(tersoff_section, "d", i_rep_section=isec, &
-                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%tersoff%d)
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%tersoff%d)
          CALL section_vals_val_get(tersoff_section, "h", i_rep_section=isec, &
-                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%tersoff%h)
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%tersoff%h)
          CALL section_vals_val_get(tersoff_section, "lambda3", i_rep_section=isec, &
-                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%tersoff%lambda3)
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%tersoff%lambda3)
          CALL section_vals_val_get(tersoff_section, "bigR", i_rep_section=isec, &
-                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%tersoff%bigR)
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%tersoff%bigR)
          CALL section_vals_val_get(tersoff_section, "bigD", i_rep_section=isec, &
-                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%tersoff%bigD)
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%tersoff%bigD)
 
-         rcutsq = (nonbonded%pot(start+isec)%pot%set(1)%tersoff%bigR+ &
-                   nonbonded%pot(start+isec)%pot%set(1)%tersoff%bigD)**2
-         nonbonded%pot(start+isec)%pot%set(1)%tersoff%rcutsq = rcutsq
-         nonbonded%pot(start+isec)%pot%rcutsq = rcutsq
+         rcutsq = (nonbonded%pot(start + isec)%pot%set(1)%tersoff%bigR + &
+                   nonbonded%pot(start + isec)%pot%set(1)%tersoff%bigD)**2
+         nonbonded%pot(start + isec)%pot%set(1)%tersoff%rcutsq = rcutsq
+         nonbonded%pot(start + isec)%pot%rcutsq = rcutsq
 
          ! In case it is defined override the standard specification of RCUT
          CALL section_vals_val_get(tersoff_section, "RCUT", i_rep_section=isec, n_rep_val=n_rep)
          IF (n_rep == 1) THEN
             CALL section_vals_val_get(tersoff_section, "RCUT", i_rep_section=isec, r_val=rcut)
-            nonbonded%pot(start+isec)%pot%rcutsq = rcut**2
+            nonbonded%pot(start + isec)%pot%rcutsq = rcut**2
          END IF
       END DO
    END SUBROUTINE read_tersoff_section
+
+! **************************************************************************************************
+!> \brief Reads the gal19 section
+!> \param nonbonded ...
+!> \param section ...
+!> \param start ...
+!> \param gal_section ...
+!> \author Clabaut Paul
+! **************************************************************************************************
+   SUBROUTINE read_gal_section(nonbonded, section, start, gal_section)
+      TYPE(pair_potential_p_type), POINTER               :: nonbonded
+      TYPE(section_vals_type), POINTER                   :: section
+      INTEGER, INTENT(IN)                                :: start
+      TYPE(section_vals_type), POINTER                   :: gal_section
+
+      CHARACTER(LEN=default_string_length), &
+         DIMENSION(:), POINTER                           :: atm_names
+      INTEGER                                            :: iatom, isec, n_items, n_rep, nval
+      LOGICAL                                            :: is_ok
+      REAL(KIND=dp)                                      :: rcut, rval
+      REAL(KIND=dp), DIMENSION(:), POINTER               :: rvalues
+      TYPE(cp_sll_val_type), POINTER                     :: list
+      TYPE(section_vals_type), POINTER                   :: subsection
+      TYPE(val_type), POINTER                            :: val
+
+      CALL section_vals_get(section, n_repetition=n_items)
+      DO isec = 1, n_items
+         CALL cite_reference(Clabaut2020)
+         CALL section_vals_val_get(section, "ATOMS", i_rep_section=isec, c_vals=atm_names)
+
+         nonbonded%pot(start + isec)%pot%type = gal_type
+         nonbonded%pot(start + isec)%pot%at1 = atm_names(1)
+         nonbonded%pot(start + isec)%pot%at2 = atm_names(2)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at1)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at2)
+
+         CALL section_vals_val_get(section, "METALS", i_rep_section=isec, c_vals=atm_names)
+         nonbonded%pot(start + isec)%pot%set(1)%gal%met1 = atm_names(1)
+         nonbonded%pot(start + isec)%pot%set(1)%gal%met2 = atm_names(2)
+
+         CALL section_vals_val_get(gal_section, "epsilon", i_rep_section=isec, &
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%gal%epsilon)
+         CALL section_vals_val_get(gal_section, "bxy", i_rep_section=isec, &
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%gal%bxy)
+         CALL section_vals_val_get(gal_section, "bz", i_rep_section=isec, &
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%gal%bz)
+
+         CALL section_vals_val_get(gal_section, "r", i_rep_section=isec, r_vals=rvalues)
+         nonbonded%pot(start + isec)%pot%set(1)%gal%r1 = rvalues(1)
+         nonbonded%pot(start + isec)%pot%set(1)%gal%r2 = rvalues(2)
+
+         CALL section_vals_val_get(gal_section, "a1", i_rep_section=isec, &
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%gal%a1)
+         CALL section_vals_val_get(gal_section, "a2", i_rep_section=isec, &
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%gal%a2)
+         CALL section_vals_val_get(gal_section, "a3", i_rep_section=isec, &
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%gal%a3)
+         CALL section_vals_val_get(gal_section, "a4", i_rep_section=isec, &
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%gal%a4)
+         CALL section_vals_val_get(gal_section, "A", i_rep_section=isec, &
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%gal%a)
+         CALL section_vals_val_get(gal_section, "B", i_rep_section=isec, &
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%gal%b)
+         CALL section_vals_val_get(gal_section, "C", i_rep_section=isec, &
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%gal%c)
+         NULLIFY (list)
+         subsection => section_vals_get_subs_vals(section, "GCN", i_rep_section=isec)
+         CALL section_vals_val_get(subsection, "_DEFAULT_KEYWORD_", n_rep_val=nval)
+         ALLOCATE (nonbonded%pot(start + isec)%pot%set(1)%gal%gcn(nval))
+         CALL section_vals_list_get(subsection, "_DEFAULT_KEYWORD_", list=list)
+         DO iatom = 1, nval
+            ! we use only the first default_string_length characters of each line
+            is_ok = cp_sll_val_next(list, val)
+            CALL val_get(val, r_val=rval)
+            ! assign values
+            nonbonded%pot(start + isec)%pot%set(1)%gal%gcn(iatom) = rval
+         END DO
+
+         CALL section_vals_val_get(gal_section, "Fit_express", i_rep_section=isec, &
+                                   l_val=nonbonded%pot(start + isec)%pot%set(1)%gal%express)
+
+         ! ! In case it is defined override the standard specification of RCUT
+         CALL section_vals_val_get(gal_section, "RCUT", i_rep_section=isec, n_rep_val=n_rep)
+         IF (n_rep == 1) THEN
+            CALL section_vals_val_get(gal_section, "RCUT", i_rep_section=isec, r_val=rcut)
+            nonbonded%pot(start + isec)%pot%rcutsq = rcut**2
+            nonbonded%pot(start + isec)%pot%set(1)%gal%rcutsq = rcut**2
+         END IF
+      END DO
+   END SUBROUTINE read_gal_section
 
 ! **************************************************************************************************
 !> \brief Reads the siepmann section
@@ -1334,9 +1399,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: start
       TYPE(section_vals_type), POINTER                   :: siepmann_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_siepmann_section', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: atm_names
       INTEGER                                            :: isec, n_items, n_rep
@@ -1347,35 +1409,35 @@ CONTAINS
          CALL cite_reference(Siepmann1995)
          CALL section_vals_val_get(section, "ATOMS", i_rep_section=isec, c_vals=atm_names)
 
-         nonbonded%pot(start+isec)%pot%type = siepmann_type
-         nonbonded%pot(start+isec)%pot%at1 = atm_names(1)
-         nonbonded%pot(start+isec)%pot%at2 = atm_names(2)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at1)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at2)
+         nonbonded%pot(start + isec)%pot%type = siepmann_type
+         nonbonded%pot(start + isec)%pot%at1 = atm_names(1)
+         nonbonded%pot(start + isec)%pot%at2 = atm_names(2)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at1)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at2)
 
          CALL section_vals_val_get(siepmann_section, "B", i_rep_section=isec, &
-                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%siepmann%B)
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%siepmann%B)
          CALL section_vals_val_get(siepmann_section, "D", i_rep_section=isec, &
-                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%siepmann%D)
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%siepmann%D)
          CALL section_vals_val_get(siepmann_section, "E", i_rep_section=isec, &
-                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%siepmann%E)
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%siepmann%E)
          CALL section_vals_val_get(siepmann_section, "F", i_rep_section=isec, &
-                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%siepmann%F)
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%siepmann%F)
          CALL section_vals_val_get(siepmann_section, "beta", i_rep_section=isec, &
-                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%siepmann%beta)
+                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%siepmann%beta)
          CALL section_vals_val_get(siepmann_section, "ALLOW_OH_FORMATION", i_rep_section=isec, &
-                                   l_val=nonbonded%pot(start+isec)%pot%set(1)%siepmann%allow_oh_formation)
+                                   l_val=nonbonded%pot(start + isec)%pot%set(1)%siepmann%allow_oh_formation)
          CALL section_vals_val_get(siepmann_section, "ALLOW_H3O_FORMATION", i_rep_section=isec, &
-                                   l_val=nonbonded%pot(start+isec)%pot%set(1)%siepmann%allow_h3o_formation)
+                                   l_val=nonbonded%pot(start + isec)%pot%set(1)%siepmann%allow_h3o_formation)
          CALL section_vals_val_get(siepmann_section, "ALLOW_O_FORMATION", i_rep_section=isec, &
-                                   l_val=nonbonded%pot(start+isec)%pot%set(1)%siepmann%allow_o_formation)
+                                   l_val=nonbonded%pot(start + isec)%pot%set(1)%siepmann%allow_o_formation)
 
          ! ! In case it is defined override the standard specification of RCUT
          CALL section_vals_val_get(siepmann_section, "RCUT", i_rep_section=isec, n_rep_val=n_rep)
          IF (n_rep == 1) THEN
             CALL section_vals_val_get(siepmann_section, "RCUT", i_rep_section=isec, r_val=rcut)
-            nonbonded%pot(start+isec)%pot%rcutsq = rcut**2
-            nonbonded%pot(start+isec)%pot%set(1)%siepmann%rcutsq = rcut**2
+            nonbonded%pot(start + isec)%pot%rcutsq = rcut**2
+            nonbonded%pot(start + isec)%pot%set(1)%siepmann%rcutsq = rcut**2
          END IF
       END DO
    END SUBROUTINE read_siepmann_section
@@ -1391,9 +1453,6 @@ CONTAINS
       TYPE(pair_potential_p_type), POINTER               :: nonbonded
       TYPE(section_vals_type), POINTER                   :: section
       INTEGER, INTENT(IN)                                :: start
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_bm_section', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: atm_names
@@ -1415,28 +1474,28 @@ CONTAINS
          CALL section_vals_val_get(section, "Beta", i_rep_section=isec, r_val=beta)
          CALL section_vals_val_get(section, "RCUT", i_rep_section=isec, r_val=rcut)
 
-         nonbonded%pot(start+isec)%pot%type = bm_type
-         nonbonded%pot(start+isec)%pot%at1 = atm_names(1)
-         nonbonded%pot(start+isec)%pot%at2 = atm_names(2)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at1)
-         CALL uppercase(nonbonded%pot(start+isec)%pot%at2)
-         nonbonded%pot(start+isec)%pot%set(1)%buckmo%f0 = f0
-         nonbonded%pot(start+isec)%pot%set(1)%buckmo%a1 = a1
-         nonbonded%pot(start+isec)%pot%set(1)%buckmo%a2 = a2
-         nonbonded%pot(start+isec)%pot%set(1)%buckmo%b1 = b1
-         nonbonded%pot(start+isec)%pot%set(1)%buckmo%b2 = b2
-         nonbonded%pot(start+isec)%pot%set(1)%buckmo%c = c
-         nonbonded%pot(start+isec)%pot%set(1)%buckmo%d = d
-         nonbonded%pot(start+isec)%pot%set(1)%buckmo%r0 = r0
-         nonbonded%pot(start+isec)%pot%set(1)%buckmo%beta = beta
-         nonbonded%pot(start+isec)%pot%rcutsq = rcut*rcut
+         nonbonded%pot(start + isec)%pot%type = bm_type
+         nonbonded%pot(start + isec)%pot%at1 = atm_names(1)
+         nonbonded%pot(start + isec)%pot%at2 = atm_names(2)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at1)
+         CALL uppercase(nonbonded%pot(start + isec)%pot%at2)
+         nonbonded%pot(start + isec)%pot%set(1)%buckmo%f0 = f0
+         nonbonded%pot(start + isec)%pot%set(1)%buckmo%a1 = a1
+         nonbonded%pot(start + isec)%pot%set(1)%buckmo%a2 = a2
+         nonbonded%pot(start + isec)%pot%set(1)%buckmo%b1 = b1
+         nonbonded%pot(start + isec)%pot%set(1)%buckmo%b2 = b2
+         nonbonded%pot(start + isec)%pot%set(1)%buckmo%c = c
+         nonbonded%pot(start + isec)%pot%set(1)%buckmo%d = d
+         nonbonded%pot(start + isec)%pot%set(1)%buckmo%r0 = r0
+         nonbonded%pot(start + isec)%pot%set(1)%buckmo%beta = beta
+         nonbonded%pot(start + isec)%pot%rcutsq = rcut*rcut
          !
          CALL section_vals_val_get(section, "RMIN", i_rep_section=isec, n_rep_val=n_rep)
          IF (n_rep == 1) CALL section_vals_val_get(section, "RMIN", i_rep_section=isec, &
-                                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%rmin)
+                                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%rmin)
          CALL section_vals_val_get(section, "RMAX", i_rep_section=isec, n_rep_val=n_rep)
          IF (n_rep == 1) CALL section_vals_val_get(section, "RMAX", i_rep_section=isec, &
-                                                   r_val=nonbonded%pot(start+isec)%pot%set(1)%rmax)
+                                                   r_val=nonbonded%pot(start + isec)%pot%set(1)%rmax)
       END DO
    END SUBROUTINE read_bm_section
 
@@ -1455,18 +1514,15 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: section
       INTEGER, INTENT(IN)                                :: start
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_chrg_section', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length)               :: atm_name
       INTEGER                                            :: isec, n_items
 
       CALL section_vals_get(section, n_repetition=n_items)
       DO isec = 1, n_items
          CALL section_vals_val_get(section, "ATOM", i_rep_section=isec, c_val=atm_name)
-         charge_atm(start+isec) = atm_name
-         CALL uppercase(charge_atm(start+isec))
-         CALL section_vals_val_get(section, "CHARGE", i_rep_section=isec, r_val=charge(start+isec))
+         charge_atm(start + isec) = atm_name
+         CALL uppercase(charge_atm(start + isec))
+         CALL section_vals_val_get(section, "CHARGE", i_rep_section=isec, r_val=charge(start + isec))
       END DO
    END SUBROUTINE read_chrg_section
 
@@ -1488,9 +1544,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: section
       INTEGER, INTENT(IN)                                :: start
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_apol_section', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length)               :: atm_name
       INTEGER                                            :: isec, isec_damp, n_damp, n_items, &
                                                             start_damp, tmp_damp
@@ -1504,7 +1557,7 @@ CONTAINS
          tmp_section => section_vals_get_subs_vals(section, "DAMPING", &
                                                    i_rep_section=isec)
          CALL section_vals_get(tmp_section, n_repetition=tmp_damp)
-         n_damp = n_damp+tmp_damp
+         n_damp = n_damp + tmp_damp
 
       END DO
 
@@ -1516,32 +1569,32 @@ CONTAINS
       start_damp = 0
       DO isec = 1, n_items
          CALL section_vals_val_get(section, "ATOM", i_rep_section=isec, c_val=atm_name)
-         apol_atm(start+isec) = atm_name
-         CALL uppercase(apol_atm(start+isec))
-         CALL section_vals_val_get(section, "APOL", i_rep_section=isec, r_val=apol(start+isec))
+         apol_atm(start + isec) = atm_name
+         CALL uppercase(apol_atm(start + isec))
+         CALL section_vals_val_get(section, "APOL", i_rep_section=isec, r_val=apol(start + isec))
 
          tmp_section => section_vals_get_subs_vals(section, "DAMPING", &
                                                    i_rep_section=isec)
          CALL section_vals_get(tmp_section, n_repetition=tmp_damp)
          DO isec_damp = 1, tmp_damp
-            damping_list(start_damp+isec_damp)%atm_name1 = apol_atm(start+isec)
+            damping_list(start_damp + isec_damp)%atm_name1 = apol_atm(start + isec)
             CALL section_vals_val_get(tmp_section, "ATOM", i_rep_section=isec_damp, &
                                       c_val=atm_name)
-            damping_list(start_damp+isec_damp)%atm_name2 = atm_name
-            CALL uppercase(damping_list(start_damp+isec_damp)%atm_name2)
+            damping_list(start_damp + isec_damp)%atm_name2 = atm_name
+            CALL uppercase(damping_list(start_damp + isec_damp)%atm_name2)
             CALL section_vals_val_get(tmp_section, "TYPE", i_rep_section=isec_damp, &
                                       c_val=atm_name)
-            damping_list(start_damp+isec_damp)%dtype = atm_name
-            CALL uppercase(damping_list(start_damp+isec_damp)%dtype)
+            damping_list(start_damp + isec_damp)%dtype = atm_name
+            CALL uppercase(damping_list(start_damp + isec_damp)%dtype)
 
             CALL section_vals_val_get(tmp_section, "ORDER", i_rep_section=isec_damp, &
-                                      i_val=damping_list(start_damp+isec_damp)%order)
+                                      i_val=damping_list(start_damp + isec_damp)%order)
             CALL section_vals_val_get(tmp_section, "BIJ", i_rep_section=isec_damp, &
-                                      r_val=damping_list(start_damp+isec_damp)%bij)
+                                      r_val=damping_list(start_damp + isec_damp)%bij)
             CALL section_vals_val_get(tmp_section, "CIJ", i_rep_section=isec_damp, &
-                                      r_val=damping_list(start_damp+isec_damp)%cij)
+                                      r_val=damping_list(start_damp + isec_damp)%cij)
          END DO
-         start_damp = start_damp+tmp_damp
+         start_damp = start_damp + tmp_damp
 
       END DO
 
@@ -1562,18 +1615,15 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: section
       INTEGER, INTENT(IN)                                :: start
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_cpol_section', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length)               :: atm_name
       INTEGER                                            :: isec, n_items
 
       CALL section_vals_get(section, n_repetition=n_items)
       DO isec = 1, n_items
          CALL section_vals_val_get(section, "ATOM", i_rep_section=isec, c_val=atm_name)
-         cpol_atm(start+isec) = atm_name
-         CALL uppercase(cpol_atm(start+isec))
-         CALL section_vals_val_get(section, "CPOL", i_rep_section=isec, r_val=cpol(start+isec))
+         cpol_atm(start + isec) = atm_name
+         CALL uppercase(cpol_atm(start + isec))
+         CALL section_vals_val_get(section, "CPOL", i_rep_section=isec, r_val=cpol(start + isec))
       END DO
    END SUBROUTINE read_cpol_section
 
@@ -1590,9 +1640,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: section
       INTEGER, INTENT(IN)                                :: start
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_shell_section', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length)               :: atm_name
       INTEGER                                            :: i_rep, n_rep
       REAL(dp)                                           :: ccharge, cutoff, k, maxdist, mfrac, &
@@ -1604,31 +1651,31 @@ CONTAINS
          CALL section_vals_val_get(section, "_SECTION_PARAMETERS_", &
                                    c_val=atm_name, i_rep_section=i_rep)
          CALL uppercase(atm_name)
-         shell_list(start+i_rep)%atm_name = atm_name
+         shell_list(start + i_rep)%atm_name = atm_name
          CALL section_vals_val_get(section, "CORE_CHARGE", i_rep_section=i_rep, r_val=ccharge)
-         shell_list(start+i_rep)%shell%charge_core = ccharge
+         shell_list(start + i_rep)%shell%charge_core = ccharge
          CALL section_vals_val_get(section, "SHELL_CHARGE", i_rep_section=i_rep, r_val=scharge)
-         shell_list(start+i_rep)%shell%charge_shell = scharge
+         shell_list(start + i_rep)%shell%charge_shell = scharge
          CALL section_vals_val_get(section, "MASS_FRACTION", i_rep_section=i_rep, r_val=mfrac)
-         shell_list(start+i_rep)%shell%massfrac = mfrac
+         shell_list(start + i_rep)%shell%massfrac = mfrac
          CALL section_vals_val_get(section, "K2_SPRING", i_rep_section=i_rep, r_val=k)
          IF (k < 0.0_dp) THEN
             CALL cp_abort(__LOCATION__, &
                           "An invalid value was specified for the force constant k2 of the core-shell "// &
                           "spring potential")
          END IF
-         shell_list(start+i_rep)%shell%k2_spring = k
+         shell_list(start + i_rep)%shell%k2_spring = k
          CALL section_vals_val_get(section, "K4_SPRING", i_rep_section=i_rep, r_val=k)
          IF (k < 0.0_dp) THEN
             CALL cp_abort(__LOCATION__, &
                           "An invalid value was specified for the force constant k4 of the core-shell "// &
                           "spring potential")
          END IF
-         shell_list(start+i_rep)%shell%k4_spring = k
+         shell_list(start + i_rep)%shell%k4_spring = k
          CALL section_vals_val_get(section, "MAX_DISTANCE", i_rep_section=i_rep, r_val=maxdist)
-         shell_list(start+i_rep)%shell%max_dist = maxdist
+         shell_list(start + i_rep)%shell%max_dist = maxdist
          CALL section_vals_val_get(section, "SHELL_CUTOFF", i_rep_section=i_rep, r_val=cutoff)
-         shell_list(start+i_rep)%shell%shell_cutoff = cutoff
+         shell_list(start + i_rep)%shell%shell_cutoff = cutoff
       END DO
 
    END SUBROUTINE read_shell_section
@@ -1654,9 +1701,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: section
       INTEGER, INTENT(IN)                                :: start
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_bonds_section', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: atm_names
       INTEGER                                            :: isec, k, n_items
@@ -1665,20 +1709,20 @@ CONTAINS
       NULLIFY (Kvals, atm_names)
       CALL section_vals_get(section, n_repetition=n_items)
       DO isec = 1, n_items
-         CALL section_vals_val_get(section, "KIND", i_rep_section=isec, i_val=bond_kind(start+isec))
+         CALL section_vals_val_get(section, "KIND", i_rep_section=isec, i_val=bond_kind(start + isec))
          CALL section_vals_val_get(section, "ATOMS", i_rep_section=isec, c_vals=atm_names)
-         bond_a(start+isec) = atm_names(1)
-         bond_b(start+isec) = atm_names(2)
-         CALL uppercase(bond_a(start+isec))
-         CALL uppercase(bond_b(start+isec))
+         bond_a(start + isec) = atm_names(1)
+         bond_b(start + isec) = atm_names(2)
+         CALL uppercase(bond_a(start + isec))
+         CALL uppercase(bond_b(start + isec))
          CALL section_vals_val_get(section, "K", i_rep_section=isec, r_vals=Kvals)
          CPASSERT(SIZE(Kvals) <= 3)
-         bond_k(:, start+isec) = 0.0_dp
+         bond_k(:, start + isec) = 0.0_dp
          DO k = 1, SIZE(Kvals)
-            bond_k(k, start+isec) = Kvals(k)
+            bond_k(k, start + isec) = Kvals(k)
          END DO
-         CALL section_vals_val_get(section, "R0", i_rep_section=isec, r_val=bond_r0(start+isec))
-         CALL section_vals_val_get(section, "CS", i_rep_section=isec, r_val=bond_cs(start+isec))
+         CALL section_vals_val_get(section, "R0", i_rep_section=isec, r_val=bond_r0(start + isec))
+         CALL section_vals_val_get(section, "CS", i_rep_section=isec, r_val=bond_cs(start + isec))
       END DO
    END SUBROUTINE read_bonds_section
 
@@ -1714,9 +1758,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: section
       INTEGER, INTENT(IN)                                :: start
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_bends_section', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: atm_names
       INTEGER                                            :: isec, k, n_items, n_rep
@@ -1726,34 +1767,34 @@ CONTAINS
       CALL section_vals_get(section, n_repetition=n_items)
       bend_legendre%order = 0
       DO isec = 1, n_items
-         CALL section_vals_val_get(section, "KIND", i_rep_section=isec, i_val=bend_kind(start+isec))
+         CALL section_vals_val_get(section, "KIND", i_rep_section=isec, i_val=bend_kind(start + isec))
          CALL section_vals_val_get(section, "ATOMS", i_rep_section=isec, c_vals=atm_names)
-         bend_a(start+isec) = atm_names(1)
-         bend_b(start+isec) = atm_names(2)
-         bend_c(start+isec) = atm_names(3)
-         CALL uppercase(bend_a(start+isec))
-         CALL uppercase(bend_b(start+isec))
-         CALL uppercase(bend_c(start+isec))
+         bend_a(start + isec) = atm_names(1)
+         bend_b(start + isec) = atm_names(2)
+         bend_c(start + isec) = atm_names(3)
+         CALL uppercase(bend_a(start + isec))
+         CALL uppercase(bend_b(start + isec))
+         CALL uppercase(bend_c(start + isec))
          CALL section_vals_val_get(section, "K", i_rep_section=isec, r_vals=Kvals)
          CPASSERT(SIZE(Kvals) == 1)
-         bend_k(start+isec) = Kvals(1)
-         CALL section_vals_val_get(section, "THETA0", i_rep_section=isec, r_val=bend_theta0(start+isec))
-         CALL section_vals_val_get(section, "CB", i_rep_section=isec, r_val=bend_cb(start+isec))
-         CALL section_vals_val_get(section, "R012", i_rep_section=isec, r_val=bend_r012(start+isec))
-         CALL section_vals_val_get(section, "R032", i_rep_section=isec, r_val=bend_r032(start+isec))
-         CALL section_vals_val_get(section, "KBS12", i_rep_section=isec, r_val=bend_kbs12(start+isec))
-         CALL section_vals_val_get(section, "KBS32", i_rep_section=isec, r_val=bend_kbs32(start+isec))
-         CALL section_vals_val_get(section, "KSS", i_rep_section=isec, r_val=bend_kss(start+isec))
+         bend_k(start + isec) = Kvals(1)
+         CALL section_vals_val_get(section, "THETA0", i_rep_section=isec, r_val=bend_theta0(start + isec))
+         CALL section_vals_val_get(section, "CB", i_rep_section=isec, r_val=bend_cb(start + isec))
+         CALL section_vals_val_get(section, "R012", i_rep_section=isec, r_val=bend_r012(start + isec))
+         CALL section_vals_val_get(section, "R032", i_rep_section=isec, r_val=bend_r032(start + isec))
+         CALL section_vals_val_get(section, "KBS12", i_rep_section=isec, r_val=bend_kbs12(start + isec))
+         CALL section_vals_val_get(section, "KBS32", i_rep_section=isec, r_val=bend_kbs32(start + isec))
+         CALL section_vals_val_get(section, "KSS", i_rep_section=isec, r_val=bend_kss(start + isec))
          ! get legendre based data
          CALL section_vals_val_get(section, "LEGENDRE", i_rep_section=isec, n_rep_val=n_rep)
          DO k = 1, n_rep
             CALL section_vals_val_get(section, "LEGENDRE", i_rep_val=k, r_vals=r_values, i_rep_section=isec)
-            bend_legendre(start+isec)%order = SIZE(r_values)
-            IF (ASSOCIATED(bend_legendre(start+isec)%coeffs)) THEN
-               DEALLOCATE (bend_legendre(start+isec)%coeffs)
+            bend_legendre(start + isec)%order = SIZE(r_values)
+            IF (ASSOCIATED(bend_legendre(start + isec)%coeffs)) THEN
+               DEALLOCATE (bend_legendre(start + isec)%coeffs)
             END IF
-            ALLOCATE (bend_legendre(start+isec)%coeffs(bend_legendre(start+isec)%order))
-            bend_legendre(start+isec)%coeffs = r_values
+            ALLOCATE (bend_legendre(start + isec)%coeffs(bend_legendre(start + isec)%order))
+            bend_legendre(start + isec)%coeffs = r_values
          END DO
       END DO
    END SUBROUTINE read_bends_section
@@ -1778,9 +1819,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: section
       INTEGER, INTENT(IN)                                :: start
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_ubs_section', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: atm_names
       INTEGER                                            :: isec, k, n_items
@@ -1794,21 +1832,21 @@ CONTAINS
          subsection => section_vals_get_subs_vals(section, "UB", i_rep_section=isec)
          CALL section_vals_get(subsection, explicit=explicit)
          IF (explicit) THEN
-            CALL section_vals_val_get(subsection, "KIND", i_val=ub_kind(start+isec))
+            CALL section_vals_val_get(subsection, "KIND", i_val=ub_kind(start + isec))
             CALL section_vals_val_get(section, "ATOMS", i_rep_section=isec, c_vals=atm_names)
-            ub_a(start+isec) = atm_names(1)
-            ub_b(start+isec) = atm_names(2)
-            ub_c(start+isec) = atm_names(3)
-            CALL uppercase(ub_a(start+isec))
-            CALL uppercase(ub_b(start+isec))
-            CALL uppercase(ub_c(start+isec))
+            ub_a(start + isec) = atm_names(1)
+            ub_b(start + isec) = atm_names(2)
+            ub_c(start + isec) = atm_names(3)
+            CALL uppercase(ub_a(start + isec))
+            CALL uppercase(ub_b(start + isec))
+            CALL uppercase(ub_c(start + isec))
             CALL section_vals_val_get(subsection, "K", r_vals=Kvals)
             CPASSERT(SIZE(Kvals) <= 3)
-            ub_k(:, start+isec) = 0.0_dp
+            ub_k(:, start + isec) = 0.0_dp
             DO k = 1, SIZE(Kvals)
-               ub_k(k, start+isec) = Kvals(k)
+               ub_k(k, start + isec) = Kvals(k)
             END DO
-            CALL section_vals_val_get(subsection, "R0", r_val=ub_r0(start+isec))
+            CALL section_vals_val_get(subsection, "R0", r_val=ub_r0(start + isec))
          END IF
       END DO
    END SUBROUTINE read_ubs_section
@@ -1838,9 +1876,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: section
       INTEGER, INTENT(IN)                                :: start
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_torsions_section', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: atm_names
       INTEGER                                            :: isec, n_items
@@ -1848,31 +1883,31 @@ CONTAINS
       NULLIFY (atm_names)
       CALL section_vals_get(section, n_repetition=n_items)
       DO isec = 1, n_items
-         CALL section_vals_val_get(section, "KIND", i_rep_section=isec, i_val=torsion_kind(start+isec))
+         CALL section_vals_val_get(section, "KIND", i_rep_section=isec, i_val=torsion_kind(start + isec))
          CALL section_vals_val_get(section, "ATOMS", i_rep_section=isec, c_vals=atm_names)
-         torsion_a(start+isec) = atm_names(1)
-         torsion_b(start+isec) = atm_names(2)
-         torsion_c(start+isec) = atm_names(3)
-         torsion_d(start+isec) = atm_names(4)
-         CALL uppercase(torsion_a(start+isec))
-         CALL uppercase(torsion_b(start+isec))
-         CALL uppercase(torsion_c(start+isec))
-         CALL uppercase(torsion_d(start+isec))
-         CALL section_vals_val_get(section, "K", i_rep_section=isec, r_val=torsion_k(start+isec))
-         CALL section_vals_val_get(section, "PHI0", i_rep_section=isec, r_val=torsion_phi0(start+isec))
-         CALL section_vals_val_get(section, "M", i_rep_section=isec, i_val=torsion_m(start+isec))
+         torsion_a(start + isec) = atm_names(1)
+         torsion_b(start + isec) = atm_names(2)
+         torsion_c(start + isec) = atm_names(3)
+         torsion_d(start + isec) = atm_names(4)
+         CALL uppercase(torsion_a(start + isec))
+         CALL uppercase(torsion_b(start + isec))
+         CALL uppercase(torsion_c(start + isec))
+         CALL uppercase(torsion_d(start + isec))
+         CALL section_vals_val_get(section, "K", i_rep_section=isec, r_val=torsion_k(start + isec))
+         CALL section_vals_val_get(section, "PHI0", i_rep_section=isec, r_val=torsion_phi0(start + isec))
+         CALL section_vals_val_get(section, "M", i_rep_section=isec, i_val=torsion_m(start + isec))
          ! Modify parameterisation for OPLS case
-         IF (torsion_kind(start+isec) .EQ. do_ff_opls) THEN
-            IF (torsion_phi0(start+isec) .NE. 0.0_dp) THEN
+         IF (torsion_kind(start + isec) .EQ. do_ff_opls) THEN
+            IF (torsion_phi0(start + isec) .NE. 0.0_dp) THEN
                CALL cp_warn(__LOCATION__, "PHI0 parameter was non-zero "// &
                             "for an OPLS-type TORSION.  It will be ignored.")
             ENDIF
-            IF (MODULO(torsion_m(start+isec), 2) .EQ. 0) THEN
+            IF (MODULO(torsion_m(start + isec), 2) .EQ. 0) THEN
                ! For even M, negate the cosine using a Pi phase factor
-               torsion_phi0(start+isec) = pi
+               torsion_phi0(start + isec) = pi
             ENDIF
             ! the K parameter appears as K/2 in the OPLS parameterisation
-            torsion_k(start+isec) = torsion_k(start+isec)*0.5_dp
+            torsion_k(start + isec) = torsion_k(start + isec)*0.5_dp
          END IF
       END DO
    END SUBROUTINE read_torsions_section
@@ -1899,9 +1934,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: section
       INTEGER, INTENT(IN)                                :: start
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_improper_section', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: atm_names
       INTEGER                                            :: isec, n_items
@@ -1909,18 +1941,18 @@ CONTAINS
       NULLIFY (atm_names)
       CALL section_vals_get(section, n_repetition=n_items)
       DO isec = 1, n_items
-         CALL section_vals_val_get(section, "KIND", i_rep_section=isec, i_val=impr_kind(start+isec))
+         CALL section_vals_val_get(section, "KIND", i_rep_section=isec, i_val=impr_kind(start + isec))
          CALL section_vals_val_get(section, "ATOMS", i_rep_section=isec, c_vals=atm_names)
-         impr_a(start+isec) = atm_names(1)
-         impr_b(start+isec) = atm_names(2)
-         impr_c(start+isec) = atm_names(3)
-         impr_d(start+isec) = atm_names(4)
-         CALL uppercase(impr_a(start+isec))
-         CALL uppercase(impr_b(start+isec))
-         CALL uppercase(impr_c(start+isec))
-         CALL uppercase(impr_d(start+isec))
-         CALL section_vals_val_get(section, "K", i_rep_section=isec, r_val=impr_k(start+isec))
-         CALL section_vals_val_get(section, "PHI0", i_rep_section=isec, r_val=impr_phi0(start+isec))
+         impr_a(start + isec) = atm_names(1)
+         impr_b(start + isec) = atm_names(2)
+         impr_c(start + isec) = atm_names(3)
+         impr_d(start + isec) = atm_names(4)
+         CALL uppercase(impr_a(start + isec))
+         CALL uppercase(impr_b(start + isec))
+         CALL uppercase(impr_c(start + isec))
+         CALL uppercase(impr_d(start + isec))
+         CALL section_vals_val_get(section, "K", i_rep_section=isec, r_val=impr_k(start + isec))
+         CALL section_vals_val_get(section, "PHI0", i_rep_section=isec, r_val=impr_phi0(start + isec))
       END DO
    END SUBROUTINE read_improper_section
 
@@ -1946,9 +1978,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: section
       INTEGER, INTENT(IN)                                :: start
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_opbend_section', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length), &
          DIMENSION(:), POINTER                           :: atm_names
       INTEGER                                            :: isec, n_items
@@ -1956,18 +1985,18 @@ CONTAINS
       NULLIFY (atm_names)
       CALL section_vals_get(section, n_repetition=n_items)
       DO isec = 1, n_items
-         CALL section_vals_val_get(section, "KIND", i_rep_section=isec, i_val=opbend_kind(start+isec))
+         CALL section_vals_val_get(section, "KIND", i_rep_section=isec, i_val=opbend_kind(start + isec))
          CALL section_vals_val_get(section, "ATOMS", i_rep_section=isec, c_vals=atm_names)
-         opbend_a(start+isec) = atm_names(1)
-         opbend_b(start+isec) = atm_names(2)
-         opbend_c(start+isec) = atm_names(3)
-         opbend_d(start+isec) = atm_names(4)
-         CALL uppercase(opbend_a(start+isec))
-         CALL uppercase(opbend_b(start+isec))
-         CALL uppercase(opbend_c(start+isec))
-         CALL uppercase(opbend_d(start+isec))
-         CALL section_vals_val_get(section, "K", i_rep_section=isec, r_val=opbend_k(start+isec))
-         CALL section_vals_val_get(section, "PHI0", i_rep_section=isec, r_val=opbend_phi0(start+isec))
+         opbend_a(start + isec) = atm_names(1)
+         opbend_b(start + isec) = atm_names(2)
+         opbend_c(start + isec) = atm_names(3)
+         opbend_d(start + isec) = atm_names(4)
+         CALL uppercase(opbend_a(start + isec))
+         CALL uppercase(opbend_b(start + isec))
+         CALL uppercase(opbend_c(start + isec))
+         CALL uppercase(opbend_d(start + isec))
+         CALL section_vals_val_get(section, "K", i_rep_section=isec, r_val=opbend_k(start + isec))
+         CALL section_vals_val_get(section, "PHI0", i_rep_section=isec, r_val=opbend_phi0(start + isec))
       END DO
    END SUBROUTINE read_opbend_section
 
@@ -2004,7 +2033,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
       TYPE(section_vals_type), POINTER                   :: mm_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_eam_data', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'read_eam_data'
 
       INTEGER                                            :: handle, i, iw
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -2039,8 +2068,8 @@ CONTAINS
          CALL parser_get_next_line(parser, 1)
          READ (parser%input_line, *) eam%rho(i), eam%rhop(i)
          eam%rhop(i) = cp_unit_to_cp2k(eam%rhop(i), "angstrom^-1")
-         eam%rval(i) = REAL(i-1, KIND=dp)*eam%drar
-         eam%rhoval(i) = REAL(i-1, KIND=dp)*eam%drhoar
+         eam%rval(i) = REAL(i - 1, KIND=dp)*eam%drar
+         eam%rhoval(i) = REAL(i - 1, KIND=dp)*eam%drhoar
       END DO
       ! Reading pair potential PHI and its derivative (with respect to r)
       DO i = 1, eam%npoints

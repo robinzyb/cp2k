@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -61,7 +63,7 @@ CONTAINS
          INTENT(INOUT)                                   :: npt
       INTEGER, INTENT(IN)                                :: group
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'lnhc_barostat', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'lnhc_barostat'
 
       INTEGER                                            :: handle
       TYPE(map_info_type), POINTER                       :: map_info
@@ -115,7 +117,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(INOUT), OPTIONAL             :: vel(:, :), shell_vel(:, :), &
                                                             core_vel(:, :)
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'lnhc_particles', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'lnhc_particles'
 
       INTEGER                                            :: handle
       LOGICAL                                            :: my_shell_adiabatic
@@ -170,7 +172,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(INOUT), OPTIONAL             :: vel(:, :), shell_vel(:, :), &
                                                             core_vel(:, :)
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'lnhc_shells', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'lnhc_shells'
 
       INTEGER                                            :: handle
       TYPE(map_info_type), POINTER                       :: map_info
@@ -202,8 +204,6 @@ CONTAINS
       TYPE(lnhc_parameters_type), POINTER                :: nhc
       TYPE(map_info_type), POINTER                       :: map_info
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'do_nhc', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: imap, n
 
 ! Force on the first bead in every thermostat chain
@@ -211,7 +211,7 @@ CONTAINS
       DO n = 1, nhc%loc_num_nhc
          imap = nhc%map_info%map_index(n)
          IF (nhc%nvt(1, n)%nkt == 0.0_dp) CYCLE
-         nhc%nvt(1, n)%f = (map_info%s_kin(imap)-nhc%nvt(1, n)%nkt)/nhc%nvt(1, n)%mass
+         nhc%nvt(1, n)%f = (map_info%s_kin(imap) - nhc%nvt(1, n)%nkt)/nhc%nvt(1, n)%mass
       END DO
 
       ! Perform multiple time stepping using Yoshida
@@ -240,9 +240,6 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: com_vel(:, :)
       REAL(KIND=dp), INTENT(INOUT)                       :: shell_vel(:, :), core_vel(:, :)
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'shell_scale_comv', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iparticle, iparticle_kind, &
                                                             iparticle_local, nparticle_kind, &
                                                             nparticle_local, shell_index
@@ -266,12 +263,12 @@ CONTAINS
                shell_index = particle_set(iparticle)%shell_index
                vs(1:3) = shell_vel(1:3, shell_index)
                vc(1:3) = core_vel(1:3, shell_index)
-               shell_vel(1, shell_index) = com_vel(1, iparticle)+fac_massc*(vs(1)-vc(1))
-               shell_vel(2, shell_index) = com_vel(2, iparticle)+fac_massc*(vs(2)-vc(2))
-               shell_vel(3, shell_index) = com_vel(3, iparticle)+fac_massc*(vs(3)-vc(3))
-               core_vel(1, shell_index) = com_vel(1, iparticle)+fac_masss*(vc(1)-vs(1))
-               core_vel(2, shell_index) = com_vel(2, iparticle)+fac_masss*(vc(2)-vs(2))
-               core_vel(3, shell_index) = com_vel(3, iparticle)+fac_masss*(vc(3)-vs(3))
+               shell_vel(1, shell_index) = com_vel(1, iparticle) + fac_massc*(vs(1) - vc(1))
+               shell_vel(2, shell_index) = com_vel(2, iparticle) + fac_massc*(vs(2) - vc(2))
+               shell_vel(3, shell_index) = com_vel(3, iparticle) + fac_massc*(vs(3) - vc(3))
+               core_vel(1, shell_index) = com_vel(1, iparticle) + fac_masss*(vc(1) - vs(1))
+               core_vel(2, shell_index) = com_vel(2, iparticle) + fac_masss*(vc(2) - vs(2))
+               core_vel(3, shell_index) = com_vel(3, iparticle) + fac_masss*(vc(3) - vs(3))
             END DO
          END IF ! is_shell
       END DO ! iparticle_kind
@@ -288,9 +285,6 @@ CONTAINS
 
       TYPE(lnhc_parameters_type), POINTER                :: nhc
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'multiple_step_yoshida', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: imap, inc, inhc, iyosh, n, nx1, nx2
       REAL(KIND=dp)                                      :: scale
       TYPE(map_info_type), POINTER                       :: map_info
@@ -303,16 +297,16 @@ CONTAINS
          YOSH: DO iyosh = 1, nhc%nyosh
 
             ! update velocity on the last thermostat in the chain    ! O1
-            nhc%nvt(nhc%nhc_len, :)%v = nhc%nvt(nhc%nhc_len, :)%v+ &
+            nhc%nvt(nhc%nhc_len, :)%v = nhc%nvt(nhc%nhc_len, :)%v + &
                                         nhc%nvt(nhc%nhc_len, :)%f*0.25_dp*nhc%dt_yosh(iyosh)*nhc%dt_fact
 
             ! update velocity of other thermostats on chain (from nhc_len-1 to 1)  ! O2
             DO n = 1, nhc%loc_num_nhc
                IF (nhc%nvt(1, n)%nkt == 0.0_dp) CYCLE
-               DO inhc = nhc%nhc_len-1, 1, -1
-                  scale = EXP(-0.125_dp*nhc%nvt(inhc+1, n)%v*nhc%dt_yosh(iyosh)*nhc%dt_fact)
+               DO inhc = nhc%nhc_len - 1, 1, -1
+                  scale = EXP(-0.125_dp*nhc%nvt(inhc + 1, n)%v*nhc%dt_yosh(iyosh)*nhc%dt_fact)
                   nhc%nvt(inhc, n)%v = nhc%nvt(inhc, n)%v*scale ! scale
-                  nhc%nvt(inhc, n)%v = nhc%nvt(inhc, n)%v+ &
+                  nhc%nvt(inhc, n)%v = nhc%nvt(inhc, n)%v + &
                                        nhc%nvt(inhc, n)%f*0.25_dp*nhc%dt_yosh(iyosh)*nhc%dt_fact ! shift
                   nhc%nvt(inhc, n)%v = nhc%nvt(inhc, n)%v*scale ! scale
                END DO
@@ -320,7 +314,7 @@ CONTAINS
 
             ! the core of the operator ----- START------
             ! update nhc positions
-            nhc%nvt(:, :)%eta = nhc%nvt(:, :)%eta+ &
+            nhc%nvt(:, :)%eta = nhc%nvt(:, :)%eta + &
                                 0.5_dp*nhc%nvt(:, :)%v*nhc%dt_yosh(iyosh)*nhc%dt_fact
 
             ! now accumulate the scale factor for particle velocities
@@ -336,16 +330,16 @@ CONTAINS
                imap = nhc%map_info%map_index(n)
                IF (nhc%nvt(1, n)%nkt == 0.0_dp) CYCLE
                nhc%nvt(1, n)%f = (map_info%s_kin(imap)*map_info%v_scale(imap)* &
-                                  map_info%v_scale(imap)-nhc%nvt(1, n)%nkt)/nhc%nvt(1, n)%mass
+                                  map_info%v_scale(imap) - nhc%nvt(1, n)%nkt)/nhc%nvt(1, n)%mass
             END DO
 
             ! update velocity of other thermostats on chain (from 1 to nhc_len-1)  ! O2
-            DO inhc = 1, nhc%nhc_len-1
+            DO inhc = 1, nhc%nhc_len - 1
                DO n = 1, nhc%loc_num_nhc
                   IF (nhc%nvt(1, n)%nkt == 0.0_dp) CYCLE
-                  scale = EXP(-0.125_dp*nhc%nvt(inhc+1, n)%v*nhc%dt_yosh(iyosh)*nhc%dt_fact)
+                  scale = EXP(-0.125_dp*nhc%nvt(inhc + 1, n)%v*nhc%dt_yosh(iyosh)*nhc%dt_fact)
                   nhc%nvt(inhc, n)%v = nhc%nvt(inhc, n)%v*scale ! scale
-                  nhc%nvt(inhc, n)%v = nhc%nvt(inhc, n)%v+ &
+                  nhc%nvt(inhc, n)%v = nhc%nvt(inhc, n)%v + &
                                        nhc%nvt(inhc, n)%f*0.25_dp*nhc%dt_yosh(iyosh)*nhc%dt_fact ! shift
                   nhc%nvt(inhc, n)%v = nhc%nvt(inhc, n)%v*scale ! scale
                END DO
@@ -353,12 +347,12 @@ CONTAINS
                ! updating the forces on all the thermostats
                DO n = 1, nhc%loc_num_nhc
                   IF (nhc%nvt(1, n)%nkt == 0.0_dp) CYCLE
-                  nhc%nvt(inhc+1, n)%f = (nhc%nvt(inhc, n)%mass*nhc%nvt(inhc, n)%v &
-                                          *nhc%nvt(inhc, n)%v-nhc%nvt(inhc+1, n)%nkt)/nhc%nvt(inhc+1, n)%mass
+                  nhc%nvt(inhc + 1, n)%f = (nhc%nvt(inhc, n)%mass*nhc%nvt(inhc, n)%v &
+                                            *nhc%nvt(inhc, n)%v - nhc%nvt(inhc + 1, n)%nkt)/nhc%nvt(inhc + 1, n)%mass
                END DO
             END DO
             ! update velocity on last thermostat                             ! O1
-            nhc%nvt(nhc%nhc_len, :)%v = nhc%nvt(nhc%nhc_len, :)%v+ &
+            nhc%nvt(nhc%nhc_len, :)%v = nhc%nvt(nhc%nhc_len, :)%v + &
                                         nhc%nvt(nhc%nhc_len, :)%f*0.25_dp*nhc%dt_yosh(iyosh)*nhc%dt_fact
          END DO YOSH
       END DO NCLOOP

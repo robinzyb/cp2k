@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -16,6 +18,7 @@
 ! **************************************************************************************************
 MODULE transport
    USE ISO_C_BINDING,                   ONLY: C_ASSOCIATED,&
+                                              C_BOOL,&
                                               C_DOUBLE,&
                                               C_F_PROCPOINTER,&
                                               C_INT,&
@@ -37,10 +40,11 @@ MODULE transport
                                               cp_print_key_unit_nr
    USE cp_realspace_grid_cube,          ONLY: cp_pw_to_cube
    USE dbcsr_api,                       ONLY: &
-        convert_csr_to_dbcsr, convert_dbcsr_to_csr, csr_create, csr_create_from_dbcsr, &
-        csr_dbcsr_blkrow_dist, csr_print_sparsity, csr_type, dbcsr_copy, dbcsr_copy_into_existing, &
-        dbcsr_create, dbcsr_deallocate_matrix, dbcsr_desymmetrize, dbcsr_has_symmetry, dbcsr_set, &
-        dbcsr_type, dbcsr_type_no_symmetry, dbcsr_type_real_8
+        dbcsr_convert_csr_to_dbcsr, dbcsr_convert_dbcsr_to_csr, dbcsr_copy, &
+        dbcsr_copy_into_existing, dbcsr_create, dbcsr_csr_create, dbcsr_csr_create_from_dbcsr, &
+        dbcsr_csr_dbcsr_blkrow_dist, dbcsr_csr_print_sparsity, dbcsr_csr_type, &
+        dbcsr_deallocate_matrix, dbcsr_desymmetrize, dbcsr_has_symmetry, dbcsr_set, dbcsr_type, &
+        dbcsr_type_no_symmetry, dbcsr_type_real_8
    USE input_section_types,             ONLY: section_get_ivals,&
                                               section_vals_get,&
                                               section_vals_get_subs_vals,&
@@ -127,8 +131,7 @@ CONTAINS
    SUBROUTINE transport_env_create(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'transport_env_create', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'transport_env_create'
 
       INTEGER                                            :: handle
       TYPE(dft_control_type), POINTER                    :: dft_control
@@ -166,8 +169,7 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: input
       TYPE(transport_env_type), INTENT(INOUT)            :: transport_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'transport_init_read_input', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'transport_init_read_input'
 
       INTEGER                                            :: contact_bandwidth, contact_injsign, &
                                                             contact_natoms, contact_start, handle, &
@@ -264,15 +266,15 @@ CONTAINS
 
             IF (contact_natoms .LE. 0) CPABORT("Number of atoms in contact region needs to be defined.")
 
-            transport_env%contacts_data((i-1)*stride_contacts+1) = contact_bandwidth
-            transport_env%contacts_data((i-1)*stride_contacts+2) = contact_start-1 ! C indexing
-            transport_env%contacts_data((i-1)*stride_contacts+3) = contact_natoms
-            transport_env%contacts_data((i-1)*stride_contacts+4) = contact_injsign
+            transport_env%contacts_data((i - 1)*stride_contacts + 1) = contact_bandwidth
+            transport_env%contacts_data((i - 1)*stride_contacts + 2) = contact_start - 1 ! C indexing
+            transport_env%contacts_data((i - 1)*stride_contacts + 3) = contact_natoms
+            transport_env%contacts_data((i - 1)*stride_contacts + 4) = contact_injsign
 
             IF (injecting_contact) THEN
-               transport_env%contacts_data((i-1)*stride_contacts+5) = 1
+               transport_env%contacts_data((i - 1)*stride_contacts + 5) = 1
             ELSE
-               transport_env%contacts_data((i-1)*stride_contacts+5) = 0
+               transport_env%contacts_data((i - 1)*stride_contacts + 5) = 0
             END IF
          END DO
          transport_env%params%contacts_data = C_LOC(transport_env%contacts_data(1))
@@ -296,8 +298,7 @@ CONTAINS
       TYPE(transport_env_type), INTENT(INOUT)            :: transport_env
       TYPE(dbcsr_type), INTENT(IN)                       :: template_matrix
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'transport_initialize', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'transport_initialize'
 
       INTEGER                                            :: handle, mp_group, mynode, numnodes, &
                                                             unit_nr
@@ -308,7 +309,7 @@ CONTAINS
       CALL cite_reference(Bruck2014)
 
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -338,19 +339,19 @@ CONTAINS
       CALL cp_dbcsr_to_csr_screening(ks_env, transport_env%csr_sparsity)
 
       IF (.NOT. transport_env%csr_screening) CALL dbcsr_set(transport_env%csr_sparsity, 1.0)
-      CALL csr_create_from_dbcsr(transport_env%template_matrix_nosym, &
-                                 transport_env%s_matrix, &
-                                 csr_dbcsr_blkrow_dist, &
-                                 csr_sparsity=transport_env%csr_sparsity, &
-                                 numnodes=numnodes)
+      CALL dbcsr_csr_create_from_dbcsr(transport_env%template_matrix_nosym, &
+                                       transport_env%s_matrix, &
+                                       dbcsr_csr_dbcsr_blkrow_dist, &
+                                       csr_sparsity=transport_env%csr_sparsity, &
+                                       numnodes=numnodes)
 
-      CALL csr_print_sparsity(transport_env%s_matrix, unit_nr)
+      CALL dbcsr_csr_print_sparsity(transport_env%s_matrix, unit_nr)
 
-      CALL convert_dbcsr_to_csr(transport_env%template_matrix_nosym, transport_env%s_matrix)
+      CALL dbcsr_convert_dbcsr_to_csr(transport_env%template_matrix_nosym, transport_env%s_matrix)
 
-      CALL csr_create(transport_env%ks_matrix, transport_env%s_matrix)
-      CALL csr_create(transport_env%p_matrix, transport_env%s_matrix)
-      CALL csr_create(transport_env%imagp_matrix, transport_env%s_matrix)
+      CALL dbcsr_csr_create(transport_env%ks_matrix, transport_env%s_matrix)
+      CALL dbcsr_csr_create(transport_env%p_matrix, transport_env%s_matrix)
+      CALL dbcsr_csr_create(transport_env%imagp_matrix, transport_env%s_matrix)
 
       CALL timestop(handle)
 
@@ -383,8 +384,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: iscf
       LOGICAL, INTENT(IN)                                :: extra_scf
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'external_scf_method', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'external_scf_method'
 
       TYPE(cp2k_csr_interop_type)                        :: imagp_mat, ks_mat, p_mat, s_mat
 
@@ -407,7 +407,7 @@ CONTAINS
       transport_env%params%boltzmann = boltzmann
       transport_env%params%h_bar = h_bar
       transport_env%params%iscf = iscf
-      transport_env%params%extra_scf = extra_scf
+      transport_env%params%extra_scf = LOGICAL(extra_scf, C_BOOL) ! C_BOOL and Fortran logical don't have the same size
 
       CALL csr_interop_nullify(s_mat)
       CALL csr_interop_nullify(ks_mat)
@@ -448,11 +448,10 @@ CONTAINS
    SUBROUTINE convert_dbcsr_to_csr_interop(dbcsr_mat, csr_mat, csr_interop_mat)
 
       TYPE(dbcsr_type), INTENT(IN)          :: dbcsr_mat
-      TYPE(csr_type), INTENT(INOUT)            :: csr_mat
+      TYPE(dbcsr_csr_type), INTENT(INOUT)            :: csr_mat
       TYPE(cp2k_csr_interop_type), INTENT(INOUT)      :: csr_interop_mat
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'convert_dbcsr_to_csr_interop', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'convert_dbcsr_to_csr_interop'
 
       INTEGER                                  :: handle, mepos, num_pe, mp_group
       INTEGER, ALLOCATABLE, DIMENSION(:)       :: nrows_local_all, first_row_all
@@ -468,7 +467,7 @@ CONTAINS
       num_pe = logger%para_env%num_pe
 
 ! dbcsr to csr
-      CALL convert_dbcsr_to_csr(dbcsr_mat, csr_mat)
+      CALL dbcsr_convert_dbcsr_to_csr(dbcsr_mat, csr_mat)
 
 ! csr to csr_interop
       rowptr_local => csr_mat%rowptr_local
@@ -500,14 +499,14 @@ CONTAINS
          csr_interop_mat%nzvals_local = C_LOC(nzvals_local(1))
       END IF
 
-      ALLOCATE (nrows_local_all(0:num_pe-1), first_row_all(0:num_pe-1))
+      ALLOCATE (nrows_local_all(0:num_pe - 1), first_row_all(0:num_pe - 1))
       CALL mp_allgather(csr_mat%nrows_local, nrows_local_all, mp_group)
       CALL cumsum_i(nrows_local_all, first_row_all)
 
       IF (mepos .EQ. 0) THEN
          csr_interop_mat%first_row = 0
       ELSE
-         csr_interop_mat%first_row = first_row_all(mepos-1)
+         csr_interop_mat%first_row = first_row_all(mepos - 1)
       END IF
       csr_interop_mat%nrows_total = csr_mat%nrows_total
       csr_interop_mat%ncols_total = csr_mat%ncols_total
@@ -535,7 +534,7 @@ CONTAINS
 
          cumsum(1) = arr(1)
          DO i = 2, SIZE(arr)
-            cumsum(i) = cumsum(i-1)+arr(i)
+            cumsum(i) = cumsum(i - 1) + arr(i)
          END DO
       END SUBROUTINE cumsum_i
 
@@ -551,11 +550,10 @@ CONTAINS
    SUBROUTINE convert_csr_interop_to_dbcsr(csr_interop_mat, csr_mat, dbcsr_mat)
 
       TYPE(cp2k_csr_interop_type), INTENT(IN)            :: csr_interop_mat
-      TYPE(csr_type), INTENT(INOUT)                      :: csr_mat
+      TYPE(dbcsr_csr_type), INTENT(INOUT)                      :: csr_mat
       TYPE(dbcsr_type), INTENT(INOUT)                    :: dbcsr_mat
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'convert_csr_interop_to_dbcsr', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'convert_csr_interop_to_dbcsr'
 
       INTEGER                                            :: data_type, handle, ncols_total, &
                                                             nrows_local, nrows_total, nze_local, &
@@ -585,7 +583,7 @@ CONTAINS
       csr_mat%nzval_local%r_dp = nzvals_local
 
 ! csr to dbcsr
-      CALL convert_csr_to_dbcsr(dbcsr_mat, csr_mat)
+      CALL dbcsr_convert_csr_to_dbcsr(dbcsr_mat, csr_mat)
 
       CALL timestop(handle)
 
@@ -593,7 +591,7 @@ CONTAINS
 
 ! **************************************************************************************************
 !> \brief extraxts zeff (effective nuclear charges per atom) and nsgf (the size
-!>   of spherical Gaussian basis functions per atom) from qs_env and intializes
+!>   of spherical Gaussian basis functions per atom) from qs_env and initializes
 !>   the corresponding arrays in transport_env%params
 !> \param[in] qs_env qs environment
 !> \param[inout] transport_env transport environment
@@ -602,9 +600,6 @@ CONTAINS
    SUBROUTINE transport_set_contact_params(qs_env, transport_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(transport_env_type), INTENT(INOUT)            :: transport_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'transport_set_contact_params', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, iat, ikind, natom, nkind
       INTEGER, DIMENSION(:), POINTER                     :: atom_list
@@ -655,8 +650,7 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: input
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'transport_current', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'transport_current'
 
       CHARACTER(len=14)                                  :: ext
       CHARACTER(len=2)                                   :: sdir
@@ -766,8 +760,7 @@ CONTAINS
    SUBROUTINE qs_scf_post_transport(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_scf_post_transport', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'qs_scf_post_transport'
 
       INTEGER                                            :: handle
       TYPE(section_vals_type), POINTER                   :: input
@@ -786,4 +779,3 @@ CONTAINS
    END SUBROUTINE qs_scf_post_transport
 
 END MODULE transport
-

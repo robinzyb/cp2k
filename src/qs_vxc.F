@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -31,6 +33,7 @@ MODULE qs_vxc
    USE pw_grids,                        ONLY: pw_grid_compare
    USE pw_methods,                      ONLY: pw_axpy,&
                                               pw_copy,&
+                                              pw_multiply,&
                                               pw_scale,&
                                               pw_transfer,&
                                               pw_zero
@@ -60,7 +63,7 @@ MODULE qs_vxc
    PRIVATE
 
    ! *** Public subroutines ***
-   PUBLIC :: qs_vxc_create
+   PUBLIC :: qs_vxc_create, qs_xc_density
 
    CHARACTER(len=*), PARAMETER, PRIVATE :: moduleN = 'qs_vxc'
 
@@ -73,10 +76,10 @@ CONTAINS
 !> \param rho_struct density for which v_xc is calculated
 !> \param xc_section ...
 !> \param vxc_rho will contain the v_xc part that depend on rho
-!>        (if one of the choosen xc functionals has it it is allocated and you
+!>        (if one of the chosen xc functionals has it it is allocated and you
 !>        are responsible for it)
 !> \param vxc_tau will contain the kinetic (tau) part of v_xc
-!>        (if one of the choosen xc functionals has it it is allocated and you
+!>        (if one of the chosen xc functionals has it it is allocated and you
 !>        are responsible for it)
 !> \param exc ...
 !> \param just_energy if true calculates just the energy, and does not
@@ -110,7 +113,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(in), OPTIONAL                :: adiabatic_rescale_factor
       TYPE(pw_env_type), OPTIONAL, POINTER               :: pw_env_external
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qs_vxc_create', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'qs_vxc_create'
 
       INTEGER                                            :: handle, ispin, myfun, nelec_spin(2), vdw
       LOGICAL :: compute_virial, do_adiabatic_rescaling, my_just_energy, rho_g_valid, &
@@ -166,6 +169,9 @@ CONTAINS
                       tau_r=tau_struct_r)
 
       compute_virial = virial%pv_calculate .AND. (.NOT. virial%pv_numer)
+      IF (compute_virial) THEN
+         virial%pv_xc = 0.0_dp
+      END IF
 
       CALL section_vals_val_get(xc_section, "XC_FUNCTIONAL%_SECTION_PARAMETERS_", &
                                 i_val=myfun)
@@ -201,7 +207,7 @@ CONTAINS
             ! no idea yet what to do here in that case
             CPASSERT(.NOT. tau_r_valid)
          CASE (sic_mauri_us)
-            my_scaling = 1.0_dp-dft_control%sic_scaling_b
+            my_scaling = 1.0_dp - dft_control%sic_scaling_b
             ! no idea yet what to do here in that case
             CPASSERT(.NOT. tau_r_valid)
          CASE (sic_eo)
@@ -418,7 +424,7 @@ CONTAINS
                                       virial_xc=virial_xc_tmp)
             END IF
 
-            exc = exc-dft_control%sic_scaling_b*exc_m
+            exc = exc - dft_control%sic_scaling_b*exc_m
 
             ! and take care of the potential only vxc_rho is taken into account
             IF (.NOT. my_just_energy) THEN
@@ -490,7 +496,7 @@ CONTAINS
                                          virial_xc=virial_xc_tmp)
                END IF
 
-               exc = exc-dft_control%sic_scaling_b*nelec_spin(ispin)*exc_m
+               exc = exc - dft_control%sic_scaling_b*nelec_spin(ispin)*exc_m
 
                ! and take care of the potential only vxc_rho is taken into account
                IF (.NOT. my_just_energy) THEN
@@ -535,7 +541,7 @@ CONTAINS
                                       virial_xc=virial_xc_tmp)
             END IF
 
-            exc = exc+dft_control%sic_scaling_b*exc_m
+            exc = exc + dft_control%sic_scaling_b*exc_m
 
             ! and take care of the potential
             IF (.NOT. my_just_energy) THEN
@@ -625,5 +631,119 @@ CONTAINS
       CALL timestop(handle)
 
    END SUBROUTINE qs_vxc_create
+
+! **************************************************************************************************
+!> \brief calculates the XC density: E_xc(r) - V_xc(r)*rho(r)
+!> \param ks_env to get all the needed things
+!> \param rho_struct density
+!> \param xc_section ...
+!> \param xc_den will contain the xc energy density
+!> \author JGH
+! **************************************************************************************************
+   SUBROUTINE qs_xc_density(ks_env, rho_struct, xc_section, xc_den)
+
+      TYPE(qs_ks_env_type), POINTER                      :: ks_env
+      TYPE(qs_rho_type), POINTER                         :: rho_struct
+      TYPE(section_vals_type), POINTER                   :: xc_section
+      TYPE(pw_p_type), INTENT(INOUT)                     :: xc_den
+
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'qs_xc_density'
+
+      INTEGER                                            :: handle, ispin, myfun, nspins, vdw
+      LOGICAL                                            :: rho_g_valid, tau_r_valid, uf_grid, vdW_nl
+      REAL(KIND=dp)                                      :: exc, factor, ovol
+      REAL(KIND=dp), DIMENSION(3, 3)                     :: vdum
+      TYPE(cell_type), POINTER                           :: cell
+      TYPE(dft_control_type), POINTER                    :: dft_control
+      TYPE(pw_env_type), POINTER                         :: pw_env
+      TYPE(pw_p_type)                                    :: exc_r
+      TYPE(pw_p_type), DIMENSION(:), POINTER             :: rho_g, rho_r, tau_r, vxc_rho, vxc_tau
+      TYPE(pw_p_type), POINTER                           :: rho_nlcc, rho_nlcc_g
+      TYPE(pw_pool_type), POINTER                        :: auxbas_pw_pool, xc_pw_pool
+
+      CALL timeset(routineN, handle)
+
+      CALL pw_zero(xc_den%pw)
+
+      CALL get_ks_env(ks_env, &
+                      dft_control=dft_control, &
+                      pw_env=pw_env, &
+                      cell=cell, &
+                      rho_nlcc=rho_nlcc, &
+                      rho_nlcc_g=rho_nlcc_g)
+
+      CALL qs_rho_get(rho_struct, &
+                      tau_r_valid=tau_r_valid, &
+                      rho_g_valid=rho_g_valid, &
+                      rho_r=rho_r, &
+                      rho_g=rho_g, &
+                      tau_r=tau_r)
+
+      CALL section_vals_val_get(xc_section, "XC_FUNCTIONAL%_SECTION_PARAMETERS_", i_val=myfun)
+      CALL section_vals_val_get(xc_section, "VDW_POTENTIAL%POTENTIAL_TYPE", i_val=vdw)
+      vdW_nl = (vdw == xc_vdw_fun_nonloc)
+      IF (tau_r_valid) THEN
+         CALL cp_warn(__LOCATION__, "Tau contribution will not be correctly handled")
+      END IF
+      IF (vdW_nl) THEN
+         CALL cp_warn(__LOCATION__, "vdW functional contribution will be ignored")
+      END IF
+
+      CALL pw_env_get(pw_env, xc_pw_pool=xc_pw_pool, auxbas_pw_pool=auxbas_pw_pool)
+      uf_grid = .NOT. pw_grid_compare(auxbas_pw_pool%pw_grid, xc_pw_pool%pw_grid)
+      IF (uf_grid) THEN
+         CALL cp_warn(__LOCATION__, "Fine grid option not possible with local energy")
+         CPABORT("Fine Grid in Local Energy")
+      END IF
+
+      IF (myfun /= xc_none) THEN
+
+         CPASSERT(ASSOCIATED(rho_struct))
+         CPASSERT(dft_control%sic_method_id == sic_none)
+
+         nspins = dft_control%nspins
+         ! add the nlcc densities
+         IF (ASSOCIATED(rho_nlcc)) THEN
+            factor = 1.0_dp
+            DO ispin = 1, nspins
+               CALL pw_axpy(rho_nlcc%pw, rho_r(ispin)%pw, factor)
+               CALL pw_axpy(rho_nlcc_g%pw, rho_g(ispin)%pw, factor)
+            ENDDO
+         ENDIF
+         NULLIFY (vxc_rho, vxc_tau, exc_r%pw)
+         CALL xc_vxc_pw_create1(vxc_rho=vxc_rho, vxc_tau=vxc_tau, rho_r=rho_r, &
+                                rho_g=rho_g, tau=tau_r, exc=exc, &
+                                xc_section=xc_section, &
+                                pw_pool=xc_pw_pool, &
+                                compute_virial=.FALSE., &
+                                virial_xc=vdum, &
+                                exc_r=exc_r)
+         ! remove the nlcc densities (keep stuff in original state)
+         IF (ASSOCIATED(rho_nlcc)) THEN
+            factor = -1.0_dp
+            DO ispin = 1, dft_control%nspins
+               CALL pw_axpy(rho_nlcc%pw, rho_r(ispin)%pw, factor)
+               CALL pw_axpy(rho_nlcc_g%pw, rho_g(ispin)%pw, factor)
+            ENDDO
+         ENDIF
+         !
+         ovol = 1.0_dp/xc_den%pw%pw_grid%dvol
+         CALL pw_copy(exc_r%pw, xc_den%pw)
+         DO ispin = 1, nspins
+!deb        CALL pw_multiply(xc_den%pw, vxc_rho(ispin)%pw, rho_r(ispin)%pw, alpha=-ovol)
+            CALL pw_multiply(xc_den%pw, vxc_rho(ispin)%pw, rho_r(ispin)%pw, alpha=-1.0_dp)
+         END DO
+         ! remove arrays
+         DO ispin = 1, nspins
+            CALL pw_release(vxc_rho(ispin)%pw)
+         END DO
+         DEALLOCATE (vxc_rho)
+         CALL pw_release(exc_r%pw)
+         !
+      END IF
+
+      CALL timestop(handle)
+
+   END SUBROUTINE qs_xc_density
 
 END MODULE qs_vxc

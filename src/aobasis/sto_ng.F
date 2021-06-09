@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -54,8 +56,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: n, nq, lq
       REAL(KIND=dp), DIMENSION(:), INTENT(OUT)           :: alpha, coef
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_sto_ng', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: m, na, nc
 
       na = SIZE(alpha)
@@ -68,7 +68,7 @@ CONTAINS
       CPASSERT(nq >= 1)
       CPASSERT(lq >= 0)
 
-      m = (nq*(nq-1))/2+lq+1
+      m = (nq*(nq - 1))/2 + lq + 1
       SELECT CASE (m)
       CASE (1) ! 1s
          SELECT CASE (n)

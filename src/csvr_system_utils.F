@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -11,8 +13,7 @@
 MODULE csvr_system_utils
 
    USE kinds,                           ONLY: dp
-   USE parallel_rng_types,              ONLY: next_random_number,&
-                                              rng_stream_type
+   USE parallel_rng_types,              ONLY: rng_stream_type
 #include "./base/base_uses.f90"
 
    IMPLICIT NONE
@@ -80,11 +81,8 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: kk, sigma
       INTEGER, INTENT(IN)                                :: ndeg
       REAL(KIND=dp), INTENT(IN)                          :: taut
-      TYPE(rng_stream_type), POINTER                     :: rng_stream
+      TYPE(rng_stream_type), INTENT(INOUT)               :: rng_stream
       REAL(KIND=dp)                                      :: my_res
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'rescaling_factor', &
-         routineP = moduleN//':'//routineN
 
       REAL(KIND=dp)                                      :: factor, resample, reverse, rr
 
@@ -95,17 +93,17 @@ CONTAINS
          ELSE
             factor = 0.0_dp
          END IF
-         rr = next_random_number(rng_stream)
+         rr = rng_stream%next()
          reverse = 1.0_dp
          ! reverse of momentum is implemented to have the correct limit to Langevin dynamics for ndeg=1
          ! condition: rr < -SQRT(ndeg*kk*factor/(sigma*(1.0_dp-factor)))
-         IF ((rr*rr*sigma*(1.0_dp-factor)) > (ndeg*kk*factor) .AND. rr <= 0.0_dp) reverse = -1.0_dp
+         IF ((rr*rr*sigma*(1.0_dp - factor)) > (ndeg*kk*factor) .AND. rr <= 0.0_dp) reverse = -1.0_dp
          ! for ndeg/=1, the reverse of momentum is not necessary. in principles, it should be there.
          ! in practice, it is better to skip it to avoid unnecessary slowing down of the dynamics in the small taut regime
          ! anyway, this should not affect the final ensemble
          IF (ndeg /= 1) reverse = 1.0_dp
-         resample = kk+(1.0_dp-factor)*(sigma*(sumnoises(ndeg-1, rng_stream)+rr**2)/REAL(ndeg, KIND=dp)-kk) &
-                    +2.0_dp*rr*SQRT(kk*sigma/ndeg*(1.0_dp-factor)*factor)
+         resample = kk + (1.0_dp - factor)*(sigma*(sumnoises(ndeg - 1, rng_stream) + rr**2)/REAL(ndeg, KIND=dp) - kk) &
+                    + 2.0_dp*rr*SQRT(kk*sigma/ndeg*(1.0_dp - factor)*factor)
 
          resample = MAX(0.0_dp, resample)
          my_res = reverse*SQRT(resample/kk)
@@ -123,16 +121,14 @@ CONTAINS
 ! **************************************************************************************************
    FUNCTION sumnoises(nn, rng_stream) RESULT(sum_gauss)
       INTEGER, INTENT(IN)                                :: nn
-      TYPE(rng_stream_type), POINTER                     :: rng_stream
+      TYPE(rng_stream_type), INTENT(INOUT)               :: rng_stream
       REAL(KIND=dp)                                      :: sum_gauss
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'sumnoises', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i
 
       sum_gauss = 0.0_dp
       DO i = 1, nn
-         sum_gauss = sum_gauss+next_random_number(rng_stream)**2
+         sum_gauss = sum_gauss + rng_stream%next()**2
       END DO
 
    END FUNCTION sumnoises

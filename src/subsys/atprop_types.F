@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -34,6 +36,7 @@ MODULE atprop_types
       REAL(KIND=dp), DIMENSION(:), POINTER      :: atexc
       REAL(KIND=dp), DIMENSION(:), POINTER      :: ateself
       REAL(KIND=dp), DIMENSION(:), POINTER      :: atevdw
+      REAL(KIND=dp), DIMENSION(:), POINTER      :: ategcp
       REAL(KIND=dp), DIMENSION(:), POINTER      :: atecc
       REAL(KIND=dp), DIMENSION(:), POINTER      :: ate1c
       REAL(KIND=dp), DIMENSION(:), POINTER      :: atecoul
@@ -49,12 +52,10 @@ CONTAINS
    SUBROUTINE atprop_create(atprop_env)
       TYPE(atprop_type), POINTER                         :: atprop_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'atprop_create', routineP = moduleN//':'//routineN
-
       CALL atprop_release(atprop_env)
       ALLOCATE (atprop_env)
       NULLIFY (atprop_env%atener, atprop_env%atstress)
-      NULLIFY (atprop_env%ateb, atprop_env%atevdw, atprop_env%atecc, atprop_env%atecoul)
+      NULLIFY (atprop_env%ateb, atprop_env%atevdw, atprop_env%ategcp, atprop_env%atecc, atprop_env%atecoul)
       NULLIFY (atprop_env%ateself, atprop_env%atexc, atprop_env%ate1c)
       atprop_env%energy = .FALSE.
       atprop_env%stress = .FALSE.
@@ -70,14 +71,13 @@ CONTAINS
       TYPE(atprop_type), POINTER                         :: atprop_env
       INTEGER, INTENT(IN)                                :: natom
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'atprop_init', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(atprop_env))
 
       IF (atprop_env%energy) THEN
          CALL atprop_array_init(atprop_env%atener, natom)
          CALL atprop_array_release(atprop_env%ateb)
          CALL atprop_array_release(atprop_env%atevdw)
+         CALL atprop_array_release(atprop_env%ategcp)
          CALL atprop_array_release(atprop_env%atecc)
          CALL atprop_array_release(atprop_env%atecoul)
          CALL atprop_array_release(atprop_env%ateself)
@@ -105,9 +105,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:), POINTER               :: atarray
       INTEGER, INTENT(IN)                                :: natom
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'atprop_array_init', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(atarray)) THEN
          CPASSERT(SIZE(atarray) == natom)
       ELSE
@@ -124,9 +121,6 @@ CONTAINS
    SUBROUTINE atprop_array_release(atarray)
       REAL(KIND=dp), DIMENSION(:), POINTER               :: atarray
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'atprop_array_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(atarray)) THEN
          DEALLOCATE (atarray)
       END IF
@@ -141,12 +135,9 @@ CONTAINS
    SUBROUTINE atprop_array_add(array_a, array_b)
       REAL(KIND=dp), DIMENSION(:), POINTER               :: array_a, array_b
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'atprop_array_add', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(array_b)) THEN
          CPASSERT(ASSOCIATED(array_a))
-         array_a = array_a+array_b
+         array_a = array_a + array_b
       END IF
 
    END SUBROUTINE atprop_array_add
@@ -159,8 +150,6 @@ CONTAINS
    SUBROUTINE atprop_release(atprop_env)
       TYPE(atprop_type), POINTER                         :: atprop_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'atprop_release', routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(atprop_env)) THEN
          ! energy
          CALL atprop_array_release(atprop_env%atener)
@@ -168,6 +157,7 @@ CONTAINS
          CALL atprop_array_release(atprop_env%ateself)
          CALL atprop_array_release(atprop_env%atexc)
          CALL atprop_array_release(atprop_env%atevdw)
+         CALL atprop_array_release(atprop_env%ategcp)
          CALL atprop_array_release(atprop_env%atecc)
          CALL atprop_array_release(atprop_env%ate1c)
          CALL atprop_array_release(atprop_env%atecoul)

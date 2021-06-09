@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -78,12 +80,9 @@ CONTAINS
    SUBROUTINE ewald_pw_retain(ewald_pw)
       TYPE(ewald_pw_type), POINTER                       :: ewald_pw
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ewald_pw_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(ewald_pw))
       CPASSERT(ewald_pw%ref_count > 0)
-      ewald_pw%ref_count = ewald_pw%ref_count+1
+      ewald_pw%ref_count = ewald_pw%ref_count + 1
    END SUBROUTINE ewald_pw_retain
 
 ! **************************************************************************************************
@@ -100,9 +99,6 @@ CONTAINS
       TYPE(cell_type), POINTER                           :: cell, cell_ref
       TYPE(section_vals_type), POINTER                   :: print_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ewald_pw_create', &
-         routineP = moduleN//':'//routineN
-
       TYPE(dg_type), POINTER                             :: dg
 
       NULLIFY (dg)
@@ -114,7 +110,7 @@ CONTAINS
       CALL dg_create(dg)
       ewald_pw%dg => dg
       ewald_pw%ref_count = 1
-      last_ewald_pw_id_nr = last_ewald_pw_id_nr+1
+      last_ewald_pw_id_nr = last_ewald_pw_id_nr + 1
       ewald_pw%id_nr = last_ewald_pw_id_nr
       CALL ewald_pw_init(ewald_pw, ewald_env, cell, cell_ref, print_section)
    END SUBROUTINE ewald_pw_create
@@ -128,15 +124,14 @@ CONTAINS
    SUBROUTINE ewald_pw_release(ewald_pw)
       TYPE(ewald_pw_type), POINTER                       :: ewald_pw
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ewald_pw_release', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'ewald_pw_release'
 
       INTEGER                                            :: handle
 
       CALL timeset(routineN, handle)
       IF (ASSOCIATED(ewald_pw)) THEN
          CPASSERT(ewald_pw%ref_count > 0)
-         ewald_pw%ref_count = ewald_pw%ref_count-1
+         ewald_pw%ref_count = ewald_pw%ref_count - 1
          IF (ewald_pw%ref_count < 1) THEN
             CALL pw_pool_release(ewald_pw%pw_small_pool)
             CALL pw_pool_release(ewald_pw%pw_big_pool)
@@ -171,7 +166,7 @@ CONTAINS
       TYPE(cell_type), POINTER                           :: cell, cell_ref
       TYPE(section_vals_type), POINTER                   :: print_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ewald_pw_init', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'ewald_pw_init'
 
       INTEGER                                            :: bo(2, 3), ewald_type, gmax(3), handle, &
                                                             npts_s(3), ns_max, o_spline, &
@@ -371,8 +366,6 @@ CONTAINS
       TYPE(pw_poisson_type), OPTIONAL, POINTER           :: poisson_env
       TYPE(dg_type), OPTIONAL, POINTER                   :: dg
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'ewald_pw_get', routineP = moduleN//':'//routineN
-
       IF (PRESENT(poisson_env)) poisson_env => ewald_pw%poisson_env
       IF (PRESENT(pw_big_pool)) pw_big_pool => ewald_pw%pw_big_pool
       IF (PRESENT(pw_small_pool)) pw_small_pool => ewald_pw%pw_small_pool
@@ -401,8 +394,6 @@ CONTAINS
       TYPE(realspace_grid_desc_type), OPTIONAL, POINTER  :: rs_desc
       TYPE(dg_type), OPTIONAL, POINTER                   :: dg
       TYPE(pw_poisson_type), OPTIONAL, POINTER           :: poisson_env
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'ewald_pw_set', routineP = moduleN//':'//routineN
 
       IF (PRESENT(pw_big_pool)) THEN
          CALL pw_pool_retain(pw_big_pool)

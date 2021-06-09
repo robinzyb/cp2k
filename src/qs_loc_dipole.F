@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -64,7 +66,7 @@ CONTAINS
       TYPE(cp_logger_type), POINTER                      :: logger
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'loc_dipole', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'loc_dipole'
 
       CHARACTER(LEN=default_string_length)               :: description, descriptionThisDip, iter
       COMPLEX(KIND=dp)                                   :: zeta
@@ -126,7 +128,7 @@ CONTAINS
 
             ! Charges of the wfc involved
             ! Warning, this assumes the same occupation for all states
-            zwfc = 3.0_dp-REAL(dft_control%nspins, dp)
+            zwfc = 3.0_dp - REAL(dft_control%nspins, dp)
 
             DO ispins = 1, dft_control%nspins
                DO i = 1, SIZE(qs_loc_env%localized_wfn_control%centers_set(ispins)%array, 2)
@@ -150,18 +152,18 @@ CONTAINS
                IF (.NOT. ghost .AND. .NOT. floating) THEN
                   CALL get_qs_kind(qs_kind_set(ikind), core_charge=zeff)
                   ria = pbc(particle_set(i)%r, cell)
-                  dipole = dipole+zeff*(ria-rcc)
+                  dipole = dipole + zeff*(ria - rcc)
                END IF
             END DO
 
             ! Charges of the wfc involved
             ! Warning, this assumes the same occupation for all states
-            zwfc = 3.0_dp-REAL(dft_control%nspins, dp)
+            zwfc = 3.0_dp - REAL(dft_control%nspins, dp)
 
             DO ispins = 1, dft_control%nspins
                DO i = 1, SIZE(qs_loc_env%localized_wfn_control%centers_set(ispins)%array, 2)
                   ria = pbc(qs_loc_env%localized_wfn_control%centers_set(ispins)%array(1:3, i), cell)
-                  dipole = dipole-zwfc*(ria-rcc)
+                  dipole = dipole - zwfc*(ria - rcc)
                ENDDO
             ENDDO
          END IF
@@ -185,10 +187,10 @@ CONTAINS
             END IF
             IF (do_berry) THEN
                WRITE (unit=unit_nr, fmt="(a,9(es18.8))") &
-                  iter(1:15), dipole, dipole*debye, pbc(dipole-dipole_old, cell)
+                  iter(1:15), dipole, dipole*debye, pbc(dipole - dipole_old, cell)
             ELSE
                WRITE (unit=unit_nr, fmt="(a,9(es18.8))") &
-                  iter(1:15), dipole, dipole*debye, (dipole-dipole_old)
+                  iter(1:15), dipole, dipole*debye, (dipole - dipole_old)
             END IF
          END IF
          CALL cp_print_key_finished_output(unit_nr, logger, print_key)

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -11,8 +13,8 @@
 
 MODULE input_cp2k_md
    USE bibliography,                    ONLY: &
-        Evans1983, Guidon2008, Kantorovich2008, Kantorovich2008a, Kolafa2004, Kuhne2007, &
-        Minary2003, Ricci2003, Tuckerman1992, VandeVondele2002, West2006
+        Evans1983, Guidon2008, Kantorovich2008, Kantorovich2008a, Kuhne2007, Minary2003, &
+        Rengaraj2020, Ricci2003, Tuckerman1992, VandeVondele2002, West2006
    USE cp_output_handling,              ONLY: add_last_numeric,&
                                               cp_print_key_section_create,&
                                               debug_print_level,&
@@ -63,9 +65,6 @@ CONTAINS
    SUBROUTINE create_md_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_md_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: subsection
 
@@ -95,7 +94,7 @@ CONTAINS
                                         "constant pressure ensemble (no thermostat)", &
                                         "constant pressure ensemble using an isotropic cell (no thermostat)", &
                                         "adiabatic dynamics in constant temperature and volume ensemble (CAFES)"), &
-                          citations=(/Evans1983, VandeVondele2002, Minary2003, Kolafa2004/), &
+                          citations=(/Evans1983, VandeVondele2002, Minary2003/), &
                           enum_i_vals=(/nve_ensemble, nvt_ensemble, npt_i_ensemble, npt_f_ensemble, &
                                         nph_uniaxial_ensemble, nph_uniaxial_damped_ensemble, nph_ensemble, isokin_ensemble, &
                                         reftraj_ensemble, langevin_ensemble, npe_f_ensemble, npe_i_ensemble, &
@@ -323,9 +322,6 @@ CONTAINS
    SUBROUTINE create_langevin_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_langevin_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
 
       CPASSERT(.NOT. ASSOCIATED(section))
@@ -335,10 +331,8 @@ CONTAINS
                           "The user can define regions in the system where the atoms inside "// &
                           "undergoes Langevin MD, while those outside the regions undergoes "// &
                           "NVE Born Oppenheimer MD. To define the regions, the user should "// &
-                          "use THERMAL_REGION subsection of MOTION%MD. The theory for "// &
-                          "Langevin MD involving sub-regions can be found in articles by "// &
-                          "Kantorovitch et al. All the references can be found in the links below.", &
-                          citations=(/Ricci2003, Kantorovich2008, Kantorovich2008a/), &
+                          "use THERMAL_REGION subsection of MOTION%MD. ", &
+                          citations=(/Ricci2003, Kuhne2007, Rengaraj2020/), &
                           n_keywords=0, n_subsections=1, repeats=.FALSE.)
       NULLIFY (keyword)
 
@@ -360,7 +354,7 @@ CONTAINS
       CALL keyword_create(keyword, __LOCATION__, name="Shadow_Gamma", &
                           variants=(/"ShadowGamma"/), &
                           description="Shadow Langevin Friction term for LD with noisy forces in order to adjust Noisy_Gamma.", &
-                          citations=(/Kuhne2007/), &
+                          citations=(/Rengaraj2020/), &
                           usage="Shadow_Gamma 0.001", default_r_val=0.0_dp, unit_str='fs^-1')
       CALL section_add_keyword(section, keyword)
       CALL keyword_release(keyword)
@@ -373,9 +367,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_md_print_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_md_print_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: print_key
@@ -469,9 +460,6 @@ CONTAINS
    SUBROUTINE create_respa_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_respa_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
 
       CPASSERT(.NOT. ASSOCIATED(section))
@@ -503,9 +491,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_reftraj_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_reftraj_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: print_key, subsection
@@ -622,9 +607,6 @@ CONTAINS
    SUBROUTINE create_msd_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_msd_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: subsection
 
@@ -702,9 +684,6 @@ CONTAINS
    SUBROUTINE create_msst_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_msst_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
 
       CPASSERT(.NOT. ASSOCIATED(section))
@@ -768,9 +747,6 @@ CONTAINS
    SUBROUTINE create_shell_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_shell_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: thermo_section
 
@@ -831,9 +807,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_adiabatic_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_adiabatic_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: thermo_fast_section, thermo_slow_section
@@ -905,9 +878,6 @@ CONTAINS
    SUBROUTINE create_softening_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_softening_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
 
       CALL section_create(section, __LOCATION__, name="VELOCITY_SOFTENING", &
@@ -953,9 +923,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_thermal_region_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_thermal_region_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: print_key, region_section, subsection
@@ -1080,9 +1047,6 @@ CONTAINS
 
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'create_cascade_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: subsection
 
@@ -1124,7 +1088,7 @@ CONTAINS
                           "Each record consists of the atomic index, the velocity vector, and "// &
                           "a weight to define which fraction of the total energy is assigned "// &
                           "to the current atom:"// &
-                          "<p><tt><big>Atomic_index v<sub>x</sub> v<sub>y</sub> v<sub>x</sub> "// &
+                          "<p><tt><big>Atomic_index v<sub>x</sub> v<sub>y</sub> v<sub>z</sub> "// &
                           "Weight</big></tt></p>", &
                           usage="{{Integer} {Real} {Real} {Real} {Real}}", &
                           repeats=.TRUE., &
@@ -1144,9 +1108,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_avgs_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_avgs_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: print_key, subsection
@@ -1180,7 +1141,7 @@ CONTAINS
 
       CALL cp_print_key_section_create(print_key, __LOCATION__, "PRINT_AVERAGES", &
                                        description="Controls the output the averaged quantities", &
-                                       print_level=debug_print_level+1, common_iter_levels=1, &
+                                       print_level=debug_print_level + 1, common_iter_levels=1, &
                                        filename="")
       CALL section_add_subsection(section, print_key)
       CALL section_release(print_key)
@@ -1197,9 +1158,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_avgs_restart_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_avgs_restart_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
 
@@ -1379,9 +1337,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_vib_init_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_vib_init_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
 

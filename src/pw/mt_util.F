@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -61,8 +63,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(in)                          :: slab_size
       TYPE(pw_grid_type), POINTER                        :: super_ref_pw_grid
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'MTin_create_screen_fn', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'MTin_create_screen_fn'
 
       INTEGER                                            :: handle, ig, iz
       REAL(KIND=dp)                                      :: alpha2, g2, g3d, gxy, gz, zlength
@@ -107,17 +108,17 @@ CONTAINS
          DO ig = screen_function%pw_grid%first_gne0, screen_function%pw_grid%ngpts_cut_local
             g2 = screen_function%pw_grid%gsq(ig)
             g3d = fourpi/g2
-            screen_function%cc(ig) = screen_function%cc(ig)-g3d*EXP(-g2/(4.0E0_dp*alpha2))
+            screen_function%cc(ig) = screen_function%cc(ig) - g3d*EXP(-g2/(4.0E0_dp*alpha2))
          END DO
          IF (screen_function%pw_grid%have_g0) &
-            screen_function%cc(1) = screen_function%cc(1)+fourpi/(4.0E0_dp*alpha2)
+            screen_function%cc(1) = screen_function%cc(1) + fourpi/(4.0E0_dp*alpha2)
       CASE (MT2D)
          iz = special_dimension ! iz is the direction with NO PBC
          zlength = slab_size ! zlength is the thickness of the cell
          DO ig = screen_function%pw_grid%first_gne0, screen_function%pw_grid%ngpts_cut_local
             gz = screen_function%pw_grid%g(iz, ig)
             g2 = screen_function%pw_grid%gsq(ig)
-            gxy = SQRT(ABS(g2-gz*gz))
+            gxy = SQRT(ABS(g2 - gz*gz))
             g3d = fourpi/g2
             screen_function%cc(ig) = -g3d*COS(gz*zlength/2.0_dp)*EXP(-gxy*zlength/2.0_dp)
          END DO
@@ -143,7 +144,7 @@ CONTAINS
       TYPE(pw_type), POINTER                             :: Vloc
       REAL(KIND=dp), INTENT(in)                          :: alpha
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mt0din', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'mt0din'
 
       INTEGER                                            :: handle, i, ii, j, jj, k, kk
       INTEGER, DIMENSION(:), POINTER                     :: glb
@@ -168,27 +169,27 @@ CONTAINS
       dz = grid%dr(3)
       kk = bo(1, 3)
       DO k = bo(1, 3), bo(2, 3)
-         z = REAL(k-glb(3), dp)*dz; IF (z .GT. box2(3)) z = box(3)-z
+         z = REAL(k - glb(3), dp)*dz; IF (z .GT. box2(3)) z = box(3) - z
          z2 = z*z
          jj = bo(1, 2)
          DO j = bo(1, 2), bo(2, 2)
-            y = REAL(j-glb(2), dp)*dy; IF (y .GT. box2(2)) y = box(2)-y
+            y = REAL(j - glb(2), dp)*dy; IF (y .GT. box2(2)) y = box(2) - y
             y2 = y*y
             ii = bo(1, 1)
             DO i = bo(1, 1), bo(2, 1)
-               x = REAL(i-glb(1), dp)*dx; IF (x .GT. box2(1)) x = box(1)-x
-               r2 = x*x+y2+z2
+               x = REAL(i - glb(1), dp)*dx; IF (x .GT. box2(1)) x = box(1) - x
+               r2 = x*x + y2 + z2
                r = SQRT(r2)
                IF (r .GT. 1.0E-10_dp) THEN
                   Vloc%cr3d(ii, jj, kk) = erf(alpha*r)/r*fact
                ELSE
                   Vloc%cr3d(ii, jj, kk) = 2.0_dp*alpha*oorootpi*fact
                END IF
-               ii = ii+1
+               ii = ii + 1
             END DO
-            jj = jj+1
+            jj = jj + 1
          END DO
-         kk = kk+1
+         kk = kk + 1
       END DO
       CALL timestop(handle)
    END SUBROUTINE Mt0din
@@ -203,7 +204,7 @@ CONTAINS
    SUBROUTINE mt1din(screen_function)
       TYPE(pw_type), POINTER                             :: screen_function
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mt1din', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'mt1din'
 
       INTEGER                                            :: handle
       REAL(KIND=dp)                                      :: dx, dy, dz, omega

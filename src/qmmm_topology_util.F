@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -49,8 +51,7 @@ CONTAINS
       TYPE(qmmm_env_mm_type), POINTER                    :: qmmm_env
       TYPE(section_vals_type), POINTER                   :: subsys_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_coordinate_control', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_coordinate_control'
 
       CHARACTER(LEN=default_string_length)               :: prefix_lnk
       INTEGER                                            :: handle, iatm, iw
@@ -113,8 +114,7 @@ CONTAINS
       TYPE(qmmm_env_mm_type), POINTER                    :: qmmm_env
       TYPE(section_vals_type), POINTER                   :: subsys_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_connectivity_control', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_connectivity_control'
 
       INTEGER                                            :: first_atom, handle, i, imolecule, iw, &
                                                             last_atom, natom, output_unit, &
@@ -140,7 +140,7 @@ CONTAINS
          CALL get_molecule(molecule, molecule_kind=molecule_kind, &
                            first_atom=first_atom, last_atom=last_atom)
          IF (ANY(qm_atom_index >= first_atom .AND. qm_atom_index <= last_atom)) &
-            qm_mol_num = qm_mol_num+1
+            qm_mol_num = qm_mol_num + 1
       END DO
       !
       ALLOCATE (qm_molecule_index(qm_mol_num))
@@ -150,9 +150,9 @@ CONTAINS
          molecule => molecule_set(imolecule)
          CALL get_molecule(molecule, molecule_kind=molecule_kind, &
                            first_atom=first_atom, last_atom=last_atom)
-         natom = last_atom-first_atom+1
+         natom = last_atom - first_atom + 1
          IF (ANY(qm_atom_index >= first_atom .AND. qm_atom_index <= last_atom)) THEN
-            qm_mol_num = qm_mol_num+1
+            qm_mol_num = qm_mol_num + 1
             !
             ! Check if all atoms of the molecule are QM or if a QM/MM link scheme
             ! need to be used...

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -13,6 +15,7 @@ MODULE pao_methods
                                               get_atomic_kind
    USE basis_set_types,                 ONLY: gto_basis_set_type
    USE bibliography,                    ONLY: Kolafa2004,&
+                                              Kuhne2007,&
                                               cite_reference
    USE cp_control_types,                ONLY: dft_control_type
    USE cp_log_handling,                 ONLY: cp_get_default_logger,&
@@ -22,11 +25,10 @@ MODULE pao_methods
    USE dbcsr_api,                       ONLY: &
         dbcsr_add, dbcsr_binary_read, dbcsr_checksum, dbcsr_complete_redistribute, &
         dbcsr_copy_into_existing, dbcsr_create, dbcsr_desymmetrize, dbcsr_distribution_get, &
-        dbcsr_distribution_new, dbcsr_distribution_type, dbcsr_filter, dbcsr_get_block_p, &
-        dbcsr_get_info, dbcsr_iterator_blocks_left, dbcsr_iterator_next_block, &
+        dbcsr_distribution_new, dbcsr_distribution_type, dbcsr_dot, dbcsr_filter, &
+        dbcsr_get_block_p, dbcsr_get_info, dbcsr_iterator_blocks_left, dbcsr_iterator_next_block, &
         dbcsr_iterator_start, dbcsr_iterator_stop, dbcsr_iterator_type, dbcsr_multiply, &
-        dbcsr_p_type, dbcsr_release, dbcsr_reserve_diag_blocks, dbcsr_scale, dbcsr_set, &
-        dbcsr_trace, dbcsr_type
+        dbcsr_p_type, dbcsr_release, dbcsr_reserve_diag_blocks, dbcsr_scale, dbcsr_set, dbcsr_type
    USE dm_ls_scf_methods,               ONLY: density_matrix_trs4,&
                                               ls_scf_init_matrix_S
    USE dm_ls_scf_qs,                    ONLY: ls_scf_dm_to_ks,&
@@ -137,9 +139,6 @@ CONTAINS
    SUBROUTINE pao_print_atom_info(pao)
       TYPE(pao_env_type), POINTER                        :: pao
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pao_print_atom_info', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iatom, natoms
       INTEGER, DIMENSION(:), POINTER                     :: pao_basis, param_cols, param_rows, &
                                                             pri_basis
@@ -219,8 +218,8 @@ CONTAINS
             v = SQRT(evals(k))
             DO i = 1, N
                DO j = 1, N
-                  block_N(i, j) = block_N(i, j)+w*A(i, k)*A(j, k)
-                  block_N_inv(i, j) = block_N_inv(i, j)+v*A(i, k)*A(j, k)
+                  block_N(i, j) = block_N(i, j) + w*A(i, k)*A(j, k)
+                  block_N_inv(i, j) = block_N_inv(i, j) + v*A(i, k)*A(j, k)
                ENDDO
             ENDDO
          ENDDO
@@ -335,8 +334,8 @@ CONTAINS
       ! create new mapping of matrix-grid to processor-grid
       ALLOCATE (diag_row_dist(natoms), diag_col_dist(natoms))
       DO iatom = 1, natoms
-         diag_row_dist(iatom) = MOD(iatom-1, pgrid_rows)
-         diag_col_dist(iatom) = MOD((iatom-1)/pgrid_rows, pgrid_cols)
+         diag_row_dist(iatom) = MOD(iatom - 1, pgrid_rows)
+         diag_col_dist(iatom) = MOD((iatom - 1)/pgrid_rows, pgrid_cols)
       ENDDO
 
       ! instanciate distribution object
@@ -419,7 +418,7 @@ CONTAINS
                         template=matrix_s(1)%matrix)
       CALL dbcsr_reserve_diag_blocks(pao%matrix_H0)
 
-      ! calculate inital atomic fock matrix H0
+      ! calculate initial atomic fock matrix H0
       ! Can't use matrix_ks from ls_scf_qs_atomic_guess(), because it's not rotationally invariant.
       ! getting H0 directly from the atomic code
       CALL calculate_atomic_fock_matrix(pao%matrix_H0, &
@@ -446,10 +445,10 @@ CONTAINS
       REAL(KIND=dp)                                      :: energy_diff, loop_eps, now, time_diff
 
       ! calculate progress
-      energy_diff = new_energy-pao%energy_prev
+      energy_diff = new_energy - pao%energy_prev
       pao%energy_prev = new_energy
       now = m_walltime()
-      time_diff = now-pao%step_start_time
+      time_diff = now - pao%step_start_time
       pao%step_start_time = now
 
       ! convergence criterion
@@ -484,8 +483,7 @@ CONTAINS
       TYPE(ls_scf_env_type), TARGET                      :: ls_scf_env
       REAL(KIND=dp), INTENT(OUT)                         :: energy
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pao_calc_energy', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'pao_calc_energy'
 
       INTEGER                                            :: handle, ispin
       REAL(KIND=dp)                                      :: penalty, trace_PH
@@ -498,18 +496,18 @@ CONTAINS
       ! calculat S, S_inv, S_sqrt, and S_sqrt_inv in the new pao basis
       CALL pao_rebuild_S(qs_env, ls_scf_env)
 
-      ! calulate the density matrix P in the pao basis
+      ! calculate the density matrix P in the pao basis
       CALL pao_dm_trs4(qs_env, ls_scf_env)
 
       ! calculate the energy from the trace(PH) in the pao basis
       energy = 0.0_dp
       DO ispin = 1, ls_scf_env%nspins
-         CALL dbcsr_trace(ls_scf_env%matrix_p(ispin), ls_scf_env%matrix_ks(ispin), trace_PH)
-         energy = energy+trace_PH
+         CALL dbcsr_dot(ls_scf_env%matrix_p(ispin), ls_scf_env%matrix_ks(ispin), trace_PH)
+         energy = energy + trace_PH
       ENDDO
 
       ! add penalty term
-      energy = energy+penalty
+      energy = energy + penalty
 
       IF (pao%iw > 0) THEN
          WRITE (pao%iw, *) ""
@@ -525,8 +523,7 @@ CONTAINS
    SUBROUTINE pao_check_trace_PS(ls_scf_env)
       TYPE(ls_scf_env_type)                              :: ls_scf_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pao_check_trace_PS', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'pao_check_trace_PS'
 
       INTEGER                                            :: handle, ispin
       REAL(KIND=dp)                                      :: tmp, trace_PS
@@ -538,13 +535,13 @@ CONTAINS
 
       trace_PS = 0.0_dp
       DO ispin = 1, ls_scf_env%nspins
-         CALL dbcsr_trace(ls_scf_env%matrix_p(ispin), matrix_S_desym, tmp)
-         trace_PS = trace_PS+tmp
+         CALL dbcsr_dot(ls_scf_env%matrix_p(ispin), matrix_S_desym, tmp)
+         trace_PS = trace_PS + tmp
       ENDDO
 
       CALL dbcsr_release(matrix_S_desym)
 
-      IF (ABS(ls_scf_env%nelectron_total-trace_PS) > 0.5) &
+      IF (ABS(ls_scf_env%nelectron_total - trace_PS) > 0.5) &
          CPABORT("Number of electrons wrong. Trace(PS) ="//cp_to_string(trace_PS))
 
       CALL timestop(handle)
@@ -559,8 +556,7 @@ CONTAINS
       TYPE(pao_env_type), POINTER                        :: pao
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pao_read_preopt_dm', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'pao_read_preopt_dm'
 
       INTEGER                                            :: handle, ispin
       REAL(KIND=dp)                                      :: cs_pos
@@ -614,7 +610,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(ls_scf_env_type), TARGET                      :: ls_scf_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pao_rebuild_S', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'pao_rebuild_S'
 
       INTEGER                                            :: handle
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: matrix_s
@@ -640,7 +636,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(ls_scf_env_type), TARGET                      :: ls_scf_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pao_dm_trs4', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'pao_dm_trs4'
 
       CHARACTER(LEN=default_path_length)                 :: project_name
       INTEGER                                            :: handle, ispin, nelectron_spin_real, nspin
@@ -686,8 +682,7 @@ CONTAINS
       TYPE(ls_scf_env_type), TARGET                      :: ls_scf_env
       TYPE(dbcsr_type)                                   :: matrix_M_diag
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pao_calc_outer_grad_lnv', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'pao_calc_outer_grad_lnv'
 
       INTEGER                                            :: handle, nspin
       INTEGER, DIMENSION(:), POINTER                     :: pao_blk_sizes
@@ -915,7 +910,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       TYPE(ls_scf_env_type), TARGET                      :: ls_scf_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pao_check_grad', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'pao_check_grad'
 
       INTEGER                                            :: handle, i, iatom, j, natoms
       INTEGER, DIMENSION(:), POINTER                     :: blk_sizes_col, blk_sizes_row
@@ -953,23 +948,23 @@ CONTAINS
                SELECT CASE (pao%num_grad_order)
                CASE (2) ! calculate derivative to 2th order
                   Gij_num = -eval_point(block_X, i, j, -eps, pao, ls_scf_env, qs_env)
-                  Gij_num = Gij_num+eval_point(block_X, i, j, +eps, pao, ls_scf_env, qs_env)
+                  Gij_num = Gij_num + eval_point(block_X, i, j, +eps, pao, ls_scf_env, qs_env)
                   Gij_num = Gij_num/(2.0_dp*eps)
 
                CASE (4) ! calculate derivative to 4th order
                   Gij_num = eval_point(block_X, i, j, -2_dp*eps, pao, ls_scf_env, qs_env)
-                  Gij_num = Gij_num-8_dp*eval_point(block_X, i, j, -1_dp*eps, pao, ls_scf_env, qs_env)
-                  Gij_num = Gij_num+8_dp*eval_point(block_X, i, j, +1_dp*eps, pao, ls_scf_env, qs_env)
-                  Gij_num = Gij_num-eval_point(block_X, i, j, +2_dp*eps, pao, ls_scf_env, qs_env)
+                  Gij_num = Gij_num - 8_dp*eval_point(block_X, i, j, -1_dp*eps, pao, ls_scf_env, qs_env)
+                  Gij_num = Gij_num + 8_dp*eval_point(block_X, i, j, +1_dp*eps, pao, ls_scf_env, qs_env)
+                  Gij_num = Gij_num - eval_point(block_X, i, j, +2_dp*eps, pao, ls_scf_env, qs_env)
                   Gij_num = Gij_num/(12.0_dp*eps)
 
                CASE (6) ! calculate derivative to 6th order
                   Gij_num = -1_dp*eval_point(block_X, i, j, -3_dp*eps, pao, ls_scf_env, qs_env)
-                  Gij_num = Gij_num+9_dp*eval_point(block_X, i, j, -2_dp*eps, pao, ls_scf_env, qs_env)
-                  Gij_num = Gij_num-45_dp*eval_point(block_X, i, j, -1_dp*eps, pao, ls_scf_env, qs_env)
-                  Gij_num = Gij_num+45_dp*eval_point(block_X, i, j, +1_dp*eps, pao, ls_scf_env, qs_env)
-                  Gij_num = Gij_num-9_dp*eval_point(block_X, i, j, +2_dp*eps, pao, ls_scf_env, qs_env)
-                  Gij_num = Gij_num+1_dp*eval_point(block_X, i, j, +3_dp*eps, pao, ls_scf_env, qs_env)
+                  Gij_num = Gij_num + 9_dp*eval_point(block_X, i, j, -2_dp*eps, pao, ls_scf_env, qs_env)
+                  Gij_num = Gij_num - 45_dp*eval_point(block_X, i, j, -1_dp*eps, pao, ls_scf_env, qs_env)
+                  Gij_num = Gij_num + 45_dp*eval_point(block_X, i, j, +1_dp*eps, pao, ls_scf_env, qs_env)
+                  Gij_num = Gij_num - 9_dp*eval_point(block_X, i, j, +2_dp*eps, pao, ls_scf_env, qs_env)
+                  Gij_num = Gij_num + 1_dp*eval_point(block_X, i, j, +3_dp*eps, pao, ls_scf_env, qs_env)
                   Gij_num = Gij_num/(60.0_dp*eps)
 
                CASE DEFAULT
@@ -977,7 +972,7 @@ CONTAINS
                END SELECT
 
                IF (ASSOCIATED(block_X)) THEN
-                  delta = ABS(Gij_num-block_G(i, j))
+                  delta = ABS(Gij_num - block_G(i, j))
                   delta_max = MAX(delta_max, delta)
                   !WRITE (*,*) "gradient check", iatom, i, j, Gij_num, block_G(i,j), delta
                ENDIF
@@ -1013,13 +1008,11 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       REAL(dp)                                           :: energy
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'eval_point', routineP = moduleN//':'//routineN
-
       REAL(dp)                                           :: old_Xij
 
       IF (ASSOCIATED(block_X)) THEN
          old_Xij = block_X(i, j) ! backup old block_X
-         block_X(i, j) = block_X(i, j)+eps ! add pertubation
+         block_X(i, j) = block_X(i, j) + eps ! add perturbation
       ENDIF
 
       ! calculate energy
@@ -1055,8 +1048,8 @@ CONTAINS
       pao => ls_scf_env%pao_env
       CALL get_qs_env(qs_env, dft_control=dft_control, matrix_s=matrix_s)
 
-      ls_scf_env%scf_history%istore = ls_scf_env%scf_history%istore+1
-      istore = MOD(ls_scf_env%scf_history%istore-1, ls_scf_env%scf_history%nstore)+1
+      ls_scf_env%scf_history%istore = ls_scf_env%scf_history%istore + 1
+      istore = MOD(ls_scf_env%scf_history%istore - 1, ls_scf_env%scf_history%nstore) + 1
       IF (pao%iw > 0) WRITE (pao%iw, *) "PAO| Storing density matrix for ASPC guess in slot:", istore
 
       ! initialize storage
@@ -1068,7 +1061,7 @@ CONTAINS
 
       ! We are storing the density matrix in the non-orthonormal primary basis.
       ! While the orthonormal basis would yield better extrapolations,
-      ! we simply can not affort to calculat S_sqrt in the primary basis.
+      ! we simply can not afford to calculat S_sqrt in the primary basis.
       DO ispin = 1, dft_control%nspins
          ! transform into primary basis
          CALL matrix_ls_to_qs(ls_scf_env%scf_history%matrix(ispin, istore), ls_scf_env%matrix_p(ispin), &
@@ -1139,6 +1132,7 @@ CONTAINS
       ls_mstruct => ls_scf_env%ls_mstruct
       CPASSERT(ls_scf_env%scf_history%istore > 0)
       CALL cite_reference(Kolafa2004)
+      CALL cite_reference(Kuhne2007)
       CALL get_qs_env(qs_env, dft_control=dft_control, matrix_s=matrix_s)
 
       IF (pao%iw > 0) WRITE (pao%iw, *) "PAO| Calculating initial guess with ASPC"
@@ -1150,9 +1144,9 @@ CONTAINS
          ! actual extrapolation
          CALL dbcsr_set(matrix_P, 0.0_dp)
          DO iaspc = 1, naspc
-            alpha = (-1.0_dp)**(iaspc+1)*REAL(iaspc, KIND=dp)* &
-                    binomial(2*naspc, naspc-iaspc)/binomial(2*naspc-2, naspc-1)
-            istore = MOD(ls_scf_env%scf_history%istore-iaspc, ls_scf_env%scf_history%nstore)+1
+            alpha = (-1.0_dp)**(iaspc + 1)*REAL(iaspc, KIND=dp)* &
+                    binomial(2*naspc, naspc - iaspc)/binomial(2*naspc - 2, naspc - 1)
+            istore = MOD(ls_scf_env%scf_history%istore - iaspc, ls_scf_env%scf_history%nstore) + 1
             CALL dbcsr_add(matrix_P, ls_scf_env%scf_history%matrix(ispin, istore), 1.0_dp, alpha)
          ENDDO
 
@@ -1229,7 +1223,7 @@ CONTAINS
 
       CALL mp_sum(forces, para_env%group)
       DO iatom = 1, natoms
-         particle_set(iatom)%f = particle_set(iatom)%f+forces(iatom, :)
+         particle_set(iatom)%f = particle_set(iatom)%f + forces(iatom, :)
       ENDDO
 
       DEALLOCATE (forces)

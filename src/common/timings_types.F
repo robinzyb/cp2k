@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -13,20 +15,20 @@
 !> \author Ole Schuett
 ! **************************************************************************************************
 MODULE timings_types
-   USE dict,                            ONLY: dict_i4tuple_callstat_type,&
-                                              dict_str_i4_type
+   USE callgraph,                       ONLY: callgraph_type
    USE list_callstackentry,             ONLY: list_callstackentry_type
    USE list_routinestat,                ONLY: list_routinestat_type
+   USE routine_map,                     ONLY: routine_map_type
 
    IMPLICIT NONE
    PRIVATE
 
    TYPE timer_env_type
       INTEGER                                          :: ref_count
-      TYPE(dict_str_i4_type)                           :: routine_names
+      TYPE(routine_map_type)                           :: routine_names
       TYPE(list_routinestat_type)                      :: routine_stats
       TYPE(list_callstackentry_type)                   :: callstack
-      TYPE(dict_i4tuple_callstat_type)                 :: callgraph
+      TYPE(callgraph_type)                             :: callgraph
       INTEGER                                          :: trace_max
       INTEGER                                          :: trace_unit
       CHARACTER(len=13)                                :: trace_str

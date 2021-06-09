@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 MODULE input_restart_force_eval
@@ -24,6 +26,7 @@ MODULE input_restart_force_eval
                                               force_env_type,&
                                               multiple_fe_list,&
                                               use_eip_force,&
+                                              use_nnp_force,&
                                               use_qmmm,&
                                               use_qs_force
    USE input_constants,                 ONLY: do_coord_cp2k,&
@@ -49,8 +52,8 @@ MODULE input_restart_force_eval
    USE molecule_types,                  ONLY: get_molecule,&
                                               molecule_type
    USE multipole_types,                 ONLY: multipole_type
-   USE parallel_rng_types,              ONLY: dump_rng_stream,&
-                                              rng_record_length
+   USE nnp_environment_types,           ONLY: nnp_env_get
+   USE parallel_rng_types,              ONLY: rng_record_length
    USE particle_list_types,             ONLY: particle_list_type
    USE qmmm_ff_fist,                    ONLY: qmmm_ff_precond_only_qm
    USE qs_environment_types,            ONLY: get_qs_env
@@ -84,9 +87,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: root_section
       LOGICAL, INTENT(IN)                                :: write_binary_restart_file
       LOGICAL, OPTIONAL                                  :: respa
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_force_eval', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i_subsys, iforce_eval, myid, nforce_eval
       INTEGER, DIMENSION(:), POINTER                     :: i_force_eval
@@ -176,7 +176,7 @@ CONTAINS
                   dft_section => section_vals_get_subs_vals3(force_env_sections, "DFT", &
                                                              i_rep_section=i_force_eval(iforce_eval))
                   ALLOCATE (work(SIZE(force_env%mixed_env%strength, 2)))
-                  work = force_env%mixed_env%strength(iforce_eval-1, :)
+                  work = force_env%mixed_env%strength(iforce_eval - 1, :)
                   CALL section_vals_val_set(dft_section, "QS%CDFT%STRENGTH", &
                                             r_vals_ptr=work)
                   CALL section_vals_val_set(dft_section, "QS%CDFT%COUNTER", &
@@ -203,8 +203,6 @@ CONTAINS
    SUBROUTINE update_qmmm(qmmm_section, force_env)
       TYPE(section_vals_type), POINTER                   :: qmmm_section
       TYPE(force_env_type), POINTER                      :: force_env
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_qmmm', routineP = moduleN//':'//routineN
 
       LOGICAL                                            :: explicit
       REAL(KIND=dp), DIMENSION(:), POINTER               :: work
@@ -235,9 +233,6 @@ CONTAINS
       TYPE(section_vals_type), POINTER                   :: rng_section
       TYPE(force_env_type), POINTER                      :: force_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_rng_particle', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=rng_record_length)                   :: rng_record
       INTEGER                                            :: iparticle, iparticle_kind, &
                                                             iparticle_local, nparticle, &
@@ -265,9 +260,8 @@ CONTAINS
                nparticle_local = local_particles%n_el(iparticle_kind)
                DO iparticle_local = 1, nparticle_local
                   IF (iparticle == local_particles%list(iparticle_kind)%array(iparticle_local)) THEN
-                     CALL dump_rng_stream(rng_stream=local_particles%local_particle_set(iparticle_kind)% &
-                                          rng(iparticle_local)%stream, &
-                                          rng_record=rng_record)
+                     CALL local_particles%local_particle_set(iparticle_kind)% &
+                        rng(iparticle_local)%stream%dump(rng_record=rng_record)
                      CALL string_to_ascii(rng_record, ascii(:, iparticle))
                   END IF
                END DO
@@ -300,7 +294,7 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: skip_vel_section, &
                                                             write_binary_restart_file
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_subsys', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'update_subsys'
 
       CHARACTER(LEN=default_string_length)               :: coord_file_name, unit_str
       INTEGER                                            :: coord_file_format, handle, output_unit
@@ -412,6 +406,8 @@ CONTAINS
          CALL get_qs_env(force_env%qs_env, cell_ref=cell, use_ref_cell=use_ref_cell)
       CASE (use_eip_force)
          CALL eip_env_get(force_env%eip_env, cell_ref=cell, use_ref_cell=use_ref_cell)
+      CASE (use_nnp_force)
+         CALL nnp_env_get(force_env%nnp_env, cell_ref=cell, use_ref_cell=use_ref_cell)
       END SELECT
       IF (use_ref_cell) THEN
          work_section => section_vals_get_subs_vals(subsys_section, "CELL%CELL_REF")
@@ -447,8 +443,7 @@ CONTAINS
       TYPE(cell_type), POINTER                           :: cell
       TYPE(section_vals_type), POINTER                   :: cell_section
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_cell_section', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_cell_section'
 
       INTEGER                                            :: handle
       INTEGER, DIMENSION(:), POINTER                     :: iwork
@@ -507,8 +502,7 @@ CONTAINS
       TYPE(cell_type), POINTER                           :: cell
       LOGICAL, INTENT(IN), OPTIONAL                      :: shell
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'section_coord_val_set', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'section_coord_val_set'
 
       CHARACTER(LEN=2*default_string_length)             :: line
       CHARACTER(LEN=default_string_length)               :: my_tag, name
@@ -581,7 +575,7 @@ CONTAINS
             NULLIFY (my_val)
          ELSE
             IF (last_atom < irk) THEN
-               imol = imol+1
+               imol = imol + 1
                molecule_now => molecules%els(imol)
                CALL get_molecule(molecule_now, last_atom=last_atom)
                CALL get_molecule_kind(molecule_now%molecule_kind, molname_generated=molname_generated, &
@@ -647,8 +641,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: dipoles
       TYPE(section_vals_type), POINTER                   :: dipoles_section
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_dipoles_section', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_dipoles_section'
 
       INTEGER                                            :: handle, ik, irk, Nlist, nloop
       REAL(KIND=dp), DIMENSION(:), POINTER               :: work
@@ -724,8 +717,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :, :), POINTER         :: quadrupoles
       TYPE(section_vals_type), POINTER                   :: quadrupoles_section
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_quadrupoles_section', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'update_quadrupoles_section'
 
       INTEGER                                            :: handle, i, ik, ind, irk, j, Nlist, nloop
       REAL(KIND=dp), DIMENSION(:), POINTER               :: work
@@ -761,7 +753,7 @@ CONTAINS
          ind = 0
          DO i = 1, 3
             DO j = i, 3
-               ind = ind+1
+               ind = ind + 1
                work(ind) = quadrupoles(j, i, irk)
             END DO
          END DO
@@ -820,8 +812,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: output_unit
       LOGICAL, INTENT(IN)                                :: core_or_shell, scaled_coordinates
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'dump_coordinates_cp2k', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'dump_coordinates_cp2k'
 
       CHARACTER(LEN=default_string_length)               :: kind_name, tag
       INTEGER                                            :: handle, imolecule, iparticle, last_atom
@@ -847,7 +838,7 @@ CONTAINS
          CALL get_atomic_kind(particles%els(iparticle)%atomic_kind, name=kind_name)
          IF (.NOT. core_or_shell) THEN
             IF (iparticle > last_atom) THEN
-               imolecule = imolecule+1
+               imolecule = imolecule + 1
                molecule => molecules%els(imolecule)
                CALL get_molecule(molecule, last_atom=last_atom)
                CALL get_molecule_kind(molecule%molecule_kind, &

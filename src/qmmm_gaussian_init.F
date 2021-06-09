@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -79,9 +81,6 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: compatibility
       TYPE(section_vals_type), POINTER                   :: print_section, qmmm_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'qmmm_gaussian_initialize', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, ilevel, j, Ndim, num_geep_gauss, &
                                                             output_unit
       LOGICAL                                            :: Found, use_geep_lib
@@ -114,7 +113,7 @@ CONTAINS
          Ndim = SIZE(radius)
          Loop_on_all_values: DO I = 1, SIZE(mm_el_pot_radius)
             Found = .FALSE.
-            Loop_on_found_values: DO J = 1, SIZE(radius)-1
+            Loop_on_found_values: DO J = 1, SIZE(radius) - 1
                IF (mm_el_pot_radius(i) .EQ. radius(j)) THEN
                   Found = .TRUE.
                   EXIT Loop_on_found_values
@@ -124,24 +123,24 @@ CONTAINS
                Ndim = SIZE(radius)
                radius(Ndim) = mm_el_pot_radius(i)
                c_radius(Ndim) = mm_el_pot_radius_corr(i)
-               Ndim = Ndim+1
+               Ndim = Ndim + 1
                CALL REALLOCATE(radius, 1, Ndim)
                CALL REALLOCATE(c_radius, 1, Ndim)
             END IF
          END DO Loop_on_all_values
          !
-         IF (Ndim-1 > 0) THEN
-            CALL REALLOCATE(radius, 1, Ndim-1)
-            CALL REALLOCATE(c_radius, 1, Ndim-1)
-         ELSE IF (Ndim-1 == 0) THEN
+         IF (Ndim - 1 > 0) THEN
+            CALL REALLOCATE(radius, 1, Ndim - 1)
+            CALL REALLOCATE(c_radius, 1, Ndim - 1)
+         ELSE IF (Ndim - 1 == 0) THEN
             DEALLOCATE (radius)
             DEALLOCATE (c_radius)
          ELSE
             CPABORT("")
          END IF
          !
-         ALLOCATE (qmmm_gaussian_fns(Ndim-1))
-         DO I = 1, Ndim-1
+         ALLOCATE (qmmm_gaussian_fns(Ndim - 1))
+         DO I = 1, Ndim - 1
             NULLIFY (qmmm_gaussian_fns(I)%pgf)
             ALLOCATE (qmmm_gaussian_fns(I)%pgf)
             NULLIFY (qmmm_gaussian_fns(I)%pgf%Ak)
@@ -187,7 +186,7 @@ CONTAINS
                   alpha = alpha*alpha
                   ilevel = gaussian_gridlevel(gridlevel_info, alpha)
                   Prefactor = mypgf%Ak(I)*maxchrg
-                  mymaxradius = exp_radius(0, alpha, eps_mm_rspace, Prefactor)
+                  mymaxradius = exp_radius(0, alpha, eps_mm_rspace, Prefactor, rlow=mymaxradius)
                   maxradius(ilevel) = MAX(maxradius(ilevel), mymaxradius)
                   mypgf%grid_level(i) = ilevel
                END IF

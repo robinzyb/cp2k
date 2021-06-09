@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -87,9 +89,6 @@ CONTAINS
    SUBROUTINE pw_poisson_cleanup(poisson_env)
       TYPE(pw_poisson_type), POINTER                     :: poisson_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pw_poisson_cleanup', &
-         routineP = moduleN//':'//routineN
-
       TYPE(pw_pool_type), POINTER                        :: pw_pool
 
       CPASSERT(ASSOCIATED(poisson_env))
@@ -111,9 +110,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE pw_poisson_check(poisson_env)
       TYPE(pw_poisson_type), POINTER                     :: poisson_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'pw_poisson_check', &
-         routineP = moduleN//':'//routineN
 
       LOGICAL                                            :: rebuild
       TYPE(greens_fn_type), POINTER                      :: green
@@ -179,8 +175,7 @@ CONTAINS
       TYPE(pw_poisson_type), POINTER                     :: poisson_env
       TYPE(pw_type), OPTIONAL, POINTER                   :: density
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pw_poisson_rebuild', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'pw_poisson_rebuild'
 
       INTEGER                                            :: handle
 
@@ -235,12 +230,13 @@ CONTAINS
 !> \param dvhartree ...
 !> \param h_stress ...
 !> \param rho_core ...
+!> \param greenfn ...
 !> \par History
 !>      JGH (13-Mar-2001) : completely revised
 !> \author apsi
 ! **************************************************************************************************
    SUBROUTINE pw_poisson_solve(poisson_env, density, ehartree, vhartree, &
-                               dvhartree, h_stress, rho_core)
+                               dvhartree, h_stress, rho_core, greenfn)
 
       TYPE(pw_poisson_type), POINTER                     :: poisson_env
       TYPE(pw_type), POINTER                             :: density
@@ -250,9 +246,9 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(3, 3), INTENT(OUT), &
          OPTIONAL                                        :: h_stress
       TYPE(pw_p_type), OPTIONAL, POINTER                 :: rho_core
+      TYPE(pw_type), OPTIONAL, POINTER                   :: greenfn
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pw_poisson_solve', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'pw_poisson_solve'
 
       INTEGER                                            :: alpha, beta, handle, i
       INTEGER, DIMENSION(3)                              :: n
@@ -262,7 +258,8 @@ CONTAINS
       TYPE(pw_p_type)                                    :: dvg(3)
       TYPE(pw_poisson_parameter_type), POINTER           :: poisson_params
       TYPE(pw_pool_type), POINTER                        :: pw_pool
-      TYPE(pw_type), POINTER                             :: rhog, rhor, tmpg, vhartree_rs
+      TYPE(pw_type), POINTER                             :: influence_fn, rhog, rhor, tmpg, &
+                                                            vhartree_rs
 
       CALL timeset(routineN, handle)
 
@@ -297,7 +294,12 @@ CONTAINS
                                       in_space=RECIPROCALSPACE)
                CALL pw_copy(rhog, tmpg)
             END IF
-            rhog%cc(:) = rhog%cc(:)*poisson_env%green_fft%influence_fn%cc(:)
+            IF (PRESENT(greenfn)) THEN
+               influence_fn => greenfn
+            ELSE
+               influence_fn => poisson_env%green_fft%influence_fn
+            END IF
+            rhog%cc(:) = rhog%cc(:)*influence_fn%cc(:)
             IF (PRESENT(vhartree)) THEN
                CALL pw_transfer(rhog, vhartree)
                IF (PRESENT(ehartree)) THEN
@@ -414,7 +416,7 @@ CONTAINS
                h_stress(alpha, alpha) = ehartree
                DO beta = alpha, 3
                   h_stress(alpha, beta) = h_stress(alpha, beta) &
-                                          +ffa*pw_integral_ab(dvg(alpha)%pw, dvg(beta)%pw)
+                                          + ffa*pw_integral_ab(dvg(alpha)%pw, dvg(beta)%pw)
                   h_stress(beta, alpha) = h_stress(alpha, beta)
                END DO
             END DO
@@ -522,7 +524,7 @@ CONTAINS
       TYPE(pw_grid_type), OPTIONAL, POINTER              :: mt_super_ref_pw_grid, dct_pw_grid
       LOGICAL, INTENT(in), OPTIONAL                      :: force_rebuild
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'pw_poisson_set', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'pw_poisson_set'
 
       INTEGER                                            :: handle, i
       LOGICAL                                            :: same

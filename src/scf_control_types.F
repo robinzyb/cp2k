@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -20,13 +22,12 @@ MODULE scf_control_types
                                               cp_print_key_unit_nr
    USE cp_units,                        ONLY: cp_unit_from_cp2k
    USE input_constants,                 ONLY: &
-        atomic_guess, core_guess, diag_ot, direct_p_mix, general_roks, high_spin_roks, &
-        ot_algo_taylor_or_diag, outer_scf_basis_center_opt, outer_scf_cdft_constraint, &
-        outer_scf_ddapc_constraint, outer_scf_none, outer_scf_optimizer_bisect, &
-        outer_scf_optimizer_broyden, outer_scf_optimizer_diis, outer_scf_optimizer_newton, &
-        outer_scf_optimizer_newton_ls, outer_scf_optimizer_none, outer_scf_optimizer_sd, &
-        outer_scf_optimizer_secant, outer_scf_s2_constraint, smear_energy_window, &
-        smear_fermi_dirac, smear_list
+        atomic_guess, diag_ot, direct_p_mix, general_roks, high_spin_roks, ot_algo_taylor_or_diag, &
+        outer_scf_basis_center_opt, outer_scf_cdft_constraint, outer_scf_ddapc_constraint, &
+        outer_scf_none, outer_scf_optimizer_bisect, outer_scf_optimizer_broyden, &
+        outer_scf_optimizer_diis, outer_scf_optimizer_newton, outer_scf_optimizer_newton_ls, &
+        outer_scf_optimizer_none, outer_scf_optimizer_sd, outer_scf_optimizer_secant, &
+        outer_scf_s2_constraint, smear_energy_window, smear_fermi_dirac, smear_list
    USE input_cp2k_dft,                  ONLY: create_scf_section
    USE input_enumeration_types,         ONLY: enum_i2c,&
                                               enumeration_type
@@ -157,7 +158,7 @@ CONTAINS
 
       TYPE(scf_control_type), POINTER                    :: scf_control
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'scf_c_create', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'scf_c_create'
 
       INTEGER                                            :: handle
 
@@ -262,7 +263,7 @@ CONTAINS
 
       NULLIFY (scf_control%smear)
 
-      last_scf_c_id_nr = last_scf_c_id_nr+1
+      last_scf_c_id_nr = last_scf_c_id_nr + 1
 
       CALL timestop(handle)
 
@@ -279,12 +280,10 @@ CONTAINS
 
       TYPE(scf_control_type), POINTER                    :: scf_control
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'scf_c_retain', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(scf_control))
 
       CPASSERT(scf_control%ref_count > 0)
-      scf_control%ref_count = scf_control%ref_count+1
+      scf_control%ref_count = scf_control%ref_count + 1
 
    END SUBROUTINE scf_c_retain
 
@@ -301,11 +300,9 @@ CONTAINS
 
       TYPE(scf_control_type), POINTER                    :: scf_control
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'scf_c_release', routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(scf_control)) THEN
          CPASSERT(scf_control%ref_count > 0)
-         scf_control%ref_count = scf_control%ref_count-1
+         scf_control%ref_count = scf_control%ref_count - 1
          IF (scf_control%ref_count < 1) THEN
             IF (ASSOCIATED(scf_control%smear%list)) THEN
                DEALLOCATE (scf_control%smear%list)
@@ -342,8 +339,7 @@ CONTAINS
       TYPE(scf_control_type), POINTER                    :: scf_control
       TYPE(section_vals_type), POINTER                   :: inp_section
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'scf_c_read_parameters', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'scf_c_read_parameters'
 
       INTEGER                                            :: cholesky_flag, handle, ialgo
       INTEGER, DIMENSION(:), POINTER                     :: added_mos
@@ -475,9 +471,6 @@ CONTAINS
       CALL section_vals_val_get(scf_section, "eps_scf_history", r_val=scf_control%eps_scf_hist)
 
       IF (scf_control%level_shift /= 0.0_dp) scf_control%use_cholesky = .FALSE.
-      IF (scf_control%use_ot .AND. (scf_control%density_guess == core_guess)) THEN
-         CPABORT("SCF_GUESS CORE is not supported for OT")
-      END IF
 
       ! Outer SCF subsection
       outer_scf_section => section_vals_get_subs_vals(scf_section, "OUTER_SCF")
@@ -508,8 +501,6 @@ CONTAINS
    SUBROUTINE init_smear(smear)
       TYPE(smear_type), POINTER                          :: smear
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_smear', routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(smear))
       ALLOCATE (smear)
       smear%do_smear = .FALSE.
@@ -529,9 +520,6 @@ CONTAINS
    SUBROUTINE read_smear_section(smear, smear_section)
       TYPE(smear_type), POINTER                          :: smear
       TYPE(section_vals_type), POINTER                   :: smear_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_smear_section', &
-         routineP = moduleN//':'//routineN
 
       REAL(KIND=dp), DIMENSION(:), POINTER               :: r_vals
 
@@ -574,8 +562,7 @@ CONTAINS
       TYPE(scf_control_type), POINTER                    :: scf_control
       TYPE(section_vals_type), POINTER                   :: dft_section
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'scf_c_write_parameters', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'scf_c_write_parameters'
 
       INTEGER                                            :: handle, output_unit, roks_scheme
       LOGICAL                                            :: roks
@@ -760,8 +747,7 @@ CONTAINS
       TYPE(qs_ot_settings_type)                          :: settings
       TYPE(section_vals_type), POINTER                   :: scf_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'ot_diag_read_input', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'ot_diag_read_input'
 
       INTEGER                                            :: handle, output_unit
       LOGICAL                                            :: explicit

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -114,9 +116,6 @@ CONTAINS
       INTEGER, DIMENSION(:), INTENT(in), OPTIONAL        :: n_local_cols
       INTEGER, INTENT(in), OPTIONAL                      :: n_row_distribution, n_col_distribution
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'distribution_2d_create', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
 
       CPASSERT(ASSOCIATED(blacs_env))
@@ -124,7 +123,7 @@ CONTAINS
 
       ALLOCATE (distribution_2d)
       distribution_2d%ref_count = 1
-      last_distribution_2d_id = last_distribution_2d_id+1
+      last_distribution_2d_id = last_distribution_2d_id + 1
       distribution_2d%id_nr = last_distribution_2d_id
 
       NULLIFY (distribution_2d%col_distribution, distribution_2d%row_distribution, &
@@ -225,12 +224,9 @@ CONTAINS
    SUBROUTINE distribution_2d_retain(distribution_2d)
       TYPE(distribution_2d_type), POINTER                :: distribution_2d
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'distribution_2d_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(distribution_2d))
       CPASSERT(distribution_2d%ref_count > 0)
-      distribution_2d%ref_count = distribution_2d%ref_count+1
+      distribution_2d%ref_count = distribution_2d%ref_count + 1
    END SUBROUTINE distribution_2d_retain
 
 ! **************************************************************************************************
@@ -240,14 +236,11 @@ CONTAINS
    SUBROUTINE distribution_2d_release(distribution_2d)
       TYPE(distribution_2d_type), POINTER                :: distribution_2d
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'distribution_2d_release', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
 
       IF (ASSOCIATED(distribution_2d)) THEN
          CPASSERT(distribution_2d%ref_count > 0)
-         distribution_2d%ref_count = distribution_2d%ref_count-1
+         distribution_2d%ref_count = distribution_2d%ref_count - 1
          IF (distribution_2d%ref_count == 0) THEN
             CALL cp_blacs_env_release(distribution_2d%blacs_env)
             IF (ASSOCIATED(distribution_2d%col_distribution)) THEN
@@ -303,9 +296,6 @@ CONTAINS
       INTEGER, INTENT(in)                                :: unit_nr
       LOGICAL, INTENT(in), OPTIONAL                      :: local, long_description
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'distribution_2d_write', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
       LOGICAL                                            :: my_local, my_long_description
       TYPE(cp_logger_type), POINTER                      :: logger
@@ -316,7 +306,7 @@ CONTAINS
       IF (PRESENT(long_description)) my_long_description = long_description
       my_local = .FALSE.
       IF (PRESENT(local)) my_local = local
-      IF (.NOT. my_local) my_local = (logger%para_env%source == logger%para_env%mepos)
+      IF (.NOT. my_local) my_local = logger%para_env%ionode
 
       IF (ASSOCIATED(distribution_2d)) THEN
          IF (my_local) THEN
@@ -507,9 +497,6 @@ CONTAINS
       TYPE(cp_blacs_env_type), OPTIONAL, POINTER         :: blacs_env
       INTEGER, INTENT(out), OPTIONAL                     :: id_nr
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'distribution_2d_get', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iblock_atomic, iblock_min, ikind, &
                                                             ikind_min
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: multiindex
@@ -544,7 +531,7 @@ CONTAINS
                CPASSERT(ikind_min > 0)
                distribution_2d%flat_local_rows(iblock_atomic) = &
                   distribution_2d%local_rows(ikind_min)%array(multiindex(ikind_min))
-               multiindex(ikind_min) = multiindex(ikind_min)+1
+               multiindex(ikind_min) = multiindex(ikind_min) + 1
             END DO
             DEALLOCATE (multiindex)
          END IF
@@ -570,7 +557,7 @@ CONTAINS
                CPASSERT(ikind_min > 0)
                distribution_2d%flat_local_cols(iblock_atomic) = &
                   distribution_2d%local_cols(ikind_min)%array(multiindex(ikind_min))
-               multiindex(ikind_min) = multiindex(ikind_min)+1
+               multiindex(ikind_min) = multiindex(ikind_min) + 1
             END DO
             DEALLOCATE (multiindex)
          END IF

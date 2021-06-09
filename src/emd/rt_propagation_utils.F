@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -87,7 +89,7 @@ CONTAINS
    SUBROUTINE calc_S_derivs(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calc_S_derivs', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'calc_S_derivs'
       REAL(KIND=dp), PARAMETER                           :: one = 1.0_dp, zero = 0.0_dp
 
       INTEGER                                            :: col_atom, handle, i, j, m, maxder, n, &
@@ -144,7 +146,7 @@ CONTAINS
          ALLOCATE (tmp_mat2)
          CALL dbcsr_create(tmp_mat2, template=S_der(1)%matrix, matrix_type="S")
          DO m = 1, 9
-            CALL dbcsr_copy(tmp_mat2, s_derivs(m+1)%matrix)
+            CALL dbcsr_copy(tmp_mat2, s_derivs(m + 1)%matrix)
             CALL dbcsr_desymmetrize(tmp_mat2, S_der(m)%matrix)
             CALL dbcsr_scale(S_der(m)%matrix, -one)
             CALL dbcsr_filter(S_der(m)%matrix, rtp%filter_eps)
@@ -181,7 +183,7 @@ CONTAINS
       n = 0
       DO j = 1, 3
          DO m = j, 3
-            n = n+1
+            n = n + 1
             c_map_mat(n, 1) = j
             IF (m == j) CYCLE
             c_map_mat(n, 2) = m
@@ -192,7 +194,7 @@ CONTAINS
          CALL dbcsr_set(C_mat(i)%matrix, zero)
       END DO
       DO m = 1, 6
-         CALL dbcsr_copy(tmp_mat, S_der(m+3)%matrix)
+         CALL dbcsr_copy(tmp_mat, S_der(m + 3)%matrix)
          DO j = 1, 2
             IF (c_map_mat(m, j) == 0) CYCLE
             CALL dbcsr_add(C_mat(c_map_mat(m, j))%matrix, tmp_mat, one, one)
@@ -221,9 +223,6 @@ CONTAINS
 
    SUBROUTINE get_restart_wfn(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_restart_wfn', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_path_length)                 :: file_name, project_name
       INTEGER                                            :: i, id_nr, im, ispin, ncol, nspin, re, &
@@ -256,7 +255,7 @@ CONTAINS
                       rho=rho_struct, &
                       para_env=para_env)
       logger => cp_get_default_logger()
-      IF (logger%para_env%mepos == logger%para_env%source) THEN
+      IF (logger%para_env%ionode) THEN
          unit_nr = cp_logger_get_default_unit_nr(logger, local=.TRUE.)
       ELSE
          unit_nr = -1
@@ -276,7 +275,7 @@ CONTAINS
          IF (rtp%linear_scaling) THEN
             CALL get_rtp(rtp=rtp, rho_old=rho_old, rho_new=rho_new)
             DO ispin = 1, nspin
-               re = 2*ispin-1
+               re = 2*ispin - 1
                im = 2*ispin
                CALL cp_fm_get_info(mo_array(ispin)%mo_set%mo_coeff, ncol_global=ncol)
                alpha = 1.0_dp
@@ -293,7 +292,7 @@ CONTAINS
          ELSE
             CALL get_rtp(rtp=rtp, mos_old=mos_old)
             DO i = 1, SIZE(qs_env%mos)
-               CALL cp_fm_to_fm(mo_array(i)%mo_set%mo_coeff, mos_old(2*i-1)%matrix)
+               CALL cp_fm_to_fm(mo_array(i)%mo_set%mo_coeff, mos_old(2*i - 1)%matrix)
                CALL cp_fm_set_all(mos_old(2*i)%matrix, zero, zero)
             END DO
          ENDIF
@@ -302,7 +301,7 @@ CONTAINS
             CALL get_rtp(rtp=rtp, rho_old=rho_old, rho_new=rho_new)
             project_name = logger%iter_info%project_name
             DO ispin = 1, nspin
-               re = 2*ispin-1
+               re = 2*ispin - 1
                im = 2*ispin
                WRITE (file_name, '(A,I0,A)') TRIM(project_name)//"_LS_DM_SPIN_RE", ispin, "_RESTART.dm"
                CALL dbcsr_get_info(rho_old(re)%matrix, distribution=dist)
@@ -347,8 +346,7 @@ CONTAINS
 
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'calc_update_rho', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'calc_update_rho'
       REAL(KIND=dp), PARAMETER                           :: one = 1.0_dp, zero = 0.0_dp
 
       INTEGER                                            :: handle, i, im, ncol, re
@@ -372,8 +370,8 @@ CONTAINS
       CALL get_rtp(rtp=rtp, mos_new=mos_new)
       CALL qs_rho_get(rho_struct=rho, rho_ao=rho_ao)
       DO i = 1, SIZE(mos_new)/2
-         re = 2*i-1; im = 2*i
-         alpha = 3*one-REAL(SIZE(mos_new)/2, dp)
+         re = 2*i - 1; im = 2*i
+         alpha = 3*one - REAL(SIZE(mos_new)/2, dp)
          CALL dbcsr_set(rho_ao(i)%matrix, zero)
          CALL cp_fm_get_info(mos_new(re)%matrix, ncol_global=ncol)
          CALL cp_fm_create(mos_occ%matrix, &
@@ -385,7 +383,7 @@ CONTAINS
                                     matrix_v=mos_occ%matrix, &
                                     ncol=ncol, &
                                     alpha=alpha)
-         ! It is actually complex conjugate but i*i=-1 therfore it must be added
+         ! It is actually complex conjugate but i*i=-1 therefore it must be added
          CALL cp_fm_to_fm(mos_new(im)%matrix, mos_occ%matrix)
          CALL cp_fm_column_scale(mos_occ%matrix, mos(i)%mo_set%occupation_numbers/alpha)
          CALL cp_dbcsr_plus_fm_fm_t(sparse_matrix=rho_ao(i)%matrix, &
@@ -396,7 +394,7 @@ CONTAINS
       END DO
       CALL qs_rho_update_rho(rho, qs_env)
 
-      IF (rtp%do_hfx .OR. rtp%magnetic) THEN
+      IF (rtp%do_hfx .OR. rtp%track_imag_density) THEN
          CALL qs_rho_get(rho_struct=rho, rho_ao_im=rho_ao_im)
          CALL calculate_P_imaginary(qs_env, rtp, rho_ao_im, keep_sparsity=.TRUE.)
          CALL qs_rho_set(rho, rho_ao_im=rho_ao_im)
@@ -418,8 +416,7 @@ CONTAINS
 
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'calc_update_rho_sparse', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'calc_update_rho_sparse'
       REAL(KIND=dp), PARAMETER                           :: zero = 0.0_dp
 
       INTEGER                                            :: handle, ispin
@@ -440,11 +437,13 @@ CONTAINS
       rtp_control => dft_control%rtp_control
       CALL get_rtp(rtp=rtp, rho_new=rho_new)
       CALL qs_rho_get(rho_struct=rho, rho_ao=rho_ao)
-      IF (rtp%do_hfx .OR. rtp%magnetic) CALL qs_rho_get(rho_struct=rho, rho_ao_im=rho_ao_im)
+      IF (rtp%do_hfx .OR. rtp%track_imag_density) CALL qs_rho_get(rho_struct=rho, rho_ao_im=rho_ao_im)
       DO ispin = 1, SIZE(rho_ao)
          CALL dbcsr_set(rho_ao(ispin)%matrix, zero)
-         CALL dbcsr_copy_into_existing(rho_ao(ispin)%matrix, rho_new(ispin*2-1)%matrix)
-         IF (rtp%do_hfx .OR. rtp%magnetic) CALL dbcsr_copy_into_existing(rho_ao_im(ispin)%matrix, rho_new(ispin*2)%matrix)
+         CALL dbcsr_copy_into_existing(rho_ao(ispin)%matrix, rho_new(ispin*2 - 1)%matrix)
+         IF (rtp%do_hfx .OR. rtp%track_imag_density) THEN
+            CALL dbcsr_copy_into_existing(rho_ao_im(ispin)%matrix, rho_new(ispin*2)%matrix)
+         ENDIF
       END DO
 
       CALL qs_rho_update_rho(rho, qs_env)
@@ -467,9 +466,6 @@ CONTAINS
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: matrix_p_im
       LOGICAL, OPTIONAL                                  :: keep_sparsity
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'calculate_P_imaginary', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, im, ncol, re
       LOGICAL                                            :: my_keep_sparsity
       REAL(KIND=dp)                                      :: alpha
@@ -484,8 +480,8 @@ CONTAINS
       ALLOCATE (mos_occ(SIZE(mos)*2))
 
       DO i = 1, SIZE(mos_new)/2
-         re = 2*i-1; im = 2*i
-         alpha = 3.0_dp-REAL(SIZE(matrix_p_im), dp)
+         re = 2*i - 1; im = 2*i
+         alpha = 3.0_dp - REAL(SIZE(matrix_p_im), dp)
          CALL cp_fm_create(mos_occ(re)%matrix, &
                            matrix_struct=mos(i)%mo_set%mo_coeff%matrix_struct, &
                            name="mos_occ")

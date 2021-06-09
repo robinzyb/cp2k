@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -136,15 +138,14 @@ CONTAINS
    SUBROUTINE rep_env_release(rep_env)
       TYPE(replica_env_type), POINTER                    :: rep_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'rep_env_release', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'rep_env_release'
 
       INTEGER                                            :: handle, i, ierr
 
       CALL timeset(routineN, handle)
       IF (ASSOCIATED(rep_env)) THEN
          CPASSERT(rep_env%ref_count > 0)
-         rep_env%ref_count = rep_env%ref_count-1
+         rep_env%ref_count = rep_env%ref_count - 1
          IF (rep_env%ref_count == 0) THEN
             CALL rep_env_destroy_low(rep_env%id_nr, ierr)
             IF (rep_env%f_env_id > 0) THEN
@@ -200,9 +201,6 @@ CONTAINS
       INTEGER, INTENT(in)                                :: rep_env_id
       INTEGER, INTENT(out)                               :: ierr
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'rep_env_destroy_low', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: stat
       TYPE(cp_logger_type), POINTER                      :: logger
       TYPE(f_env_type), POINTER                          :: f_env
@@ -232,7 +230,7 @@ CONTAINS
       TYPE(replica_env_type), POINTER                    :: rep_env
       REAL(kind=dp), DIMENSION(:, :), INTENT(inout)      :: vals
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'rep_env_sync', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'rep_env_sync'
 
       INTEGER                                            :: handle, irep
 
@@ -260,8 +258,7 @@ CONTAINS
       TYPE(replica_env_type), POINTER                    :: rep_env
       TYPE(cp_result_p_type), DIMENSION(:), POINTER      :: results
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'rep_env_sync_results', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'rep_env_sync_results'
 
       INTEGER                                            :: handle, irep, nrep, source
 
@@ -293,9 +290,6 @@ CONTAINS
       INTEGER, INTENT(OUT)                               :: ierr
       TYPE(replica_env_type), POINTER                    :: res
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'rep_envs_get_rep_env', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i
 
       NULLIFY (res)
@@ -321,9 +315,6 @@ CONTAINS
    SUBROUTINE rep_envs_add_rep_env(rep_env)
       TYPE(replica_env_type), POINTER                    :: rep_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'rep_envs_add_rep_env', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, stat
       TYPE(replica_env_p_type), DIMENSION(:), POINTER    :: new_rep_envs
       TYPE(replica_env_type), POINTER                    :: rep_env2
@@ -335,7 +326,7 @@ CONTAINS
                IF (.NOT. ASSOCIATED(rep_envs)) THEN
                   ALLOCATE (rep_envs(1))
                ELSE
-                  ALLOCATE (new_rep_envs(SIZE(rep_envs)+1))
+                  ALLOCATE (new_rep_envs(SIZE(rep_envs) + 1))
                   DO i = 1, SIZE(rep_envs)
                      new_rep_envs(i)%rep_env => rep_envs(i)%rep_env
                   END DO
@@ -359,19 +350,16 @@ CONTAINS
    SUBROUTINE rep_envs_rm_rep_env(rep_env)
       TYPE(replica_env_type), POINTER                    :: rep_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'rep_envs_rm_rep_env', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, ii
       TYPE(replica_env_p_type), DIMENSION(:), POINTER    :: new_rep_envs
 
       IF (ASSOCIATED(rep_env)) THEN
          CPASSERT(module_initialized)
-         ALLOCATE (new_rep_envs(SIZE(rep_envs)-1))
+         ALLOCATE (new_rep_envs(SIZE(rep_envs) - 1))
          ii = 0
          DO i = 1, SIZE(rep_envs)
             IF (rep_envs(i)%rep_env%id_nr /= rep_env%id_nr) THEN
-               ii = ii+1
+               ii = ii + 1
                new_rep_envs(ii)%rep_env => rep_envs(i)%rep_env
             END IF
          END DO

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -80,7 +82,7 @@ CONTAINS
 
 ! **************************************************************************************************
 !> \brief Set up for reading the restart
-!>      corresponing to the excitation of iatom
+!>      corresponding to the excitation of iatom
 !>      If the corresponding restart file does not exist
 !>      the GS orbitals are used as initial guess
 !> \param xas_env ...
@@ -105,8 +107,7 @@ CONTAINS
       INTEGER, INTENT(OUT)                               :: estate
       INTEGER, INTENT(IN)                                :: istate
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'xas_read_restart', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'xas_read_restart'
 
       CHARACTER(LEN=default_path_length)                 :: filename
       INTEGER :: group, handle, i, ia, ie, ispin, my_spin, nao, nao_read, nelectron, nexc_atoms, &
@@ -238,7 +239,7 @@ CONTAINS
             END DO
             ! Skip extra MOs if there any
             IF (para_env%ionode) THEN
-               DO i = nmo+1, nmo_read
+               DO i = nmo + 1, nmo_read
                   READ (rst_unit) vecbuffer
                END DO
             END IF
@@ -280,8 +281,7 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       INTEGER, INTENT(IN)                                :: xas_method, iatom, istate
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'xas_write_restart', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'xas_write_restart'
 
       CHARACTER(LEN=default_path_length)                 :: filename
       CHARACTER(LEN=default_string_length)               :: my_middle
@@ -372,8 +372,7 @@ CONTAINS
       TYPE(qs_scf_env_type), POINTER                     :: scf_env
       TYPE(scf_control_type), POINTER                    :: scf_control
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'xas_initialize_rho', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'xas_initialize_rho'
 
       INTEGER                                            :: handle, ispin, my_spin, nelectron
       TYPE(cp_para_env_type), POINTER                    :: para_env
@@ -400,7 +399,7 @@ CONTAINS
          IF (ispin == my_spin) THEN
             IF (xas_env%homo_occ == 0) THEN
                CALL get_mo_set(mos(ispin)%mo_set, nelectron=nelectron)
-               nelectron = nelectron-1
+               nelectron = nelectron - 1
                CALL set_mo_set(mos(ispin)%mo_set, nelectron=nelectron)
             END IF
             CALL set_mo_occupation(mo_set=qs_env%mos(ispin)%mo_set, smear=scf_control%smear, &
@@ -447,9 +446,6 @@ CONTAINS
       TYPE(xas_environment_type), POINTER                :: xas_env
       TYPE(mo_set_p_type), DIMENSION(:), POINTER         :: mos
       TYPE(dbcsr_p_type), DIMENSION(:), POINTER          :: matrix_s
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'find_excited_core_orbital', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, ic_max, ir_max, m, my_spin, n, nao, &
                                                             nexc_search, nmo, xas_estate

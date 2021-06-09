@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -13,7 +15,7 @@ MODULE cp_fm_basic_linalg
    USE cp_blacs_env,                    ONLY: cp_blacs_env_type
    USE cp_fm_struct,                    ONLY: cp_fm_struct_equivalent
    USE cp_fm_types,                     ONLY: &
-        cp_fm_create, cp_fm_get_element, cp_fm_get_info, cp_fm_get_submatrix, cp_fm_p_type, &
+        cp_fm_create, cp_fm_get_diag, cp_fm_get_info, cp_fm_get_submatrix, cp_fm_p_type, &
         cp_fm_release, cp_fm_set_all, cp_fm_set_element, cp_fm_set_submatrix, cp_fm_to_fm, &
         cp_fm_type
    USE cp_log_handling,                 ONLY: cp_to_string
@@ -37,6 +39,7 @@ MODULE cp_fm_basic_linalg
    PUBLIC :: cp_fm_scale, & ! scale a matrix
              cp_fm_scale_and_add, & ! scale and add two matrices
              cp_fm_column_scale, & ! scale columns of a matrix
+             cp_fm_row_scale, & ! scale rows of a matrix
              cp_fm_trace, & ! trace of the transpose(A)*B
              cp_fm_contracted_trace, & ! sum_{i,...,k} Tr [A(i,...,k)^T * B(i,...,k)]
              cp_fm_norm, & ! different norms of A
@@ -52,7 +55,9 @@ MODULE cp_fm_basic_linalg
              cp_fm_frobenius_norm, & ! frobenius norm
              cp_fm_triangular_invert, & ! compute the reciprocal of a triangular matrix
              cp_fm_qr_factorization, & ! compute the QR factorization of a rectangular matrix
-             cp_fm_solve ! solves the equation  A*B=C A and C are input
+             cp_fm_solve, & ! solves the equation  A*B=C A and C are input
+             cp_fm_pdgeqpf, & ! compute a QR factorization with column pivoting of a M-by-N distributed matrix
+             cp_fm_pdorgqr ! generates an M-by-N as first N columns of a product of K elementary reflectors
 
    REAL(KIND=dp), EXTERNAL :: dlange, pdlange, pdlatra
 #if defined (__ACCELERATE)
@@ -89,8 +94,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(in), OPTIONAL                :: beta
       TYPE(cp_fm_type), OPTIONAL, POINTER                :: matrix_b
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_scale_and_add', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_scale_and_add'
 
       INTEGER                                            :: handle, size_a
       REAL(KIND=dp)                                      :: my_beta
@@ -117,7 +121,7 @@ CONTAINS
          IF (matrix_a%id_nr == matrix_b%id_nr) THEN
             IF (matrix_a%id_nr == matrix_b%id_nr) &
                CPWARN("Bad use of routine. Call cp_fm_scale instead")
-            CALL cp_fm_scale(alpha+beta, matrix_a)
+            CALL cp_fm_scale(alpha + beta, matrix_a)
             CALL timestop(handle)
             RETURN
          END IF
@@ -194,8 +198,7 @@ CONTAINS
       CHARACTER, INTENT(IN) :: trans
       TYPE(cp_fm_type), POINTER :: matrix_a, matrix_b
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_geadd', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_geadd'
 
       INTEGER :: nrow_global, ncol_global, handle
       REAL(KIND=dp), DIMENSION(:, :), POINTER :: aa, bb
@@ -238,13 +241,13 @@ CONTAINS
       CASE ('T')
          DO jj = 1, ncol_global
             DO ii = 1, nrow_global
-               bb(ii, jj) = beta*bb(ii, jj)+alpha*aa(jj, ii)
+               bb(ii, jj) = beta*bb(ii, jj) + alpha*aa(jj, ii)
             END DO
          END DO
       CASE DEFAULT
          DO jj = 1, ncol_global
             DO ii = 1, nrow_global
-               bb(ii, jj) = beta*bb(ii, jj)+alpha*aa(ii, jj)
+               bb(ii, jj) = beta*bb(ii, jj) + alpha*aa(ii, jj)
             END DO
          END DO
       END SELECT
@@ -269,14 +272,14 @@ CONTAINS
 !>      - SERIOUS WARNING (KNOWN BUG) : the sign of the determinant depends on ipivot
 !>      - one should be able to find out if ipivot is an even or an odd permutation...
 !>        if you need the correct sign, just add correct_sign==.TRUE. (fschiff)
+!>      - Use cp_fm_get_diag instead of n times cp_fm_get_element (A. Bussy)
 ! **************************************************************************************************
    SUBROUTINE cp_fm_lu_decompose(matrix_a, almost_determinant, correct_sign)
       TYPE(cp_fm_type), POINTER                :: matrix_a
       REAL(KIND=dp), INTENT(OUT)               :: almost_determinant
       LOGICAL, INTENT(IN), OPTIONAL            :: correct_sign
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_lu_decompose', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_lu_decompose'
 
       INTEGER                                  :: handle, i, info, n
       INTEGER, ALLOCATABLE, DIMENSION(:)       :: ipivot
@@ -293,18 +296,16 @@ CONTAINS
 
       a => matrix_a%local_data
       n = matrix_a%matrix_struct%nrow_global
-      ALLOCATE (ipivot(n+matrix_a%matrix_struct%nrow_block))
+      ALLOCATE (ipivot(n + matrix_a%matrix_struct%nrow_block))
 
 #if defined(__SCALAPACK)
       MARK_USED(correct_sign)
       desca(:) = matrix_a%matrix_struct%descriptor(:)
-      CALL pdgetrf(n, n, a(1, 1), 1, 1, desca, ipivot, info)
+      CALL pdgetrf(n, n, a, 1, 1, desca, ipivot, info)
 
       ALLOCATE (diag(n))
       diag(:) = 0.0_dp
-      DO i = 1, n
-         CALL cp_fm_get_element(matrix_a, i, i, diag(i)) !  not completely optimal in speed i would say
-      ENDDO
+      CALL cp_fm_get_diag(matrix_a, diag)
       determinant = 1.0_dp
       DO i = 1, n
          determinant = determinant*diag(i)
@@ -312,7 +313,7 @@ CONTAINS
       DEALLOCATE (diag)
 #else
       lda = SIZE(a, 1)
-      CALL dgetrf(n, n, a(1, 1), lda, ipivot, info)
+      CALL dgetrf(n, n, a, lda, ipivot, info)
       determinant = 1.0_dp
       IF (correct_sign) THEN
          DO i = 1, n
@@ -372,8 +373,7 @@ CONTAINS
                                                   b_first_col, b_first_row, &
                                                   c_first_col, c_first_row
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_gemm', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_gemm'
 
       INTEGER                                  :: handle, i_a, i_b, i_c, j_a, &
                                                   j_b, j_c
@@ -442,8 +442,8 @@ CONTAINS
 
       ELSEIF ((.NOT. matrix_a%use_sp) .AND. (.NOT. matrix_b%use_sp) .AND. (.NOT. matrix_c%use_sp)) THEN
 
-         CALL pdgemm(transa, transb, m, n, k, alpha, a(1, 1), i_a, j_a, desca, b(1, 1), i_b, j_b, &
-                     descb, beta, c(1, 1), i_c, j_c, descc)
+         CALL pdgemm(transa, transb, m, n, k, alpha, a, i_a, j_a, desca, b, i_b, j_b, &
+                     descb, beta, c, i_c, j_c, descc)
 
       ELSE
          CPABORT("Mixed precision gemm NYI")
@@ -506,8 +506,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                :: beta
       TYPE(cp_fm_type), POINTER                :: matrix_c
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_symm', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_symm'
 
       INTEGER                                  :: handle
       REAL(KIND=dp), DIMENSION(:, :), POINTER  :: a, b, c
@@ -554,8 +553,7 @@ CONTAINS
       TYPE(cp_fm_type), POINTER                :: matrix_a
       REAL(KIND=dp), INTENT(inout)             :: norm
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_frobenius_norm', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_frobenius_norm'
 
       INTEGER                                  :: handle, size_a
       REAL(KIND=dp), DIMENSION(:, :), POINTER  :: a
@@ -606,8 +604,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                :: beta
       TYPE(cp_fm_type), POINTER                :: matrix_c
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_syrk', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_syrk'
 
       INTEGER                                  :: handle, n
       REAL(KIND=dp), DIMENSION(:, :), POINTER  :: a, c
@@ -655,8 +652,7 @@ CONTAINS
 
       TYPE(cp_fm_type), POINTER                          :: matrix_a, matrix_b, matrix_c
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_schur_product', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_schur_product'
 
       INTEGER                                            :: handle, icol_local, irow_local, mypcol, &
                                                             myprow, ncol_local, npcol, nprow, &
@@ -707,8 +703,7 @@ CONTAINS
       TYPE(cp_fm_type), POINTER                          :: matrix_a, matrix_b
       REAL(KIND=dp), INTENT(OUT)                         :: trace
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_trace_a0b0t0', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_trace_a0b0t0'
 
       INTEGER                                            :: group, handle, mypcol, myprow, &
                                                             ncol_local, npcol, nprow, nrow_local
@@ -779,8 +774,7 @@ CONTAINS
       TYPE(cp_fm_type), POINTER                          :: matrix_b
       REAL(kind=dp), DIMENSION(:), INTENT(out)           :: trace
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_trace_a1b0t1', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_trace_a1b0t1'
 
       INTEGER                                            :: group, handle, imatrix, n_matrices, &
                                                             ncols_local, nrows_local
@@ -835,6 +829,7 @@ CONTAINS
 !> \param matrix_a list of A matrices
 !> \param matrix_b list of B matrices
 !> \param trace    computed traces
+!> \param accurate ...
 !> \par History
 !>    * 11.2016 forked from cp_fm_trace() [Sergey Chulkov]
 !> \note \parblock
@@ -847,16 +842,16 @@ CONTAINS
 !>      all dummy variables (matrix_a, matrix_b, and trace) are 1-dimensional arrays.
 !>      \endparblock
 ! **************************************************************************************************
-   SUBROUTINE cp_fm_trace_a1b1t1(matrix_a, matrix_b, trace)
+   SUBROUTINE cp_fm_trace_a1b1t1(matrix_a, matrix_b, trace, accurate)
       TYPE(cp_fm_p_type), DIMENSION(:), INTENT(in)       :: matrix_a, matrix_b
       REAL(kind=dp), DIMENSION(:), INTENT(out)           :: trace
+      LOGICAL, INTENT(IN), OPTIONAL                      :: accurate
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_trace_a1b1t1', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_trace_a1b1t1'
 
       INTEGER                                            :: group, handle, imatrix, n_matrices, &
                                                             ncols_local, nrows_local
-      LOGICAL                                            :: use_sp_a, use_sp_b
+      LOGICAL                                            :: use_accurate_sum, use_sp_a, use_sp_b
       REAL(kind=dp), DIMENSION(:, :), POINTER            :: ldata_a, ldata_b
       REAL(kind=sp), DIMENSION(:, :), POINTER            :: ldata_a_sp, ldata_b_sp
 
@@ -866,10 +861,13 @@ CONTAINS
       CPASSERT(SIZE(matrix_a) == n_matrices)
       CPASSERT(SIZE(matrix_b) == n_matrices)
 
+      use_accurate_sum = .TRUE.
+      IF (PRESENT(accurate)) use_accurate_sum = accurate
+
 !$OMP PARALLEL DO DEFAULT(NONE), &
 !$OMP             PRIVATE(imatrix, ldata_a, ldata_a_sp, ldata_b, ldata_b_sp, ncols_local), &
 !$OMP             PRIVATE(nrows_local, use_sp_a, use_sp_b), &
-!$OMP             SHARED(matrix_a, matrix_b, n_matrices, trace)
+!$OMP             SHARED(matrix_a, matrix_b, n_matrices, trace, use_accurate_sum)
       DO imatrix = 1, n_matrices
          CALL cp_fm_get_info(matrix_a(imatrix)%matrix, nrow_local=nrows_local, ncol_local=ncols_local)
 
@@ -880,11 +878,19 @@ CONTAINS
          IF (use_sp_a .AND. use_sp_b) THEN
             ldata_a_sp => matrix_a(imatrix)%matrix%local_data_sp(1:nrows_local, 1:ncols_local)
             ldata_b_sp => matrix_b(imatrix)%matrix%local_data_sp(1:nrows_local, 1:ncols_local)
-            trace(imatrix) = accurate_dot_product(ldata_a_sp, ldata_b_sp)
+            IF (use_accurate_sum) THEN
+               trace(imatrix) = accurate_dot_product(ldata_a_sp, ldata_b_sp)
+            ELSE
+               trace(imatrix) = SUM(ldata_a_sp*ldata_b_sp)
+            END IF
          ELSE IF (.NOT. use_sp_a .AND. .NOT. use_sp_b) THEN
             ldata_a => matrix_a(imatrix)%matrix%local_data(1:nrows_local, 1:ncols_local)
             ldata_b => matrix_b(imatrix)%matrix%local_data(1:nrows_local, 1:ncols_local)
-            trace(imatrix) = accurate_dot_product(ldata_a, ldata_b)
+            IF (use_accurate_sum) THEN
+               trace(imatrix) = accurate_dot_product(ldata_a, ldata_b)
+            ELSE
+               trace(imatrix) = SUM(ldata_a*ldata_b)
+            END IF
          ELSE
             CPABORT("Matrices A and B are of different types")
          END IF
@@ -902,18 +908,19 @@ CONTAINS
 !> \param matrix_a list of A matrices
 !> \param matrix_b list of B matrices
 !> \param trace    computed traces
+!> \param accurate ...
 ! **************************************************************************************************
-   SUBROUTINE cp_fm_contracted_trace_a2b2t2(matrix_a, matrix_b, trace)
+   SUBROUTINE cp_fm_contracted_trace_a2b2t2(matrix_a, matrix_b, trace, accurate)
       TYPE(cp_fm_p_type), DIMENSION(:, :), INTENT(in)    :: matrix_a, matrix_b
       REAL(kind=dp), DIMENSION(:, :), INTENT(out)        :: trace
+      LOGICAL, INTENT(IN), OPTIONAL                      :: accurate
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_contracted_trace_a2b2t2', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_contracted_trace_a2b2t2'
 
       INTEGER                                            :: group, handle, ia, ib, iz, na, nb, &
                                                             ncols_local, nrows_local, nz
       INTEGER(kind=int_8)                                :: ib8, itrace, na8, ntraces
-      LOGICAL                                            :: use_sp_a, use_sp_b
+      LOGICAL                                            :: use_accurate_sum, use_sp_a, use_sp_b
       REAL(kind=dp)                                      :: t
       REAL(kind=dp), DIMENSION(:, :), POINTER            :: ldata_a, ldata_b
       REAL(kind=sp), DIMENSION(:, :), POINTER            :: ldata_a_sp, ldata_b_sp
@@ -928,18 +935,22 @@ CONTAINS
       CPASSERT(SIZE(trace, 1) == na)
       CPASSERT(SIZE(trace, 2) == nb)
 
-      ! here we use one running index (itrace) instead of two (ia, ib) in order to improve load balance between shared-memory threads
+      use_accurate_sum = .TRUE.
+      IF (PRESENT(accurate)) use_accurate_sum = accurate
+
+      ! here we use one running index (itrace) instead of two (ia, ib) in order to
+      ! improve load balance between shared-memory threads
       ntraces = na*nb
       na8 = INT(na, kind=int_8)
 
 !$OMP PARALLEL DO DEFAULT(NONE), &
 !$OMP             PRIVATE(ia, ib, ib8, itrace, iz, ldata_a, ldata_a_sp, ldata_b, ldata_b_sp, ncols_local), &
 !$OMP             PRIVATE(nrows_local, t, use_sp_a, use_sp_b), &
-!$OMP             SHARED(matrix_a, matrix_b, na, na8, nb, ntraces, nz, trace)
+!$OMP             SHARED(matrix_a, matrix_b, na, na8, nb, ntraces, nz, trace, use_accurate_sum)
       DO itrace = 1, ntraces
-         ib8 = (itrace-1)/na8
-         ia = INT(itrace-ib8*na8)
-         ib = INT(ib8)+1
+         ib8 = (itrace - 1)/na8
+         ia = INT(itrace - ib8*na8)
+         ib = INT(ib8) + 1
 
          t = 0.0_dp
          DO iz = 1, nz
@@ -951,11 +962,19 @@ CONTAINS
             IF (.NOT. use_sp_a .AND. .NOT. use_sp_b) THEN
                ldata_a => matrix_a(iz, ia)%matrix%local_data(1:nrows_local, 1:ncols_local)
                ldata_b => matrix_b(iz, ib)%matrix%local_data(1:nrows_local, 1:ncols_local)
-               t = t+accurate_dot_product(ldata_a, ldata_b)
+               IF (use_accurate_sum) THEN
+                  t = t + accurate_dot_product(ldata_a, ldata_b)
+               ELSE
+                  t = t + SUM(ldata_a*ldata_b)
+               END IF
             ELSE IF (use_sp_a .AND. use_sp_b) THEN
                ldata_a_sp => matrix_a(iz, ia)%matrix%local_data_sp(1:nrows_local, 1:ncols_local)
                ldata_b_sp => matrix_b(iz, ib)%matrix%local_data_sp(1:nrows_local, 1:ncols_local)
-               t = t+accurate_dot_product(ldata_a_sp, ldata_b_sp)
+               IF (use_accurate_sum) THEN
+                  t = t + accurate_dot_product(ldata_a_sp, ldata_b_sp)
+               ELSE
+                  t = t + SUM(ldata_a_sp*ldata_b_sp)
+               END IF
             ELSE
                CPABORT("Matrices A and B are of different types")
             END IF
@@ -1014,8 +1033,7 @@ CONTAINS
       INTEGER, INTENT(in), OPTIONAL                      :: n_rows, n_cols
       REAL(KIND=dp), INTENT(in), OPTIONAL                :: alpha
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_triangular_multiply', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_triangular_multiply'
 
       CHARACTER                                          :: side_char, transa, unit_diag, uplo
       INTEGER                                            :: handle, m, n
@@ -1098,7 +1116,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN)                          :: alpha
       TYPE(cp_fm_type), POINTER                          :: matrix_a
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_scale', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'cp_fm_scale'
 
       INTEGER                                            :: handle, size_a
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: a
@@ -1125,17 +1143,15 @@ CONTAINS
 !> \param matrix ...
 !> \param matrixt ...
 !> \note
-!>      all matrix elements are transpose (see cp_fm_upper_to_half to symmetrise a matrix)
-!>      all matrix elements are transpose (see cp_fm_upper_to_half to symmetrize a matrix)
+!>      all matrix elements are transposed (see cp_fm_upper_to_half to symmetrise a matrix)
 ! **************************************************************************************************
    SUBROUTINE cp_fm_transpose(matrix, matrixt)
       TYPE(cp_fm_type), POINTER                :: matrix, matrixt
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_transpose', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_transpose'
 
       INTEGER                                  :: handle, ncol_global, &
-                                                  nrow_global
+                                                  nrow_global, ncol_globalt, nrow_globalt
       REAL(KIND=dp), DIMENSION(:, :), POINTER  :: a, c
 #if defined(__SCALAPACK)
       INTEGER, DIMENSION(9)                    :: desca, descc
@@ -1147,7 +1163,10 @@ CONTAINS
       CPASSERT(ASSOCIATED(matrixt))
       nrow_global = matrix%matrix_struct%nrow_global
       ncol_global = matrix%matrix_struct%ncol_global
-      CPASSERT(nrow_global == ncol_global)
+      nrow_globalt = matrixt%matrix_struct%nrow_global
+      ncol_globalt = matrixt%matrix_struct%ncol_global
+      CPASSERT(nrow_global == ncol_globalt)
+      CPASSERT(nrow_globalt == ncol_global)
 
       CALL timeset(routineN, handle)
 
@@ -1157,7 +1176,7 @@ CONTAINS
 #if defined(__SCALAPACK)
       desca(:) = matrix%matrix_struct%descriptor(:)
       descc(:) = matrixt%matrix_struct%descriptor(:)
-      CALL pdtran(nrow_global, ncol_global, 1.0_dp, a(1, 1), 1, 1, desca, 0.0_dp, c(1, 1), 1, 1, descc)
+      CALL pdtran(ncol_global, nrow_global, 1.0_dp, a(1, 1), 1, 1, desca, 0.0_dp, c(1, 1), 1, 1, descc)
 #else
       DO j = 1, ncol_global
          DO i = 1, nrow_global
@@ -1181,8 +1200,7 @@ CONTAINS
 
       TYPE(cp_fm_type), POINTER                :: matrix, work
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_upper_to_full', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_upper_to_full'
 
       INTEGER                                  :: handle, icol_global, irow_global, &
                                                   mypcol, myprow, ncol_global, &
@@ -1277,7 +1295,7 @@ CONTAINS
       a => matrix%local_data
       a_sp => matrix%local_data_sp
       DO irow_global = 1, nrow_global
-         DO icol_global = irow_global+1, ncol_global
+         DO icol_global = irow_global + 1, ncol_global
             IF (matrix%use_sp) THEN
                a_sp(icol_global, irow_global) = a_sp(irow_global, icol_global)
             ELSE
@@ -1294,12 +1312,14 @@ CONTAINS
 ! **************************************************************************************************
 !> \brief scales column i of matrix a with scaling(i)
 !> \param matrixa ...
-!> \param scaling : an array used for scaling the columns, SIZE(scaling) determines the number of columns to be scaled
+!> \param scaling : an array used for scaling the columns,
+!>                  SIZE(scaling) determines the number of columns to be scaled
 !> \author Joost VandeVondele
 !> \note
 !>      this is very useful as a first step in the computation of C = sum_i alpha_i A_i transpose (A_i)
-!>      that is a rank-k update (cp_fm_syrk , cp_sm_plus_fm_fm_t) where every vector has a different prefactor
+!>      that is a rank-k update (cp_fm_syrk , cp_sm_plus_fm_fm_t)
 !>      this procedure can be up to 20 times faster than calling cp_fm_syrk n times
+!>      where every vector has a different prefactor
 ! **************************************************************************************************
    SUBROUTINE cp_fm_column_scale(matrixa, scaling)
       TYPE(cp_fm_type), POINTER                :: matrixa
@@ -1340,23 +1360,84 @@ CONTAINS
                       irow_local, icol_local, iprow, ipcol)
          IF ((ipcol == mypcol)) THEN
             IF (matrixa%use_sp) THEN
-               CALL SSCAL(n, REAL(scaling(icol_global), sp), a_sp(1, icol_local), 1)
+               CALL SSCAL(n, REAL(scaling(icol_global), sp), a_sp(:, icol_local), 1)
             ELSE
-               CALL DSCAL(n, scaling(icol_global), a(1, icol_local), 1)
+               CALL DSCAL(n, scaling(icol_global), a(:, icol_local), 1)
             ENDIF
          END IF
       ENDDO
 #else
       DO i = 1, k
          IF (matrixa%use_sp) THEN
-            CALL SSCAL(n, REAL(scaling(i), sp), a_sp(1, i), 1)
+            CALL SSCAL(n, REAL(scaling(i), sp), a_sp(:, i), 1)
          ELSE
-            CALL DSCAL(n, scaling(i), a(1, i), 1)
+            CALL DSCAL(n, scaling(i), a(:, i), 1)
          ENDIF
       ENDDO
 #endif
    END SUBROUTINE cp_fm_column_scale
 
+! **************************************************************************************************
+!> \brief scales row i of matrix a with scaling(i)
+!> \param matrixa ...
+!> \param scaling : an array used for scaling the columns,
+!> \author JGH
+!> \note
+! **************************************************************************************************
+   SUBROUTINE cp_fm_row_scale(matrixa, scaling)
+      TYPE(cp_fm_type), POINTER                :: matrixa
+      REAL(KIND=dp), DIMENSION(:), INTENT(in)  :: scaling
+
+      INTEGER                                  :: n, m, nrow_global, nrow_local, ncol_local
+      INTEGER, DIMENSION(:), POINTER           :: row_indices
+      REAL(KIND=dp), DIMENSION(:, :), POINTER  :: a
+      REAL(KIND=sp), DIMENSION(:, :), POINTER  :: a_sp
+#if defined(__SCALAPACK)
+      INTEGER                                  :: irow_global, icol, irow
+#else
+      INTEGER                                  :: j
+#endif
+
+      CALL cp_fm_get_info(matrixa, row_indices=row_indices, nrow_global=nrow_global, &
+                          nrow_local=nrow_local, ncol_local=ncol_local)
+      CPASSERT(SIZE(scaling) == nrow_global)
+
+      a => matrixa%local_data
+      a_sp => matrixa%local_data_sp
+      IF (matrixa%use_sp) THEN
+         n = SIZE(a_sp, 1)
+         m = SIZE(a_sp, 2)
+      ELSE
+         n = SIZE(a, 1)
+         m = SIZE(a, 2)
+      ENDIF
+
+#if defined(__SCALAPACK)
+      DO icol = 1, ncol_local
+         IF (matrixa%use_sp) THEN
+            DO irow = 1, nrow_local
+               irow_global = row_indices(irow)
+               a(irow, icol) = REAL(scaling(irow_global), dp)*a(irow, icol)
+            END DO
+         ELSE
+            DO irow = 1, nrow_local
+               irow_global = row_indices(irow)
+               a(irow, icol) = scaling(irow_global)*a(irow, icol)
+            END DO
+         ENDIF
+      ENDDO
+#else
+      IF (matrixa%use_sp) THEN
+         DO j = 1, m
+            a_sp(1:n, j) = REAL(scaling(1:n), sp)*a_sp(1:n, j)
+         ENDDO
+      ELSE
+         DO j = 1, m
+            a(1:n, j) = scaling(1:n)*a(1:n, j)
+         ENDDO
+      ENDIF
+#endif
+   END SUBROUTINE cp_fm_row_scale
 ! **************************************************************************************************
 !> \brief Inverts a cp_fm_type matrix, optionally returning the determinant of the input matrix
 !> \param matrix_a the matrix to invert
@@ -1370,6 +1451,7 @@ CONTAINS
 !>      - computation of determinant corrected
 !>      - determinant only computed if det_a is present
 !>      12.2016 added option to use SVD instead of LU [Nico Holmberg]
+!>      - Use cp_fm_get diag instead of n times cp_fm_get_element (A. Bussy)
 !> \author Florian Schiffmann(02.2007)
 ! **************************************************************************************************
    SUBROUTINE cp_fm_invert(matrix_a, matrix_inverse, det_a, eps_svd, eigval)
@@ -1379,9 +1461,6 @@ CONTAINS
       REAL(KIND=dp), INTENT(IN), OPTIONAL      :: eps_svd
       REAL(KIND=dp), DIMENSION(:), POINTER, &
          INTENT(INOUT), OPTIONAL               :: eigval
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'cp_fm_invert', &
-                                     routineP = moduleN//':'//routineN
 
       INTEGER                                  :: n
       INTEGER, ALLOCATABLE, DIMENSION(:)       :: ipivot
@@ -1412,7 +1491,7 @@ CONTAINS
 
       a => matrix_lu%local_data
       n = matrix_lu%matrix_struct%nrow_global
-      ALLOCATE (ipivot(n+matrix_a%matrix_struct%nrow_block))
+      ALLOCATE (ipivot(n + matrix_a%matrix_struct%nrow_block))
       ipivot(:) = 0
 #if defined(__SCALAPACK)
       IF (my_eps_svd .EQ. 0.0_dp) THEN
@@ -1420,22 +1499,20 @@ CONTAINS
          lwork = 3*n
          liwork = 3*n
          desca(:) = matrix_lu%matrix_struct%descriptor(:)
-         CALL pdgetrf(n, n, a(1, 1), 1, 1, desca, ipivot, info)
+         CALL pdgetrf(n, n, a, 1, 1, desca, ipivot, info)
 
          IF (PRESENT(det_a) .OR. PRESENT(eigval)) THEN
 
             ALLOCATE (diag(n))
             diag(:) = 0.0_dp
-            DO i = 1, n
-               CALL cp_fm_get_element(matrix_lu, i, i, diag(i)) !  not completely optimal in speed i would say
-            ENDDO
+            CALL cp_fm_get_diag(matrix_lu, diag)
 
             exponent_of_minus_one = 0
             determinant = 1.0_dp
             DO i = 1, n
                determinant = determinant*diag(i)
                IF (ipivot(i) .NE. i) THEN
-                  exponent_of_minus_one = exponent_of_minus_one+1
+                  exponent_of_minus_one = exponent_of_minus_one + 1
                END IF
             ENDDO
             IF (PRESENT(eigval)) THEN
@@ -1482,7 +1559,7 @@ CONTAINS
                       1, 1, desca, vt%local_data, 1, 1, desca, work, lwork, info)
          ! info == n+1 implies homogeneity error when the number of procs is large
          ! this likely isnt a problem, but maybe we should handle it separately
-         IF (info /= 0 .AND. info /= n+1) &
+         IF (info /= 0 .AND. info /= n + 1) &
             CPABORT("Singular value decomposition of matrix failed.")
          ! (Pseudo)inverse and (pseudo)determinant
          CALL cp_fm_create(matrix=sigma, &
@@ -1559,8 +1636,7 @@ CONTAINS
       TYPE(cp_fm_type), POINTER                :: matrix_a
       CHARACTER, INTENT(IN), OPTIONAL          :: uplo_tr
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'cp_fm_triangular_invert', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'cp_fm_triangular_invert'
 
       CHARACTER                                :: unit_diag, uplo
       INTEGER                                  :: handle, info, ncol_global
@@ -1593,9 +1669,9 @@ CONTAINS
    END SUBROUTINE cp_fm_triangular_invert
 
 ! **************************************************************************************************
-!> \brief  perfoms a QR factorization of the input rectangular matrix A or of a submatrix of A
+!> \brief  performs a QR factorization of the input rectangular matrix A or of a submatrix of A
 !>         the computed upper triangular matrix R is in output in the submatrix sub(A) of size NxN
-!>         M and M give the dimention of the submatrix that has to be factorized (MxN) with M>N
+!>         M and M give the dimension of the submatrix that has to be factorized (MxN) with M>N
 !> \param matrix_a ...
 !> \param matrix_r ...
 !> \param nrow_fact ...
@@ -1609,8 +1685,7 @@ CONTAINS
       INTEGER, INTENT(IN), OPTIONAL            :: nrow_fact, ncol_fact, &
                                                   first_row, first_col
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'cp_fm_qr_factorization', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'cp_fm_qr_factorization'
 
       INTEGER                                  :: handle, i, icol, info, irow, &
                                                   j, lda, lwork, ncol, &
@@ -1668,7 +1743,7 @@ CONTAINS
       ALLOCATE (r_mat(ncol, ncol))
       CALL cp_fm_get_submatrix(matrix_a, r_mat, 1, 1, ncol, ncol)
       DO i = 1, ncol
-         DO j = i+1, ncol
+         DO j = i + 1, ncol
             r_mat(j, i) = 0.0_dp
          END DO
       END DO
@@ -1681,7 +1756,7 @@ CONTAINS
    END SUBROUTINE cp_fm_qr_factorization
 
 ! **************************************************************************************************
-!> \brief computs the the solution to A*b=A_general using lu decomposition
+!> \brief computes the the solution to A*b=A_general using lu decomposition
 !>        pay attention, both matrices are overwritten, a_general contais the result
 !> \param matrix_a ...
 !> \param general_a ...
@@ -1690,8 +1765,7 @@ CONTAINS
    SUBROUTINE cp_fm_solve(matrix_a, general_a)
       TYPE(cp_fm_type), POINTER                :: matrix_a, general_a
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_solve', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_solve'
 
       INTEGER                                  :: handle, info, n
       INTEGER, ALLOCATABLE, DIMENSION(:)       :: ipivot
@@ -1707,20 +1781,20 @@ CONTAINS
       a => matrix_a%local_data
       a_general => general_a%local_data
       n = matrix_a%matrix_struct%nrow_global
-      ALLOCATE (ipivot(n+matrix_a%matrix_struct%nrow_block))
+      ALLOCATE (ipivot(n + matrix_a%matrix_struct%nrow_block))
 
 #if defined(__SCALAPACK)
       desca(:) = matrix_a%matrix_struct%descriptor(:)
       descb(:) = general_a%matrix_struct%descriptor(:)
-      CALL pdgetrf(n, n, a(1, 1), 1, 1, desca, ipivot, info)
-      CALL pdgetrs("N", n, n, a(1, 1), 1, 1, desca, ipivot, a_general(1, 1), &
+      CALL pdgetrf(n, n, a, 1, 1, desca, ipivot, info)
+      CALL pdgetrs("N", n, n, a, 1, 1, desca, ipivot, a_general, &
                    1, 1, descb, info)
 
 #else
       lda = SIZE(a, 1)
       ldb = SIZE(a_general, 1)
-      CALL dgetrf(n, n, a(1, 1), lda, ipivot, info)
-      CALL dgetrs("N", n, n, a(1, 1), lda, ipivot, a_general, ldb, info)
+      CALL dgetrf(n, n, a, lda, ipivot, info)
+      CALL dgetrs("N", n, n, a, lda, ipivot, a_general, ldb, info)
 
 #endif
       ! info is allowed to be zero
@@ -1769,8 +1843,7 @@ CONTAINS
       INTEGER, INTENT(IN), OPTIONAL                      :: a_first_col, a_first_row, b_first_col, &
                                                             b_first_row, c_first_col, c_first_row
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_complex_fm_gemm', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_complex_fm_gemm'
 
       INTEGER                                            :: handle
 
@@ -1820,8 +1893,7 @@ CONTAINS
       TYPE(cp_fm_type), POINTER                :: matrix
       INTEGER, INTENT(OUT), OPTIONAL           :: info_out
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_lu_invert', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_lu_invert'
 
       INTEGER :: nrows_global, handle, info, lwork
       INTEGER, DIMENSION(:), ALLOCATABLE       :: ipivot
@@ -1951,8 +2023,7 @@ CONTAINS
       CHARACTER, INTENT(IN) :: mode
       REAL(KIND=dp) :: res
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_norm', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_norm'
 
       INTEGER :: nrows, ncols, handle, lwork, nrows_local, ncols_local
       REAL(KIND=sp) :: res_sp
@@ -2041,8 +2112,7 @@ CONTAINS
       TYPE(cp_fm_type), POINTER :: matrix
       REAL(KIND=dp) :: res
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_latra', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_latra'
 
       INTEGER :: nrows, ncols, handle
       REAL(KIND=sp) :: res_sp
@@ -2074,13 +2144,13 @@ CONTAINS
       IF (matrix%use_sp) THEN
          res_sp = 0.0_sp
          DO ii = 1, nrows
-            res_sp = res_sp+aa_sp(ii, ii)
+            res_sp = res_sp + aa_sp(ii, ii)
          END DO
          res = REAL(res_sp, KIND=dp)
       ELSE
          res = 0.0_dp
          DO ii = 1, nrows
-            res = res+aa(ii, ii)
+            res = res + aa(ii, ii)
          END DO
       END IF
 #endif
@@ -2088,5 +2158,135 @@ CONTAINS
       CALL timestop(handle)
 
    END FUNCTION cp_fm_latra
+
+! **************************************************************************************************
+!> \brief compute a QR factorization with column pivoting of a M-by-N distributed matrix
+!>        sub( A ) = A(IA:IA+M-1,JA:JA+N-1)
+!> \param matrix   : input M-by-N distributed matrix sub( A ) which is to be factored
+!> \param tau      :  scalar factors TAU of the elementary reflectors. TAU is tied to the distributed matrix A
+!> \param nrow ...
+!> \param ncol ...
+!> \param first_row ...
+!> \param first_col ...
+!> \author MI
+! **************************************************************************************************
+
+   SUBROUTINE cp_fm_pdgeqpf(matrix, tau, nrow, ncol, first_row, first_col)
+
+      TYPE(cp_fm_type), POINTER                          :: matrix
+      REAL(KIND=dp), DIMENSION(:), POINTER               :: tau
+      INTEGER, INTENT(IN)                                :: nrow, ncol, first_row, first_col
+
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_pdgeqpf'
+
+      INTEGER                                            :: handle
+      INTEGER                                            :: info, lwork
+      INTEGER, ALLOCATABLE, DIMENSION(:)                 :: ipiv
+      REAL(KIND=dp), DIMENSION(:, :), POINTER            :: a
+      REAL(KIND=dp), DIMENSION(:), POINTER               :: work
+#if defined(__SCALAPACK)
+      INTEGER, DIMENSION(9) :: descc
+#else
+      INTEGER :: ii
+#endif
+
+      CALL timeset(routineN, handle)
+
+      a => matrix%local_data
+      lwork = -1
+      ALLOCATE (work(2*nrow))
+      ALLOCATE (ipiv(ncol))
+      info = 0
+      tau = 0
+
+#if defined(__SCALAPACK)
+      descc(:) = matrix%matrix_struct%descriptor(:)
+      ! Call SCALAPACK routine to get optimal work dimension
+      CALL pdgeqpf(nrow, ncol, a, first_row, first_col, descc, ipiv, tau, work, lwork, info)
+      lwork = INT(work(1))
+      DEALLOCATE (work)
+      ALLOCATE (work(lwork))
+      tau = 0.0_dp
+      ipiv = 0
+
+      ! Call SCALAPACK routine to get QR decomposition of CTs
+      CALL pdgeqpf(nrow, ncol, a, first_row, first_col, descc, ipiv, tau, work, lwork, info)
+      CPASSERT(INFO == 0)
+#else
+      ! NIY
+      ii = 1
+      tau(first_row) = 0
+      tau(first_col) = 0
+#endif
+
+      DEALLOCATE (work)
+      DEALLOCATE (ipiv)
+
+      CALL timestop(handle)
+
+   END SUBROUTINE cp_fm_pdgeqpf
+
+! **************************************************************************************************
+!> \brief generates an M-by-N real distributed matrix Q denoting A(IA:IA+M-1,JA:JA+N-1)
+!>         with orthonormal columns, which is defined as the first N columns of a product of K
+!>         elementary reflectors of order M
+!> \param matrix : On entry, the j-th column must contain the vector which defines the elementary reflector
+!>                  as returned from PDGEQRF
+!>                 On exit it contains  the M-by-N distributed matrix Q
+!> \param tau :   contains the scalar factors TAU of elementary reflectors  as returned by PDGEQRF
+!> \param nrow ...
+!> \param first_row ...
+!> \param first_col ...
+!> \author MI
+! **************************************************************************************************
+
+   SUBROUTINE cp_fm_pdorgqr(matrix, tau, nrow, first_row, first_col)
+
+      TYPE(cp_fm_type), POINTER                          :: matrix
+      REAL(KIND=dp), DIMENSION(:), POINTER               :: tau
+      INTEGER, INTENT(IN)                                :: nrow, first_row, first_col
+
+      CHARACTER(len=*), PARAMETER :: routineN = 'cp_fm_pdorgqr'
+
+      INTEGER                                            :: handle
+      INTEGER                                            :: info, lwork
+      REAL(KIND=dp), DIMENSION(:, :), POINTER            :: a
+      REAL(KIND=dp), DIMENSION(:), POINTER               :: work
+#if defined(__SCALAPACK)
+      INTEGER, DIMENSION(9) :: descc
+#else
+      INTEGER :: ii
+#endif
+
+      CALL timeset(routineN, handle)
+
+      a => matrix%local_data
+      lwork = -1
+      ALLOCATE (work(2*nrow))
+      info = 0
+
+#if defined(__SCALAPACK)
+      descc(:) = matrix%matrix_struct%descriptor(:)
+
+      CALL pdorgqr(nrow, nrow, nrow, a, first_row, first_col, descc, tau, work, lwork, info)
+      CPASSERT(info == 0)
+      lwork = INT(work(1))
+      DEALLOCATE (work)
+      ALLOCATE (work(lwork))
+
+      ! Call SCALAPACK routine to get Q
+      CALL pdorgqr(nrow, nrow, nrow, a, first_row, first_col, descc, tau, work, lwork, info)
+      CPASSERT(INFO == 0)
+#else
+      ! NIY
+      ii = 1
+      tau(first_row) = 0
+      tau(first_col) = 0
+#endif
+
+      DEALLOCATE (work)
+      CALL timestop(handle)
+
+   END SUBROUTINE cp_fm_pdorgqr
 
 END MODULE cp_fm_basic_linalg

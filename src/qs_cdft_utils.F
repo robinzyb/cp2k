@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -10,6 +12,7 @@
 !> \author Nico Holmberg [03.2017]
 ! **************************************************************************************************
 MODULE qs_cdft_utils
+   USE ao_util,                         ONLY: exp_radius_very_extended
    USE atomic_kind_types,               ONLY: atomic_kind_type,&
                                               get_atomic_kind
    USE bibliography,                    ONLY: Becke1988b,&
@@ -28,6 +31,8 @@ MODULE qs_cdft_utils
    USE cp_para_types,                   ONLY: cp_para_env_type
    USE cp_realspace_grid_cube,          ONLY: cp_pw_to_cube
    USE cp_units,                        ONLY: cp_unit_from_cp2k
+   USE grid_api,                        ONLY: GRID_FUNC_AB,&
+                                              collocate_pgf_product
    USE hirshfeld_methods,               ONLY: create_shape_function
    USE hirshfeld_types,                 ONLY: create_hirshfeld_type,&
                                               hirshfeld_type,&
@@ -42,8 +47,7 @@ MODULE qs_cdft_utils
                                               section_vals_type,&
                                               section_vals_val_get
    USE kinds,                           ONLY: default_path_length,&
-                                              dp,&
-                                              int_8
+                                              dp
    USE memory_utilities,                ONLY: reallocate
    USE outer_scf_control_types,         ONLY: outer_scf_read_parameters
    USE particle_list_types,             ONLY: particle_list_type
@@ -58,12 +62,10 @@ MODULE qs_cdft_utils
                                               cdft_control_type,&
                                               cdft_group_type,&
                                               hirshfeld_constraint_type
-   USE qs_collocate_density,            ONLY: collocate_pgf_product_rspace
    USE qs_environment_types,            ONLY: get_qs_env,&
                                               qs_environment_type
    USE qs_kind_types,                   ONLY: get_qs_kind,&
                                               qs_kind_type
-   USE qs_modify_pab_block,             ONLY: FUNC_AB
    USE qs_scf_output,                   ONLY: qs_scf_cdft_constraint_info
    USE qs_subsys_types,                 ONLY: qs_subsys_get,&
                                               qs_subsys_type
@@ -98,8 +100,7 @@ CONTAINS
    SUBROUTINE becke_constraint_init(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'becke_constraint_init', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'becke_constraint_init'
 
       CHARACTER(len=2)                                   :: element_symbol
       INTEGER :: atom_a, bounds(2), handle, i, iatom, iex, igroup, ikind, ip, ithread, iw, j, &
@@ -109,7 +110,7 @@ CONTAINS
       LOGICAL                                            :: build, in_memory, mpi_io
       LOGICAL, ALLOCATABLE, DIMENSION(:)                 :: is_constraint
       REAL(KIND=dp)                                      :: alpha, chi, coef, eps_cavity, ircov, &
-                                                            jrcov, uij
+                                                            jrcov, radius, uij
       REAL(KIND=dp), DIMENSION(3)                        :: cell_v, dist_vec, r, r1, ra
       REAL(KIND=dp), DIMENSION(:), POINTER               :: radii_list
       REAL(KIND=dp), DIMENSION(:, :), POINTER            :: pab
@@ -223,15 +224,15 @@ CONTAINS
       DO i = 1, 3
          cell_v(i) = cell%hmat(i, i)
       END DO
-      DO iatom = 1, natom-1
-         DO jatom = iatom+1, natom
+      DO iatom = 1, natom - 1
+         DO jatom = iatom + 1, natom
             r = particle_set(iatom)%r
             r1 = particle_set(jatom)%r
             DO i = 1, 3
-               r(i) = MODULO(r(i), cell%hmat(i, i))-cell%hmat(i, i)/2._dp
-               r1(i) = MODULO(r1(i), cell%hmat(i, i))-cell%hmat(i, i)/2._dp
+               r(i) = MODULO(r(i), cell%hmat(i, i)) - cell%hmat(i, i)/2._dp
+               r1(i) = MODULO(r1(i), cell%hmat(i, i)) - cell%hmat(i, i)/2._dp
             END DO
-            dist_vec = (r-r1)-ANINT((r-r1)/cell_v)*cell_v
+            dist_vec = (r - r1) - ANINT((r - r1)/cell_v)*cell_v
             ! Store pbc corrected position and pairwise distance vectors for later reuse
             IF (becke_control%vector_buffer%store_vectors) THEN
                becke_control%vector_buffer%position_vecs(:, iatom) = r(:)
@@ -251,8 +252,8 @@ CONTAINS
                jrcov = becke_control%radii(ikind)
                IF (ircov .NE. jrcov) THEN
                   chi = ircov/jrcov
-                  uij = (chi-1.0_dp)/(chi+1.0_dp)
-                  becke_control%aij(iatom, jatom) = uij/(uij**2-1.0_dp)
+                  uij = (chi - 1.0_dp)/(chi + 1.0_dp)
+                  becke_control%aij(iatom, jatom) = uij/(uij**2 - 1.0_dp)
                   IF (becke_control%aij(iatom, jatom) .GT. 0.5_dp) THEN
                      becke_control%aij(iatom, jatom) = 0.5_dp
                   ELSE IF (becke_control%aij(iatom, jatom) .LT. -0.5_dp) THEN
@@ -357,11 +358,11 @@ CONTAINS
                   IF (rs_cavity%desc%parallel .AND. .NOT. rs_cavity%desc%distributed) THEN
                      ! replicated realspace grid, split the atoms up between procs
                      IF (MODULO(iatom, rs_cavity%desc%group_size) == rs_cavity%desc%my_pos) THEN
-                        npme = npme+1
+                        npme = npme + 1
                         cores(npme) = iatom
                      ENDIF
                   ELSE
-                     npme = npme+1
+                     npme = npme + 1
                      cores(npme) = iatom
                   ENDIF
                END DO
@@ -370,18 +371,23 @@ CONTAINS
                   atom_a = atom_list(iatom)
                   pab(1, 1) = coef
                   IF (becke_control%vector_buffer%store_vectors) THEN
-                     ra(:) = becke_control%vector_buffer%position_vecs(:, atom_a)+cell_v(:)/2._dp
+                     ra(:) = becke_control%vector_buffer%position_vecs(:, atom_a) + cell_v(:)/2._dp
                   ELSE
                      ra(:) = pbc(particle_set(atom_a)%r, cell)
                   END IF
-                  IF (is_constraint(atom_a)) &
-                     CALL collocate_pgf_product_rspace(0, alpha, 0, 0, 0.0_dp, 0, ra, &
-                                                       (/0.0_dp, 0.0_dp, 0.0_dp/), 0.0_dp, 1.0_dp, &
-                                                       pab, 0, 0, rs_cavity, cell, pw_env%cube_info(1), &
-                                                       dft_control%qs_control%eps_rho_rspace, &
-                                                       ga_gb_function=FUNC_AB, ithread=ithread, &
-                                                       use_subpatch=.TRUE., subpatch_pattern=0_int_8, &
-                                                       lmax_global=0)
+                  IF (is_constraint(atom_a)) THEN
+                     radius = exp_radius_very_extended(la_min=0, la_max=0, lb_min=0, lb_max=0, &
+                                                       ra=ra, rb=ra, rp=ra, zetp=alpha, &
+                                                       eps=dft_control%qs_control%eps_rho_rspace, &
+                                                       pab=pab, o1=0, o2=0, &  ! without map_consistent
+                                                       prefactor=1.0_dp, cutoff=0.0_dp)
+
+                     CALL collocate_pgf_product(0, alpha, 0, 0, 0.0_dp, 0, ra, &
+                                                (/0.0_dp, 0.0_dp, 0.0_dp/), 1.0_dp, &
+                                                pab, 0, 0, rs_cavity, cell, pw_env%cube_info(1), &
+                                                radius=radius, ga_gb_function=GRID_FUNC_AB, &
+                                                use_subpatch=.TRUE., subpatch_pattern=0)
+                  ENDIF
                END DO
             END DO
             DEALLOCATE (cores)
@@ -401,7 +407,7 @@ CONTAINS
             ! Save bounds (first nonzero grid point indices)
             bo = group(1)%weight%pw%pw_grid%bounds_local
             IF (bounds(2) .LT. bo(2, 3)) THEN
-               bounds(2) = bounds(2)-1
+               bounds(2) = bounds(2) - 1
             ELSE
                bounds(2) = bo(2, 3)
             END IF
@@ -409,7 +415,7 @@ CONTAINS
                ! In the special case bounds(1) == bounds(2) == bo(2, 3), after this check
                ! bounds(1) > bounds(2) and the subsequent gradient allocation (:, :, :, bounds(1):bounds(2))
                ! will correctly allocate a 0-sized array
-               bounds(1) = bounds(1)+1
+               bounds(1) = bounds(1) + 1
             ELSE
                bounds(1) = bo(1, 3)
             END IF
@@ -426,7 +432,7 @@ CONTAINS
                                            middle_name="BECKE_CAVITY", &
                                            extension=".cube", file_position="REWIND", &
                                            log_filename=.FALSE., mpi_io=mpi_io)
-            IF (para_env%mepos == para_env%source .AND. unit_nr .LT. 1) &
+            IF (para_env%ionode .AND. unit_nr .LT. 1) &
                CALL cp_abort(__LOCATION__, &
                              "Please turn on PROGRAM_RUN_INFO to print cavity")
             CALL get_qs_env(qs_env, subsys=subsys)
@@ -455,9 +461,6 @@ CONTAINS
 
       TYPE(cdft_control_type), INTENT(INOUT)             :: cdft_control
       TYPE(section_vals_type), POINTER                   :: becke_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_becke_section', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: j
       LOGICAL                                            :: exists
@@ -533,9 +536,6 @@ CONTAINS
       TYPE(cdft_control_type), INTENT(INOUT)             :: cdft_control
       TYPE(section_vals_type), INTENT(INOUT), POINTER    :: cdft_control_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_constraint_definitions', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, j, jj, k, n_rep, natoms, nvar, &
                                                             tot_natoms
       INTEGER, DIMENSION(:), POINTER                     :: atomlist, dummylist, tmplist
@@ -559,20 +559,20 @@ CONTAINS
             CALL section_vals_val_get(group_section, "ATOMS", i_rep_section=k, i_rep_val=j, i_vals=tmplist)
             IF (SIZE(tmplist) < 1) &
                CPABORT("Each ATOM_GROUP must contain at least 1 atom.")
-            natoms = natoms+SIZE(tmplist)
+            natoms = natoms + SIZE(tmplist)
          END DO
          ALLOCATE (cdft_control%group(k)%atoms(natoms))
          ALLOCATE (cdft_control%group(k)%coeff(natoms))
          NULLIFY (cdft_control%group(k)%weight%pw)
          NULLIFY (cdft_control%group(k)%gradients)
          NULLIFY (cdft_control%group(k)%integrated)
-         tot_natoms = tot_natoms+natoms
+         tot_natoms = tot_natoms + natoms
          ! Now parse
          jj = 0
          DO j = 1, n_rep
             CALL section_vals_val_get(group_section, "ATOMS", i_rep_section=k, i_rep_val=j, i_vals=tmplist)
             DO i = 1, SIZE(tmplist)
-               jj = jj+1
+               jj = jj + 1
                cdft_control%group(k)%atoms(jj) = tmplist(i)
             END DO
          END DO
@@ -581,7 +581,7 @@ CONTAINS
          DO j = 1, n_rep
             CALL section_vals_val_get(group_section, "COEFF", i_rep_section=k, i_rep_val=j, r_vals=rtmplist)
             DO i = 1, SIZE(rtmplist)
-               jj = jj+1
+               jj = jj + 1
                IF (jj > natoms) CPABORT("Length of keywords ATOMS and COEFF must match.")
                IF (ABS(rtmplist(i)) /= 1.0_dp) CPABORT("Keyword COEFF accepts only values +/-1.0")
                cdft_control%group(k)%coeff(jj) = rtmplist(i)
@@ -601,14 +601,14 @@ CONTAINS
       DO k = 1, nvar
          DO j = 1, SIZE(cdft_control%group(k)%atoms)
             is_duplicate = .FALSE.
-            DO i = 1, jj+1
+            DO i = 1, jj + 1
                IF (cdft_control%group(k)%atoms(j) == atomlist(i)) THEN
                   is_duplicate = .TRUE.
                   EXIT
                END IF
             END DO
             IF (.NOT. is_duplicate) THEN
-               jj = jj+1
+               jj = jj + 1
                atomlist(jj) = cdft_control%group(k)%atoms(j)
             END IF
          END DO
@@ -628,7 +628,7 @@ CONTAINS
                CALL section_vals_val_get(group_section, "ATOMS", i_rep_val=j, i_vals=tmplist)
                IF (SIZE(tmplist) < 1) &
                   CPABORT("DUMMY_ATOMS must contain at least 1 atom.")
-               natoms = natoms+SIZE(tmplist)
+               natoms = natoms + SIZE(tmplist)
             END DO
             ALLOCATE (dummylist(natoms))
             ! Now parse
@@ -636,13 +636,13 @@ CONTAINS
             DO j = 1, n_rep
                CALL section_vals_val_get(group_section, "ATOMS", i_rep_val=j, i_vals=tmplist)
                DO i = 1, SIZE(tmplist)
-                  jj = jj+1
+                  jj = jj + 1
                   dummylist(jj) = tmplist(i)
                END DO
             END DO
             ! Check for duplicates
             DO j = 1, natoms
-               DO i = j+1, natoms
+               DO i = j + 1, natoms
                   IF (dummylist(i) == dummylist(j)) &
                      CPABORT("Duplicate atoms defined in section DUMMY_ATOMS.")
                END DO
@@ -659,7 +659,7 @@ CONTAINS
       END IF
       ! Join dummy atoms and constraint atoms into one list
       IF (ASSOCIATED(dummylist)) THEN
-         cdft_control%natoms = SIZE(atomlist)+SIZE(dummylist)
+         cdft_control%natoms = SIZE(atomlist) + SIZE(dummylist)
       ELSE
          cdft_control%natoms = SIZE(atomlist)
       END IF
@@ -668,7 +668,7 @@ CONTAINS
       IF (cdft_control%atomic_charges) ALLOCATE (cdft_control%charge(cdft_control%natoms))
       cdft_control%atoms(1:SIZE(atomlist)) = atomlist
       IF (ASSOCIATED(dummylist)) THEN
-         cdft_control%atoms(1+SIZE(atomlist):) = dummylist
+         cdft_control%atoms(1 + SIZE(atomlist):) = dummylist
          DEALLOCATE (dummylist)
       END IF
       cdft_control%is_constraint = .FALSE.
@@ -725,9 +725,6 @@ CONTAINS
    SUBROUTINE read_cdft_control_section(qs_control, cdft_control_section)
       TYPE(qs_control_type), INTENT(INOUT)               :: qs_control
       TYPE(section_vals_type), POINTER                   :: cdft_control_section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_cdft_control_section', &
-         routineP = moduleN//':'//routineN
 
       LOGICAL                                            :: exists
       TYPE(cdft_control_type), POINTER                   :: cdft_control
@@ -805,9 +802,6 @@ CONTAINS
       TYPE(cdft_control_type), INTENT(INOUT)             :: cdft_control
       TYPE(section_vals_type), POINTER                   :: hirshfeld_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'read_hirshfeld_constraint_section', &
-         routineP = moduleN//':'//routineN
-
       LOGICAL                                            :: exists
       REAL(KIND=dp), DIMENSION(:), POINTER               :: rtmplist
       TYPE(hirshfeld_constraint_type), POINTER           :: hirshfeld_control
@@ -855,7 +849,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :, :), INTENT(IN)      :: fun1, fun2
       LOGICAL, INTENT(IN)                                :: divide
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'hfun_scale', routineP = moduleN//':'//routineN
       REAL(KIND=dp), PARAMETER                           :: small = 1.0e-12_dp
 
       INTEGER                                            :: i1, i2, i3, n1, n2, n3
@@ -908,8 +901,6 @@ CONTAINS
       LOGICAL                                            :: just_bounds
       INTEGER, OPTIONAL                                  :: bounds(2)
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'hfun_zero', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i1, i2, i3, lb, n1, n2, n3, nzeroed, &
                                                             nzeroed_inner, ub
       LOGICAL                                            :: lb_final, ub_final
@@ -931,7 +922,7 @@ CONTAINS
             DO i1 = 1, n1
                IF (fun(i1, i2, i3) < th) THEN
                   IF (just_bounds) THEN
-                     nzeroed_inner = nzeroed_inner+1
+                     nzeroed_inner = nzeroed_inner + 1
                   ELSE
                      fun(i1, i2, i3) = 0.0_dp
                   END IF
@@ -941,7 +932,7 @@ CONTAINS
             END DO
             IF (just_bounds) THEN
                IF (nzeroed_inner < n1) EXIT
-               nzeroed = nzeroed+nzeroed_inner
+               nzeroed = nzeroed + nzeroed_inner
             END IF
          END DO
          IF (just_bounds) THEN
@@ -962,7 +953,7 @@ CONTAINS
          IF (.NOT. ub_final) ub = n3
          bounds(1) = lb
          bounds(2) = ub
-         bounds = bounds-(n3/2)-1
+         bounds = bounds - (n3/2) - 1
       END IF
 
    END SUBROUTINE hfun_zero
@@ -975,8 +966,7 @@ CONTAINS
    SUBROUTINE hirshfeld_constraint_init(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'hirshfeld_constraint_init', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'hirshfeld_constraint_init'
 
       CHARACTER(len=2)                                   :: element_symbol
       INTEGER                                            :: handle, iat, iatom, igroup, ikind, ip, &
@@ -1106,9 +1096,6 @@ CONTAINS
       TYPE(qs_environment_type), POINTER                 :: qs_env
       REAL(kind=dp), ALLOCATABLE, DIMENSION(:, :)        :: electronic_charge
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'cdft_constraint_print', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(len=2)                                   :: element_symbol
       INTEGER                                            :: iatom, ikind, iw, jatom
       REAL(kind=dp)                                      :: tc(2), zeff
@@ -1157,8 +1144,8 @@ CONTAINS
                   CALL get_qs_kind(qs_kind_set(ikind), zeff=zeff)
                   WRITE (iw, "(i7,T15,A2,T23,L10,T39,F8.3,T61,F8.3,T81,F8.3)") &
                      jatom, ADJUSTR(element_symbol), cdft_control%is_constraint(iatom), zeff, electronic_charge(iatom, 1), &
-                     (zeff-electronic_charge(iatom, 1))
-                  tc(1) = tc(1)+(zeff-electronic_charge(iatom, 1))
+                     (zeff - electronic_charge(iatom, 1))
+                  tc(1) = tc(1) + (zeff - electronic_charge(iatom, 1))
                END DO
                WRITE (iw, '(/,T3,A,T81,F8.3,/)') "Total Charge: ", tc(1)
             ELSE
@@ -1178,10 +1165,10 @@ CONTAINS
                      jatom, ADJUSTR(element_symbol), &
                      cdft_control%is_constraint(iatom), &
                      zeff, electronic_charge(iatom, 1), electronic_charge(iatom, 2), &
-                     (zeff-electronic_charge(iatom, 1)-electronic_charge(iatom, 2)), &
-                     electronic_charge(iatom, 1)-electronic_charge(iatom, 2)
-                  tc(1) = tc(1)+(zeff-electronic_charge(iatom, 1)-electronic_charge(iatom, 2))
-                  tc(2) = tc(2)+(electronic_charge(iatom, 1)-electronic_charge(iatom, 2))
+                     (zeff - electronic_charge(iatom, 1) - electronic_charge(iatom, 2)), &
+                     electronic_charge(iatom, 1) - electronic_charge(iatom, 2)
+                  tc(1) = tc(1) + (zeff - electronic_charge(iatom, 1) - electronic_charge(iatom, 2))
+                  tc(2) = tc(2) + (electronic_charge(iatom, 1) - electronic_charge(iatom, 2))
                END DO
                WRITE (iw, '(/,T3,A,T81,F8.3,T102,F8.3/)') "Total Charge and Spin Moment: ", tc(1), tc(2)
             END IF
@@ -1210,20 +1197,20 @@ CONTAINS
                         cdft_control%is_constraint(iatom), &
                         cdft_control%charges_fragment(iatom, 1), &
                         electronic_charge(iatom, 1), &
-                        (electronic_charge(iatom, 1)- &
+                        (electronic_charge(iatom, 1) - &
                          cdft_control%charges_fragment(iatom, 1))
-                     tc(1) = tc(1)+(electronic_charge(iatom, 1)- &
-                                    cdft_control%charges_fragment(iatom, 1))
+                     tc(1) = tc(1) + (electronic_charge(iatom, 1) - &
+                                      cdft_control%charges_fragment(iatom, 1))
                   ELSE
                      WRITE (iw, "(i7,T15,A2,T23,L10,T43,F8.3,T57,F8.3,T69,F8.3,T81,F8.3)") &
                         jatom, ADJUSTR(element_symbol), &
                         cdft_control%is_constraint(iatom), &
                         cdft_control%charges_fragment(iatom, 1), &
                         electronic_charge(iatom, 1), electronic_charge(iatom, 2), &
-                        (electronic_charge(iatom, 1)+electronic_charge(iatom, 2)- &
+                        (electronic_charge(iatom, 1) + electronic_charge(iatom, 2) - &
                          cdft_control%charges_fragment(iatom, 1))
-                     tc(1) = tc(1)+(electronic_charge(iatom, 1)+electronic_charge(iatom, 2)- &
-                                    cdft_control%charges_fragment(iatom, 1))
+                     tc(1) = tc(1) + (electronic_charge(iatom, 1) + electronic_charge(iatom, 2) - &
+                                      cdft_control%charges_fragment(iatom, 1))
                   END IF
                END DO
                WRITE (iw, '(/,T3,A,T81,F8.3,/)') "Total Charge: ", tc(1)
@@ -1245,14 +1232,14 @@ CONTAINS
                      cdft_control%charges_fragment(iatom, 1), &
                      cdft_control%charges_fragment(iatom, 2), &
                      electronic_charge(iatom, 1), electronic_charge(iatom, 2), &
-                     (electronic_charge(iatom, 1)+electronic_charge(iatom, 2)- &
+                     (electronic_charge(iatom, 1) + electronic_charge(iatom, 2) - &
                       cdft_control%charges_fragment(iatom, 1)), &
-                     (electronic_charge(iatom, 1)-electronic_charge(iatom, 2)- &
+                     (electronic_charge(iatom, 1) - electronic_charge(iatom, 2) - &
                       cdft_control%charges_fragment(iatom, 2))
-                  tc(1) = tc(1)+(electronic_charge(iatom, 1)+electronic_charge(iatom, 2)- &
-                                 cdft_control%charges_fragment(iatom, 1))
-                  tc(2) = tc(2)+(electronic_charge(iatom, 1)-electronic_charge(iatom, 2)- &
-                                 cdft_control%charges_fragment(iatom, 2))
+                  tc(1) = tc(1) + (electronic_charge(iatom, 1) + electronic_charge(iatom, 2) - &
+                                   cdft_control%charges_fragment(iatom, 1))
+                  tc(2) = tc(2) + (electronic_charge(iatom, 1) - electronic_charge(iatom, 2) - &
+                                   cdft_control%charges_fragment(iatom, 2))
                END DO
                WRITE (iw, '(/,T3,A,T90,F8.3,T102,F8.3/)') "Total Charge and Spin Moment: ", tc(1), tc(2)
             END IF
@@ -1269,9 +1256,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE cdft_print_weight_function(qs_env)
       TYPE(qs_environment_type), POINTER                 :: qs_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'cdft_print_weight_function', &
-         routineP = moduleN//':'//routineN
 
       CHARACTER(LEN=default_path_length)                 :: middle_name
       INTEGER                                            :: igroup, unit_nr
@@ -1301,7 +1285,7 @@ CONTAINS
                                         extension=".cube", file_position="REWIND", &
                                         log_filename=.FALSE., mpi_io=mpi_io)
          ! Note PROGRAM_RUN_INFO section neeeds to be active!
-         IF (para_env%mepos == para_env%source .AND. unit_nr .LT. 1) &
+         IF (para_env%ionode .AND. unit_nr .LT. 1) &
             CALL cp_abort(__LOCATION__, &
                           "Please turn on PROGRAM_RUN_INFO to print CDFT weight function.")
 

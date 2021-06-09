@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -53,7 +55,7 @@ MODULE qs_linres_types
       INTEGER                                   :: property
       INTEGER                                   :: preconditioner_type
       INTEGER                                   :: restart_every
-      REAL(dp)                                  :: energy_gap
+      REAL(KIND=dp)                             :: energy_gap
       INTEGER                                   :: max_iter
       LOGICAL                                   :: localized_psi0
       LOGICAL                                   :: do_kernel
@@ -61,6 +63,7 @@ MODULE qs_linres_types
       LOGICAL                                   :: linres_restart
       LOGICAL                                   :: lr_triplet
       REAL(KIND=dp)                             :: eps
+      REAL(KIND=dp)                             :: eps_filter
       TYPE(qs_loc_env_new_type), POINTER        :: qs_loc_env
       CHARACTER(LEN=8)                          :: flag
    END TYPE linres_control_type
@@ -122,9 +125,9 @@ MODULE qs_linres_types
 ! \param type for polarisability calculation using Berry operator
    TYPE polar_env_type
       INTEGER                                      :: ref_count
-      LOGICAL                                      :: do_raman, run_stopped
+      LOGICAL                                      :: do_raman, run_stopped, do_periodic
       REAL(dp), DIMENSION(:, :), POINTER           :: polar
-      TYPE(cp_fm_p_type), DIMENSION(:, :), POINTER :: psi1_dBerry, dBerry_psi0, mo_derivs
+      TYPE(cp_fm_p_type), DIMENSION(:, :), POINTER :: psi1_dBerry, dBerry_psi0
    END TYPE polar_env_type
 ! *********************************************************************************************************
 
@@ -239,9 +242,6 @@ CONTAINS
 
       TYPE(linres_control_type), POINTER                 :: linres_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'linres_control_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(linres_control))
       ALLOCATE (linres_control)
       linres_control%ref_count = 1
@@ -255,6 +255,7 @@ CONTAINS
       linres_control%converged = .FALSE.
       linres_control%linres_restart = .FALSE.
       linres_control%eps = HUGE(0.0_dp)
+      linres_control%eps_filter = TINY(0.0_dp)
       linres_control%flag = ""
       linres_control%do_kernel = .FALSE.
       linres_control%lr_triplet = .FALSE.
@@ -269,12 +270,9 @@ CONTAINS
 
       TYPE(linres_control_type), POINTER                 :: linres_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'linres_control_release', &
-         routineP = moduleN//':'//routineN
-
       IF (ASSOCIATED(linres_control)) THEN
          CPASSERT(linres_control%ref_count > 0)
-         linres_control%ref_count = linres_control%ref_count-1
+         linres_control%ref_count = linres_control%ref_count - 1
          IF (linres_control%ref_count < 1) THEN
             IF (ASSOCIATED(linres_control%qs_loc_env)) THEN
                CALL qs_loc_env_release(linres_control%qs_loc_env)
@@ -293,12 +291,9 @@ CONTAINS
 
       TYPE(linres_control_type), POINTER                 :: linres_control
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'linres_control_retain', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(linres_control))
       CPASSERT(linres_control%ref_count > 0)
-      linres_control%ref_count = linres_control%ref_count+1
+      linres_control%ref_count = linres_control%ref_count + 1
 
    END SUBROUTINE linres_control_retain
 
@@ -309,9 +304,6 @@ CONTAINS
    SUBROUTINE current_env_create(current_env)
 
       TYPE(current_env_type)                             :: current_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'current_env_create', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(current_env%ref_count == 0)
       current_env%ref_count = 1
@@ -352,8 +344,6 @@ CONTAINS
 
       TYPE(nmr_env_type)                                 :: nmr_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'nmr_env_create', routineP = moduleN//':'//routineN
-
       CPASSERT(nmr_env%ref_count == 0)
       nmr_env%ref_count = 1
       NULLIFY (nmr_env%chemical_shift)
@@ -373,9 +363,6 @@ CONTAINS
    SUBROUTINE issc_env_create(issc_env)
 
       TYPE(issc_env_type)                                :: issc_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'issc_env_create', &
-         routineP = moduleN//':'//routineN
 
       CPASSERT(issc_env%ref_count == 0)
       issc_env%ref_count = 1
@@ -403,8 +390,6 @@ CONTAINS
    SUBROUTINE epr_env_create(epr_env)
 
       TYPE(epr_env_type)                                 :: epr_env
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'epr_env_create', routineP = moduleN//':'//routineN
 
       CPASSERT(epr_env%ref_count == 0)
       epr_env%ref_count = 1
@@ -487,9 +472,6 @@ CONTAINS
       TYPE(cp_fm_p_type), DIMENSION(:), OPTIONAL, &
          POINTER                                         :: psi0_order
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_current_env', &
-         routineP = moduleN//':'//routineN
-
 !
 !
 
@@ -555,8 +537,6 @@ CONTAINS
                                                             chemical_shift_nics
       REAL(dp), INTENT(OUT), OPTIONAL                    :: shift_gapw_radius
       LOGICAL, INTENT(OUT), OPTIONAL                     :: do_nics, interpolate_shift
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_nmr_env', routineP = moduleN//':'//routineN
 
       CPASSERT(nmr_env%ref_count > 0)
 
@@ -625,8 +605,6 @@ CONTAINS
          POINTER                                         :: matrix_efg, matrix_pso, matrix_dso, &
                                                             matrix_fc
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_issc_env', routineP = moduleN//':'//routineN
-
       CPASSERT(issc_env%ref_count > 0)
 
       IF (PRESENT(issc_on_atom_list)) issc_on_atom_list => issc_env%issc_on_atom_list
@@ -666,9 +644,6 @@ CONTAINS
          POINTER                                         :: jrho1_atom_set
       TYPE(qs_rho_p_type), DIMENSION(:), OPTIONAL, &
          POINTER                                         :: jrho1_set
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_current_env', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: idir
 
@@ -717,8 +692,6 @@ CONTAINS
       TYPE(rho_atom_coeff), DIMENSION(:, :), OPTIONAL, &
          POINTER                                         :: bind_atom_set
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_epr_env', routineP = moduleN//':'//routineN
-
       CPASSERT(epr_env%ref_count > 0)
 
       IF (PRESENT(g_total)) g_total => epr_env%g_total
@@ -755,8 +728,6 @@ CONTAINS
          POINTER                                         :: nablavks_set
       TYPE(nablavks_atom_type), DIMENSION(:), OPTIONAL, &
          POINTER                                         :: nablavks_atom_set
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_epr_env', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: idir, ispin
 
@@ -799,9 +770,6 @@ CONTAINS
       TYPE(nablavks_atom_type), DIMENSION(:), POINTER    :: nablavks_atom_set
       INTEGER, INTENT(IN)                                :: natom
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_nablavks_atom_set', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: iat
 
       ALLOCATE (nablavks_atom_set(natom))
@@ -819,9 +787,6 @@ CONTAINS
    SUBROUTINE deallocate_nablavks_atom_set(nablavks_atom_set)
 
       TYPE(nablavks_atom_type), DIMENSION(:), POINTER    :: nablavks_atom_set
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_nablavks_atom_set', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, iat, idir, n, natom
 
@@ -855,9 +820,6 @@ CONTAINS
 
       TYPE(jrho_atom_type), DIMENSION(:), POINTER        :: jrho_atom_set
       INTEGER, INTENT(IN)                                :: natom
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_jrho_atom_set', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: iat
 
@@ -898,9 +860,6 @@ CONTAINS
    SUBROUTINE deallocate_jrho_atom_set(jrho_atom_set)
 
       TYPE(jrho_atom_type), DIMENSION(:), POINTER        :: jrho_atom_set
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_jrho_atom_set', &
-         routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, iat, idir, n, natom
 
@@ -1005,8 +964,7 @@ CONTAINS
       TYPE(jrho_atom_type), POINTER                      :: jrho1_atom
       INTEGER, INTENT(IN)                                :: ispin, nr, na, max_iso_not0
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_jrho_atom_rad', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_jrho_atom_rad'
 
       INTEGER                                            :: handle, idir
 
@@ -1064,9 +1022,6 @@ CONTAINS
       TYPE(jrho_atom_type), POINTER                      :: jrho1_atom
       INTEGER, INTENT(IN)                                :: ispin
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'set2zero_jrho_atom_rad', &
-         routineP = moduleN//':'//routineN
-
 !
 
       CPASSERT(ASSOCIATED(jrho1_atom))
@@ -1104,8 +1059,7 @@ CONTAINS
       TYPE(jrho_atom_type), DIMENSION(:), POINTER        :: jrho1_atom_set
       INTEGER, INTENT(IN)                                :: iatom, nsotot
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_jrho_coeff', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'allocate_jrho_coeff'
 
       INTEGER                                            :: handle, i
 
@@ -1144,8 +1098,7 @@ CONTAINS
       TYPE(jrho_atom_type), DIMENSION(:), POINTER        :: jrho1_atom_set
       INTEGER, INTENT(IN)                                :: iatom
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_jrho_coeff', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'deallocate_jrho_coeff'
 
       INTEGER                                            :: handle, i
 
@@ -1190,8 +1143,6 @@ CONTAINS
       TYPE(rho_atom_coeff), DIMENSION(:, :), OPTIONAL, &
          POINTER                                         :: jrho_vec_rad_h, jrho_vec_rad_s
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_jrho_atom', routineP = moduleN//':'//routineN
-
       CPASSERT(ASSOCIATED(jrho1_atom_set))
 
       IF (PRESENT(cjc_h)) cjc_h => jrho1_atom_set(iatom)%cjc_h
@@ -1216,8 +1167,7 @@ CONTAINS
       TYPE(atomic_kind_type), DIMENSION(:), POINTER      :: atomic_kind_set
       INTEGER, INTENT(IN)                                :: nspins
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_jrho_atom_set', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'init_jrho_atom_set'
 
       INTEGER                                            :: handle, iat, iatom, idir, ikind, ispin, &
                                                             nat, natom, nkind
@@ -1322,8 +1272,7 @@ CONTAINS
       TYPE(qs_kind_type), DIMENSION(:), POINTER          :: qs_kind_set
       INTEGER, INTENT(IN)                                :: nspins
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'init_nablavks_atom_set', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'init_nablavks_atom_set'
 
       INTEGER                                            :: handle, iat, iatom, idir, ikind, ispin, &
                                                             max_iso_not0, maxso, na, nat, natom, &
@@ -1391,18 +1340,15 @@ CONTAINS
 
       TYPE(polar_env_type), POINTER                      :: polar_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'polar_env_create', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(.NOT. ASSOCIATED(polar_env))
       ALLOCATE (polar_env)
       polar_env%ref_count = 1
       polar_env%do_raman = .FALSE.
+      polar_env%do_periodic = .TRUE.
       polar_env%run_stopped = .FALSE.
       NULLIFY (polar_env%polar)
       NULLIFY (polar_env%psi1_dBerry)
       NULLIFY (polar_env%dBerry_psi0)
-      NULLIFY (polar_env%mo_derivs)
 
    END SUBROUTINE polar_env_create
 
@@ -1410,34 +1356,31 @@ CONTAINS
 !> \brief ...
 !> \param polar_env ...
 !> \param do_raman ...
+!> \param do_periodic ...
 !> \param dBerry_psi0 ...
 !> \param polar ...
 !> \param psi1_dBerry ...
-!> \param mo_derivs ...
 !> \param run_stopped ...
 !> \par History
 !>      06.2018 polar_env integrated into qs_env (MK)
 ! **************************************************************************************************
-   SUBROUTINE get_polar_env(polar_env, do_raman, dBerry_psi0, polar, &
-                            psi1_dBerry, mo_derivs, run_stopped)
+   SUBROUTINE get_polar_env(polar_env, do_raman, do_periodic, dBerry_psi0, polar, psi1_dBerry, run_stopped)
 
       TYPE(polar_env_type), POINTER                      :: polar_env
-      LOGICAL, OPTIONAL                                  :: do_raman
+      LOGICAL, OPTIONAL                                  :: do_raman, do_periodic
       TYPE(cp_fm_p_type), DIMENSION(:, :), OPTIONAL, &
          POINTER                                         :: dBerry_psi0
       REAL(dp), DIMENSION(:, :), OPTIONAL, POINTER       :: polar
       TYPE(cp_fm_p_type), DIMENSION(:, :), OPTIONAL, &
-         POINTER                                         :: psi1_dBerry, mo_derivs
+         POINTER                                         :: psi1_dBerry
       LOGICAL, OPTIONAL                                  :: run_stopped
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_polar_env', routineP = moduleN//':'//routineN
 
       CPASSERT(polar_env%ref_count > 0)
 
       IF (PRESENT(polar)) polar => polar_env%polar
       IF (PRESENT(do_raman)) do_raman = polar_env%do_raman
+      IF (PRESENT(do_periodic)) do_periodic = polar_env%do_periodic
       IF (PRESENT(dBerry_psi0)) dBerry_psi0 => polar_env%dBerry_psi0
-      IF (PRESENT(mo_derivs)) mo_derivs => polar_env%mo_derivs
       IF (PRESENT(psi1_dBerry)) psi1_dBerry => polar_env%psi1_dBerry
       IF (PRESENT(run_stopped)) run_stopped = polar_env%run_stopped
 
@@ -1447,33 +1390,31 @@ CONTAINS
 !> \brief ...
 !> \param polar_env ...
 !> \param do_raman ...
+!> \param do_periodic ...
 !> \param dBerry_psi0 ...
 !> \param polar ...
 !> \param psi1_dBerry ...
-!> \param mo_derivs ...
 !> \param run_stopped ...
 ! **************************************************************************************************
-   SUBROUTINE set_polar_env(polar_env, do_raman, dBerry_psi0, polar, &
-                            psi1_dBerry, mo_derivs, run_stopped)
+   SUBROUTINE set_polar_env(polar_env, do_raman, do_periodic, dBerry_psi0, polar, &
+                            psi1_dBerry, run_stopped)
 
       TYPE(polar_env_type), POINTER                      :: polar_env
-      LOGICAL, OPTIONAL                                  :: do_raman
+      LOGICAL, OPTIONAL                                  :: do_raman, do_periodic
       TYPE(cp_fm_p_type), DIMENSION(:, :), OPTIONAL, &
          POINTER                                         :: dBerry_psi0
       REAL(dp), DIMENSION(:, :), OPTIONAL, POINTER       :: polar
       TYPE(cp_fm_p_type), DIMENSION(:, :), OPTIONAL, &
-         POINTER                                         :: psi1_dBerry, mo_derivs
+         POINTER                                         :: psi1_dBerry
       LOGICAL, OPTIONAL                                  :: run_stopped
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'set_polar_env', routineP = moduleN//':'//routineN
 
       CPASSERT(polar_env%ref_count > 0)
 
       IF (PRESENT(polar)) polar_env%polar => polar
       IF (PRESENT(do_raman)) polar_env%do_raman = do_raman
+      IF (PRESENT(do_periodic)) polar_env%do_periodic = do_periodic
       IF (PRESENT(psi1_dBerry)) polar_env%psi1_dBerry => psi1_dBerry
       IF (PRESENT(dBerry_psi0)) polar_env%dBerry_psi0 => dBerry_psi0
-      IF (PRESENT(mo_derivs)) polar_env%mo_derivs => mo_derivs
       IF (PRESENT(run_stopped)) polar_env%run_stopped = run_stopped
 
    END SUBROUTINE set_polar_env
@@ -1488,14 +1429,11 @@ CONTAINS
 
       TYPE(polar_env_type), POINTER                      :: polar_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'polar_env_release', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: idir, ispin
 
       IF (ASSOCIATED(polar_env)) THEN
          CPASSERT(polar_env%ref_count > 0)
-         polar_env%ref_count = polar_env%ref_count-1
+         polar_env%ref_count = polar_env%ref_count - 1
          IF (polar_env%ref_count < 1) THEN
             IF (ASSOCIATED(polar_env%polar)) THEN
                DEALLOCATE (polar_env%polar)
@@ -1507,14 +1445,6 @@ CONTAINS
                   ENDDO
                ENDDO
                DEALLOCATE (polar_env%dBerry_psi0)
-            ENDIF
-            IF (ASSOCIATED(polar_env%mo_derivs)) THEN
-               DO idir = 1, SIZE(polar_env%mo_derivs, 1)
-                  DO ispin = 1, SIZE(polar_env%mo_derivs, 2)
-                     CALL cp_fm_release(polar_env%mo_derivs(idir, ispin)%matrix)
-                  ENDDO
-               ENDDO
-               DEALLOCATE (polar_env%mo_derivs)
             ENDIF
             IF (ASSOCIATED(polar_env%psi1_dBerry)) THEN
                DO idir = 1, SIZE(polar_env%psi1_dBerry, 1)

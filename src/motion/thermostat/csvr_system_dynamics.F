@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -53,7 +55,7 @@ CONTAINS
          INTENT(INOUT)                                   :: npt
       INTEGER, INTENT(IN)                                :: group
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'csvr_barostat', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'csvr_barostat'
 
       INTEGER                                            :: handle
       TYPE(map_info_type), POINTER                       :: map_info
@@ -111,7 +113,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(INOUT), OPTIONAL             :: vel(:, :), shell_vel(:, :), &
                                                             core_vel(:, :)
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'csvr_particles', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'csvr_particles'
 
       INTEGER                                            :: handle
       LOGICAL                                            :: my_shell_adiabatic
@@ -171,7 +173,7 @@ CONTAINS
       REAL(KIND=dp), INTENT(INOUT), OPTIONAL             :: vel(:, :), shell_vel(:, :), &
                                                             core_vel(:, :)
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'csvr_shells', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'csvr_shells'
 
       INTEGER                                            :: handle
       TYPE(map_info_type), POINTER                       :: map_info
@@ -210,8 +212,6 @@ CONTAINS
       TYPE(csvr_system_type), POINTER                    :: csvr
       TYPE(map_info_type), POINTER                       :: map_info
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'do_csvr', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, imap, ndeg
       REAL(KIND=dp)                                      :: kin_energy, kin_target, taut
       TYPE(rng_stream_type), POINTER                     :: rng_stream
@@ -241,9 +241,6 @@ CONTAINS
       TYPE(csvr_system_type), POINTER                    :: csvr
       TYPE(map_info_type), POINTER                       :: map_info
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'do_csvr_eval_energy', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, imap
       REAL(KIND=dp)                                      :: kin_energy_ar, kin_energy_br
 
@@ -251,8 +248,8 @@ CONTAINS
          imap = map_info%map_index(i)
          kin_energy_br = csvr%nvt(i)%region_kin_energy
          kin_energy_ar = map_info%s_kin(imap)
-         csvr%nvt(i)%thermostat_energy = csvr%nvt(i)%thermostat_energy+ &
-                                         0.5_dp*(kin_energy_br-kin_energy_ar)
+         csvr%nvt(i)%thermostat_energy = csvr%nvt(i)%thermostat_energy + &
+                                         0.5_dp*(kin_energy_br - kin_energy_ar)
       END DO
 
    END SUBROUTINE do_csvr_eval_energy

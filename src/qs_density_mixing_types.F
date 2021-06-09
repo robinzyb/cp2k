@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -118,9 +120,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: mixing_method
       REAL(dp), INTENT(IN)                               :: ecut
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mixing_storage_create', &
-         routineP = moduleN//':'//routineN
-
       REAL(dp)                                           :: alpha, eps, gcut
 
       CPASSERT(.NOT. ASSOCIATED(mixing_store))
@@ -231,14 +230,11 @@ CONTAINS
    SUBROUTINE mixing_storage_release(mixing_store)
       TYPE(mixing_storage_type), POINTER                 :: mixing_store
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'mixing_storage_release', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, j, k
 
       IF (ASSOCIATED(mixing_store)) THEN
          CPASSERT(mixing_store%ref_count > 0)
-         mixing_store%ref_count = mixing_store%ref_count-1
+         mixing_store%ref_count = mixing_store%ref_count - 1
          IF (mixing_store%ref_count == 0) THEN
 
             IF (ASSOCIATED(mixing_store%kerker_factor)) THEN
@@ -499,9 +495,6 @@ CONTAINS
       TYPE(section_type), POINTER                        :: section
       LOGICAL, INTENT(IN), OPTIONAL                      :: ls_scf
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'create_mixing_section', &
-         routineP = moduleN//':'//routineN
-
       CHARACTER(LEN=default_string_length)               :: section_name
       INTEGER                                            :: default_mix
       LOGICAL                                            :: ls
@@ -739,7 +732,7 @@ CONTAINS
       CALL keyword_release(keyword)
 
       CALL keyword_create(keyword, __LOCATION__, name="GMIX_P", &
-                          description="Activate the mixing of the denisty matrix, using the same"// &
+                          description="Activate the mixing of the density matrix, using the same"// &
                           " mixing coefficient applied for the g-space mixing.", &
                           repeats=.FALSE., &
                           lone_keyword_l_val=.TRUE., &

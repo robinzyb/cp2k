@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 ! **************************************************************************************************
 !> \brief routines to contract density matrix blocks with the for center
@@ -4051,18 +4053,18 @@ CONTAINS
             DO mb = 1, mb_max
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*mb_max+mb)
-               p_bc = pbc((mc-1)*mb_max+mb)
+               p_bd = pbd((md - 1)*mb_max + mb)
+               p_bc = pbc((mc - 1)*mb_max + mb)
                DO ma = 1, ma_max
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*ma_max+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*ma_max+ma)
-                  kad((md-1)*ma_max+ma) = kad((md-1)*ma_max+ma)-tmp*p_bc
-                  kac((mc-1)*ma_max+ma) = kac((mc-1)*ma_max+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*ma_max + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*ma_max + ma)
+                  kad((md - 1)*ma_max + ma) = kad((md - 1)*ma_max + ma) - tmp*p_bc
+                  kac((mc - 1)*ma_max + ma) = kac((mc - 1)*ma_max + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*mb_max+mb) = kbd((md-1)*mb_max+mb)-ks_bd
-               kbc((mc-1)*mb_max+mb) = kbc((mc-1)*mb_max+mb)-ks_bc
+               kbd((md - 1)*mb_max + mb) = kbd((md - 1)*mb_max + mb) - ks_bd
+               kbc((mc - 1)*mb_max + mb) = kbc((mc - 1)*mb_max + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -4098,18 +4100,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -4145,18 +4147,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -4192,18 +4194,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -4239,18 +4241,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -4286,18 +4288,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -4333,18 +4335,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -4380,18 +4382,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -4427,18 +4429,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -4475,18 +4477,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -4523,18 +4525,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -4571,18 +4573,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -4618,18 +4620,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -4665,18 +4667,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -4712,18 +4714,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -4759,18 +4761,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -4806,18 +4808,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -4853,18 +4855,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -4900,18 +4902,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -4947,18 +4949,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -4995,18 +4997,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -5042,18 +5044,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -5089,18 +5091,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -5136,18 +5138,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -5183,18 +5185,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -5230,18 +5232,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -5277,18 +5279,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -5325,18 +5327,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -5372,18 +5374,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -5419,18 +5421,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -5466,18 +5468,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -5513,18 +5515,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -5561,18 +5563,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -5608,18 +5610,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -5655,18 +5657,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -5702,18 +5704,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -5750,18 +5752,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -5797,18 +5799,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -5844,18 +5846,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -5891,18 +5893,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -5939,18 +5941,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -5986,18 +5988,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -6033,18 +6035,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -6081,18 +6083,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -6128,18 +6130,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -6175,18 +6177,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -6223,18 +6225,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -6271,18 +6273,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -6319,18 +6321,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -6367,18 +6369,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -6415,18 +6417,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -6463,18 +6465,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -6511,18 +6513,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -6558,18 +6560,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -6605,18 +6607,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -6652,18 +6654,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -6699,18 +6701,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -6746,18 +6748,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -6793,18 +6795,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -6840,18 +6842,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -6887,18 +6889,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -6935,18 +6937,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -6982,18 +6984,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -7029,18 +7031,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -7076,18 +7078,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -7123,18 +7125,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -7171,18 +7173,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -7218,18 +7220,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -7265,18 +7267,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -7312,18 +7314,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -7360,18 +7362,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -7407,18 +7409,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -7454,18 +7456,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -7502,18 +7504,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -7549,18 +7551,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -7597,18 +7599,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -7644,18 +7646,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -7692,18 +7694,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -7739,18 +7741,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -7787,18 +7789,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -7834,18 +7836,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -7882,18 +7884,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -7931,18 +7933,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -7978,18 +7980,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -8025,18 +8027,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -8072,18 +8074,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -8119,18 +8121,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -8166,18 +8168,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -8213,18 +8215,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -8261,18 +8263,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -8308,18 +8310,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -8355,18 +8357,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -8402,18 +8404,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -8450,18 +8452,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -8497,18 +8499,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -8544,18 +8546,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -8592,18 +8594,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -8639,18 +8641,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -8687,18 +8689,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -8734,18 +8736,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -8782,18 +8784,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -8829,18 +8831,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -8877,18 +8879,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -8926,18 +8928,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -8973,18 +8975,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -9020,18 +9022,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -9067,18 +9069,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -9114,18 +9116,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -9162,18 +9164,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -9209,18 +9211,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -9256,18 +9258,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -9304,18 +9306,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -9351,18 +9353,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -9399,18 +9401,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -9446,18 +9448,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -9494,18 +9496,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -9543,18 +9545,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -9590,18 +9592,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -9637,18 +9639,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -9684,18 +9686,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -9732,18 +9734,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -9779,18 +9781,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -9827,18 +9829,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -9874,18 +9876,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -9922,18 +9924,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -9971,18 +9973,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -10018,18 +10020,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -10065,18 +10067,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -10112,18 +10114,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -10160,18 +10162,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -10207,18 +10209,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -10255,18 +10257,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -10302,18 +10304,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -10350,18 +10352,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -10399,18 +10401,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -10446,18 +10448,18 @@ CONTAINS
             DO mb = 1, 7
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*7+mb)
-               p_bc = pbc((mc-1)*7+mb)
+               p_bd = pbd((md - 1)*7 + mb)
+               p_bc = pbc((mc - 1)*7 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*7+mb) = kbd((md-1)*7+mb)-ks_bd
-               kbc((mc-1)*7+mb) = kbc((mc-1)*7+mb)-ks_bc
+               kbd((md - 1)*7 + mb) = kbd((md - 1)*7 + mb) - ks_bd
+               kbc((mc - 1)*7 + mb) = kbc((mc - 1)*7 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -10493,18 +10495,18 @@ CONTAINS
             DO mb = 1, 7
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*7+mb)
-               p_bc = pbc((mc-1)*7+mb)
+               p_bd = pbd((md - 1)*7 + mb)
+               p_bc = pbc((mc - 1)*7 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*7+mb) = kbd((md-1)*7+mb)-ks_bd
-               kbc((mc-1)*7+mb) = kbc((mc-1)*7+mb)-ks_bc
+               kbd((md - 1)*7 + mb) = kbd((md - 1)*7 + mb) - ks_bd
+               kbc((mc - 1)*7 + mb) = kbc((mc - 1)*7 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -10541,18 +10543,18 @@ CONTAINS
             DO mb = 1, 7
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*7+mb)
-               p_bc = pbc((mc-1)*7+mb)
+               p_bd = pbd((md - 1)*7 + mb)
+               p_bc = pbc((mc - 1)*7 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*7+mb) = kbd((md-1)*7+mb)-ks_bd
-               kbc((mc-1)*7+mb) = kbc((mc-1)*7+mb)-ks_bc
+               kbd((md - 1)*7 + mb) = kbd((md - 1)*7 + mb) - ks_bd
+               kbc((mc - 1)*7 + mb) = kbc((mc - 1)*7 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -10588,18 +10590,18 @@ CONTAINS
             DO mb = 1, 7
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*7+mb)
-               p_bc = pbc((mc-1)*7+mb)
+               p_bd = pbd((md - 1)*7 + mb)
+               p_bc = pbc((mc - 1)*7 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*7+mb) = kbd((md-1)*7+mb)-ks_bd
-               kbc((mc-1)*7+mb) = kbc((mc-1)*7+mb)-ks_bc
+               kbd((md - 1)*7 + mb) = kbd((md - 1)*7 + mb) - ks_bd
+               kbc((mc - 1)*7 + mb) = kbc((mc - 1)*7 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -10636,18 +10638,18 @@ CONTAINS
             DO mb = 1, 7
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*7+mb)
-               p_bc = pbc((mc-1)*7+mb)
+               p_bd = pbd((md - 1)*7 + mb)
+               p_bc = pbc((mc - 1)*7 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*7+mb) = kbd((md-1)*7+mb)-ks_bd
-               kbc((mc-1)*7+mb) = kbc((mc-1)*7+mb)-ks_bc
+               kbd((md - 1)*7 + mb) = kbd((md - 1)*7 + mb) - ks_bd
+               kbc((mc - 1)*7 + mb) = kbc((mc - 1)*7 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -10685,18 +10687,18 @@ CONTAINS
             DO mb = 1, 7
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*7+mb)
-               p_bc = pbc((mc-1)*7+mb)
+               p_bd = pbd((md - 1)*7 + mb)
+               p_bc = pbc((mc - 1)*7 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*7+mb) = kbd((md-1)*7+mb)-ks_bd
-               kbc((mc-1)*7+mb) = kbc((mc-1)*7+mb)-ks_bc
+               kbd((md - 1)*7 + mb) = kbd((md - 1)*7 + mb) - ks_bd
+               kbc((mc - 1)*7 + mb) = kbc((mc - 1)*7 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -10732,18 +10734,18 @@ CONTAINS
             DO mb = 1, 9
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*9+mb)
-               p_bc = pbc((mc-1)*9+mb)
+               p_bd = pbd((md - 1)*9 + mb)
+               p_bc = pbc((mc - 1)*9 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*9+mb) = kbd((md-1)*9+mb)-ks_bd
-               kbc((mc-1)*9+mb) = kbc((mc-1)*9+mb)-ks_bc
+               kbd((md - 1)*9 + mb) = kbd((md - 1)*9 + mb) - ks_bd
+               kbc((mc - 1)*9 + mb) = kbc((mc - 1)*9 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -10779,18 +10781,18 @@ CONTAINS
             DO mb = 1, 9
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*9+mb)
-               p_bc = pbc((mc-1)*9+mb)
+               p_bd = pbd((md - 1)*9 + mb)
+               p_bc = pbc((mc - 1)*9 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*9+mb) = kbd((md-1)*9+mb)-ks_bd
-               kbc((mc-1)*9+mb) = kbc((mc-1)*9+mb)-ks_bc
+               kbd((md - 1)*9 + mb) = kbd((md - 1)*9 + mb) - ks_bd
+               kbc((mc - 1)*9 + mb) = kbc((mc - 1)*9 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -10827,18 +10829,18 @@ CONTAINS
             DO mb = 1, 9
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*9+mb)
-               p_bc = pbc((mc-1)*9+mb)
+               p_bd = pbd((md - 1)*9 + mb)
+               p_bc = pbc((mc - 1)*9 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*9+mb) = kbd((md-1)*9+mb)-ks_bd
-               kbc((mc-1)*9+mb) = kbc((mc-1)*9+mb)-ks_bc
+               kbd((md - 1)*9 + mb) = kbd((md - 1)*9 + mb) - ks_bd
+               kbc((mc - 1)*9 + mb) = kbc((mc - 1)*9 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -10874,18 +10876,18 @@ CONTAINS
             DO mb = 1, 9
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*9+mb)
-               p_bc = pbc((mc-1)*9+mb)
+               p_bd = pbd((md - 1)*9 + mb)
+               p_bc = pbc((mc - 1)*9 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*9+mb) = kbd((md-1)*9+mb)-ks_bd
-               kbc((mc-1)*9+mb) = kbc((mc-1)*9+mb)-ks_bc
+               kbd((md - 1)*9 + mb) = kbd((md - 1)*9 + mb) - ks_bd
+               kbc((mc - 1)*9 + mb) = kbc((mc - 1)*9 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -10922,18 +10924,18 @@ CONTAINS
             DO mb = 1, 9
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*9+mb)
-               p_bc = pbc((mc-1)*9+mb)
+               p_bd = pbd((md - 1)*9 + mb)
+               p_bc = pbc((mc - 1)*9 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*9+mb) = kbd((md-1)*9+mb)-ks_bd
-               kbc((mc-1)*9+mb) = kbc((mc-1)*9+mb)-ks_bc
+               kbd((md - 1)*9 + mb) = kbd((md - 1)*9 + mb) - ks_bd
+               kbc((mc - 1)*9 + mb) = kbc((mc - 1)*9 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -10971,18 +10973,18 @@ CONTAINS
             DO mb = 1, 9
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*9+mb)
-               p_bc = pbc((mc-1)*9+mb)
+               p_bd = pbd((md - 1)*9 + mb)
+               p_bc = pbc((mc - 1)*9 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*9+mb) = kbd((md-1)*9+mb)-ks_bd
-               kbc((mc-1)*9+mb) = kbc((mc-1)*9+mb)-ks_bc
+               kbd((md - 1)*9 + mb) = kbd((md - 1)*9 + mb) - ks_bd
+               kbc((mc - 1)*9 + mb) = kbc((mc - 1)*9 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -11019,18 +11021,18 @@ CONTAINS
             DO mb = 1, 10
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*10+mb)
-               p_bc = pbc((mc-1)*10+mb)
+               p_bd = pbd((md - 1)*10 + mb)
+               p_bc = pbc((mc - 1)*10 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*10+mb) = kbd((md-1)*10+mb)-ks_bd
-               kbc((mc-1)*10+mb) = kbc((mc-1)*10+mb)-ks_bc
+               kbd((md - 1)*10 + mb) = kbd((md - 1)*10 + mb) - ks_bd
+               kbc((mc - 1)*10 + mb) = kbc((mc - 1)*10 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -11067,18 +11069,18 @@ CONTAINS
             DO mb = 1, 10
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*10+mb)
-               p_bc = pbc((mc-1)*10+mb)
+               p_bd = pbd((md - 1)*10 + mb)
+               p_bc = pbc((mc - 1)*10 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*10+mb) = kbd((md-1)*10+mb)-ks_bd
-               kbc((mc-1)*10+mb) = kbc((mc-1)*10+mb)-ks_bc
+               kbd((md - 1)*10 + mb) = kbd((md - 1)*10 + mb) - ks_bd
+               kbc((mc - 1)*10 + mb) = kbc((mc - 1)*10 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -11117,18 +11119,18 @@ CONTAINS
             DO mb = 1, 10
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*10+mb)
-               p_bc = pbc((mc-1)*10+mb)
+               p_bd = pbd((md - 1)*10 + mb)
+               p_bc = pbc((mc - 1)*10 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*10+mb) = kbd((md-1)*10+mb)-ks_bd
-               kbc((mc-1)*10+mb) = kbc((mc-1)*10+mb)-ks_bc
+               kbd((md - 1)*10 + mb) = kbd((md - 1)*10 + mb) - ks_bd
+               kbc((mc - 1)*10 + mb) = kbc((mc - 1)*10 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -11165,18 +11167,18 @@ CONTAINS
             DO mb = 1, 11
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*11+mb)
-               p_bc = pbc((mc-1)*11+mb)
+               p_bd = pbd((md - 1)*11 + mb)
+               p_bc = pbc((mc - 1)*11 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*11+mb) = kbd((md-1)*11+mb)-ks_bd
-               kbc((mc-1)*11+mb) = kbc((mc-1)*11+mb)-ks_bc
+               kbd((md - 1)*11 + mb) = kbd((md - 1)*11 + mb) - ks_bd
+               kbc((mc - 1)*11 + mb) = kbc((mc - 1)*11 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -11213,18 +11215,18 @@ CONTAINS
             DO mb = 1, 11
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*11+mb)
-               p_bc = pbc((mc-1)*11+mb)
+               p_bd = pbd((md - 1)*11 + mb)
+               p_bc = pbc((mc - 1)*11 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*11+mb) = kbd((md-1)*11+mb)-ks_bd
-               kbc((mc-1)*11+mb) = kbc((mc-1)*11+mb)-ks_bc
+               kbd((md - 1)*11 + mb) = kbd((md - 1)*11 + mb) - ks_bd
+               kbc((mc - 1)*11 + mb) = kbc((mc - 1)*11 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -11263,18 +11265,18 @@ CONTAINS
             DO mb = 1, 11
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*11+mb)
-               p_bc = pbc((mc-1)*11+mb)
+               p_bd = pbd((md - 1)*11 + mb)
+               p_bc = pbc((mc - 1)*11 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*11+mb) = kbd((md-1)*11+mb)-ks_bd
-               kbc((mc-1)*11+mb) = kbc((mc-1)*11+mb)-ks_bc
+               kbd((md - 1)*11 + mb) = kbd((md - 1)*11 + mb) - ks_bd
+               kbc((mc - 1)*11 + mb) = kbc((mc - 1)*11 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -11311,18 +11313,18 @@ CONTAINS
             DO mb = 1, 15
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*15+mb)
-               p_bc = pbc((mc-1)*15+mb)
+               p_bd = pbd((md - 1)*15 + mb)
+               p_bc = pbc((mc - 1)*15 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*15+mb) = kbd((md-1)*15+mb)-ks_bd
-               kbc((mc-1)*15+mb) = kbc((mc-1)*15+mb)-ks_bc
+               kbd((md - 1)*15 + mb) = kbd((md - 1)*15 + mb) - ks_bd
+               kbc((mc - 1)*15 + mb) = kbc((mc - 1)*15 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -11359,18 +11361,18 @@ CONTAINS
             DO mb = 1, 15
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*15+mb)
-               p_bc = pbc((mc-1)*15+mb)
+               p_bd = pbd((md - 1)*15 + mb)
+               p_bc = pbc((mc - 1)*15 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*15+mb) = kbd((md-1)*15+mb)-ks_bd
-               kbc((mc-1)*15+mb) = kbc((mc-1)*15+mb)-ks_bc
+               kbd((md - 1)*15 + mb) = kbd((md - 1)*15 + mb) - ks_bd
+               kbc((mc - 1)*15 + mb) = kbc((mc - 1)*15 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -11409,18 +11411,18 @@ CONTAINS
             DO mb = 1, 15
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*15+mb)
-               p_bc = pbc((mc-1)*15+mb)
+               p_bd = pbd((md - 1)*15 + mb)
+               p_bc = pbc((mc - 1)*15 + mb)
                DO ma = 1, 1
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*1+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*1+ma)
-                  kad((md-1)*1+ma) = kad((md-1)*1+ma)-tmp*p_bc
-                  kac((mc-1)*1+ma) = kac((mc-1)*1+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*1 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*1 + ma)
+                  kad((md - 1)*1 + ma) = kad((md - 1)*1 + ma) - tmp*p_bc
+                  kac((mc - 1)*1 + ma) = kac((mc - 1)*1 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*15+mb) = kbd((md-1)*15+mb)-ks_bd
-               kbc((mc-1)*15+mb) = kbc((mc-1)*15+mb)-ks_bc
+               kbd((md - 1)*15 + mb) = kbd((md - 1)*15 + mb) - ks_bd
+               kbc((mc - 1)*15 + mb) = kbc((mc - 1)*15 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -11456,18 +11458,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -11503,18 +11505,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -11550,18 +11552,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -11597,18 +11599,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -11644,18 +11646,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -11691,18 +11693,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -11738,18 +11740,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -11785,18 +11787,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -11833,18 +11835,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -11880,18 +11882,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -11927,18 +11929,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -11974,18 +11976,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -12021,18 +12023,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -12069,18 +12071,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -12116,18 +12118,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -12163,18 +12165,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -12210,18 +12212,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -12258,18 +12260,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -12305,18 +12307,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -12352,18 +12354,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -12400,18 +12402,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -12447,18 +12449,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -12495,18 +12497,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -12542,18 +12544,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -12590,18 +12592,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -12637,18 +12639,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -12685,18 +12687,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -12732,18 +12734,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -12780,18 +12782,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -12829,18 +12831,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -12876,18 +12878,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -12923,18 +12925,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -12970,18 +12972,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -13017,18 +13019,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -13065,18 +13067,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -13112,18 +13114,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -13159,18 +13161,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -13207,18 +13209,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -13254,18 +13256,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -13302,18 +13304,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -13349,18 +13351,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -13397,18 +13399,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -13446,18 +13448,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -13493,18 +13495,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -13540,18 +13542,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -13587,18 +13589,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -13635,18 +13637,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -13682,18 +13684,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -13730,18 +13732,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -13777,18 +13779,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -13825,18 +13827,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -13874,18 +13876,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -13921,18 +13923,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -13968,18 +13970,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -14016,18 +14018,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -14063,18 +14065,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -14111,18 +14113,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -14160,18 +14162,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -14207,18 +14209,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -14255,18 +14257,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -14304,18 +14306,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -14351,18 +14353,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -14399,18 +14401,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -14448,18 +14450,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -14495,18 +14497,18 @@ CONTAINS
             DO mb = 1, 7
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*7+mb)
-               p_bc = pbc((mc-1)*7+mb)
+               p_bd = pbd((md - 1)*7 + mb)
+               p_bc = pbc((mc - 1)*7 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*7+mb) = kbd((md-1)*7+mb)-ks_bd
-               kbc((mc-1)*7+mb) = kbc((mc-1)*7+mb)-ks_bc
+               kbd((md - 1)*7 + mb) = kbd((md - 1)*7 + mb) - ks_bd
+               kbc((mc - 1)*7 + mb) = kbc((mc - 1)*7 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -14543,18 +14545,18 @@ CONTAINS
             DO mb = 1, 7
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*7+mb)
-               p_bc = pbc((mc-1)*7+mb)
+               p_bd = pbd((md - 1)*7 + mb)
+               p_bc = pbc((mc - 1)*7 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*7+mb) = kbd((md-1)*7+mb)-ks_bd
-               kbc((mc-1)*7+mb) = kbc((mc-1)*7+mb)-ks_bc
+               kbd((md - 1)*7 + mb) = kbd((md - 1)*7 + mb) - ks_bd
+               kbc((mc - 1)*7 + mb) = kbc((mc - 1)*7 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -14592,18 +14594,18 @@ CONTAINS
             DO mb = 1, 7
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*7+mb)
-               p_bc = pbc((mc-1)*7+mb)
+               p_bd = pbd((md - 1)*7 + mb)
+               p_bc = pbc((mc - 1)*7 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*7+mb) = kbd((md-1)*7+mb)-ks_bd
-               kbc((mc-1)*7+mb) = kbc((mc-1)*7+mb)-ks_bc
+               kbd((md - 1)*7 + mb) = kbd((md - 1)*7 + mb) - ks_bd
+               kbc((mc - 1)*7 + mb) = kbc((mc - 1)*7 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -14639,18 +14641,18 @@ CONTAINS
             DO mb = 1, 9
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*9+mb)
-               p_bc = pbc((mc-1)*9+mb)
+               p_bd = pbd((md - 1)*9 + mb)
+               p_bc = pbc((mc - 1)*9 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*9+mb) = kbd((md-1)*9+mb)-ks_bd
-               kbc((mc-1)*9+mb) = kbc((mc-1)*9+mb)-ks_bc
+               kbd((md - 1)*9 + mb) = kbd((md - 1)*9 + mb) - ks_bd
+               kbc((mc - 1)*9 + mb) = kbc((mc - 1)*9 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -14687,18 +14689,18 @@ CONTAINS
             DO mb = 1, 9
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*9+mb)
-               p_bc = pbc((mc-1)*9+mb)
+               p_bd = pbd((md - 1)*9 + mb)
+               p_bc = pbc((mc - 1)*9 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*9+mb) = kbd((md-1)*9+mb)-ks_bd
-               kbc((mc-1)*9+mb) = kbc((mc-1)*9+mb)-ks_bc
+               kbd((md - 1)*9 + mb) = kbd((md - 1)*9 + mb) - ks_bd
+               kbc((mc - 1)*9 + mb) = kbc((mc - 1)*9 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -14736,18 +14738,18 @@ CONTAINS
             DO mb = 1, 9
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*9+mb)
-               p_bc = pbc((mc-1)*9+mb)
+               p_bd = pbd((md - 1)*9 + mb)
+               p_bc = pbc((mc - 1)*9 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*9+mb) = kbd((md-1)*9+mb)-ks_bd
-               kbc((mc-1)*9+mb) = kbc((mc-1)*9+mb)-ks_bc
+               kbd((md - 1)*9 + mb) = kbd((md - 1)*9 + mb) - ks_bd
+               kbc((mc - 1)*9 + mb) = kbc((mc - 1)*9 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -14786,18 +14788,18 @@ CONTAINS
             DO mb = 1, 10
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*10+mb)
-               p_bc = pbc((mc-1)*10+mb)
+               p_bd = pbd((md - 1)*10 + mb)
+               p_bc = pbc((mc - 1)*10 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*10+mb) = kbd((md-1)*10+mb)-ks_bd
-               kbc((mc-1)*10+mb) = kbc((mc-1)*10+mb)-ks_bc
+               kbd((md - 1)*10 + mb) = kbd((md - 1)*10 + mb) - ks_bd
+               kbc((mc - 1)*10 + mb) = kbc((mc - 1)*10 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -14836,18 +14838,18 @@ CONTAINS
             DO mb = 1, 11
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*11+mb)
-               p_bc = pbc((mc-1)*11+mb)
+               p_bd = pbd((md - 1)*11 + mb)
+               p_bc = pbc((mc - 1)*11 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*11+mb) = kbd((md-1)*11+mb)-ks_bd
-               kbc((mc-1)*11+mb) = kbc((mc-1)*11+mb)-ks_bc
+               kbd((md - 1)*11 + mb) = kbd((md - 1)*11 + mb) - ks_bd
+               kbc((mc - 1)*11 + mb) = kbc((mc - 1)*11 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -14886,18 +14888,18 @@ CONTAINS
             DO mb = 1, 15
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*15+mb)
-               p_bc = pbc((mc-1)*15+mb)
+               p_bd = pbd((md - 1)*15 + mb)
+               p_bc = pbc((mc - 1)*15 + mb)
                DO ma = 1, 2
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*2+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*2+ma)
-                  kad((md-1)*2+ma) = kad((md-1)*2+ma)-tmp*p_bc
-                  kac((mc-1)*2+ma) = kac((mc-1)*2+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*2 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*2 + ma)
+                  kad((md - 1)*2 + ma) = kad((md - 1)*2 + ma) - tmp*p_bc
+                  kac((mc - 1)*2 + ma) = kac((mc - 1)*2 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*15+mb) = kbd((md-1)*15+mb)-ks_bd
-               kbc((mc-1)*15+mb) = kbc((mc-1)*15+mb)-ks_bc
+               kbd((md - 1)*15 + mb) = kbd((md - 1)*15 + mb) - ks_bd
+               kbc((mc - 1)*15 + mb) = kbc((mc - 1)*15 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -14933,18 +14935,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -14980,18 +14982,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -15027,18 +15029,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -15074,18 +15076,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -15121,18 +15123,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -15168,18 +15170,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -15216,18 +15218,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -15263,18 +15265,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -15310,18 +15312,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -15357,18 +15359,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -15405,18 +15407,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -15452,18 +15454,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -15499,18 +15501,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -15547,18 +15549,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -15594,18 +15596,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -15642,18 +15644,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -15689,18 +15691,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -15737,18 +15739,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -15784,18 +15786,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -15832,18 +15834,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -15881,18 +15883,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -15928,18 +15930,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -15975,18 +15977,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -16022,18 +16024,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -16070,18 +16072,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -16117,18 +16119,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -16165,18 +16167,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -16212,18 +16214,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -16260,18 +16262,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -16309,18 +16311,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -16356,18 +16358,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -16403,18 +16405,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -16451,18 +16453,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -16498,18 +16500,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -16546,18 +16548,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -16595,18 +16597,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -16642,18 +16644,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -16690,18 +16692,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -16739,18 +16741,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -16786,18 +16788,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -16834,18 +16836,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -16883,18 +16885,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -16930,18 +16932,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -16978,18 +16980,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -17027,18 +17029,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -17076,18 +17078,18 @@ CONTAINS
             DO mb = 1, 7
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*7+mb)
-               p_bc = pbc((mc-1)*7+mb)
+               p_bd = pbd((md - 1)*7 + mb)
+               p_bc = pbc((mc - 1)*7 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*7+mb) = kbd((md-1)*7+mb)-ks_bd
-               kbc((mc-1)*7+mb) = kbc((mc-1)*7+mb)-ks_bc
+               kbd((md - 1)*7 + mb) = kbd((md - 1)*7 + mb) - ks_bd
+               kbc((mc - 1)*7 + mb) = kbc((mc - 1)*7 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -17125,18 +17127,18 @@ CONTAINS
             DO mb = 1, 9
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*9+mb)
-               p_bc = pbc((mc-1)*9+mb)
+               p_bd = pbd((md - 1)*9 + mb)
+               p_bc = pbc((mc - 1)*9 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*9+mb) = kbd((md-1)*9+mb)-ks_bd
-               kbc((mc-1)*9+mb) = kbc((mc-1)*9+mb)-ks_bc
+               kbd((md - 1)*9 + mb) = kbd((md - 1)*9 + mb) - ks_bd
+               kbc((mc - 1)*9 + mb) = kbc((mc - 1)*9 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -17175,18 +17177,18 @@ CONTAINS
             DO mb = 1, 10
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*10+mb)
-               p_bc = pbc((mc-1)*10+mb)
+               p_bd = pbd((md - 1)*10 + mb)
+               p_bc = pbc((mc - 1)*10 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*10+mb) = kbd((md-1)*10+mb)-ks_bd
-               kbc((mc-1)*10+mb) = kbc((mc-1)*10+mb)-ks_bc
+               kbd((md - 1)*10 + mb) = kbd((md - 1)*10 + mb) - ks_bd
+               kbc((mc - 1)*10 + mb) = kbc((mc - 1)*10 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -17225,18 +17227,18 @@ CONTAINS
             DO mb = 1, 11
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*11+mb)
-               p_bc = pbc((mc-1)*11+mb)
+               p_bd = pbd((md - 1)*11 + mb)
+               p_bc = pbc((mc - 1)*11 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*11+mb) = kbd((md-1)*11+mb)-ks_bd
-               kbc((mc-1)*11+mb) = kbc((mc-1)*11+mb)-ks_bc
+               kbd((md - 1)*11 + mb) = kbd((md - 1)*11 + mb) - ks_bd
+               kbc((mc - 1)*11 + mb) = kbc((mc - 1)*11 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -17275,18 +17277,18 @@ CONTAINS
             DO mb = 1, 15
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*15+mb)
-               p_bc = pbc((mc-1)*15+mb)
+               p_bd = pbd((md - 1)*15 + mb)
+               p_bc = pbc((mc - 1)*15 + mb)
                DO ma = 1, 3
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*3+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*3+ma)
-                  kad((md-1)*3+ma) = kad((md-1)*3+ma)-tmp*p_bc
-                  kac((mc-1)*3+ma) = kac((mc-1)*3+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*3 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*3 + ma)
+                  kad((md - 1)*3 + ma) = kad((md - 1)*3 + ma) - tmp*p_bc
+                  kac((mc - 1)*3 + ma) = kac((mc - 1)*3 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*15+mb) = kbd((md-1)*15+mb)-ks_bd
-               kbc((mc-1)*15+mb) = kbc((mc-1)*15+mb)-ks_bc
+               kbd((md - 1)*15 + mb) = kbd((md - 1)*15 + mb) - ks_bd
+               kbc((mc - 1)*15 + mb) = kbc((mc - 1)*15 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -17322,18 +17324,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -17369,18 +17371,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -17416,18 +17418,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -17463,18 +17465,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -17511,18 +17513,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -17558,18 +17560,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -17605,18 +17607,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -17653,18 +17655,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -17700,18 +17702,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -17748,18 +17750,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -17795,18 +17797,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -17843,18 +17845,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -17892,18 +17894,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -17939,18 +17941,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -17986,18 +17988,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -18034,18 +18036,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -18081,18 +18083,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -18129,18 +18131,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -18178,18 +18180,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -18225,18 +18227,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -18273,18 +18275,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -18322,18 +18324,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -18369,18 +18371,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -18417,18 +18419,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -18466,18 +18468,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -18515,18 +18517,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -18564,18 +18566,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -18613,18 +18615,18 @@ CONTAINS
             DO mb = 1, 7
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*7+mb)
-               p_bc = pbc((mc-1)*7+mb)
+               p_bd = pbd((md - 1)*7 + mb)
+               p_bc = pbc((mc - 1)*7 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*7+mb) = kbd((md-1)*7+mb)-ks_bd
-               kbc((mc-1)*7+mb) = kbc((mc-1)*7+mb)-ks_bc
+               kbd((md - 1)*7 + mb) = kbd((md - 1)*7 + mb) - ks_bd
+               kbc((mc - 1)*7 + mb) = kbc((mc - 1)*7 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -18662,18 +18664,18 @@ CONTAINS
             DO mb = 1, 9
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*9+mb)
-               p_bc = pbc((mc-1)*9+mb)
+               p_bd = pbd((md - 1)*9 + mb)
+               p_bc = pbc((mc - 1)*9 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*9+mb) = kbd((md-1)*9+mb)-ks_bd
-               kbc((mc-1)*9+mb) = kbc((mc-1)*9+mb)-ks_bc
+               kbd((md - 1)*9 + mb) = kbd((md - 1)*9 + mb) - ks_bd
+               kbc((mc - 1)*9 + mb) = kbc((mc - 1)*9 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -18712,18 +18714,18 @@ CONTAINS
             DO mb = 1, 10
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*10+mb)
-               p_bc = pbc((mc-1)*10+mb)
+               p_bd = pbd((md - 1)*10 + mb)
+               p_bc = pbc((mc - 1)*10 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*10+mb) = kbd((md-1)*10+mb)-ks_bd
-               kbc((mc-1)*10+mb) = kbc((mc-1)*10+mb)-ks_bc
+               kbd((md - 1)*10 + mb) = kbd((md - 1)*10 + mb) - ks_bd
+               kbc((mc - 1)*10 + mb) = kbc((mc - 1)*10 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -18762,18 +18764,18 @@ CONTAINS
             DO mb = 1, 11
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*11+mb)
-               p_bc = pbc((mc-1)*11+mb)
+               p_bd = pbd((md - 1)*11 + mb)
+               p_bc = pbc((mc - 1)*11 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*11+mb) = kbd((md-1)*11+mb)-ks_bd
-               kbc((mc-1)*11+mb) = kbc((mc-1)*11+mb)-ks_bc
+               kbd((md - 1)*11 + mb) = kbd((md - 1)*11 + mb) - ks_bd
+               kbc((mc - 1)*11 + mb) = kbc((mc - 1)*11 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -18812,18 +18814,18 @@ CONTAINS
             DO mb = 1, 15
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*15+mb)
-               p_bc = pbc((mc-1)*15+mb)
+               p_bd = pbd((md - 1)*15 + mb)
+               p_bc = pbc((mc - 1)*15 + mb)
                DO ma = 1, 4
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*4+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*4+ma)
-                  kad((md-1)*4+ma) = kad((md-1)*4+ma)-tmp*p_bc
-                  kac((mc-1)*4+ma) = kac((mc-1)*4+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*4 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*4 + ma)
+                  kad((md - 1)*4 + ma) = kad((md - 1)*4 + ma) - tmp*p_bc
+                  kac((mc - 1)*4 + ma) = kac((mc - 1)*4 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*15+mb) = kbd((md-1)*15+mb)-ks_bd
-               kbc((mc-1)*15+mb) = kbc((mc-1)*15+mb)-ks_bc
+               kbd((md - 1)*15 + mb) = kbd((md - 1)*15 + mb) - ks_bd
+               kbc((mc - 1)*15 + mb) = kbc((mc - 1)*15 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -18859,18 +18861,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -18906,18 +18908,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -18953,18 +18955,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -19001,18 +19003,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -19048,18 +19050,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -19096,18 +19098,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -19143,18 +19145,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -19191,18 +19193,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -19240,18 +19242,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -19287,18 +19289,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -19335,18 +19337,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -19384,18 +19386,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -19431,18 +19433,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -19479,18 +19481,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -19528,18 +19530,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -19577,18 +19579,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -19626,18 +19628,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -19675,18 +19677,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -19724,18 +19726,18 @@ CONTAINS
             DO mb = 1, 7
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*7+mb)
-               p_bc = pbc((mc-1)*7+mb)
+               p_bd = pbd((md - 1)*7 + mb)
+               p_bc = pbc((mc - 1)*7 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*7+mb) = kbd((md-1)*7+mb)-ks_bd
-               kbc((mc-1)*7+mb) = kbc((mc-1)*7+mb)-ks_bc
+               kbd((md - 1)*7 + mb) = kbd((md - 1)*7 + mb) - ks_bd
+               kbc((mc - 1)*7 + mb) = kbc((mc - 1)*7 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -19773,18 +19775,18 @@ CONTAINS
             DO mb = 1, 9
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*9+mb)
-               p_bc = pbc((mc-1)*9+mb)
+               p_bd = pbd((md - 1)*9 + mb)
+               p_bc = pbc((mc - 1)*9 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*9+mb) = kbd((md-1)*9+mb)-ks_bd
-               kbc((mc-1)*9+mb) = kbc((mc-1)*9+mb)-ks_bc
+               kbd((md - 1)*9 + mb) = kbd((md - 1)*9 + mb) - ks_bd
+               kbc((mc - 1)*9 + mb) = kbc((mc - 1)*9 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -19823,18 +19825,18 @@ CONTAINS
             DO mb = 1, 10
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*10+mb)
-               p_bc = pbc((mc-1)*10+mb)
+               p_bd = pbd((md - 1)*10 + mb)
+               p_bc = pbc((mc - 1)*10 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*10+mb) = kbd((md-1)*10+mb)-ks_bd
-               kbc((mc-1)*10+mb) = kbc((mc-1)*10+mb)-ks_bc
+               kbd((md - 1)*10 + mb) = kbd((md - 1)*10 + mb) - ks_bd
+               kbc((mc - 1)*10 + mb) = kbc((mc - 1)*10 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -19873,18 +19875,18 @@ CONTAINS
             DO mb = 1, 11
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*11+mb)
-               p_bc = pbc((mc-1)*11+mb)
+               p_bd = pbd((md - 1)*11 + mb)
+               p_bc = pbc((mc - 1)*11 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*11+mb) = kbd((md-1)*11+mb)-ks_bd
-               kbc((mc-1)*11+mb) = kbc((mc-1)*11+mb)-ks_bc
+               kbd((md - 1)*11 + mb) = kbd((md - 1)*11 + mb) - ks_bd
+               kbc((mc - 1)*11 + mb) = kbc((mc - 1)*11 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -19923,18 +19925,18 @@ CONTAINS
             DO mb = 1, 15
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*15+mb)
-               p_bc = pbc((mc-1)*15+mb)
+               p_bd = pbd((md - 1)*15 + mb)
+               p_bc = pbc((mc - 1)*15 + mb)
                DO ma = 1, 5
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*5+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*5+ma)
-                  kad((md-1)*5+ma) = kad((md-1)*5+ma)-tmp*p_bc
-                  kac((mc-1)*5+ma) = kac((mc-1)*5+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*5 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*5 + ma)
+                  kad((md - 1)*5 + ma) = kad((md - 1)*5 + ma) - tmp*p_bc
+                  kac((mc - 1)*5 + ma) = kac((mc - 1)*5 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*15+mb) = kbd((md-1)*15+mb)-ks_bd
-               kbc((mc-1)*15+mb) = kbc((mc-1)*15+mb)-ks_bc
+               kbd((md - 1)*15 + mb) = kbd((md - 1)*15 + mb) - ks_bd
+               kbc((mc - 1)*15 + mb) = kbc((mc - 1)*15 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -19970,18 +19972,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -20017,18 +20019,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -20064,18 +20066,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -20112,18 +20114,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -20159,18 +20161,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -20207,18 +20209,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -20254,18 +20256,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -20302,18 +20304,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -20351,18 +20353,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -20398,18 +20400,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -20446,18 +20448,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -20495,18 +20497,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -20542,18 +20544,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -20590,18 +20592,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -20639,18 +20641,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -20688,18 +20690,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -20737,18 +20739,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -20786,18 +20788,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -20835,18 +20837,18 @@ CONTAINS
             DO mb = 1, 7
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*7+mb)
-               p_bc = pbc((mc-1)*7+mb)
+               p_bd = pbd((md - 1)*7 + mb)
+               p_bc = pbc((mc - 1)*7 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*7+mb) = kbd((md-1)*7+mb)-ks_bd
-               kbc((mc-1)*7+mb) = kbc((mc-1)*7+mb)-ks_bc
+               kbd((md - 1)*7 + mb) = kbd((md - 1)*7 + mb) - ks_bd
+               kbc((mc - 1)*7 + mb) = kbc((mc - 1)*7 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -20884,18 +20886,18 @@ CONTAINS
             DO mb = 1, 9
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*9+mb)
-               p_bc = pbc((mc-1)*9+mb)
+               p_bd = pbd((md - 1)*9 + mb)
+               p_bc = pbc((mc - 1)*9 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*9+mb) = kbd((md-1)*9+mb)-ks_bd
-               kbc((mc-1)*9+mb) = kbc((mc-1)*9+mb)-ks_bc
+               kbd((md - 1)*9 + mb) = kbd((md - 1)*9 + mb) - ks_bd
+               kbc((mc - 1)*9 + mb) = kbc((mc - 1)*9 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -20934,18 +20936,18 @@ CONTAINS
             DO mb = 1, 10
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*10+mb)
-               p_bc = pbc((mc-1)*10+mb)
+               p_bd = pbd((md - 1)*10 + mb)
+               p_bc = pbc((mc - 1)*10 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*10+mb) = kbd((md-1)*10+mb)-ks_bd
-               kbc((mc-1)*10+mb) = kbc((mc-1)*10+mb)-ks_bc
+               kbd((md - 1)*10 + mb) = kbd((md - 1)*10 + mb) - ks_bd
+               kbc((mc - 1)*10 + mb) = kbc((mc - 1)*10 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -20984,18 +20986,18 @@ CONTAINS
             DO mb = 1, 11
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*11+mb)
-               p_bc = pbc((mc-1)*11+mb)
+               p_bd = pbd((md - 1)*11 + mb)
+               p_bc = pbc((mc - 1)*11 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*11+mb) = kbd((md-1)*11+mb)-ks_bd
-               kbc((mc-1)*11+mb) = kbc((mc-1)*11+mb)-ks_bc
+               kbd((md - 1)*11 + mb) = kbd((md - 1)*11 + mb) - ks_bd
+               kbc((mc - 1)*11 + mb) = kbc((mc - 1)*11 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -21034,18 +21036,18 @@ CONTAINS
             DO mb = 1, 15
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*15+mb)
-               p_bc = pbc((mc-1)*15+mb)
+               p_bd = pbd((md - 1)*15 + mb)
+               p_bc = pbc((mc - 1)*15 + mb)
                DO ma = 1, 6
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*6+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*6+ma)
-                  kad((md-1)*6+ma) = kad((md-1)*6+ma)-tmp*p_bc
-                  kac((mc-1)*6+ma) = kac((mc-1)*6+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*6 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*6 + ma)
+                  kad((md - 1)*6 + ma) = kad((md - 1)*6 + ma) - tmp*p_bc
+                  kac((mc - 1)*6 + ma) = kac((mc - 1)*6 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*15+mb) = kbd((md-1)*15+mb)-ks_bd
-               kbc((mc-1)*15+mb) = kbc((mc-1)*15+mb)-ks_bc
+               kbd((md - 1)*15 + mb) = kbd((md - 1)*15 + mb) - ks_bd
+               kbc((mc - 1)*15 + mb) = kbc((mc - 1)*15 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -21081,18 +21083,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 7
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*7+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*7+ma)
-                  kad((md-1)*7+ma) = kad((md-1)*7+ma)-tmp*p_bc
-                  kac((mc-1)*7+ma) = kac((mc-1)*7+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*7 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*7 + ma)
+                  kad((md - 1)*7 + ma) = kad((md - 1)*7 + ma) - tmp*p_bc
+                  kac((mc - 1)*7 + ma) = kac((mc - 1)*7 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -21128,18 +21130,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 7
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*7+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*7+ma)
-                  kad((md-1)*7+ma) = kad((md-1)*7+ma)-tmp*p_bc
-                  kac((mc-1)*7+ma) = kac((mc-1)*7+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*7 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*7 + ma)
+                  kad((md - 1)*7 + ma) = kad((md - 1)*7 + ma) - tmp*p_bc
+                  kac((mc - 1)*7 + ma) = kac((mc - 1)*7 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -21176,18 +21178,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 7
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*7+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*7+ma)
-                  kad((md-1)*7+ma) = kad((md-1)*7+ma)-tmp*p_bc
-                  kac((mc-1)*7+ma) = kac((mc-1)*7+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*7 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*7 + ma)
+                  kad((md - 1)*7 + ma) = kad((md - 1)*7 + ma) - tmp*p_bc
+                  kac((mc - 1)*7 + ma) = kac((mc - 1)*7 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -21223,18 +21225,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 7
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*7+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*7+ma)
-                  kad((md-1)*7+ma) = kad((md-1)*7+ma)-tmp*p_bc
-                  kac((mc-1)*7+ma) = kac((mc-1)*7+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*7 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*7 + ma)
+                  kad((md - 1)*7 + ma) = kad((md - 1)*7 + ma) - tmp*p_bc
+                  kac((mc - 1)*7 + ma) = kac((mc - 1)*7 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -21271,18 +21273,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 7
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*7+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*7+ma)
-                  kad((md-1)*7+ma) = kad((md-1)*7+ma)-tmp*p_bc
-                  kac((mc-1)*7+ma) = kac((mc-1)*7+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*7 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*7 + ma)
+                  kad((md - 1)*7 + ma) = kad((md - 1)*7 + ma) - tmp*p_bc
+                  kac((mc - 1)*7 + ma) = kac((mc - 1)*7 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -21320,18 +21322,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 7
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*7+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*7+ma)
-                  kad((md-1)*7+ma) = kad((md-1)*7+ma)-tmp*p_bc
-                  kac((mc-1)*7+ma) = kac((mc-1)*7+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*7 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*7 + ma)
+                  kad((md - 1)*7 + ma) = kad((md - 1)*7 + ma) - tmp*p_bc
+                  kac((mc - 1)*7 + ma) = kac((mc - 1)*7 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -21367,18 +21369,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 7
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*7+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*7+ma)
-                  kad((md-1)*7+ma) = kad((md-1)*7+ma)-tmp*p_bc
-                  kac((mc-1)*7+ma) = kac((mc-1)*7+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*7 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*7 + ma)
+                  kad((md - 1)*7 + ma) = kad((md - 1)*7 + ma) - tmp*p_bc
+                  kac((mc - 1)*7 + ma) = kac((mc - 1)*7 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -21415,18 +21417,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 7
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*7+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*7+ma)
-                  kad((md-1)*7+ma) = kad((md-1)*7+ma)-tmp*p_bc
-                  kac((mc-1)*7+ma) = kac((mc-1)*7+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*7 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*7 + ma)
+                  kad((md - 1)*7 + ma) = kad((md - 1)*7 + ma) - tmp*p_bc
+                  kac((mc - 1)*7 + ma) = kac((mc - 1)*7 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -21464,18 +21466,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 7
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*7+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*7+ma)
-                  kad((md-1)*7+ma) = kad((md-1)*7+ma)-tmp*p_bc
-                  kac((mc-1)*7+ma) = kac((mc-1)*7+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*7 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*7 + ma)
+                  kad((md - 1)*7 + ma) = kad((md - 1)*7 + ma) - tmp*p_bc
+                  kac((mc - 1)*7 + ma) = kac((mc - 1)*7 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -21513,18 +21515,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 7
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*7+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*7+ma)
-                  kad((md-1)*7+ma) = kad((md-1)*7+ma)-tmp*p_bc
-                  kac((mc-1)*7+ma) = kac((mc-1)*7+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*7 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*7 + ma)
+                  kad((md - 1)*7 + ma) = kad((md - 1)*7 + ma) - tmp*p_bc
+                  kac((mc - 1)*7 + ma) = kac((mc - 1)*7 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -21562,18 +21564,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 7
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*7+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*7+ma)
-                  kad((md-1)*7+ma) = kad((md-1)*7+ma)-tmp*p_bc
-                  kac((mc-1)*7+ma) = kac((mc-1)*7+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*7 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*7 + ma)
+                  kad((md - 1)*7 + ma) = kad((md - 1)*7 + ma) - tmp*p_bc
+                  kac((mc - 1)*7 + ma) = kac((mc - 1)*7 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -21611,18 +21613,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 7
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*7+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*7+ma)
-                  kad((md-1)*7+ma) = kad((md-1)*7+ma)-tmp*p_bc
-                  kac((mc-1)*7+ma) = kac((mc-1)*7+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*7 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*7 + ma)
+                  kad((md - 1)*7 + ma) = kad((md - 1)*7 + ma) - tmp*p_bc
+                  kac((mc - 1)*7 + ma) = kac((mc - 1)*7 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -21660,18 +21662,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 7
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*7+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*7+ma)
-                  kad((md-1)*7+ma) = kad((md-1)*7+ma)-tmp*p_bc
-                  kac((mc-1)*7+ma) = kac((mc-1)*7+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*7 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*7 + ma)
+                  kad((md - 1)*7 + ma) = kad((md - 1)*7 + ma) - tmp*p_bc
+                  kac((mc - 1)*7 + ma) = kac((mc - 1)*7 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -21709,18 +21711,18 @@ CONTAINS
             DO mb = 1, 7
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*7+mb)
-               p_bc = pbc((mc-1)*7+mb)
+               p_bd = pbd((md - 1)*7 + mb)
+               p_bc = pbc((mc - 1)*7 + mb)
                DO ma = 1, 7
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*7+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*7+ma)
-                  kad((md-1)*7+ma) = kad((md-1)*7+ma)-tmp*p_bc
-                  kac((mc-1)*7+ma) = kac((mc-1)*7+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*7 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*7 + ma)
+                  kad((md - 1)*7 + ma) = kad((md - 1)*7 + ma) - tmp*p_bc
+                  kac((mc - 1)*7 + ma) = kac((mc - 1)*7 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*7+mb) = kbd((md-1)*7+mb)-ks_bd
-               kbc((mc-1)*7+mb) = kbc((mc-1)*7+mb)-ks_bc
+               kbd((md - 1)*7 + mb) = kbd((md - 1)*7 + mb) - ks_bd
+               kbc((mc - 1)*7 + mb) = kbc((mc - 1)*7 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -21758,18 +21760,18 @@ CONTAINS
             DO mb = 1, 9
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*9+mb)
-               p_bc = pbc((mc-1)*9+mb)
+               p_bd = pbd((md - 1)*9 + mb)
+               p_bc = pbc((mc - 1)*9 + mb)
                DO ma = 1, 7
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*7+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*7+ma)
-                  kad((md-1)*7+ma) = kad((md-1)*7+ma)-tmp*p_bc
-                  kac((mc-1)*7+ma) = kac((mc-1)*7+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*7 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*7 + ma)
+                  kad((md - 1)*7 + ma) = kad((md - 1)*7 + ma) - tmp*p_bc
+                  kac((mc - 1)*7 + ma) = kac((mc - 1)*7 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*9+mb) = kbd((md-1)*9+mb)-ks_bd
-               kbc((mc-1)*9+mb) = kbc((mc-1)*9+mb)-ks_bc
+               kbd((md - 1)*9 + mb) = kbd((md - 1)*9 + mb) - ks_bd
+               kbc((mc - 1)*9 + mb) = kbc((mc - 1)*9 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -21808,18 +21810,18 @@ CONTAINS
             DO mb = 1, 10
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*10+mb)
-               p_bc = pbc((mc-1)*10+mb)
+               p_bd = pbd((md - 1)*10 + mb)
+               p_bc = pbc((mc - 1)*10 + mb)
                DO ma = 1, 7
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*7+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*7+ma)
-                  kad((md-1)*7+ma) = kad((md-1)*7+ma)-tmp*p_bc
-                  kac((mc-1)*7+ma) = kac((mc-1)*7+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*7 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*7 + ma)
+                  kad((md - 1)*7 + ma) = kad((md - 1)*7 + ma) - tmp*p_bc
+                  kac((mc - 1)*7 + ma) = kac((mc - 1)*7 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*10+mb) = kbd((md-1)*10+mb)-ks_bd
-               kbc((mc-1)*10+mb) = kbc((mc-1)*10+mb)-ks_bc
+               kbd((md - 1)*10 + mb) = kbd((md - 1)*10 + mb) - ks_bd
+               kbc((mc - 1)*10 + mb) = kbc((mc - 1)*10 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -21858,18 +21860,18 @@ CONTAINS
             DO mb = 1, 11
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*11+mb)
-               p_bc = pbc((mc-1)*11+mb)
+               p_bd = pbd((md - 1)*11 + mb)
+               p_bc = pbc((mc - 1)*11 + mb)
                DO ma = 1, 7
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*7+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*7+ma)
-                  kad((md-1)*7+ma) = kad((md-1)*7+ma)-tmp*p_bc
-                  kac((mc-1)*7+ma) = kac((mc-1)*7+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*7 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*7 + ma)
+                  kad((md - 1)*7 + ma) = kad((md - 1)*7 + ma) - tmp*p_bc
+                  kac((mc - 1)*7 + ma) = kac((mc - 1)*7 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*11+mb) = kbd((md-1)*11+mb)-ks_bd
-               kbc((mc-1)*11+mb) = kbc((mc-1)*11+mb)-ks_bc
+               kbd((md - 1)*11 + mb) = kbd((md - 1)*11 + mb) - ks_bd
+               kbc((mc - 1)*11 + mb) = kbc((mc - 1)*11 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -21908,18 +21910,18 @@ CONTAINS
             DO mb = 1, 15
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*15+mb)
-               p_bc = pbc((mc-1)*15+mb)
+               p_bd = pbd((md - 1)*15 + mb)
+               p_bc = pbc((mc - 1)*15 + mb)
                DO ma = 1, 7
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*7+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*7+ma)
-                  kad((md-1)*7+ma) = kad((md-1)*7+ma)-tmp*p_bc
-                  kac((mc-1)*7+ma) = kac((mc-1)*7+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*7 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*7 + ma)
+                  kad((md - 1)*7 + ma) = kad((md - 1)*7 + ma) - tmp*p_bc
+                  kac((mc - 1)*7 + ma) = kac((mc - 1)*7 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*15+mb) = kbd((md-1)*15+mb)-ks_bd
-               kbc((mc-1)*15+mb) = kbc((mc-1)*15+mb)-ks_bc
+               kbd((md - 1)*15 + mb) = kbd((md - 1)*15 + mb) - ks_bd
+               kbc((mc - 1)*15 + mb) = kbc((mc - 1)*15 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -21955,18 +21957,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 9
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*9+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*9+ma)
-                  kad((md-1)*9+ma) = kad((md-1)*9+ma)-tmp*p_bc
-                  kac((mc-1)*9+ma) = kac((mc-1)*9+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*9 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*9 + ma)
+                  kad((md - 1)*9 + ma) = kad((md - 1)*9 + ma) - tmp*p_bc
+                  kac((mc - 1)*9 + ma) = kac((mc - 1)*9 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -22002,18 +22004,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 9
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*9+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*9+ma)
-                  kad((md-1)*9+ma) = kad((md-1)*9+ma)-tmp*p_bc
-                  kac((mc-1)*9+ma) = kac((mc-1)*9+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*9 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*9 + ma)
+                  kad((md - 1)*9 + ma) = kad((md - 1)*9 + ma) - tmp*p_bc
+                  kac((mc - 1)*9 + ma) = kac((mc - 1)*9 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -22050,18 +22052,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 9
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*9+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*9+ma)
-                  kad((md-1)*9+ma) = kad((md-1)*9+ma)-tmp*p_bc
-                  kac((mc-1)*9+ma) = kac((mc-1)*9+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*9 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*9 + ma)
+                  kad((md - 1)*9 + ma) = kad((md - 1)*9 + ma) - tmp*p_bc
+                  kac((mc - 1)*9 + ma) = kac((mc - 1)*9 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -22097,18 +22099,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 9
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*9+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*9+ma)
-                  kad((md-1)*9+ma) = kad((md-1)*9+ma)-tmp*p_bc
-                  kac((mc-1)*9+ma) = kac((mc-1)*9+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*9 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*9 + ma)
+                  kad((md - 1)*9 + ma) = kad((md - 1)*9 + ma) - tmp*p_bc
+                  kac((mc - 1)*9 + ma) = kac((mc - 1)*9 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -22145,18 +22147,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 9
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*9+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*9+ma)
-                  kad((md-1)*9+ma) = kad((md-1)*9+ma)-tmp*p_bc
-                  kac((mc-1)*9+ma) = kac((mc-1)*9+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*9 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*9 + ma)
+                  kad((md - 1)*9 + ma) = kad((md - 1)*9 + ma) - tmp*p_bc
+                  kac((mc - 1)*9 + ma) = kac((mc - 1)*9 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -22194,18 +22196,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 9
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*9+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*9+ma)
-                  kad((md-1)*9+ma) = kad((md-1)*9+ma)-tmp*p_bc
-                  kac((mc-1)*9+ma) = kac((mc-1)*9+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*9 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*9 + ma)
+                  kad((md - 1)*9 + ma) = kad((md - 1)*9 + ma) - tmp*p_bc
+                  kac((mc - 1)*9 + ma) = kac((mc - 1)*9 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -22241,18 +22243,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 9
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*9+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*9+ma)
-                  kad((md-1)*9+ma) = kad((md-1)*9+ma)-tmp*p_bc
-                  kac((mc-1)*9+ma) = kac((mc-1)*9+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*9 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*9 + ma)
+                  kad((md - 1)*9 + ma) = kad((md - 1)*9 + ma) - tmp*p_bc
+                  kac((mc - 1)*9 + ma) = kac((mc - 1)*9 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -22289,18 +22291,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 9
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*9+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*9+ma)
-                  kad((md-1)*9+ma) = kad((md-1)*9+ma)-tmp*p_bc
-                  kac((mc-1)*9+ma) = kac((mc-1)*9+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*9 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*9 + ma)
+                  kad((md - 1)*9 + ma) = kad((md - 1)*9 + ma) - tmp*p_bc
+                  kac((mc - 1)*9 + ma) = kac((mc - 1)*9 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -22338,18 +22340,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 9
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*9+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*9+ma)
-                  kad((md-1)*9+ma) = kad((md-1)*9+ma)-tmp*p_bc
-                  kac((mc-1)*9+ma) = kac((mc-1)*9+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*9 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*9 + ma)
+                  kad((md - 1)*9 + ma) = kad((md - 1)*9 + ma) - tmp*p_bc
+                  kac((mc - 1)*9 + ma) = kac((mc - 1)*9 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -22387,18 +22389,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 9
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*9+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*9+ma)
-                  kad((md-1)*9+ma) = kad((md-1)*9+ma)-tmp*p_bc
-                  kac((mc-1)*9+ma) = kac((mc-1)*9+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*9 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*9 + ma)
+                  kad((md - 1)*9 + ma) = kad((md - 1)*9 + ma) - tmp*p_bc
+                  kac((mc - 1)*9 + ma) = kac((mc - 1)*9 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -22436,18 +22438,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 9
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*9+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*9+ma)
-                  kad((md-1)*9+ma) = kad((md-1)*9+ma)-tmp*p_bc
-                  kac((mc-1)*9+ma) = kac((mc-1)*9+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*9 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*9 + ma)
+                  kad((md - 1)*9 + ma) = kad((md - 1)*9 + ma) - tmp*p_bc
+                  kac((mc - 1)*9 + ma) = kac((mc - 1)*9 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -22485,18 +22487,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 9
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*9+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*9+ma)
-                  kad((md-1)*9+ma) = kad((md-1)*9+ma)-tmp*p_bc
-                  kac((mc-1)*9+ma) = kac((mc-1)*9+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*9 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*9 + ma)
+                  kad((md - 1)*9 + ma) = kad((md - 1)*9 + ma) - tmp*p_bc
+                  kac((mc - 1)*9 + ma) = kac((mc - 1)*9 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -22534,18 +22536,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 9
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*9+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*9+ma)
-                  kad((md-1)*9+ma) = kad((md-1)*9+ma)-tmp*p_bc
-                  kac((mc-1)*9+ma) = kac((mc-1)*9+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*9 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*9 + ma)
+                  kad((md - 1)*9 + ma) = kad((md - 1)*9 + ma) - tmp*p_bc
+                  kac((mc - 1)*9 + ma) = kac((mc - 1)*9 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -22583,18 +22585,18 @@ CONTAINS
             DO mb = 1, 7
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*7+mb)
-               p_bc = pbc((mc-1)*7+mb)
+               p_bd = pbd((md - 1)*7 + mb)
+               p_bc = pbc((mc - 1)*7 + mb)
                DO ma = 1, 9
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*9+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*9+ma)
-                  kad((md-1)*9+ma) = kad((md-1)*9+ma)-tmp*p_bc
-                  kac((mc-1)*9+ma) = kac((mc-1)*9+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*9 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*9 + ma)
+                  kad((md - 1)*9 + ma) = kad((md - 1)*9 + ma) - tmp*p_bc
+                  kac((mc - 1)*9 + ma) = kac((mc - 1)*9 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*7+mb) = kbd((md-1)*7+mb)-ks_bd
-               kbc((mc-1)*7+mb) = kbc((mc-1)*7+mb)-ks_bc
+               kbd((md - 1)*7 + mb) = kbd((md - 1)*7 + mb) - ks_bd
+               kbc((mc - 1)*7 + mb) = kbc((mc - 1)*7 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -22632,18 +22634,18 @@ CONTAINS
             DO mb = 1, 9
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*9+mb)
-               p_bc = pbc((mc-1)*9+mb)
+               p_bd = pbd((md - 1)*9 + mb)
+               p_bc = pbc((mc - 1)*9 + mb)
                DO ma = 1, 9
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*9+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*9+ma)
-                  kad((md-1)*9+ma) = kad((md-1)*9+ma)-tmp*p_bc
-                  kac((mc-1)*9+ma) = kac((mc-1)*9+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*9 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*9 + ma)
+                  kad((md - 1)*9 + ma) = kad((md - 1)*9 + ma) - tmp*p_bc
+                  kac((mc - 1)*9 + ma) = kac((mc - 1)*9 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*9+mb) = kbd((md-1)*9+mb)-ks_bd
-               kbc((mc-1)*9+mb) = kbc((mc-1)*9+mb)-ks_bc
+               kbd((md - 1)*9 + mb) = kbd((md - 1)*9 + mb) - ks_bd
+               kbc((mc - 1)*9 + mb) = kbc((mc - 1)*9 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -22682,18 +22684,18 @@ CONTAINS
             DO mb = 1, 10
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*10+mb)
-               p_bc = pbc((mc-1)*10+mb)
+               p_bd = pbd((md - 1)*10 + mb)
+               p_bc = pbc((mc - 1)*10 + mb)
                DO ma = 1, 9
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*9+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*9+ma)
-                  kad((md-1)*9+ma) = kad((md-1)*9+ma)-tmp*p_bc
-                  kac((mc-1)*9+ma) = kac((mc-1)*9+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*9 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*9 + ma)
+                  kad((md - 1)*9 + ma) = kad((md - 1)*9 + ma) - tmp*p_bc
+                  kac((mc - 1)*9 + ma) = kac((mc - 1)*9 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*10+mb) = kbd((md-1)*10+mb)-ks_bd
-               kbc((mc-1)*10+mb) = kbc((mc-1)*10+mb)-ks_bc
+               kbd((md - 1)*10 + mb) = kbd((md - 1)*10 + mb) - ks_bd
+               kbc((mc - 1)*10 + mb) = kbc((mc - 1)*10 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -22732,18 +22734,18 @@ CONTAINS
             DO mb = 1, 11
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*11+mb)
-               p_bc = pbc((mc-1)*11+mb)
+               p_bd = pbd((md - 1)*11 + mb)
+               p_bc = pbc((mc - 1)*11 + mb)
                DO ma = 1, 9
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*9+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*9+ma)
-                  kad((md-1)*9+ma) = kad((md-1)*9+ma)-tmp*p_bc
-                  kac((mc-1)*9+ma) = kac((mc-1)*9+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*9 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*9 + ma)
+                  kad((md - 1)*9 + ma) = kad((md - 1)*9 + ma) - tmp*p_bc
+                  kac((mc - 1)*9 + ma) = kac((mc - 1)*9 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*11+mb) = kbd((md-1)*11+mb)-ks_bd
-               kbc((mc-1)*11+mb) = kbc((mc-1)*11+mb)-ks_bc
+               kbd((md - 1)*11 + mb) = kbd((md - 1)*11 + mb) - ks_bd
+               kbc((mc - 1)*11 + mb) = kbc((mc - 1)*11 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -22782,18 +22784,18 @@ CONTAINS
             DO mb = 1, 15
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*15+mb)
-               p_bc = pbc((mc-1)*15+mb)
+               p_bd = pbd((md - 1)*15 + mb)
+               p_bc = pbc((mc - 1)*15 + mb)
                DO ma = 1, 9
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*9+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*9+ma)
-                  kad((md-1)*9+ma) = kad((md-1)*9+ma)-tmp*p_bc
-                  kac((mc-1)*9+ma) = kac((mc-1)*9+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*9 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*9 + ma)
+                  kad((md - 1)*9 + ma) = kad((md - 1)*9 + ma) - tmp*p_bc
+                  kac((mc - 1)*9 + ma) = kac((mc - 1)*9 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*15+mb) = kbd((md-1)*15+mb)-ks_bd
-               kbc((mc-1)*15+mb) = kbc((mc-1)*15+mb)-ks_bc
+               kbd((md - 1)*15 + mb) = kbd((md - 1)*15 + mb) - ks_bd
+               kbc((mc - 1)*15 + mb) = kbc((mc - 1)*15 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -22830,18 +22832,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 10
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*10+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*10+ma)
-                  kad((md-1)*10+ma) = kad((md-1)*10+ma)-tmp*p_bc
-                  kac((mc-1)*10+ma) = kac((mc-1)*10+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*10 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*10 + ma)
+                  kad((md - 1)*10 + ma) = kad((md - 1)*10 + ma) - tmp*p_bc
+                  kac((mc - 1)*10 + ma) = kac((mc - 1)*10 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -22878,18 +22880,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 10
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*10+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*10+ma)
-                  kad((md-1)*10+ma) = kad((md-1)*10+ma)-tmp*p_bc
-                  kac((mc-1)*10+ma) = kac((mc-1)*10+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*10 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*10 + ma)
+                  kad((md - 1)*10 + ma) = kad((md - 1)*10 + ma) - tmp*p_bc
+                  kac((mc - 1)*10 + ma) = kac((mc - 1)*10 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -22928,18 +22930,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 10
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*10+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*10+ma)
-                  kad((md-1)*10+ma) = kad((md-1)*10+ma)-tmp*p_bc
-                  kac((mc-1)*10+ma) = kac((mc-1)*10+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*10 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*10 + ma)
+                  kad((md - 1)*10 + ma) = kad((md - 1)*10 + ma) - tmp*p_bc
+                  kac((mc - 1)*10 + ma) = kac((mc - 1)*10 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -22978,18 +22980,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 10
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*10+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*10+ma)
-                  kad((md-1)*10+ma) = kad((md-1)*10+ma)-tmp*p_bc
-                  kac((mc-1)*10+ma) = kac((mc-1)*10+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*10 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*10 + ma)
+                  kad((md - 1)*10 + ma) = kad((md - 1)*10 + ma) - tmp*p_bc
+                  kac((mc - 1)*10 + ma) = kac((mc - 1)*10 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -23028,18 +23030,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 10
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*10+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*10+ma)
-                  kad((md-1)*10+ma) = kad((md-1)*10+ma)-tmp*p_bc
-                  kac((mc-1)*10+ma) = kac((mc-1)*10+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*10 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*10 + ma)
+                  kad((md - 1)*10 + ma) = kad((md - 1)*10 + ma) - tmp*p_bc
+                  kac((mc - 1)*10 + ma) = kac((mc - 1)*10 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -23078,18 +23080,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 10
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*10+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*10+ma)
-                  kad((md-1)*10+ma) = kad((md-1)*10+ma)-tmp*p_bc
-                  kac((mc-1)*10+ma) = kac((mc-1)*10+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*10 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*10 + ma)
+                  kad((md - 1)*10 + ma) = kad((md - 1)*10 + ma) - tmp*p_bc
+                  kac((mc - 1)*10 + ma) = kac((mc - 1)*10 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -23128,18 +23130,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 10
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*10+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*10+ma)
-                  kad((md-1)*10+ma) = kad((md-1)*10+ma)-tmp*p_bc
-                  kac((mc-1)*10+ma) = kac((mc-1)*10+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*10 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*10 + ma)
+                  kad((md - 1)*10 + ma) = kad((md - 1)*10 + ma) - tmp*p_bc
+                  kac((mc - 1)*10 + ma) = kac((mc - 1)*10 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -23178,18 +23180,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 10
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*10+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*10+ma)
-                  kad((md-1)*10+ma) = kad((md-1)*10+ma)-tmp*p_bc
-                  kac((mc-1)*10+ma) = kac((mc-1)*10+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*10 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*10 + ma)
+                  kad((md - 1)*10 + ma) = kad((md - 1)*10 + ma) - tmp*p_bc
+                  kac((mc - 1)*10 + ma) = kac((mc - 1)*10 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -23228,18 +23230,18 @@ CONTAINS
             DO mb = 1, 7
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*7+mb)
-               p_bc = pbc((mc-1)*7+mb)
+               p_bd = pbd((md - 1)*7 + mb)
+               p_bc = pbc((mc - 1)*7 + mb)
                DO ma = 1, 10
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*10+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*10+ma)
-                  kad((md-1)*10+ma) = kad((md-1)*10+ma)-tmp*p_bc
-                  kac((mc-1)*10+ma) = kac((mc-1)*10+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*10 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*10 + ma)
+                  kad((md - 1)*10 + ma) = kad((md - 1)*10 + ma) - tmp*p_bc
+                  kac((mc - 1)*10 + ma) = kac((mc - 1)*10 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*7+mb) = kbd((md-1)*7+mb)-ks_bd
-               kbc((mc-1)*7+mb) = kbc((mc-1)*7+mb)-ks_bc
+               kbd((md - 1)*7 + mb) = kbd((md - 1)*7 + mb) - ks_bd
+               kbc((mc - 1)*7 + mb) = kbc((mc - 1)*7 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -23278,18 +23280,18 @@ CONTAINS
             DO mb = 1, 9
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*9+mb)
-               p_bc = pbc((mc-1)*9+mb)
+               p_bd = pbd((md - 1)*9 + mb)
+               p_bc = pbc((mc - 1)*9 + mb)
                DO ma = 1, 10
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*10+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*10+ma)
-                  kad((md-1)*10+ma) = kad((md-1)*10+ma)-tmp*p_bc
-                  kac((mc-1)*10+ma) = kac((mc-1)*10+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*10 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*10 + ma)
+                  kad((md - 1)*10 + ma) = kad((md - 1)*10 + ma) - tmp*p_bc
+                  kac((mc - 1)*10 + ma) = kac((mc - 1)*10 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*9+mb) = kbd((md-1)*9+mb)-ks_bd
-               kbc((mc-1)*9+mb) = kbc((mc-1)*9+mb)-ks_bc
+               kbd((md - 1)*9 + mb) = kbd((md - 1)*9 + mb) - ks_bd
+               kbc((mc - 1)*9 + mb) = kbc((mc - 1)*9 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -23328,18 +23330,18 @@ CONTAINS
             DO mb = 1, 10
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*10+mb)
-               p_bc = pbc((mc-1)*10+mb)
+               p_bd = pbd((md - 1)*10 + mb)
+               p_bc = pbc((mc - 1)*10 + mb)
                DO ma = 1, 10
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*10+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*10+ma)
-                  kad((md-1)*10+ma) = kad((md-1)*10+ma)-tmp*p_bc
-                  kac((mc-1)*10+ma) = kac((mc-1)*10+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*10 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*10 + ma)
+                  kad((md - 1)*10 + ma) = kad((md - 1)*10 + ma) - tmp*p_bc
+                  kac((mc - 1)*10 + ma) = kac((mc - 1)*10 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*10+mb) = kbd((md-1)*10+mb)-ks_bd
-               kbc((mc-1)*10+mb) = kbc((mc-1)*10+mb)-ks_bc
+               kbd((md - 1)*10 + mb) = kbd((md - 1)*10 + mb) - ks_bd
+               kbc((mc - 1)*10 + mb) = kbc((mc - 1)*10 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -23378,18 +23380,18 @@ CONTAINS
             DO mb = 1, 11
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*11+mb)
-               p_bc = pbc((mc-1)*11+mb)
+               p_bd = pbd((md - 1)*11 + mb)
+               p_bc = pbc((mc - 1)*11 + mb)
                DO ma = 1, 10
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*10+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*10+ma)
-                  kad((md-1)*10+ma) = kad((md-1)*10+ma)-tmp*p_bc
-                  kac((mc-1)*10+ma) = kac((mc-1)*10+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*10 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*10 + ma)
+                  kad((md - 1)*10 + ma) = kad((md - 1)*10 + ma) - tmp*p_bc
+                  kac((mc - 1)*10 + ma) = kac((mc - 1)*10 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*11+mb) = kbd((md-1)*11+mb)-ks_bd
-               kbc((mc-1)*11+mb) = kbc((mc-1)*11+mb)-ks_bc
+               kbd((md - 1)*11 + mb) = kbd((md - 1)*11 + mb) - ks_bd
+               kbc((mc - 1)*11 + mb) = kbc((mc - 1)*11 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -23428,18 +23430,18 @@ CONTAINS
             DO mb = 1, 15
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*15+mb)
-               p_bc = pbc((mc-1)*15+mb)
+               p_bd = pbd((md - 1)*15 + mb)
+               p_bc = pbc((mc - 1)*15 + mb)
                DO ma = 1, 10
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*10+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*10+ma)
-                  kad((md-1)*10+ma) = kad((md-1)*10+ma)-tmp*p_bc
-                  kac((mc-1)*10+ma) = kac((mc-1)*10+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*10 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*10 + ma)
+                  kad((md - 1)*10 + ma) = kad((md - 1)*10 + ma) - tmp*p_bc
+                  kac((mc - 1)*10 + ma) = kac((mc - 1)*10 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*15+mb) = kbd((md-1)*15+mb)-ks_bd
-               kbc((mc-1)*15+mb) = kbc((mc-1)*15+mb)-ks_bc
+               kbd((md - 1)*15 + mb) = kbd((md - 1)*15 + mb) - ks_bd
+               kbc((mc - 1)*15 + mb) = kbc((mc - 1)*15 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -23476,18 +23478,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 11
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*11+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*11+ma)
-                  kad((md-1)*11+ma) = kad((md-1)*11+ma)-tmp*p_bc
-                  kac((mc-1)*11+ma) = kac((mc-1)*11+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*11 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*11 + ma)
+                  kad((md - 1)*11 + ma) = kad((md - 1)*11 + ma) - tmp*p_bc
+                  kac((mc - 1)*11 + ma) = kac((mc - 1)*11 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -23524,18 +23526,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 11
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*11+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*11+ma)
-                  kad((md-1)*11+ma) = kad((md-1)*11+ma)-tmp*p_bc
-                  kac((mc-1)*11+ma) = kac((mc-1)*11+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*11 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*11 + ma)
+                  kad((md - 1)*11 + ma) = kad((md - 1)*11 + ma) - tmp*p_bc
+                  kac((mc - 1)*11 + ma) = kac((mc - 1)*11 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -23574,18 +23576,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 11
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*11+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*11+ma)
-                  kad((md-1)*11+ma) = kad((md-1)*11+ma)-tmp*p_bc
-                  kac((mc-1)*11+ma) = kac((mc-1)*11+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*11 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*11 + ma)
+                  kad((md - 1)*11 + ma) = kad((md - 1)*11 + ma) - tmp*p_bc
+                  kac((mc - 1)*11 + ma) = kac((mc - 1)*11 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -23624,18 +23626,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 11
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*11+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*11+ma)
-                  kad((md-1)*11+ma) = kad((md-1)*11+ma)-tmp*p_bc
-                  kac((mc-1)*11+ma) = kac((mc-1)*11+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*11 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*11 + ma)
+                  kad((md - 1)*11 + ma) = kad((md - 1)*11 + ma) - tmp*p_bc
+                  kac((mc - 1)*11 + ma) = kac((mc - 1)*11 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -23674,18 +23676,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 11
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*11+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*11+ma)
-                  kad((md-1)*11+ma) = kad((md-1)*11+ma)-tmp*p_bc
-                  kac((mc-1)*11+ma) = kac((mc-1)*11+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*11 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*11 + ma)
+                  kad((md - 1)*11 + ma) = kad((md - 1)*11 + ma) - tmp*p_bc
+                  kac((mc - 1)*11 + ma) = kac((mc - 1)*11 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -23724,18 +23726,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 11
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*11+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*11+ma)
-                  kad((md-1)*11+ma) = kad((md-1)*11+ma)-tmp*p_bc
-                  kac((mc-1)*11+ma) = kac((mc-1)*11+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*11 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*11 + ma)
+                  kad((md - 1)*11 + ma) = kad((md - 1)*11 + ma) - tmp*p_bc
+                  kac((mc - 1)*11 + ma) = kac((mc - 1)*11 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -23774,18 +23776,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 11
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*11+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*11+ma)
-                  kad((md-1)*11+ma) = kad((md-1)*11+ma)-tmp*p_bc
-                  kac((mc-1)*11+ma) = kac((mc-1)*11+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*11 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*11 + ma)
+                  kad((md - 1)*11 + ma) = kad((md - 1)*11 + ma) - tmp*p_bc
+                  kac((mc - 1)*11 + ma) = kac((mc - 1)*11 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -23824,18 +23826,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 11
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*11+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*11+ma)
-                  kad((md-1)*11+ma) = kad((md-1)*11+ma)-tmp*p_bc
-                  kac((mc-1)*11+ma) = kac((mc-1)*11+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*11 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*11 + ma)
+                  kad((md - 1)*11 + ma) = kad((md - 1)*11 + ma) - tmp*p_bc
+                  kac((mc - 1)*11 + ma) = kac((mc - 1)*11 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -23874,18 +23876,18 @@ CONTAINS
             DO mb = 1, 7
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*7+mb)
-               p_bc = pbc((mc-1)*7+mb)
+               p_bd = pbd((md - 1)*7 + mb)
+               p_bc = pbc((mc - 1)*7 + mb)
                DO ma = 1, 11
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*11+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*11+ma)
-                  kad((md-1)*11+ma) = kad((md-1)*11+ma)-tmp*p_bc
-                  kac((mc-1)*11+ma) = kac((mc-1)*11+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*11 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*11 + ma)
+                  kad((md - 1)*11 + ma) = kad((md - 1)*11 + ma) - tmp*p_bc
+                  kac((mc - 1)*11 + ma) = kac((mc - 1)*11 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*7+mb) = kbd((md-1)*7+mb)-ks_bd
-               kbc((mc-1)*7+mb) = kbc((mc-1)*7+mb)-ks_bc
+               kbd((md - 1)*7 + mb) = kbd((md - 1)*7 + mb) - ks_bd
+               kbc((mc - 1)*7 + mb) = kbc((mc - 1)*7 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -23924,18 +23926,18 @@ CONTAINS
             DO mb = 1, 9
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*9+mb)
-               p_bc = pbc((mc-1)*9+mb)
+               p_bd = pbd((md - 1)*9 + mb)
+               p_bc = pbc((mc - 1)*9 + mb)
                DO ma = 1, 11
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*11+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*11+ma)
-                  kad((md-1)*11+ma) = kad((md-1)*11+ma)-tmp*p_bc
-                  kac((mc-1)*11+ma) = kac((mc-1)*11+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*11 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*11 + ma)
+                  kad((md - 1)*11 + ma) = kad((md - 1)*11 + ma) - tmp*p_bc
+                  kac((mc - 1)*11 + ma) = kac((mc - 1)*11 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*9+mb) = kbd((md-1)*9+mb)-ks_bd
-               kbc((mc-1)*9+mb) = kbc((mc-1)*9+mb)-ks_bc
+               kbd((md - 1)*9 + mb) = kbd((md - 1)*9 + mb) - ks_bd
+               kbc((mc - 1)*9 + mb) = kbc((mc - 1)*9 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -23974,18 +23976,18 @@ CONTAINS
             DO mb = 1, 10
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*10+mb)
-               p_bc = pbc((mc-1)*10+mb)
+               p_bd = pbd((md - 1)*10 + mb)
+               p_bc = pbc((mc - 1)*10 + mb)
                DO ma = 1, 11
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*11+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*11+ma)
-                  kad((md-1)*11+ma) = kad((md-1)*11+ma)-tmp*p_bc
-                  kac((mc-1)*11+ma) = kac((mc-1)*11+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*11 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*11 + ma)
+                  kad((md - 1)*11 + ma) = kad((md - 1)*11 + ma) - tmp*p_bc
+                  kac((mc - 1)*11 + ma) = kac((mc - 1)*11 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*10+mb) = kbd((md-1)*10+mb)-ks_bd
-               kbc((mc-1)*10+mb) = kbc((mc-1)*10+mb)-ks_bc
+               kbd((md - 1)*10 + mb) = kbd((md - 1)*10 + mb) - ks_bd
+               kbc((mc - 1)*10 + mb) = kbc((mc - 1)*10 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -24024,18 +24026,18 @@ CONTAINS
             DO mb = 1, 11
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*11+mb)
-               p_bc = pbc((mc-1)*11+mb)
+               p_bd = pbd((md - 1)*11 + mb)
+               p_bc = pbc((mc - 1)*11 + mb)
                DO ma = 1, 11
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*11+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*11+ma)
-                  kad((md-1)*11+ma) = kad((md-1)*11+ma)-tmp*p_bc
-                  kac((mc-1)*11+ma) = kac((mc-1)*11+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*11 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*11 + ma)
+                  kad((md - 1)*11 + ma) = kad((md - 1)*11 + ma) - tmp*p_bc
+                  kac((mc - 1)*11 + ma) = kac((mc - 1)*11 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*11+mb) = kbd((md-1)*11+mb)-ks_bd
-               kbc((mc-1)*11+mb) = kbc((mc-1)*11+mb)-ks_bc
+               kbd((md - 1)*11 + mb) = kbd((md - 1)*11 + mb) - ks_bd
+               kbc((mc - 1)*11 + mb) = kbc((mc - 1)*11 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -24074,18 +24076,18 @@ CONTAINS
             DO mb = 1, 15
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*15+mb)
-               p_bc = pbc((mc-1)*15+mb)
+               p_bd = pbd((md - 1)*15 + mb)
+               p_bc = pbc((mc - 1)*15 + mb)
                DO ma = 1, 11
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*11+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*11+ma)
-                  kad((md-1)*11+ma) = kad((md-1)*11+ma)-tmp*p_bc
-                  kac((mc-1)*11+ma) = kac((mc-1)*11+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*11 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*11 + ma)
+                  kad((md - 1)*11 + ma) = kad((md - 1)*11 + ma) - tmp*p_bc
+                  kac((mc - 1)*11 + ma) = kac((mc - 1)*11 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*15+mb) = kbd((md-1)*15+mb)-ks_bd
-               kbc((mc-1)*15+mb) = kbc((mc-1)*15+mb)-ks_bc
+               kbd((md - 1)*15 + mb) = kbd((md - 1)*15 + mb) - ks_bd
+               kbc((mc - 1)*15 + mb) = kbc((mc - 1)*15 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -24122,18 +24124,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 15
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*15+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*15+ma)
-                  kad((md-1)*15+ma) = kad((md-1)*15+ma)-tmp*p_bc
-                  kac((mc-1)*15+ma) = kac((mc-1)*15+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*15 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*15 + ma)
+                  kad((md - 1)*15 + ma) = kad((md - 1)*15 + ma) - tmp*p_bc
+                  kac((mc - 1)*15 + ma) = kac((mc - 1)*15 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -24170,18 +24172,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 15
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*15+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*15+ma)
-                  kad((md-1)*15+ma) = kad((md-1)*15+ma)-tmp*p_bc
-                  kac((mc-1)*15+ma) = kac((mc-1)*15+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*15 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*15 + ma)
+                  kad((md - 1)*15 + ma) = kad((md - 1)*15 + ma) - tmp*p_bc
+                  kac((mc - 1)*15 + ma) = kac((mc - 1)*15 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -24220,18 +24222,18 @@ CONTAINS
             DO mb = 1, 1
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*1+mb)
-               p_bc = pbc((mc-1)*1+mb)
+               p_bd = pbd((md - 1)*1 + mb)
+               p_bc = pbc((mc - 1)*1 + mb)
                DO ma = 1, 15
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*15+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*15+ma)
-                  kad((md-1)*15+ma) = kad((md-1)*15+ma)-tmp*p_bc
-                  kac((mc-1)*15+ma) = kac((mc-1)*15+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*15 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*15 + ma)
+                  kad((md - 1)*15 + ma) = kad((md - 1)*15 + ma) - tmp*p_bc
+                  kac((mc - 1)*15 + ma) = kac((mc - 1)*15 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*1+mb) = kbd((md-1)*1+mb)-ks_bd
-               kbc((mc-1)*1+mb) = kbc((mc-1)*1+mb)-ks_bc
+               kbd((md - 1)*1 + mb) = kbd((md - 1)*1 + mb) - ks_bd
+               kbc((mc - 1)*1 + mb) = kbc((mc - 1)*1 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -24270,18 +24272,18 @@ CONTAINS
             DO mb = 1, 2
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*2+mb)
-               p_bc = pbc((mc-1)*2+mb)
+               p_bd = pbd((md - 1)*2 + mb)
+               p_bc = pbc((mc - 1)*2 + mb)
                DO ma = 1, 15
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*15+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*15+ma)
-                  kad((md-1)*15+ma) = kad((md-1)*15+ma)-tmp*p_bc
-                  kac((mc-1)*15+ma) = kac((mc-1)*15+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*15 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*15 + ma)
+                  kad((md - 1)*15 + ma) = kad((md - 1)*15 + ma) - tmp*p_bc
+                  kac((mc - 1)*15 + ma) = kac((mc - 1)*15 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*2+mb) = kbd((md-1)*2+mb)-ks_bd
-               kbc((mc-1)*2+mb) = kbc((mc-1)*2+mb)-ks_bc
+               kbd((md - 1)*2 + mb) = kbd((md - 1)*2 + mb) - ks_bd
+               kbc((mc - 1)*2 + mb) = kbc((mc - 1)*2 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -24320,18 +24322,18 @@ CONTAINS
             DO mb = 1, 3
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*3+mb)
-               p_bc = pbc((mc-1)*3+mb)
+               p_bd = pbd((md - 1)*3 + mb)
+               p_bc = pbc((mc - 1)*3 + mb)
                DO ma = 1, 15
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*15+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*15+ma)
-                  kad((md-1)*15+ma) = kad((md-1)*15+ma)-tmp*p_bc
-                  kac((mc-1)*15+ma) = kac((mc-1)*15+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*15 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*15 + ma)
+                  kad((md - 1)*15 + ma) = kad((md - 1)*15 + ma) - tmp*p_bc
+                  kac((mc - 1)*15 + ma) = kac((mc - 1)*15 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*3+mb) = kbd((md-1)*3+mb)-ks_bd
-               kbc((mc-1)*3+mb) = kbc((mc-1)*3+mb)-ks_bc
+               kbd((md - 1)*3 + mb) = kbd((md - 1)*3 + mb) - ks_bd
+               kbc((mc - 1)*3 + mb) = kbc((mc - 1)*3 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -24370,18 +24372,18 @@ CONTAINS
             DO mb = 1, 4
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*4+mb)
-               p_bc = pbc((mc-1)*4+mb)
+               p_bd = pbd((md - 1)*4 + mb)
+               p_bc = pbc((mc - 1)*4 + mb)
                DO ma = 1, 15
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*15+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*15+ma)
-                  kad((md-1)*15+ma) = kad((md-1)*15+ma)-tmp*p_bc
-                  kac((mc-1)*15+ma) = kac((mc-1)*15+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*15 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*15 + ma)
+                  kad((md - 1)*15 + ma) = kad((md - 1)*15 + ma) - tmp*p_bc
+                  kac((mc - 1)*15 + ma) = kac((mc - 1)*15 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*4+mb) = kbd((md-1)*4+mb)-ks_bd
-               kbc((mc-1)*4+mb) = kbc((mc-1)*4+mb)-ks_bc
+               kbd((md - 1)*4 + mb) = kbd((md - 1)*4 + mb) - ks_bd
+               kbc((mc - 1)*4 + mb) = kbc((mc - 1)*4 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -24420,18 +24422,18 @@ CONTAINS
             DO mb = 1, 5
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*5+mb)
-               p_bc = pbc((mc-1)*5+mb)
+               p_bd = pbd((md - 1)*5 + mb)
+               p_bc = pbc((mc - 1)*5 + mb)
                DO ma = 1, 15
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*15+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*15+ma)
-                  kad((md-1)*15+ma) = kad((md-1)*15+ma)-tmp*p_bc
-                  kac((mc-1)*15+ma) = kac((mc-1)*15+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*15 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*15 + ma)
+                  kad((md - 1)*15 + ma) = kad((md - 1)*15 + ma) - tmp*p_bc
+                  kac((mc - 1)*15 + ma) = kac((mc - 1)*15 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*5+mb) = kbd((md-1)*5+mb)-ks_bd
-               kbc((mc-1)*5+mb) = kbc((mc-1)*5+mb)-ks_bc
+               kbd((md - 1)*5 + mb) = kbd((md - 1)*5 + mb) - ks_bd
+               kbc((mc - 1)*5 + mb) = kbc((mc - 1)*5 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -24470,18 +24472,18 @@ CONTAINS
             DO mb = 1, 6
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*6+mb)
-               p_bc = pbc((mc-1)*6+mb)
+               p_bd = pbd((md - 1)*6 + mb)
+               p_bc = pbc((mc - 1)*6 + mb)
                DO ma = 1, 15
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*15+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*15+ma)
-                  kad((md-1)*15+ma) = kad((md-1)*15+ma)-tmp*p_bc
-                  kac((mc-1)*15+ma) = kac((mc-1)*15+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*15 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*15 + ma)
+                  kad((md - 1)*15 + ma) = kad((md - 1)*15 + ma) - tmp*p_bc
+                  kac((mc - 1)*15 + ma) = kac((mc - 1)*15 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*6+mb) = kbd((md-1)*6+mb)-ks_bd
-               kbc((mc-1)*6+mb) = kbc((mc-1)*6+mb)-ks_bc
+               kbd((md - 1)*6 + mb) = kbd((md - 1)*6 + mb) - ks_bd
+               kbc((mc - 1)*6 + mb) = kbc((mc - 1)*6 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -24520,18 +24522,18 @@ CONTAINS
             DO mb = 1, 7
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*7+mb)
-               p_bc = pbc((mc-1)*7+mb)
+               p_bd = pbd((md - 1)*7 + mb)
+               p_bc = pbc((mc - 1)*7 + mb)
                DO ma = 1, 15
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*15+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*15+ma)
-                  kad((md-1)*15+ma) = kad((md-1)*15+ma)-tmp*p_bc
-                  kac((mc-1)*15+ma) = kac((mc-1)*15+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*15 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*15 + ma)
+                  kad((md - 1)*15 + ma) = kad((md - 1)*15 + ma) - tmp*p_bc
+                  kac((mc - 1)*15 + ma) = kac((mc - 1)*15 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*7+mb) = kbd((md-1)*7+mb)-ks_bd
-               kbc((mc-1)*7+mb) = kbc((mc-1)*7+mb)-ks_bc
+               kbd((md - 1)*7 + mb) = kbd((md - 1)*7 + mb) - ks_bd
+               kbc((mc - 1)*7 + mb) = kbc((mc - 1)*7 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -24570,18 +24572,18 @@ CONTAINS
             DO mb = 1, 9
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*9+mb)
-               p_bc = pbc((mc-1)*9+mb)
+               p_bd = pbd((md - 1)*9 + mb)
+               p_bc = pbc((mc - 1)*9 + mb)
                DO ma = 1, 15
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*15+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*15+ma)
-                  kad((md-1)*15+ma) = kad((md-1)*15+ma)-tmp*p_bc
-                  kac((mc-1)*15+ma) = kac((mc-1)*15+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*15 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*15 + ma)
+                  kad((md - 1)*15 + ma) = kad((md - 1)*15 + ma) - tmp*p_bc
+                  kac((mc - 1)*15 + ma) = kac((mc - 1)*15 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*9+mb) = kbd((md-1)*9+mb)-ks_bd
-               kbc((mc-1)*9+mb) = kbc((mc-1)*9+mb)-ks_bc
+               kbd((md - 1)*9 + mb) = kbd((md - 1)*9 + mb) - ks_bd
+               kbc((mc - 1)*9 + mb) = kbc((mc - 1)*9 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -24620,18 +24622,18 @@ CONTAINS
             DO mb = 1, 10
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*10+mb)
-               p_bc = pbc((mc-1)*10+mb)
+               p_bd = pbd((md - 1)*10 + mb)
+               p_bc = pbc((mc - 1)*10 + mb)
                DO ma = 1, 15
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*15+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*15+ma)
-                  kad((md-1)*15+ma) = kad((md-1)*15+ma)-tmp*p_bc
-                  kac((mc-1)*15+ma) = kac((mc-1)*15+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*15 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*15 + ma)
+                  kad((md - 1)*15 + ma) = kad((md - 1)*15 + ma) - tmp*p_bc
+                  kac((mc - 1)*15 + ma) = kac((mc - 1)*15 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*10+mb) = kbd((md-1)*10+mb)-ks_bd
-               kbc((mc-1)*10+mb) = kbc((mc-1)*10+mb)-ks_bc
+               kbd((md - 1)*10 + mb) = kbd((md - 1)*10 + mb) - ks_bd
+               kbc((mc - 1)*10 + mb) = kbc((mc - 1)*10 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -24670,18 +24672,18 @@ CONTAINS
             DO mb = 1, 11
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*11+mb)
-               p_bc = pbc((mc-1)*11+mb)
+               p_bd = pbd((md - 1)*11 + mb)
+               p_bc = pbc((mc - 1)*11 + mb)
                DO ma = 1, 15
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*15+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*15+ma)
-                  kad((md-1)*15+ma) = kad((md-1)*15+ma)-tmp*p_bc
-                  kac((mc-1)*15+ma) = kac((mc-1)*15+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*15 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*15 + ma)
+                  kad((md - 1)*15 + ma) = kad((md - 1)*15 + ma) - tmp*p_bc
+                  kac((mc - 1)*15 + ma) = kac((mc - 1)*15 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*11+mb) = kbd((md-1)*11+mb)-ks_bd
-               kbc((mc-1)*11+mb) = kbc((mc-1)*11+mb)-ks_bc
+               kbd((md - 1)*11 + mb) = kbd((md - 1)*11 + mb) - ks_bd
+               kbc((mc - 1)*11 + mb) = kbc((mc - 1)*11 + mb) - ks_bc
             END DO
          END DO
       END DO
@@ -24720,18 +24722,18 @@ CONTAINS
             DO mb = 1, 15
                ks_bd = 0.0_dp
                ks_bc = 0.0_dp
-               p_bd = pbd((md-1)*15+mb)
-               p_bc = pbc((mc-1)*15+mb)
+               p_bd = pbd((md - 1)*15 + mb)
+               p_bc = pbc((mc - 1)*15 + mb)
                DO ma = 1, 15
-                  p_index = p_index+1
+                  p_index = p_index + 1
                   tmp = scale*prim(p_index)
-                  ks_bc = ks_bc+tmp*pad((md-1)*15+ma)
-                  ks_bd = ks_bd+tmp*pac((mc-1)*15+ma)
-                  kad((md-1)*15+ma) = kad((md-1)*15+ma)-tmp*p_bc
-                  kac((mc-1)*15+ma) = kac((mc-1)*15+ma)-tmp*p_bd
+                  ks_bc = ks_bc + tmp*pad((md - 1)*15 + ma)
+                  ks_bd = ks_bd + tmp*pac((mc - 1)*15 + ma)
+                  kad((md - 1)*15 + ma) = kad((md - 1)*15 + ma) - tmp*p_bc
+                  kac((mc - 1)*15 + ma) = kac((mc - 1)*15 + ma) - tmp*p_bd
                END DO
-               kbd((md-1)*15+mb) = kbd((md-1)*15+mb)-ks_bd
-               kbc((mc-1)*15+mb) = kbc((mc-1)*15+mb)-ks_bc
+               kbd((md - 1)*15 + mb) = kbd((md - 1)*15 + mb) - ks_bd
+               kbc((mc - 1)*15 + mb) = kbc((mc - 1)*15 + mb) - ks_bc
             END DO
          END DO
       END DO

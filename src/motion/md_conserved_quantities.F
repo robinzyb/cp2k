@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -84,9 +86,6 @@ CONTAINS
       LOGICAL, INTENT(IN)                                :: tkind, tshell
       INTEGER, INTENT(IN)                                :: natom
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'compute_conserved_quantity', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: ikind, nfree_qm, nkind
       INTEGER, POINTER                                   :: itimes
       LOGICAL                                            :: init
@@ -160,7 +159,7 @@ CONTAINS
          CALL get_econs_nph_uniaxial(md_env, md_ener)
          md_ener%temp_baro = md_ener%temp_baro*kelvin
       CASE (langevin_ensemble)
-         md_ener%constant = md_ener%ekin+md_ener%epot
+         md_ener%constant = md_ener%ekin + md_ener%epot
       CASE (npe_f_ensemble, npe_i_ensemble)
          CALL get_econs_npe(md_env, md_ener, para_env)
          md_ener%temp_baro = md_ener%temp_baro*kelvin
@@ -176,7 +175,7 @@ CONTAINS
          END IF
       ELSE
          CALL get_md_env(md_env=md_env, constant=constant)
-         md_ener%delta_cons = (md_ener%constant-constant)/REAL(natom, KIND=dp)*kelvin
+         md_ener%delta_cons = (md_ener%constant - constant)/REAL(natom, KIND=dp)*kelvin
       END IF
 
    END SUBROUTINE compute_conserved_quantity
@@ -191,8 +190,6 @@ CONTAINS
       TYPE(md_environment_type), POINTER                 :: md_env
       TYPE(md_ener_type), POINTER                        :: md_ener
       INTEGER                                            :: nfree_qm
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'calc_nfree_qm', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: ip
       INTEGER, POINTER                                   :: cur_indices(:), cur_labels(:)
@@ -230,7 +227,7 @@ CONTAINS
          nfree_qm = 0
          DO ip = 1, SIZE(cur_indices)
             IF (cur_labels(ip) >= force_mixing_label_QM_dynamics) THEN ! this is a QM atom
-               nfree_qm = nfree_qm+3
+               nfree_qm = nfree_qm + 3
             END IF
          END DO
       END IF
@@ -252,8 +249,6 @@ CONTAINS
       TYPE(md_ener_type), INTENT(inout)                  :: md_ener
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_econs_nve', routineP = moduleN//':'//routineN
-
       TYPE(force_env_type), POINTER                      :: force_env
       TYPE(thermostat_type), POINTER                     :: thermostat_coeff, thermostat_shell
 
@@ -261,11 +256,11 @@ CONTAINS
 
       CALL get_md_env(md_env, force_env=force_env, thermostat_coeff=thermostat_coeff, &
                       thermostat_shell=thermostat_shell)
-      md_ener%constant = md_ener%ekin+md_ener%epot+md_ener%ekin_shell
+      md_ener%constant = md_ener%ekin + md_ener%epot + md_ener%ekin_shell
 
       CALL get_thermostat_energies(thermostat_shell, md_ener%thermostat_shell_pot, &
                                    md_ener%thermostat_shell_kin, para_env)
-      md_ener%constant = md_ener%constant+md_ener%thermostat_shell_kin+md_ener%thermostat_shell_pot
+      md_ener%constant = md_ener%constant + md_ener%thermostat_shell_kin + md_ener%thermostat_shell_pot
 
    END SUBROUTINE get_econs_nve
 
@@ -283,9 +278,6 @@ CONTAINS
       TYPE(md_ener_type), INTENT(inout)                  :: md_ener
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_econs_nvt_adiabatic', &
-         routineP = moduleN//':'//routineN
-
       TYPE(force_env_type), POINTER                      :: force_env
       TYPE(thermostat_type), POINTER                     :: thermostat_fast, thermostat_slow
 
@@ -294,12 +286,12 @@ CONTAINS
                       thermostat_slow=thermostat_slow)
       CALL get_thermostat_energies(thermostat_fast, md_ener%thermostat_fast_pot, &
                                    md_ener%thermostat_fast_kin, para_env)
-      md_ener%constant = md_ener%ekin+md_ener%epot+ &
-                         md_ener%thermostat_fast_kin+md_ener%thermostat_fast_pot
+      md_ener%constant = md_ener%ekin + md_ener%epot + &
+                         md_ener%thermostat_fast_kin + md_ener%thermostat_fast_pot
       CALL get_thermostat_energies(thermostat_slow, md_ener%thermostat_slow_pot, &
                                    md_ener%thermostat_slow_kin, para_env)
-      md_ener%constant = md_ener%constant+ &
-                         md_ener%thermostat_slow_kin+md_ener%thermostat_slow_pot
+      md_ener%constant = md_ener%constant + &
+                         md_ener%thermostat_slow_kin + md_ener%thermostat_slow_pot
 
    END SUBROUTINE get_econs_nvt_adiabatic
 
@@ -317,8 +309,6 @@ CONTAINS
       TYPE(md_ener_type), INTENT(inout)                  :: md_ener
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_econs_nvt', routineP = moduleN//':'//routineN
-
       TYPE(force_env_type), POINTER                      :: force_env
       TYPE(thermostat_type), POINTER                     :: thermostat_coeff, thermostat_part, &
                                                             thermostat_shell
@@ -328,12 +318,12 @@ CONTAINS
                       thermostat_coeff=thermostat_coeff, thermostat_shell=thermostat_shell)
       CALL get_thermostat_energies(thermostat_part, md_ener%thermostat_part_pot, &
                                    md_ener%thermostat_part_kin, para_env)
-      md_ener%constant = md_ener%ekin+md_ener%epot+md_ener%ekin_shell+ &
-                         md_ener%thermostat_part_kin+md_ener%thermostat_part_pot
+      md_ener%constant = md_ener%ekin + md_ener%epot + md_ener%ekin_shell + &
+                         md_ener%thermostat_part_kin + md_ener%thermostat_part_pot
 
       CALL get_thermostat_energies(thermostat_shell, md_ener%thermostat_shell_pot, &
                                    md_ener%thermostat_shell_kin, para_env)
-      md_ener%constant = md_ener%constant+md_ener%thermostat_shell_kin+md_ener%thermostat_shell_pot
+      md_ener%constant = md_ener%constant + md_ener%thermostat_shell_kin + md_ener%thermostat_shell_pot
 
    END SUBROUTINE get_econs_nvt
 
@@ -351,8 +341,6 @@ CONTAINS
       TYPE(md_ener_type), INTENT(inout)                  :: md_ener
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_econs_npe', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: nfree
       TYPE(cell_type), POINTER                           :: box
       TYPE(npt_info_type), POINTER                       :: npt(:, :)
@@ -368,12 +356,12 @@ CONTAINS
       nfree = SIZE(npt, 1)*SIZE(npt, 2)
       md_ener%temp_baro = 2.0_dp*md_ener%baro_kin/nfree
 
-      md_ener%constant = md_ener%ekin+md_ener%epot+md_ener%ekin_shell &
-                         +md_ener%baro_kin+md_ener%baro_pot
+      md_ener%constant = md_ener%ekin + md_ener%epot + md_ener%ekin_shell &
+                         + md_ener%baro_kin + md_ener%baro_pot
 
       CALL get_thermostat_energies(thermostat_shell, md_ener%thermostat_shell_pot, &
                                    md_ener%thermostat_shell_kin, para_env)
-      md_ener%constant = md_ener%constant+md_ener%thermostat_shell_kin+ &
+      md_ener%constant = md_ener%constant + md_ener%thermostat_shell_kin + &
                          md_ener%thermostat_shell_pot
 
    END SUBROUTINE get_econs_npe
@@ -391,8 +379,6 @@ CONTAINS
       TYPE(md_environment_type), POINTER                 :: md_env
       TYPE(md_ener_type), INTENT(inout)                  :: md_ener
       TYPE(cp_para_env_type), POINTER                    :: para_env
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_econs_npt', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: nfree
       TYPE(cell_type), POINTER                           :: box
@@ -412,14 +398,14 @@ CONTAINS
       nfree = SIZE(npt, 1)*SIZE(npt, 2)
       md_ener%temp_baro = 2.0_dp*md_ener%baro_kin/nfree
 
-      md_ener%constant = md_ener%ekin+md_ener%epot+md_ener%ekin_shell &
-                         +md_ener%thermostat_part_kin+md_ener%thermostat_part_pot &
-                         +md_ener%thermostat_baro_kin+md_ener%thermostat_baro_pot &
-                         +md_ener%baro_kin+md_ener%baro_pot
+      md_ener%constant = md_ener%ekin + md_ener%epot + md_ener%ekin_shell &
+                         + md_ener%thermostat_part_kin + md_ener%thermostat_part_pot &
+                         + md_ener%thermostat_baro_kin + md_ener%thermostat_baro_pot &
+                         + md_ener%baro_kin + md_ener%baro_pot
 
       CALL get_thermostat_energies(thermostat_shell, md_ener%thermostat_shell_pot, &
                                    md_ener%thermostat_shell_kin, para_env)
-      md_ener%constant = md_ener%constant+md_ener%thermostat_shell_kin+md_ener%thermostat_shell_pot
+      md_ener%constant = md_ener%constant + md_ener%thermostat_shell_kin + md_ener%thermostat_shell_pot
 
    END SUBROUTINE get_econs_npt
 
@@ -435,9 +421,6 @@ CONTAINS
       TYPE(md_environment_type), POINTER                 :: md_env
       TYPE(md_ener_type), INTENT(inout)                  :: md_ener
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_econs_nph_uniaxial', &
-         routineP = moduleN//':'//routineN
-
       TYPE(cell_type), POINTER                           :: box
       TYPE(npt_info_type), POINTER                       :: npt(:, :)
       TYPE(simpar_type), POINTER                         :: simpar
@@ -446,7 +429,7 @@ CONTAINS
 
       CALL get_baro_energies(box, simpar, npt, md_ener%baro_kin, md_ener%baro_pot)
       md_ener%temp_baro = 2.0_dp*md_ener%baro_kin
-      md_ener%constant = md_ener%ekin+md_ener%epot+md_ener%baro_kin+md_ener%baro_pot
+      md_ener%constant = md_ener%ekin + md_ener%epot + md_ener%baro_kin + md_ener%baro_pot
    END SUBROUTINE get_econs_nph_uniaxial
 
 ! **************************************************************************************************
@@ -465,8 +448,6 @@ CONTAINS
       TYPE(md_ener_type), POINTER                        :: md_ener
       LOGICAL, INTENT(IN)                                :: tkind, tshell
       INTEGER, INTENT(IN)                                :: group
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'get_part_ke', routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, iparticle, iparticle_kind, &
                                                             iparticle_local, nparticle_kind, &
@@ -532,31 +513,31 @@ CONTAINS
                   !ekin
                   ekin_com = 0.5_dp*mass* &
                              (particle_set(iparticle)%v(1)*particle_set(iparticle)%v(1) &
-                              +particle_set(iparticle)%v(2)*particle_set(iparticle)%v(2) &
-                              +particle_set(iparticle)%v(3)*particle_set(iparticle)%v(3))
+                              + particle_set(iparticle)%v(2)*particle_set(iparticle)%v(2) &
+                              + particle_set(iparticle)%v(3)*particle_set(iparticle)%v(3))
                   !vcom
-                  md_ener%vcom(1) = md_ener%vcom(1)+particle_set(iparticle)%v(1)*mass
-                  md_ener%vcom(2) = md_ener%vcom(2)+particle_set(iparticle)%v(2)*mass
-                  md_ener%vcom(3) = md_ener%vcom(3)+particle_set(iparticle)%v(3)*mass
-                  md_ener%total_mass = md_ener%total_mass+mass
+                  md_ener%vcom(1) = md_ener%vcom(1) + particle_set(iparticle)%v(1)*mass
+                  md_ener%vcom(2) = md_ener%vcom(2) + particle_set(iparticle)%v(2)*mass
+                  md_ener%vcom(3) = md_ener%vcom(3) + particle_set(iparticle)%v(3)*mass
+                  md_ener%total_mass = md_ener%total_mass + mass
 
-                  md_ener%ekin = md_ener%ekin+ekin_com
+                  md_ener%ekin = md_ener%ekin + ekin_com
                   ekin_c = 0.5_dp*shell%mass_core* &
                            (core_particle_set(shell_index)%v(1)*core_particle_set(shell_index)%v(1) &
-                            +core_particle_set(shell_index)%v(2)*core_particle_set(shell_index)%v(2) &
-                            +core_particle_set(shell_index)%v(3)*core_particle_set(shell_index)%v(3))
+                            + core_particle_set(shell_index)%v(2)*core_particle_set(shell_index)%v(2) &
+                            + core_particle_set(shell_index)%v(3)*core_particle_set(shell_index)%v(3))
                   ekin_s = 0.5_dp*shell%mass_shell* &
                            (shell_particle_set(shell_index)%v(1)*shell_particle_set(shell_index)%v(1) &
-                            +shell_particle_set(shell_index)%v(2)*shell_particle_set(shell_index)%v(2) &
-                            +shell_particle_set(shell_index)%v(3)*shell_particle_set(shell_index)%v(3))
-                  md_ener%ekin_shell = md_ener%ekin_shell+ekin_c+ekin_s-ekin_com
+                            + shell_particle_set(shell_index)%v(2)*shell_particle_set(shell_index)%v(2) &
+                            + shell_particle_set(shell_index)%v(3)*shell_particle_set(shell_index)%v(3))
+                  md_ener%ekin_shell = md_ener%ekin_shell + ekin_c + ekin_s - ekin_com
 
                   IF (tkind) THEN
-                     md_ener%ekin_kind(iparticle_kind) = md_ener%ekin_kind(iparticle_kind)+ekin_com
-                     md_ener%nfree_kind(iparticle_kind) = md_ener%nfree_kind(iparticle_kind)+3
-                     md_ener%ekin_shell_kind(iparticle_kind) = md_ener%ekin_shell_kind(iparticle_kind)+ &
-                                                               ekin_c+ekin_s-ekin_com
-                     md_ener%nfree_shell_kind(iparticle_kind) = md_ener%nfree_shell_kind(iparticle_kind)+3
+                     md_ener%ekin_kind(iparticle_kind) = md_ener%ekin_kind(iparticle_kind) + ekin_com
+                     md_ener%nfree_kind(iparticle_kind) = md_ener%nfree_kind(iparticle_kind) + 3
+                     md_ener%ekin_shell_kind(iparticle_kind) = md_ener%ekin_shell_kind(iparticle_kind) + &
+                                                               ekin_c + ekin_s - ekin_com
+                     md_ener%nfree_shell_kind(iparticle_kind) = md_ener%nfree_shell_kind(iparticle_kind) + 3
                   END IF
 
                END DO ! iparticle_local
@@ -565,18 +546,18 @@ CONTAINS
                   iparticle = local_particles%list(iparticle_kind)%array(iparticle_local)
                   ekin_com = 0.5_dp*mass* &
                              (particle_set(iparticle)%v(1)*particle_set(iparticle)%v(1) &
-                              +particle_set(iparticle)%v(2)*particle_set(iparticle)%v(2) &
-                              +particle_set(iparticle)%v(3)*particle_set(iparticle)%v(3))
+                              + particle_set(iparticle)%v(2)*particle_set(iparticle)%v(2) &
+                              + particle_set(iparticle)%v(3)*particle_set(iparticle)%v(3))
                   !vcom
-                  md_ener%vcom(1) = md_ener%vcom(1)+particle_set(iparticle)%v(1)*mass
-                  md_ener%vcom(2) = md_ener%vcom(2)+particle_set(iparticle)%v(2)*mass
-                  md_ener%vcom(3) = md_ener%vcom(3)+particle_set(iparticle)%v(3)*mass
-                  md_ener%total_mass = md_ener%total_mass+mass
+                  md_ener%vcom(1) = md_ener%vcom(1) + particle_set(iparticle)%v(1)*mass
+                  md_ener%vcom(2) = md_ener%vcom(2) + particle_set(iparticle)%v(2)*mass
+                  md_ener%vcom(3) = md_ener%vcom(3) + particle_set(iparticle)%v(3)*mass
+                  md_ener%total_mass = md_ener%total_mass + mass
 
-                  md_ener%ekin = md_ener%ekin+ekin_com
+                  md_ener%ekin = md_ener%ekin + ekin_com
                   IF (tkind) THEN
-                     md_ener%ekin_kind(iparticle_kind) = md_ener%ekin_kind(iparticle_kind)+ekin_com
-                     md_ener%nfree_kind(iparticle_kind) = md_ener%nfree_kind(iparticle_kind)+3
+                     md_ener%ekin_kind(iparticle_kind) = md_ener%ekin_kind(iparticle_kind) + ekin_com
+                     md_ener%nfree_kind(iparticle_kind) = md_ener%nfree_kind(iparticle_kind) + 3
                   END IF
                END DO ! iparticle_local
             END IF
@@ -599,19 +580,19 @@ CONTAINS
                ! ekin
                ekin_com = 0.5_dp*mass* &
                           (particle_set(iparticle)%v(1)*particle_set(iparticle)%v(1) &
-                           +particle_set(iparticle)%v(2)*particle_set(iparticle)%v(2) &
-                           +particle_set(iparticle)%v(3)*particle_set(iparticle)%v(3))
+                           + particle_set(iparticle)%v(2)*particle_set(iparticle)%v(2) &
+                           + particle_set(iparticle)%v(3)*particle_set(iparticle)%v(3))
 
                !vcom
-               md_ener%vcom(1) = md_ener%vcom(1)+particle_set(iparticle)%v(1)*mass
-               md_ener%vcom(2) = md_ener%vcom(2)+particle_set(iparticle)%v(2)*mass
-               md_ener%vcom(3) = md_ener%vcom(3)+particle_set(iparticle)%v(3)*mass
-               md_ener%total_mass = md_ener%total_mass+mass
+               md_ener%vcom(1) = md_ener%vcom(1) + particle_set(iparticle)%v(1)*mass
+               md_ener%vcom(2) = md_ener%vcom(2) + particle_set(iparticle)%v(2)*mass
+               md_ener%vcom(3) = md_ener%vcom(3) + particle_set(iparticle)%v(3)*mass
+               md_ener%total_mass = md_ener%total_mass + mass
 
-               md_ener%ekin = md_ener%ekin+ekin_com
+               md_ener%ekin = md_ener%ekin + ekin_com
                IF (tkind) THEN
-                  md_ener%ekin_kind(iparticle_kind) = md_ener%ekin_kind(iparticle_kind)+ekin_com
-                  md_ener%nfree_kind(iparticle_kind) = md_ener%nfree_kind(iparticle_kind)+3
+                  md_ener%ekin_kind(iparticle_kind) = md_ener%ekin_kind(iparticle_kind) + ekin_com
+                  md_ener%nfree_kind(iparticle_kind) = md_ener%nfree_kind(iparticle_kind) + 3
                END IF
             END DO
          END DO ! iparticle_kind
@@ -633,10 +614,10 @@ CONTAINS
          DO i = 1, SIZE(qmmm_env%qm%qm_atom_index)
             iparticle = qmmm_env%qm%qm_atom_index(i)
             mass = particle_set(iparticle)%atomic_kind%mass
-            md_ener%ekin_qm = md_ener%ekin_qm+0.5_dp*mass* &
+            md_ener%ekin_qm = md_ener%ekin_qm + 0.5_dp*mass* &
                               (particle_set(iparticle)%v(1)*particle_set(iparticle)%v(1) &
-                               +particle_set(iparticle)%v(2)*particle_set(iparticle)%v(2) &
-                               +particle_set(iparticle)%v(3)*particle_set(iparticle)%v(3))
+                               + particle_set(iparticle)%v(2)*particle_set(iparticle)%v(2) &
+                               + particle_set(iparticle)%v(3)*particle_set(iparticle)%v(3))
          END DO
       END IF
 
@@ -647,10 +628,10 @@ CONTAINS
             IF (cur_labels(i) >= force_mixing_label_QM_dynamics) THEN ! this is a QM atom
                iparticle = cur_indices(i)
                mass = particle_set(iparticle)%atomic_kind%mass
-               md_ener%ekin_qm = md_ener%ekin_qm+0.5_dp*mass* &
+               md_ener%ekin_qm = md_ener%ekin_qm + 0.5_dp*mass* &
                                  (particle_set(iparticle)%v(1)*particle_set(iparticle)%v(1) &
-                                  +particle_set(iparticle)%v(2)*particle_set(iparticle)%v(2) &
-                                  +particle_set(iparticle)%v(3)*particle_set(iparticle)%v(3))
+                                  + particle_set(iparticle)%v(2)*particle_set(iparticle)%v(2) &
+                                  + particle_set(iparticle)%v(3)*particle_set(iparticle)%v(3))
             END IF
          END DO
       END IF

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -56,9 +58,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: comm, in_external_master_id
       INTEGER, INTENT(IN), OPTIONAL                      :: in_scf_energy_message_tag, in_exit_tag
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'set_external_comm', &
-         routineP = moduleN//':'//routineN
-
       CPASSERT(in_external_master_id .GE. 0)
 
       external_comm = comm
@@ -93,8 +92,7 @@ CONTAINS
       TYPE(global_environment_type), OPTIONAL, POINTER   :: globenv
       REAL(dp), OPTIONAL                                 :: target_time, start_time
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'external_control', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER                        :: routineN = 'external_control'
 
       CHARACTER(LEN=default_string_length)               :: exit_fname, exit_fname_level, &
                                                             exit_gname, exit_gname_level
@@ -123,13 +121,13 @@ CONTAINS
          IF (tag .EQ. exit_tag) should_stop = .TRUE.
       END IF
 
-      IF (logger%para_env%source == logger%para_env%mepos) THEN
+      IF (logger%para_env%ionode) THEN
          ! files will only be checked every 20 seconds, or if the clock wraps/does not exist,
          ! otherwise 64 waters on 64 cores can spend up to 10% of time here, on lustre
          ! however, if should_stop has been true, we should always check
          ! (at each level scf, md, ... the file must be there to guarantee termination)
          t1 = m_walltime()
-         IF (t1 > t_last_file_check+20.0_dp .OR. t1 <= t_last_file_check .OR. check_always) THEN
+         IF (t1 > t_last_file_check + 20.0_dp .OR. t1 <= t_last_file_check .OR. check_always) THEN
 
             t_last_file_check = t1
             ! allows for halting execution for a while
@@ -147,7 +145,7 @@ CONTAINS
                   t1 = m_walltime()
                   DO I = 1, 100000000
                      t2 = m_walltime()
-                     IF (t2-t1 > 1.0_dp) EXIT
+                     IF (t2 - t1 > 1.0_dp) EXIT
                   ENDDO
                   ! and ask again
                   INQUIRE (FILE="WAIT", EXIST=should_wait)
@@ -207,7 +205,7 @@ CONTAINS
 
          IF ((.NOT. should_stop) .AND. (my_target_time > 0.0_dp)) THEN
             ! Check for execution time
-            time_check = m_walltime()-my_start_time
+            time_check = m_walltime() - my_start_time
             IF (time_check .GT. my_target_time) THEN
                should_stop = .TRUE.
                WRITE (UNIT=cp_logger_get_default_unit_nr(logger), FMT="(/,T2,A,f12.3,A)") &

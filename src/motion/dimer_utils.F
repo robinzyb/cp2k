@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -44,8 +46,6 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:), POINTER               :: nvec, theta
       REAL(KIND=dp)                                      :: dt
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'rotate_dimer', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: output_unit
       LOGICAL                                            :: check
 
@@ -58,7 +58,7 @@ CONTAINS
             ABS(DOT_PRODUCT(nvec, theta))
       END IF
       CPASSERT(check)
-      nvec = nvec*COS(dt)+theta*SIN(dt)
+      nvec = nvec*COS(dt) + theta*SIN(dt)
 
    END SUBROUTINE rotate_dimer
 
@@ -74,9 +74,6 @@ CONTAINS
       TYPE(dimer_env_type), POINTER                      :: dimer_env
       TYPE(section_vals_type), POINTER                   :: motion_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'update_dimer_vec', &
-         routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, i_rep_val, isize, j, size_array
       REAL(KIND=dp), DIMENSION(:), POINTER               :: array
       TYPE(section_vals_type), POINTER                   :: nvec_section
@@ -91,9 +88,9 @@ CONTAINS
       i_rep_val = 0
       Main_Loop: DO i = 1, SIZE(dimer_env%nvec), size_array
          ALLOCATE (array(size_array))
-         i_rep_val = i_rep_val+1
+         i_rep_val = i_rep_val + 1
          DO j = 1, size_array
-            isize = isize+1
+            isize = isize + 1
             array(j) = dimer_env%nvec(isize)
             IF (isize == SIZE(dimer_env%nvec)) THEN
                CALL reallocate(array, 1, j)
@@ -122,9 +119,7 @@ CONTAINS
       TYPE(dimer_env_type), POINTER                      :: dimer_env
       REAL(KIND=dp), INTENT(OUT)                         :: norm
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_theta', routineP = moduleN//':'//routineN
-
-      gradient = gradient-DOT_PRODUCT(gradient, dimer_env%nvec)*dimer_env%nvec
+      gradient = gradient - DOT_PRODUCT(gradient, dimer_env%nvec)*dimer_env%nvec
       norm = SQRT(DOT_PRODUCT(gradient, gradient))
       IF (norm < EPSILON(0.0_dp)) THEN
          ! This means that NVEC is totally aligned with minimum curvature mode

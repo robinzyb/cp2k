@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -13,56 +15,56 @@ MODULE metadynamics
    USE cp_log_handling, ONLY: cp_logger_type, cp_get_default_logger
    USE bibliography, ONLY: VandenCic2006
 #if defined (__PLUMED2)
+   USE ISO_C_BINDING, ONLY: C_INT, C_DOUBLE, C_CHAR
    USE cell_types, ONLY: cell_type, &
-      pbc_cp2k_plumed_getset_cell
+                         pbc_cp2k_plumed_getset_cell
 #else
    USE cell_types, ONLY: cell_type
 #endif
    USE colvar_methods, ONLY: colvar_eval_glob_f
    USE colvar_types, ONLY: colvar_p_type, &
-      torsion_colvar_id
+                           torsion_colvar_id
    USE constraint_fxd, ONLY: fix_atom_control
    USE cp_output_handling, ONLY: cp_add_iter_level, &
-      cp_iterate, &
-      cp_print_key_finished_output, &
-      cp_print_key_unit_nr, &
-      cp_rm_iter_level
+                                 cp_iterate, &
+                                 cp_print_key_finished_output, &
+                                 cp_print_key_unit_nr, &
+                                 cp_rm_iter_level
    USE cp_subsys_types, ONLY: cp_subsys_get, &
-      cp_subsys_type
+                              cp_subsys_type
    USE force_env_types, ONLY: force_env_get, &
-      force_env_type
+                              force_env_type
    USE input_constants, ONLY: do_wall_m, &
-      do_wall_p, &
-      do_wall_reflective
+                              do_wall_p, &
+                              do_wall_reflective
    USE input_section_types, ONLY: section_vals_get, &
-      section_vals_get_subs_vals, &
-      section_vals_type, &
-      section_vals_val_get
+                                  section_vals_get_subs_vals, &
+                                  section_vals_type, &
+                                  section_vals_val_get
    USE kinds, ONLY: dp
    USE message_passing, ONLY: mp_bcast, cp2k_is_parallel
    USE metadynamics_types, ONLY: hills_env_type, &
-      meta_env_type, &
-      metavar_type, &
-      multiple_walkers_type
+                                 meta_env_type, &
+                                 metavar_type, &
+                                 multiple_walkers_type
    USE metadynamics_utils, ONLY: add_hill_single, &
-      get_meta_iter_level, &
-      meta_walls, &
-      restart_hills, &
-      synchronize_multiple_walkers
-   USE parallel_rng_types, ONLY: next_random_number
+                                 get_meta_iter_level, &
+                                 meta_walls, &
+                                 restart_hills, &
+                                 synchronize_multiple_walkers
    USE particle_list_types, ONLY: particle_list_type
 #if defined (__PLUMED2)
    USE physcon, ONLY: angstrom, &
-      boltzmann, &
-      femtoseconds, &
-      joule, &
-      kelvin, kjmol, &
-      picoseconds
+                      boltzmann, &
+                      femtoseconds, &
+                      joule, &
+                      kelvin, kjmol, &
+                      picoseconds
 #else
    USE physcon, ONLY: boltzmann, &
-      femtoseconds, &
-      joule, &
-      kelvin
+                      femtoseconds, &
+                      joule, &
+                      kelvin
 #endif
    USE reference_manager, ONLY: cite_reference
    USE simpar_types, ONLY: simpar_type
@@ -76,6 +78,44 @@ MODULE metadynamics
    PUBLIC :: metadyn_forces, metadyn_integrator
    PUBLIC :: metadyn_velocities_colvar, metadyn_write_colvar
    PUBLIC :: metadyn_initialise_plumed, metadyn_finalise_plumed
+
+#if defined (__PLUMED2)
+   INTERFACE
+      FUNCTION plumed_installed() RESULT(res) BIND(C, name="plumed_installed")
+         IMPORT :: C_INT
+         INTEGER(KIND=C_INT)  :: res
+      END FUNCTION plumed_installed
+
+      SUBROUTINE plumed_gcreate() BIND(C, name="plumed_gcreate")
+      END SUBROUTINE plumed_gcreate
+
+      SUBROUTINE plumed_gfinalize() BIND(C, name="plumed_gfinalize")
+      END SUBROUTINE plumed_gfinalize
+
+      SUBROUTINE plumed_gcmd_int(key, value) BIND(C, name="plumed_gcmd")
+         IMPORT :: C_CHAR, C_INT
+         CHARACTER(KIND=C_CHAR), DIMENSION(*)     :: key
+         INTEGER(KIND=C_INT)                      :: value
+      END SUBROUTINE plumed_gcmd_int
+
+      SUBROUTINE plumed_gcmd_double(key, value) BIND(C, name="plumed_gcmd")
+         IMPORT :: C_CHAR, C_DOUBLE
+         CHARACTER(KIND=C_CHAR), DIMENSION(*)     :: key
+         REAL(KIND=C_DOUBLE)                      :: value
+      END SUBROUTINE plumed_gcmd_double
+
+      SUBROUTINE plumed_gcmd_doubles(key, value) BIND(C, name="plumed_gcmd")
+         IMPORT :: C_CHAR, C_DOUBLE
+         CHARACTER(KIND=C_CHAR), DIMENSION(*)     :: key
+         REAL(KIND=C_DOUBLE), DIMENSION(*)        :: value
+      END SUBROUTINE plumed_gcmd_doubles
+
+      SUBROUTINE plumed_gcmd_char(key, value) BIND(C, name="plumed_gcmd")
+         IMPORT :: C_CHAR
+         CHARACTER(KIND=C_CHAR), DIMENSION(*)     :: key, value
+      END SUBROUTINE plumed_gcmd_char
+   END INTERFACE
+#endif
 
 CONTAINS
 
@@ -91,8 +131,7 @@ CONTAINS
       TYPE(simpar_type), POINTER               :: simpar
       INTEGER, INTENT(IN)                      :: itimes
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'metadyn_initialise_plumed', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'metadyn_initialise_plumed'
 
       INTEGER                                  :: handle
 
@@ -108,8 +147,8 @@ CONTAINS
 #endif
 
       CALL timeset(routineN, handle)
-      CPASSERT(ASSOCIATED(simpar))
       CPASSERT(ASSOCIATED(force_env))
+      CPASSERT(ASSOCIATED(simpar))
 
 #if defined (__PLUMED2)
       NULLIFY (cell, subsys)
@@ -117,27 +156,30 @@ CONTAINS
       CALL pbc_cp2k_plumed_getset_cell(cell, set=.TRUE.) !Store the cell pointer for later use.
       timestep_plumed = simpar%dt
       natom_plumed = subsys%particles%n_els
+#else
+      MARK_USED(force_env)
+      MARK_USED(simpar)
 #endif
 
       MARK_USED(itimes)
 #if defined (__PLUMED2)
-      CALL plumed_f_installed(plumedavailable)
+      plumedavailable = plumed_installed()
 
       IF (plumedavailable <= 0) THEN
          CPABORT("NO PLUMED IN YOUR LD_LIBRARY_PATH?")
       ELSE
-         CALL plumed_f_gcreate()
-         IF (cp2k_is_parallel) CALL plumed_f_gcmd("setMPIFComm"//CHAR(0), force_env%para_env%group)
-         CALL plumed_f_gcmd("setRealPrecision"//CHAR(0), 8)
-         CALL plumed_f_gcmd("setMDEnergyUnits"//CHAR(0), kjmol) ! Hartree to kjoule/mol
-         CALL plumed_f_gcmd("setMDLengthUnits"//CHAR(0), angstrom*0.1_dp) ! Bohr to nm
-         CALL plumed_f_gcmd("setMDTimeUnits"//CHAR(0), picoseconds) !  atomic units to ps
-         CALL plumed_f_gcmd("setPlumedDat"//CHAR(0), force_env%meta_env%plumed_input_file//CHAR(0))
-         CALL plumed_f_gcmd("setLogFile"//CHAR(0), "PLUMED.OUT"//CHAR(0))
-         CALL plumed_f_gcmd("setNatoms"//CHAR(0), natom_plumed)
-         CALL plumed_f_gcmd("setMDEngine"//CHAR(0), "cp2k"//CHAR(0))
-         CALL plumed_f_gcmd("setTimestep"//CHAR(0), timestep_plumed)
-         CALL plumed_f_gcmd("init"//CHAR(0), 0)
+         CALL plumed_gcreate()
+         IF (cp2k_is_parallel) CALL plumed_gcmd_int("setMPIFComm"//CHAR(0), force_env%para_env%group)
+         CALL plumed_gcmd_int("setRealPrecision"//CHAR(0), 8)
+         CALL plumed_gcmd_double("setMDEnergyUnits"//CHAR(0), kjmol) ! Hartree to kjoule/mol
+         CALL plumed_gcmd_double("setMDLengthUnits"//CHAR(0), angstrom*0.1_dp) ! Bohr to nm
+         CALL plumed_gcmd_double("setMDTimeUnits"//CHAR(0), picoseconds) !  atomic units to ps
+         CALL plumed_gcmd_char("setPlumedDat"//CHAR(0), force_env%meta_env%plumed_input_file//CHAR(0))
+         CALL plumed_gcmd_char("setLogFile"//CHAR(0), "PLUMED.OUT"//CHAR(0))
+         CALL plumed_gcmd_int("setNatoms"//CHAR(0), natom_plumed)
+         CALL plumed_gcmd_char("setMDEngine"//CHAR(0), "cp2k"//CHAR(0))
+         CALL plumed_gcmd_double("setTimestep"//CHAR(0), timestep_plumed)
+         CALL plumed_gcmd_int("init"//CHAR(0), 0)
       END IF
 #endif
 
@@ -156,15 +198,14 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE metadyn_finalise_plumed()
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'metadyn_finalise_plumed', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'metadyn_finalise_plumed'
 
       INTEGER                                            :: handle
 
       CALL timeset(routineN, handle)
 
 #if defined (__PLUMED2)
-      CALL plumed_f_gfinalize()
+      CALL plumed_gfinalize()
 #endif
 
       CALL timestop(handle)
@@ -190,8 +231,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:), OPTIONAL, &
          POINTER                                :: rand
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'metadyn_integrator', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'metadyn_integrator'
 
       INTEGER                                  :: handle, plumed_itimes
 #if defined (__PLUMED2)
@@ -256,28 +296,28 @@ CONTAINS
 
             CALL force_env_get(force_env, potential_energy=stpcfg)
 
-            CALL plumed_f_gcmd("setStep"//CHAR(0), plumed_itimes)
-            CALL plumed_f_gcmd("setPositionsX"//CHAR(0), pos_plumed_x(:))
-            CALL plumed_f_gcmd("setPositionsY"//CHAR(0), pos_plumed_y(:))
-            CALL plumed_f_gcmd("setPositionsZ"//CHAR(0), pos_plumed_z(:))
-            CALL plumed_f_gcmd("setMasses"//CHAR(0), mass_plumed(:))
-            CALL plumed_f_gcmd("setBox"//CHAR(0), celltbt)
-            CALL plumed_f_gcmd("setVirial"//CHAR(0), plu_vir) ! PluMed Output, NOT ACTUALLY USED !
-            CALL plumed_f_gcmd("setEnergy"//CHAR(0), stpcfg)
-            CALL plumed_f_gcmd("setForcesX"//CHAR(0), force_plumed_x(:)) ! PluMed Output !
-            CALL plumed_f_gcmd("setForcesY"//CHAR(0), force_plumed_y(:)) ! PluMed Output !
-            CALL plumed_f_gcmd("setForcesZ"//CHAR(0), force_plumed_z(:)) ! PluMed Output !
+            CALL plumed_gcmd_int("setStep"//CHAR(0), plumed_itimes)
+            CALL plumed_gcmd_doubles("setPositionsX"//CHAR(0), pos_plumed_x(:))
+            CALL plumed_gcmd_doubles("setPositionsY"//CHAR(0), pos_plumed_y(:))
+            CALL plumed_gcmd_doubles("setPositionsZ"//CHAR(0), pos_plumed_z(:))
+            CALL plumed_gcmd_doubles("setMasses"//CHAR(0), mass_plumed(:))
+            CALL plumed_gcmd_doubles("setBox"//CHAR(0), celltbt)
+            CALL plumed_gcmd_doubles("setVirial"//CHAR(0), plu_vir) ! PluMed Output, NOT ACTUALLY USED !
+            CALL plumed_gcmd_double("setEnergy"//CHAR(0), stpcfg)
+            CALL plumed_gcmd_doubles("setForcesX"//CHAR(0), force_plumed_x(:)) ! PluMed Output !
+            CALL plumed_gcmd_doubles("setForcesY"//CHAR(0), force_plumed_y(:)) ! PluMed Output !
+            CALL plumed_gcmd_doubles("setForcesZ"//CHAR(0), force_plumed_z(:)) ! PluMed Output !
 
-            CALL plumed_f_gcmd("prepareCalc"//CHAR(0), 0)
-            CALL plumed_f_gcmd("prepareDependencies"//CHAR(0), 0)
-            CALL plumed_f_gcmd("shareData"//CHAR(0), 0)
+            CALL plumed_gcmd_int("prepareCalc"//CHAR(0), 0)
+            CALL plumed_gcmd_int("prepareDependencies"//CHAR(0), 0)
+            CALL plumed_gcmd_int("shareData"//CHAR(0), 0)
 
-            CALL plumed_f_gcmd("performCalc"//CHAR(0), 0)
+            CALL plumed_gcmd_int("performCalc"//CHAR(0), 0)
 
             DO i_part = 1, natom_plumed
-               subsys%particles%els(i_part)%f(1) = subsys%particles%els(i_part)%f(1)+force_plumed_x(i_part)
-               subsys%particles%els(i_part)%f(2) = subsys%particles%els(i_part)%f(2)+force_plumed_y(i_part)
-               subsys%particles%els(i_part)%f(3) = subsys%particles%els(i_part)%f(3)+force_plumed_z(i_part)
+               subsys%particles%els(i_part)%f(1) = subsys%particles%els(i_part)%f(1) + force_plumed_x(i_part)
+               subsys%particles%els(i_part)%f(2) = subsys%particles%els(i_part)%f(2) + force_plumed_y(i_part)
+               subsys%particles%els(i_part)%f(3) = subsys%particles%els(i_part)%f(3) + force_plumed_z(i_part)
             END DO
 
             DEALLOCATE (pos_plumed_x, pos_plumed_y, pos_plumed_z)
@@ -330,7 +370,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:, :), INTENT(INOUT), &
          OPTIONAL                                        :: vel
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'metadyn_forces', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'metadyn_forces'
 
       INTEGER                                            :: handle, i, i_c, icolvar, ii, iwall
       LOGICAL                                            :: explicit
@@ -355,15 +395,15 @@ CONTAINS
       CALL force_env_get(force_env, subsys=subsys)
 
       dt = meta_env%dt
-      IF (.NOT. meta_env%restart) meta_env%n_steps = meta_env%n_steps+1
+      IF (.NOT. meta_env%restart) meta_env%n_steps = meta_env%n_steps + 1
 
       ! Initialize velocity
       IF (meta_env%restart .AND. meta_env%extended_lagrange) THEN
          meta_env%ekin_s = 0.0_dp
          DO i_c = 1, meta_env%n_colvar
             cv => meta_env%metavar(i_c)
-            cv%vvp = next_random_number(force_env%globenv%gaussian_rng_stream)
-            meta_env%ekin_s = meta_env%ekin_s+0.5_dp*cv%mass*cv%vvp**2
+            cv%vvp = force_env%globenv%gaussian_rng_stream%next()
+            meta_env%ekin_s = meta_env%ekin_s + 0.5_dp*cv%mass*cv%vvp**2
          END DO
          ekin_w = 0.5_dp*meta_env%temp_wanted*REAL(meta_env%n_colvar, KIND=dp)
          fac_t = SQRT(ekin_w/MAX(meta_env%ekin_s, 1.0E-8_dp))
@@ -426,15 +466,15 @@ CONTAINS
             cv => meta_env%metavar(i_c)
             cv%epot_s = 0.0_dp
             cv%ff_s = 0.0_dp
-            meta_env%epot_walls = meta_env%epot_walls+cv%epot_walls
+            meta_env%epot_walls = meta_env%epot_walls + cv%epot_walls
             icolvar = cv%icolvar
             NULLIFY (particles)
             CALL cp_subsys_get(subsys, colvar_p=colvar_p, &
                                particles=particles)
             DO ii = 1, colvar_p(icolvar)%colvar%n_atom_s
                i = colvar_p(icolvar)%colvar%i_atom(ii)
-               fft = cv%ff_hills+cv%ff_walls
-               particles%els(i)%f = particles%els(i)%f+fft*colvar_p(icolvar)%colvar%dsdr(:, ii)
+               fft = cv%ff_hills + cv%ff_walls
+               particles%els(i)%f = particles%els(i)%f + fft*colvar_p(icolvar)%colvar%dsdr(:, ii)
             ENDDO
          ENDDO
       ELSE
@@ -443,7 +483,7 @@ CONTAINS
          meta_env%epot_walls = 0.0_dp
          DO i_c = 1, meta_env%n_colvar
             cv => meta_env%metavar(i_c)
-            diff_ss = cv%ss-cv%ss0
+            diff_ss = cv%ss - cv%ss0
             IF (cv%periodic) THEN
                ! The difference of a periodic COLVAR is always within [-pi,pi]
                diff_ss = SIGN(1.0_dp, ASIN(SIN(diff_ss)))*ACOS(COS(diff_ss))
@@ -457,22 +497,22 @@ CONTAINS
                                particles=particles)
             DO ii = 1, colvar_p(icolvar)%colvar%n_atom_s
                i = colvar_p(icolvar)%colvar%i_atom(ii)
-               particles%els(i)%f = particles%els(i)%f-cv%ff_s*colvar_p(icolvar)%colvar%dsdr(:, ii)
+               particles%els(i)%f = particles%els(i)%f - cv%ff_s*colvar_p(icolvar)%colvar%dsdr(:, ii)
             ENDDO
             !  velocity verlet on the s0 if NOT langevin
             IF (.NOT. meta_env%langevin) THEN
-               fft = cv%ff_s+cv%ff_hills+cv%ff_walls
-               cv%vvp = cv%vvp+dt*fft/cv%mass
-               meta_env%ekin_s = meta_env%ekin_s+0.5_dp*cv%mass*cv%vvp**2
-               meta_env%epot_s = meta_env%epot_s+cv%epot_s
-               meta_env%epot_walls = meta_env%epot_walls+cv%epot_walls
+               fft = cv%ff_s + cv%ff_hills + cv%ff_walls
+               cv%vvp = cv%vvp + dt*fft/cv%mass
+               meta_env%ekin_s = meta_env%ekin_s + 0.5_dp*cv%mass*cv%vvp**2
+               meta_env%epot_s = meta_env%epot_s + cv%epot_s
+               meta_env%epot_walls = meta_env%epot_walls + cv%epot_walls
             END IF
          ENDDO
          !  velocity rescaling on the s0
          IF (meta_env%tempcontrol .AND. (.NOT. meta_env%langevin)) THEN
             ekin_w = 0.5_dp*meta_env%temp_wanted*REAL(meta_env%n_colvar, KIND=dp)
             tol_ekin = 0.5_dp*meta_env%toll_temp*REAL(meta_env%n_colvar, KIND=dp)
-            IF (ABS(ekin_w-meta_env%ekin_s) > tol_ekin) THEN
+            IF (ABS(ekin_w - meta_env%ekin_s) > tol_ekin) THEN
                fac_t = SQRT(ekin_w/MAX(meta_env%ekin_s, 1.0E-8_dp))
                DO i_c = 1, meta_env%n_colvar
                   cv => meta_env%metavar(i_c)
@@ -486,14 +526,14 @@ CONTAINS
             cv => meta_env%metavar(i_c)
             IF (cv%do_wall) THEN
                DO iwall = 1, SIZE(cv%walls)
-                  SELECT CASE (cv%walls (iwall)%id_type)
+                  SELECT CASE (cv%walls(iwall)%id_type)
                   CASE (do_wall_reflective)
-                     ss0_test = cv%ss0+dt*cv%vvp
+                     ss0_test = cv%ss0 + dt*cv%vvp
                      IF (cv%periodic) THEN
                         ! A periodic COLVAR is always within [-pi,pi]
                         ss0_test = SIGN(1.0_dp, ASIN(SIN(ss0_test)))*ACOS(COS(ss0_test))
                      END IF
-                     SELECT CASE (cv%walls (iwall)%id_direction)
+                     SELECT CASE (cv%walls(iwall)%id_direction)
                      CASE (do_wall_p)
                         IF ((ss0_test > cv%walls(iwall)%pos) .AND. (cv%vvp > 0)) cv%vvp = -cv%vvp
                      CASE (do_wall_m)
@@ -507,7 +547,7 @@ CONTAINS
          IF (.NOT. meta_env%langevin) THEN
             DO i_c = 1, meta_env%n_colvar
                cv => meta_env%metavar(i_c)
-               cv%ss0 = cv%ss0+dt*cv%vvp
+               cv%ss0 = cv%ss0 + dt*cv%vvp
                IF (cv%periodic) THEN
                   ! A periodic COLVAR is always within [-pi,pi]
                   cv%ss0 = SIGN(1.0_dp, ASIN(SIN(cv%ss0)))*ACOS(COS(cv%ss0))
@@ -523,9 +563,9 @@ CONTAINS
          cv => meta_env%metavar(i_c)
          IF (cv%do_wall) THEN
             DO iwall = 1, SIZE(cv%walls)
-               SELECT CASE (cv%walls (iwall)%id_type)
+               SELECT CASE (cv%walls(iwall)%id_type)
                CASE (do_wall_reflective)
-                  SELECT CASE (cv%walls (iwall)%id_direction)
+                  SELECT CASE (cv%walls(iwall)%id_direction)
                   CASE (do_wall_p)
                      IF (cv%ss < cv%walls(iwall)%pos) CYCLE
                      check_val = -1.0_dp
@@ -542,20 +582,20 @@ CONTAINS
                   DO ii = 1, colvar_p(icolvar)%colvar%n_atom_s
                      i = colvar_p(icolvar)%colvar%i_atom(ii)
                      IF (PRESENT(vel)) THEN
-                        scal = scal+vel(1, i)*colvar_p(icolvar)%colvar%dsdr(1, ii)
-                        scal = scal+vel(2, i)*colvar_p(icolvar)%colvar%dsdr(2, ii)
-                        scal = scal+vel(3, i)*colvar_p(icolvar)%colvar%dsdr(3, ii)
+                        scal = scal + vel(1, i)*colvar_p(icolvar)%colvar%dsdr(1, ii)
+                        scal = scal + vel(2, i)*colvar_p(icolvar)%colvar%dsdr(2, ii)
+                        scal = scal + vel(3, i)*colvar_p(icolvar)%colvar%dsdr(3, ii)
                      ELSE
-                        scal = scal+particles%els(i)%v(1)*colvar_p(icolvar)%colvar%dsdr(1, ii)
-                        scal = scal+particles%els(i)%v(2)*colvar_p(icolvar)%colvar%dsdr(2, ii)
-                        scal = scal+particles%els(i)%v(3)*colvar_p(icolvar)%colvar%dsdr(3, ii)
+                        scal = scal + particles%els(i)%v(1)*colvar_p(icolvar)%colvar%dsdr(1, ii)
+                        scal = scal + particles%els(i)%v(2)*colvar_p(icolvar)%colvar%dsdr(2, ii)
+                        scal = scal + particles%els(i)%v(3)*colvar_p(icolvar)%colvar%dsdr(3, ii)
                      END IF
-                     scalf = scalf+particles%els(i)%f(1)*colvar_p(icolvar)%colvar%dsdr(1, ii)
-                     scalf = scalf+particles%els(i)%f(2)*colvar_p(icolvar)%colvar%dsdr(2, ii)
-                     scalf = scalf+particles%els(i)%f(3)*colvar_p(icolvar)%colvar%dsdr(3, ii)
-                     norm = norm+colvar_p(icolvar)%colvar%dsdr(1, ii)**2
-                     norm = norm+colvar_p(icolvar)%colvar%dsdr(2, ii)**2
-                     norm = norm+colvar_p(icolvar)%colvar%dsdr(3, ii)**2
+                     scalf = scalf + particles%els(i)%f(1)*colvar_p(icolvar)%colvar%dsdr(1, ii)
+                     scalf = scalf + particles%els(i)%f(2)*colvar_p(icolvar)%colvar%dsdr(2, ii)
+                     scalf = scalf + particles%els(i)%f(3)*colvar_p(icolvar)%colvar%dsdr(3, ii)
+                     norm = norm + colvar_p(icolvar)%colvar%dsdr(1, ii)**2
+                     norm = norm + colvar_p(icolvar)%colvar%dsdr(2, ii)**2
+                     norm = norm + colvar_p(icolvar)%colvar%dsdr(3, ii)**2
                   ENDDO
                   IF (norm /= 0.0_dp) scal = scal/norm
                   IF (norm /= 0.0_dp) scalf = scalf/norm
@@ -564,12 +604,12 @@ CONTAINS
                   DO ii = 1, colvar_p(icolvar)%colvar%n_atom_s
                      i = colvar_p(icolvar)%colvar%i_atom(ii)
                      IF (PRESENT(vel)) THEN
-                        vel(:, i) = vel(:, i)-2.0_dp*colvar_p(icolvar)%colvar%dsdr(:, ii)*scal
+                        vel(:, i) = vel(:, i) - 2.0_dp*colvar_p(icolvar)%colvar%dsdr(:, ii)*scal
                      ELSE
-                        particles%els(i)%v(:) = particles%els(i)%v(:)-2.0_dp*colvar_p(icolvar)%colvar%dsdr(:, ii)*scal
+                        particles%els(i)%v(:) = particles%els(i)%v(:) - 2.0_dp*colvar_p(icolvar)%colvar%dsdr(:, ii)*scal
                      END IF
                      ! Nullify forces along the colvar (this avoids the weird behaviors of the reflective wall)
-                     particles%els(i)%f(:) = particles%els(i)%f(:)-colvar_p(icolvar)%colvar%dsdr(:, ii)*scalf
+                     particles%els(i)%f(:) = particles%els(i)%f(:) - colvar_p(icolvar)%colvar%dsdr(:, ii)*scalf
                   ENDDO
                END SELECT
             END DO
@@ -592,8 +632,7 @@ CONTAINS
       REAL(KIND=dp), DIMENSION(:), INTENT(INOUT), &
          OPTIONAL                                        :: rand
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'metadyn_velocities_colvar', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'metadyn_velocities_colvar'
 
       INTEGER                                            :: handle, i_c
       REAL(kind=dp)                                      :: diff_ss, dt, fft, sigma
@@ -619,7 +658,7 @@ CONTAINS
       meta_env%epot_walls = 0.0_dp
       DO i_c = 1, meta_env%n_colvar
          cv => meta_env%metavar(i_c)
-         diff_ss = cv%ss-cv%ss0
+         diff_ss = cv%ss - cv%ss0
          IF (cv%periodic) THEN
             ! The difference of a periodic COLVAR is always within [-pi,pi]
             diff_ss = SIGN(1.0_dp, ASIN(SIN(diff_ss)))*ACOS(COS(diff_ss))
@@ -627,12 +666,12 @@ CONTAINS
          cv%epot_s = 0.5_dp*cv%lambda*(diff_ss)**2.0_dp
          cv%ff_s = cv%lambda*(diff_ss)
 
-         fft = cv%ff_s+cv%ff_hills
+         fft = cv%ff_s + cv%ff_hills
          sigma = SQRT((meta_env%temp_wanted*kelvin)*2.0_dp*(boltzmann/joule)*cv%gamma/cv%mass)
-         cv%vvp = cv%vvp+0.5_dp*dt*fft/cv%mass-0.5_dp*dt*cv%gamma*cv%vvp+ &
+         cv%vvp = cv%vvp + 0.5_dp*dt*fft/cv%mass - 0.5_dp*dt*cv%gamma*cv%vvp + &
                   0.5_dp*SQRT(dt)*sigma*rand(i_c)
-         meta_env%ekin_s = meta_env%ekin_s+0.5_dp*cv%mass*cv%vvp**2
-         meta_env%epot_walls = meta_env%epot_walls+cv%epot_walls
+         meta_env%ekin_s = meta_env%ekin_s + 0.5_dp*cv%mass*cv%vvp**2
+         meta_env%epot_walls = meta_env%epot_walls + cv%epot_walls
       ENDDO
       CALL timestop(handle)
 
@@ -648,8 +687,7 @@ CONTAINS
    SUBROUTINE metadyn_position_colvar(force_env)
       TYPE(force_env_type), POINTER                      :: force_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'metadyn_position_colvar', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'metadyn_position_colvar'
 
       INTEGER                                            :: handle, i_c
       REAL(kind=dp)                                      :: dt
@@ -671,7 +709,7 @@ CONTAINS
       ! Update of ss0
       DO i_c = 1, meta_env%n_colvar
          cv => meta_env%metavar(i_c)
-         cv%ss0 = cv%ss0+dt*cv%vvp
+         cv%ss0 = cv%ss0 + dt*cv%vvp
          IF (cv%periodic) THEN
             ! A periodic COLVAR is always within [-pi,pi]
             cv%ss0 = SIGN(1.0_dp, ASIN(SIN(cv%ss0)))*ACOS(COS(cv%ss0))
@@ -691,8 +729,7 @@ CONTAINS
    SUBROUTINE metadyn_write_colvar(force_env)
       TYPE(force_env_type), POINTER                      :: force_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'metadyn_write_colvar', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'metadyn_write_colvar'
 
       INTEGER                                            :: handle, i, i_c, iw
       REAL(KIND=dp)                                      :: diff_ss, temp
@@ -717,7 +754,7 @@ CONTAINS
          meta_env%epot_s = 0.0_dp
          DO i_c = 1, meta_env%n_colvar
             cv => meta_env%metavar(i_c)
-            diff_ss = cv%ss-cv%ss0
+            diff_ss = cv%ss - cv%ss0
             IF (cv%periodic) THEN
                ! The difference of a periodic COLVAR is always within [-pi,pi]
                diff_ss = SIGN(1.0_dp, ASIN(SIN(diff_ss)))*ACOS(COS(diff_ss))
@@ -725,8 +762,8 @@ CONTAINS
             cv%epot_s = 0.5_dp*cv%lambda*(diff_ss)**2.0_dp
             cv%ff_s = cv%lambda*(diff_ss)
 
-            meta_env%epot_s = meta_env%epot_s+cv%epot_s
-            meta_env%ekin_s = meta_env%ekin_s+0.5_dp*cv%mass*cv%vvp**2
+            meta_env%epot_s = meta_env%epot_s + cv%epot_s
+            meta_env%ekin_s = meta_env%ekin_s + 0.5_dp*cv%mass*cv%vvp**2
          ENDDO
       END IF
 
@@ -761,8 +798,8 @@ CONTAINS
       ! Temperature for COLVAR
       IF (meta_env%extended_lagrange) THEN
          temp = meta_env%ekin_s*2.0_dp/(REAL(meta_env%n_colvar, KIND=dp))*kelvin
-         meta_env%avg_temp = (meta_env%avg_temp*REAL(meta_env%n_steps, KIND=dp)+ &
-                              temp)/REAL(meta_env%n_steps+1, KIND=dp)
+         meta_env%avg_temp = (meta_env%avg_temp*REAL(meta_env%n_steps, KIND=dp) + &
+                              temp)/REAL(meta_env%n_steps + 1, KIND=dp)
          iw = cp_print_key_unit_nr(logger, meta_env%metadyn_section, &
                                    "PRINT%TEMPERATURE_COLVAR", extension=".metadynLog")
          IF (iw > 0) THEN
@@ -790,7 +827,7 @@ CONTAINS
    SUBROUTINE hills(meta_env)
       TYPE(meta_env_type), POINTER                       :: meta_env
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'hills', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER                        :: routineN = 'hills'
 
       INTEGER                                            :: handle, i, i_hills, ih, intermeta_steps, &
                                                             iter_nr, iw, n_colvar, n_hills_start, &
@@ -834,7 +871,7 @@ CONTAINS
       END IF
 
       ! Proceed with normal calculation
-      intermeta_steps = n_step-hills_env%old_hill_step
+      intermeta_steps = n_step - hills_env%old_hill_step
       force_gauss = .FALSE.
       IF ((hills_env%min_disp > 0.0_dp) .AND. (hills_env%old_hill_number > 0) .AND. &
           (intermeta_steps >= hills_env%min_nt_hills)) THEN
@@ -846,12 +883,12 @@ CONTAINS
          !RG Calculate the displacement
          dp2 = 0.0_dp
          DO i = 1, n_colvar
-            ddp(i) = colvars(i)%ss0-local_last_hills(i)
+            ddp(i) = colvars(i)%ss0 - local_last_hills(i)
             IF (colvars(i)%periodic) THEN
                ! The difference of a periodic COLVAR is always within [-pi,pi]
                ddp(i) = SIGN(1.0_dp, ASIN(SIN(ddp(i))))*ACOS(COS(ddp(i)))
             END IF
-            dp2 = dp2+ddp(i)**2
+            dp2 = dp2 + ddp(i)**2
          ENDDO
          dp2 = SQRT(dp2)
          IF (dp2 > hills_env%min_disp) THEN
@@ -883,25 +920,25 @@ CONTAINS
             DO ih = 1, hills_env%n_hills
                dp2 = 0._dp
                DO i = 1, n_colvar
-                  diff = colvars(i)%ss0-hills_env%ss_history(i, ih)
+                  diff = colvars(i)%ss0 - hills_env%ss_history(i, ih)
                   IF (colvars(i)%periodic) THEN
                      ! The difference of a periodic COLVAR is always within [-pi,pi]
                      diff = SIGN(1.0_dp, ASIN(SIN(diff)))*ACOS(COS(diff))
                   END IF
                   diff = (diff)/hills_env%delta_s_history(i, ih)
-                  dp2 = dp2+diff**2
+                  dp2 = dp2 + diff**2
                ENDDO
-               V_to_fes = 1.0_dp+meta_env%wttemperature*hills_env%invdt_history(ih)
-               V_now_here = V_now_here+hills_env%ww_history(ih)/V_to_fes*EXP(-0.5_dp*dp2)
+               V_to_fes = 1.0_dp + meta_env%wttemperature*hills_env%invdt_history(ih)
+               V_now_here = V_now_here + hills_env%ww_history(ih)/V_to_fes*EXP(-0.5_dp*dp2)
             ENDDO
             wtww = hills_env%ww*EXP(-V_now_here*meta_env%invdt)
-            ww = wtww*(1.0_dp+meta_env%wttemperature*meta_env%invdt)
+            ww = wtww*(1.0_dp + meta_env%wttemperature*meta_env%invdt)
             CALL add_hill_single(hills_env, colvars, ww, hills_env%n_hills, n_colvar, meta_env%invdt)
          ELSE
             CALL add_hill_single(hills_env, colvars, hills_env%ww, hills_env%n_hills, n_colvar)
          END IF
          ! Update local n_hills counter
-         IF (meta_env%do_multiple_walkers) multiple_walkers%n_hills_local = multiple_walkers%n_hills_local+1
+         IF (meta_env%do_multiple_walkers) multiple_walkers%n_hills_local = multiple_walkers%n_hills_local + 1
 
          hills_env%old_hill_number = hills_env%n_hills
          hills_env%old_hill_step = n_step
@@ -949,7 +986,7 @@ CONTAINS
          iw = cp_print_key_unit_nr(logger, meta_env%metadyn_section, &
                                    "PRINT%HILLS", extension=".metadynLog")
          IF (iw > 0) THEN
-            DO i_hills = n_hills_start+1, hills_env%n_hills
+            DO i_hills = n_hills_start + 1, hills_env%n_hills
                WRITE (iw, '(f12.1,30f13.5)') meta_env%time*femtoseconds, &
                   (hills_env%ss_history(ih, i_hills), ih=1, n_colvar), &
                   (hills_env%delta_s_history(ih, i_hills), ih=1, n_colvar), &
@@ -973,12 +1010,12 @@ CONTAINS
       DO ih = 1, hills_env%n_hills
          slow_growth = 1.0_dp
          IF (hills_env%slow_growth .AND. (ih == hills_env%n_hills)) THEN
-            slow_growth = REAL(n_step-hills_env%old_hill_step, dp)/REAL(hills_env%nt_hills, dp)
+            slow_growth = REAL(n_step - hills_env%old_hill_step, dp)/REAL(hills_env%nt_hills, dp)
          END IF
          dp2 = 0._dp
          cut_func = 1.0_dp
          DO i = 1, n_colvar
-            diff_ss(i) = colvars(i)%ss0-hills_env%ss_history(i, ih)
+            diff_ss(i) = colvars(i)%ss0 - hills_env%ss_history(i, ih)
             IF (colvars(i)%periodic) THEN
                ! The difference of a periodic COLVAR is always within [-pi,pi]
                diff_ss(i) = SIGN(1.0_dp, ASIN(SIN(diff_ss(i))))*ACOS(COS(diff_ss(i)))
@@ -992,27 +1029,27 @@ CONTAINS
             ELSE
                ddp(i) = (diff_ss(i))/hills_env%delta_s_history(i, ih)
             END IF
-            dp2 = dp2+ddp(i)**2
+            dp2 = dp2 + ddp(i)**2
             IF (hills_env%tail_cutoff > 0.0_dp) THEN
                frac = ABS(ddp(i))/hills_env%tail_cutoff
                numf(i) = frac**hills_env%p_exp
                denf(i) = frac**hills_env%q_exp
-               cut_func = cut_func*(1.0_dp-numf(i))/(1.0_dp-denf(i))
+               cut_func = cut_func*(1.0_dp - numf(i))/(1.0_dp - denf(i))
             ENDIF
          ENDDO
          ! ff_hills contains the "force" due to the hills
          dfunc = hills_env%ww_history(ih)*EXP(-0.5_dp*dp2)*slow_growth
-         IF (meta_env%well_tempered) dfunc = dfunc/(1.0_dp+meta_env%wttemperature*hills_env%invdt_history(ih))
-         hills_env%energy = hills_env%energy+dfunc*cut_func
+         IF (meta_env%well_tempered) dfunc = dfunc/(1.0_dp + meta_env%wttemperature*hills_env%invdt_history(ih))
+         hills_env%energy = hills_env%energy + dfunc*cut_func
          DO i = 1, n_colvar
             IF (hills_env%delta_s_history(i, ih) /= 0.0_dp) THEN
                ! only apply a force when the Gaussian hill has a finite width in
                ! this direction
-               colvars(i)%ff_hills = colvars(i)%ff_hills+ &
+               colvars(i)%ff_hills = colvars(i)%ff_hills + &
                                      ddp(i)/hills_env%delta_s_history(i, ih)*dfunc*cut_func
                IF (hills_env%tail_cutoff > 0.0_dp .AND. ABS(diff_ss(i)) > 10.E-5_dp) THEN
-                  colvars(i)%ff_hills = colvars(i)%ff_hills+ &
-                                        (hills_env%p_exp*numf(i)/(1.0_dp-numf(i))-hills_env%q_exp*denf(i)/(1.0_dp-denf(i)))* &
+                  colvars(i)%ff_hills = colvars(i)%ff_hills + &
+                                        (hills_env%p_exp*numf(i)/(1.0_dp - numf(i)) - hills_env%q_exp*denf(i)/(1.0_dp - denf(i)))* &
                                         dfunc*cut_func/ABS(diff_ss(i))
                END IF
             END IF

@@ -1,6 +1,8 @@
 !--------------------------------------------------------------------------------------------------!
 !   CP2K: A general program to perform molecular dynamics simulations                              !
-!   Copyright (C) 2000 - 2019  CP2K developers group                                               !
+!   Copyright 2000-2021 CP2K developers group <https://cp2k.org>                                   !
+!                                                                                                  !
+!   SPDX-License-Identifier: GPL-2.0-or-later                                                      !
 !--------------------------------------------------------------------------------------------------!
 
 ! **************************************************************************************************
@@ -74,8 +76,7 @@ CONTAINS
    SUBROUTINE create_cp2k_root_section(root_section)
       TYPE(section_type), POINTER                        :: root_section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_cp2k_root_section', &
-         routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'create_cp2k_root_section'
 
       INTEGER                                            :: handle
       TYPE(section_type), POINTER                        :: section
@@ -155,15 +156,12 @@ CONTAINS
    SUBROUTINE create_test_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_test_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: print_key, subsection
 
       CALL section_create(section, __LOCATION__, name="TEST", &
                           description="Tests to perform on the supported libraries.", &
-                          n_keywords=7, n_subsections=0, repeats=.FALSE.)
+                          n_keywords=6, n_subsections=0, repeats=.FALSE.)
 
       NULLIFY (keyword, print_key)
       CALL keyword_create(keyword, __LOCATION__, name="MEMORY", &
@@ -224,12 +222,6 @@ CONTAINS
                           "given to this keyword", &
                           usage="mpi 6", default_i_val=0)
 
-      CALL section_add_keyword(section, keyword)
-      CALL keyword_release(keyword)
-
-      CALL keyword_create(keyword, __LOCATION__, name="RANDOM_NUMBER_GENERATOR", variants=(/"rng"/), &
-                          description=" Tests the parallel random number generator (RNG)", &
-                          usage="rng 1000000", default_i_val=0)
       CALL section_add_keyword(section, keyword)
       CALL keyword_release(keyword)
 
@@ -304,9 +296,6 @@ CONTAINS
    SUBROUTINE create_debug_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_debug_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: print_key
 
@@ -330,9 +319,29 @@ CONTAINS
       CALL section_add_keyword(section, keyword)
       CALL keyword_release(keyword)
 
+      CALL keyword_create(keyword, __LOCATION__, name="DEBUG_DIPOLE", &
+                          description="Activates the debugging of the dipole moment", &
+                          usage="DEBUG_DIPOLE {LOGICAL}", default_l_val=.FALSE., &
+                          lone_keyword_l_val=.TRUE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="DEBUG_POLARIZABILITY", &
+                          description="Activates the debugging of the polarizability", &
+                          usage="DEBUG_POLARIZABILITY {LOGICAL}", default_l_val=.FALSE., &
+                          lone_keyword_l_val=.TRUE.)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
       CALL keyword_create(keyword, __LOCATION__, name="DX", &
                           description="Increment for the calculation of the numerical derivatives", &
                           usage="DX {REAL}", default_r_val=0.001_dp)
+      CALL section_add_keyword(section, keyword)
+      CALL keyword_release(keyword)
+
+      CALL keyword_create(keyword, __LOCATION__, name="DE", &
+                          description="Increment for the calculation of the numerical electric field derivatives", &
+                          usage="DE {REAL}", default_r_val=0.0001_dp)
       CALL section_add_keyword(section, keyword)
       CALL keyword_release(keyword)
 
@@ -368,9 +377,6 @@ CONTAINS
    SUBROUTINE create_multi_force_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_multi_force_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
 
       CPASSERT(.NOT. ASSOCIATED(section))
@@ -405,9 +411,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_ext_restart_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_ext_restart_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
 
@@ -547,7 +550,7 @@ CONTAINS
       CALL keyword_release(keyword)
       CALL keyword_create(keyword, __LOCATION__, name="RESTART_CONSTRAINT", &
                           description="Restarts constraint section. It's necessary when doing restraint"// &
-                          " calculation to have a perfect energy conservation. For constraints only it's"// &
+                          " calculation to have a perfect energy conservation. For constraints only its"// &
                           " use is optional.", &
                           type_of_var=logical_t, lone_keyword_l_val=.TRUE.)
       CALL section_add_keyword(section, keyword)
@@ -642,9 +645,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_farming_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_farming_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: print_key, sub_section
@@ -803,9 +803,6 @@ CONTAINS
    SUBROUTINE create_rs_pw_transfer_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_rs_pw_transfer_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
       TYPE(section_type), POINTER                        :: subsection
 
@@ -855,9 +852,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_pw_transfer_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_pw_transfer_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
 
@@ -932,9 +926,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_cp_fm_gemm_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_cp_fm_gemm_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
 
@@ -1021,9 +1012,6 @@ CONTAINS
    SUBROUTINE create_eigensolver_section(section)
       TYPE(section_type), POINTER                        :: section
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_eigensolver_section', &
-         routineP = moduleN//':'//routineN
-
       TYPE(keyword_type), POINTER                        :: keyword
 
       CPASSERT(.NOT. ASSOCIATED(section))
@@ -1080,9 +1068,6 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE create_cp_dbcsr_section(section)
       TYPE(section_type), POINTER                        :: section
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'create_cp_dbcsr_section', &
-         routineP = moduleN//':'//routineN
 
       TYPE(keyword_type), POINTER                        :: keyword
 
