@@ -99,6 +99,7 @@ CONTAINS
 #if defined(NDEBUG)
       flags = TRIM(flags)//" ndebug"
 #endif
+!$    flags = TRIM(flags)//" omp"
 
 #if defined(__LIBINT)
       flags = TRIM(flags)//" libint"
