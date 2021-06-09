@@ -201,7 +201,7 @@ CONTAINS
                   CPABORT("")
                END SELECT
                ! Special case for EAM
-               SELECT CASE (pot%type (k))
+               SELECT CASE (pot%type(k))
                CASE (ea_type, quip_type, deepmd_type)
                   pot%no_mb = .FALSE.
                END SELECT

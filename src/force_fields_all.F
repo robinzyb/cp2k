@@ -2041,7 +2041,7 @@ CONTAINS
                DO j = 1, SIZE(inp_info%nonbonded%pot)
                   IF (atmname == inp_info%nonbonded%pot(j)%pot%at1 .OR. &
                       atmname == inp_info%nonbonded%pot(j)%pot%at2) THEN
-                     SELECT CASE (inp_info%nonbonded%pot (j)%pot%type (1))
+                     SELECT CASE (inp_info%nonbonded%pot(j)%pot%type(1))
                      CASE (ea_type, tersoff_type, siepmann_type, quip_type, deepmd_type)
                         ! Charge is zero for EAM, TERSOFF and SIEPMANN type potential
                         ! Do nothing..

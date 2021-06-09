@@ -37,8 +37,8 @@ MODULE cp2k_info
 #if defined(__RELEASE_VERSION)
    INTEGER, PARAMETER          :: id_cp2k_version = id_release_version ! (Uncomment for release     version)
 #else
-!  INTEGER, PARAMETER          :: id_cp2k_version = id_development_version ! (Uncomment for development version)
-   INTEGER, PARAMETER          :: id_cp2k_version = 2                      ! (Uncomment for branch      version)
+   INTEGER, PARAMETER          :: id_cp2k_version = id_development_version ! (Uncomment for development version)
+!  INTEGER, PARAMETER          :: id_cp2k_version = 2                      ! (Uncomment for branch      version)
 #endif
 
 #if defined(__COMPILE_REVISION)
@@ -96,7 +96,9 @@ CONTAINS
       tmp_str = ""
       flags = TRIM(flags)//TRIM(tmp_str)
 
-!$    flags = TRIM(flags)//" omp"
+#if defined(NDEBUG)
+      flags = TRIM(flags)//" ndebug"
+#endif
 
 #if defined(__LIBINT)
       flags = TRIM(flags)//" libint"
@@ -349,7 +351,7 @@ CONTAINS
 !> \brief Writes the header for the restart file
 !> \param iunit ...
 !> \par History
-!>      01.2008 [created] - Splitted from write_restart
+!>      01.2008 [created] - Split from write_restart
 !> \author Teodoro Laino - University of Zurich - 01.2008
 ! **************************************************************************************************
    SUBROUTINE write_restart_header(iunit)
