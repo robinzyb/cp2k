@@ -51,7 +51,7 @@ MODULE pair_potential_types
                                  quip_type = 15, &
                                  deepmd_type = 16
 
-   INTEGER, PUBLIC, PARAMETER, DIMENSION(16) :: list_pot = (/nn_type, &
+   INTEGER, PUBLIC, PARAMETER, DIMENSION(17) :: list_pot = (/nn_type, &
                                                              lj_type, &
                                                              lj_charmm_type, &
                                                              ft_type, &

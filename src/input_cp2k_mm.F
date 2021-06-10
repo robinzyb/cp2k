@@ -16,7 +16,7 @@
 MODULE input_cp2k_mm
    USE bibliography,                    ONLY: &
         Clabaut2020, Devynck2012, Dick1958, Foiles1986, Mitchell1993, QUIP_ref, Siepmann1995, &
-        Tersoff1988, Tosi1964a, Tosi1964b, Yamada2000
+        Tersoff1988, Tosi1964a, Tosi1964b, Yamada2000, Deepmd2018
    USE cp_output_handling,              ONLY: cp_print_key_section_create,&
                                               debug_print_level,&
                                               high_print_level,&
@@ -1448,7 +1448,7 @@ CONTAINS
    END SUBROUTINE create_QUIP_section
 
 ! **************************************************************************************************
-!> \brief This section specifies the input parameters for DEEPMD  potential type
+!> \brief This section specifies the input parameters for DEEPMD potential type
 !> \param section the section to create
 !> \author ybzhuang
 ! **************************************************************************************************

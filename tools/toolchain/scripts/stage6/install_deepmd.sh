@@ -26,7 +26,7 @@ cd "${BUILDDIR}"
 case "$with_deepmd" in
   __INSTALL__)
     echo "==================== Installing DeePMD ===================="
-    echo "Interface of DeePMD-kit interface not supported yet."
+    echo "Installation of DeePMD-kit interface not supported yet."
     echo "Skip installation"
     with_deepmd="__DONTUSE__"
     ;;
@@ -41,7 +41,7 @@ case "$with_deepmd" in
   __DONTUSE__) ;;
 
   *)
-    echo "==================== Linking PLUMED to user paths ===================="
+    echo "==================== Linking DEEPMD to user paths ===================="
     deepmd_root="$with_deepmd"
     check_dir "${deepmd_root}/include/deepmd"
     check_dir "${deepmd_root}/lib"
@@ -53,7 +53,7 @@ case "$with_deepmd" in
         check_dir "${tensorflow_root}/lib"
       ;;
       __INSTALL__)
-        echo "TensorFlow C++ Interface not supported yet."
+        echo "Installation of TensorFlow C++ Interface not supported yet."
         echo "Skip installation."
       ;;
       __SYSTEM__)
@@ -94,7 +94,7 @@ export DEEPMD_CXXFLAGS="${DEEPMD_CXXFLAGS}"
 export DEEPMD_LDFLAGS="${DEEPMD_LDFLAGS}"
 export DEEPMD_LIBS="${DEEPMD_LIBS}"
 export CP_DFLAGS="\${CP_DFLAGS} ${DEEPMD_DFLAGS}"
-export CP_CFLAGS="\${CP_CLAGS} ${DEEPMD_CFLAGS}"
+export CP_CFLAGS="\${CP_CFLAGS} ${DEEPMD_CFLAGS}"
 export CP_CXXFLAGS="\${CP_CXXFLAGS} ${DEEPMD_CXXFLAGS}"
 export CP_LDFLAGS="\${CP_LDFLAGS} ${DEEPMD_LDFLAGS}"
 export CP_LIBS="${DEEPMD_LIBS} \${CP_LIBS}"

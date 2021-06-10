@@ -200,10 +200,12 @@ The --with-PKG options follow the rules:
                           Default = no
   --with-quip             Enable interface to QUIP library
                           Default = no
-  --with-deepmd           Enable interface to DeePMD-kit library
+  --with-deepmd           Enable interface to DeePMD-kit library.
+                          Mode of library should be selected from --deepmd-mode
+                          for compatibility with CPU or CUDA version. 
                           Default = no
   --with-tfcc             Enable interface to TensorFlow.
-                          Should be used together with deepmd.
+                          Should be used together with --with-deepmd.
                           Default = no
   --with-plumed           Enable interface to the PLUMED library.
                           Default = no
@@ -265,7 +267,7 @@ math_list="mkl acml openblas"
 deepmd_list="cpu cuda"
 lib_list="fftw libint libxc libsmm libxsmm cosma scalapack elpa plumed \
           spfft spla ptscotch superlu pexsi quip gsl spglib hdf5 libvdwxc sirius
-          libvori deepmd"
+          libvori deepmd tfcc"
 package_list="$tool_list $mpi_list $math_list $lib_list"
 # ------------------------------------------------------------------------
 
