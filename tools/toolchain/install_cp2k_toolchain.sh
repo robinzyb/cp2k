@@ -100,6 +100,8 @@ OPTIONS:
                           default option. Explicitly setting
                           --with-acml, --with-mkl or --with-openblas options will
                           switch --math-mode to the respective modes.
+--deepmd-mode             Selects which DeePMD interface to build with. Available options
+                          are: cpu, cuda.
 --gpu-ver                 Selects the GPU architecture for which to compile. Available
                           options are: K20X, K40, K80, P100, V100, no. Default: no.
                           The script will determine the correct corresponding value for
@@ -198,6 +200,13 @@ The --with-PKG options follow the rules:
                           Default = no
   --with-quip             Enable interface to QUIP library
                           Default = no
+  --with-deepmd           Enable interface to DeePMD-kit library.
+                          Mode of library should be selected from --deepmd-mode
+                          for compatibility with CPU or CUDA version. 
+                          Default = no
+  --with-tfcc             Enable interface to TensorFlow.
+                          Should be used together with --with-deepmd.
+                          Default = no
   --with-plumed           Enable interface to the PLUMED library.
                           Default = no
   --with-sirius           Enable interface to the plane wave SIRIUS library.
@@ -255,9 +264,10 @@ EOF
 tool_list="gcc cmake"
 mpi_list="mpich openmpi intelmpi"
 math_list="mkl acml openblas"
+deepmd_list="cpu cuda"
 lib_list="fftw libint libxc libsmm libxsmm cosma scalapack elpa plumed \
           spfft spla ptscotch superlu pexsi quip gsl spglib hdf5 libvdwxc sirius
-          libvori"
+          libvori deepmd tfcc"
 package_list="$tool_list $mpi_list $math_list $lib_list"
 # ------------------------------------------------------------------------
 
@@ -427,6 +437,17 @@ while [ $# -ge 1 ]; do
           ;;
       esac
       ;;
+    --deepmd-mode=*)
+      user_input="${1#*=}"
+      case "$user_input" in
+        cpu)
+          export DEEPMD_MODE=cpu
+          ;;
+        *)
+          export DEEPMD_MODE=cuda
+          ;;
+      esac
+      ;;
     --gpu-ver=*)
       user_input="${1#*=}"
       case "$user_input" in
@@ -572,6 +593,12 @@ while [ $# -ge 1 ]; do
       ;;
     --with-quip*)
       with_quip=$(read_with $1)
+      ;;
+    --with-deepmd*)
+      with_deepmd=$(read_with $1)
+      ;;
+    --with-tfcc*)
+      with_tfcc=$(read_with $1)
       ;;
     --with-plumed*)
       with_plumed=$(read_with $1)

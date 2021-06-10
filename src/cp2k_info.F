@@ -100,6 +100,7 @@ CONTAINS
       flags = TRIM(flags)//" ndebug"
 #endif
 !$    flags = TRIM(flags)//" omp"
+
 #if defined(__LIBINT)
       flags = TRIM(flags)//" libint"
 #endif
@@ -132,6 +133,10 @@ CONTAINS
 
 #if defined(__QUIP)
       flags = TRIM(flags)//" quip"
+#endif
+
+#if defined(__DEEPMD)
+      flags = TRIM(flags)//" deepmd"
 #endif
 
 #if defined(__PW_CUDA)
@@ -378,3 +383,4 @@ CONTAINS
    END SUBROUTINE write_restart_header
 
 END MODULE cp2k_info
+

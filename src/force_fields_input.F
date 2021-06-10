@@ -65,7 +65,7 @@ MODULE force_fields_input
         b4_type, bm_type, do_potential_single_allocation, ea_type, eam_pot_type, ft_pot_type, &
         ft_type, ftd_type, gal_type, gp_type, gw_type, ip_type, ipbv_pot_type, lj_charmm_type, &
         no_potential_single_allocation, pair_potential_p_type, pair_potential_reallocate, &
-        potential_single_allocation, quip_type, siepmann_type, tersoff_type, wl_type
+        potential_single_allocation, quip_type, siepmann_type, tersoff_type, wl_type, deepmd_type
    USE shell_potential_types,           ONLY: shell_p_create,&
                                               shell_p_type
    USE string_utilities,                ONLY: uppercase
@@ -99,7 +99,7 @@ CONTAINS
       TYPE(cp_para_env_type), POINTER                    :: para_env
 
       INTEGER :: nb4, nbends, nbm, nbmhft, nbmhftd, nbonds, nchg, neam, ngal, ngd, ngp, nimpr, &
-         nipbv, nlj, nopbend, nquip, nshell, nsiepmann, ntersoff, ntors, ntot, nubs, nwl
+         nipbv, nlj, nopbend, nquip, nshell, nsiepmann, ntersoff, ntors, ntot, nubs, nwl, ndeepmd
       LOGICAL                                            :: explicit, unique_spline
       REAL(KIND=dp)                                      :: min_eps_spline_allowed
       TYPE(input_info_type), POINTER                     :: inp_info
@@ -267,6 +267,15 @@ CONTAINS
             CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot + nquip, quip=.TRUE.)
             CALL read_quip_section(inp_info%nonbonded, tmp_section2, ntot)
          END IF
+
+         tmp_section2 => section_vals_get_subs_vals(tmp_section, "deepmd")
+         CALL section_vals_get(tmp_section2, explicit=explicit, n_repetition=ndeepmd)
+         ntot = nlj+nwl+neam+ngd+nipbv+nbmhft+nbmhftd+nb4+nbm+ngp+ntersoff+nsiepmann+nquip
+         IF (explicit) THEN
+            CALL pair_potential_reallocate(inp_info%nonbonded, 1, ntot+ndeepmd, deepmd=.TRUE.)
+            CALL read_deepmd_section(inp_info%nonbonded, tmp_section2, ntot)
+         END IF
+
       END IF
 
       tmp_section => section_vals_get_subs_vals(ff_section, "NONBONDED14")
@@ -601,6 +610,42 @@ CONTAINS
          nonbonded%pot(start + isec)%pot%rcutsq = nonbonded%pot(start + isec)%pot%set(1)%eam%acutal**2
       END DO
    END SUBROUTINE read_eam_section
+
+! **************************************************************************************************
+!> \brief Reads the DEEPMD section
+!> \param nonbonded ...
+!> \param section ...
+!> \param start ...
+!> \author teo
+! **************************************************************************************************
+   SUBROUTINE read_deepmd_section(nonbonded, section, start)
+      TYPE(pair_potential_p_type), POINTER               :: nonbonded
+      TYPE(section_vals_type), POINTER                   :: section
+      INTEGER, INTENT(IN)                                :: start
+
+      CHARACTER(len=*), PARAMETER :: routineN = 'read_deepmd_section', &
+         routineP = moduleN//':'//routineN
+
+      CHARACTER(LEN=default_string_length), &
+         DIMENSION(:), POINTER                           :: atm_names
+      INTEGER                                            :: isec, n_items
+
+      CALL section_vals_get(section, n_repetition=n_items)
+      DO isec = 1, n_items
+         CALL section_vals_val_get(section, "ATOMS", i_rep_section=isec, c_vals=atm_names)
+
+         nonbonded%pot(start+isec)%pot%type = deepmd_type
+         nonbonded%pot(start+isec)%pot%at1 = atm_names(1)
+         nonbonded%pot(start+isec)%pot%at2 = atm_names(2)
+         CALL uppercase(nonbonded%pot(start+isec)%pot%at1)
+         CALL uppercase(nonbonded%pot(start+isec)%pot%at2)
+         CALL section_vals_val_get(section, "POT_FILE_NAME", i_rep_section=isec, &
+                                   c_val=nonbonded%pot(start+isec)%pot%set(1)%deepmd%deepmd_file_name)
+         CALL section_vals_val_get(section, "ATOM_DEEPMD_TYPE", i_rep_section=isec, &
+                                   i_val=nonbonded%pot(start+isec)%pot%set(1)%deepmd%atom_deepmd_type)
+         nonbonded%pot(start+isec)%pot%rcutsq = 0.0_dp
+      END DO
+   END SUBROUTINE read_deepmd_section
 
 ! **************************************************************************************************
 !> \brief Reads the QUIP section
